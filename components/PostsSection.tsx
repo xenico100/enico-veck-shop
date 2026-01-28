@@ -83,7 +83,7 @@ export default function PostsSection({
         <div className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-pink-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">
                 Community
               </p>
               <h2 className="text-3xl font-semibold text-white">
@@ -101,7 +101,7 @@ export default function PostsSection({
                 </div>
                 <button
                   onClick={() => setIsOpen(true)}
-                  className="rounded-full bg-pink-500 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-pink-500/30 transition hover:-translate-y-0.5 hover:bg-pink-400"
+                  className="rounded-full border border-white/30 bg-white/10 px-6 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20"
                 >
                   글쓰기
                 </button>
@@ -111,7 +111,7 @@ export default function PostsSection({
                 <span>글쓰기는 로그인 후 가능합니다.</span>
                 <Link
                   href="/login"
-                  className="text-pink-300 underline underline-offset-4 transition hover:text-pink-200"
+                  className="text-white underline underline-offset-4 transition hover:text-neutral-300"
                 >
                   로그인하러 가기
                 </Link>
@@ -129,7 +129,7 @@ export default function PostsSection({
             posts.map((post) => (
               <article
                 key={post.id}
-                className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-black/30 transition hover:-translate-y-1 hover:border-pink-400/40"
+                className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-black/30 transition hover:-translate-y-1 hover:border-white/40"
               >
                 <div className="space-y-3">
                   <div className="text-xs uppercase tracking-[0.25em] text-neutral-500">
@@ -155,13 +155,14 @@ export default function PostsSection({
           aria-modal="true"
         >
           <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-neutral-950 p-8 shadow-2xl">
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <h3 className="text-lg font-semibold text-white">새 글 작성</h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-sm text-neutral-400 transition hover:text-white"
+                aria-label="게시글 작성 닫기"
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 text-[10px] text-neutral-400 transition hover:border-white/60 hover:text-white"
               >
-                닫기
+                ✕
               </button>
             </div>
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -172,7 +173,7 @@ export default function PostsSection({
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-pink-400/60 focus:outline-none focus:ring-2 focus:ring-pink-400/30"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
                   placeholder="제목을 입력해 주세요."
                   maxLength={80}
                 />
@@ -184,7 +185,7 @@ export default function PostsSection({
                 <textarea
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
-                  className="min-h-[140px] w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-pink-400/60 focus:outline-none focus:ring-2 focus:ring-pink-400/30"
+                  className="min-h-[140px] w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
                   placeholder="작업 후기를 남겨주세요."
                   maxLength={1000}
                 />
@@ -204,7 +205,7 @@ export default function PostsSection({
                   className={cn(
                     'rounded-full px-6 py-2 text-sm font-semibold text-white transition',
                     {
-                      'bg-pink-500 shadow-lg shadow-pink-500/30 hover:-translate-y-0.5 hover:bg-pink-400':
+                      'border border-white/30 bg-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20':
                         canSubmit && !isSubmitting,
                       'cursor-not-allowed bg-neutral-700 text-neutral-300':
                         !canSubmit || isSubmitting

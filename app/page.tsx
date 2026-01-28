@@ -20,13 +20,14 @@ export default async function HomePage() {
   let studioPosts:
     | Array<{
         id: string;
-        title: string;
-        content: string;
-        image_url: string;
-        created_at: string;
-        user_id: string;
-      }>
+      title: string;
+      content: string;
+        image_url: string | null;
+      created_at: string;
+      user_id: string;
+    }>
     | null = null;
+  let isAdmin = false;
 
   if (isSupabaseConfigured) {
     const supabase = createClient();
@@ -40,6 +41,13 @@ export default async function HomePage() {
       .select('id,title,content,created_at,user_id')
       .order('created_at', { ascending: false });
     posts = data as typeof posts;
+
+    if (authUser?.id) {
+      const { data: adminCheck } = await supabase.rpc('is_admin', {
+        uid: authUser.id
+      });
+      isAdmin = Boolean(adminCheck);
+    }
 
     const { data: studioData } = await supabase
       .from('studio_posts' as never)
@@ -55,49 +63,37 @@ export default async function HomePage() {
           ================================================================== */}
       <section 
         id="home" 
-        className="s-home target-section" 
-        style={{
-            height: '100vh', 
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            position: 'relative', 
-            overflow: 'hidden'
-        }}
+        className="s-home target-section relative flex h-screen flex-col items-center justify-center overflow-hidden bg-black"
       >
-        <div className="shadow-overlay" style={{zIndex:1, position:'absolute', inset:0, background:'rgba(0,0,0,0.4)'}}></div>
+        <div className="shadow-overlay absolute inset-0 z-[1] bg-black/70"></div>
         <video 
             autoPlay muted loop playsInline id="bg-video" 
-            style={{
-                position: 'absolute', top: '50%', left: '50%', width: '100vw', height: '100vh', 
-                objectFit: 'cover', transform: 'translate(-50%, -50%)', zIndex: 0
-            }}
+            className="absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 object-cover grayscale"
         >
             <source src="/images/hero-bg.mp4" type="video/mp4" />
         </video>
 
-        <div className="home-content" style={{zIndex: 2, width: '100%', position: 'relative', padding: '0 20px', textAlign: 'center'}}>
+        <div className="home-content relative z-[2] w-full px-5 text-center">
             
-            <div style={{maxWidth: '380px', margin: '0 auto 25px'}}>
-                <Image src="/images/main_word.png" alt="ZEUS STUDIO" width={800} height={300} style={{width: '100%', height: 'auto', opacity: '1'}} priority />
+            <div className="mx-auto mb-6 max-w-[360px]">
+                <Image src="/images/main_word.png" alt="ZEUS STUDIO" width={800} height={300} className="h-auto w-full grayscale" priority />
             </div>
 
-            <h3 style={{fontSize: '12px', color: 'rgba(255,255,255,0.9)', fontWeight: '400', letterSpacing: '3px', textTransform: 'uppercase', lineHeight: '1.8'}}>
+            <h3 className="text-xs font-light uppercase tracking-[0.35em] text-white/80">
                 Recording Studio / Localization <br /> Sound Production & Mixing / Dubbing
             </h3>
         </div> 
         
-        <div style={{position: 'absolute', bottom: '30px', left: '0', width: '100%', textAlign: 'center', zIndex: 3, color: 'rgba(255,255,255,0.6)', fontSize: '11px', lineHeight: '1.6', letterSpacing: '0.5px', fontFamily: 'sans-serif'}}>
-            <p style={{margin: 0}}>서울 강서구 양천로 551-17 4층 <br/> 4F, 551-17, Yangcheon-ro, Gangseo-gu, Seoul, Republic of Korea</p>
-            <p style={{margin: '5px 0'}}>Contact Email: 07@zeus-studio.net</p>
-            <p style={{margin: 0, opacity: 0.8}}>Copyrights©ZEUS STUDIO All rights reserved</p>
+        <div className="absolute bottom-8 left-0 z-[3] w-full text-center text-[11px] uppercase tracking-[0.2em] text-white/50">
+            <p className="m-0">서울 강서구 양천로 551-17 4층 <br/> 4F, 551-17, Yangcheon-ro, Gangseo-gu, Seoul, Republic of Korea</p>
+            <p className="my-2">Contact Email: 07@zeus-studio.net</p>
+            <p className="m-0 text-white/40">Copyrights©ZEUS STUDIO All rights reserved</p>
         </div>
 
-        <ul className="home-social" style={{position: 'absolute', top: '50%', right: '30px', transform: 'translateY(-50%)', listStyle: 'none', zIndex: 3, display: 'flex', flexDirection: 'column', gap: '20px'}}>
-            <li><a href="#" style={{color: 'white', fontSize: '18px'}}><i className="fa fa-facebook-square"></i></a></li>
-            <li><a href="#" style={{color: 'white', fontSize: '18px'}}><i className="fa fa-twitter"></i></a></li>
-            <li><a href="#" style={{color: 'white', fontSize: '18px'}}><i className="fa fa-instagram"></i></a></li>
+        <ul className="home-social absolute right-6 top-1/2 z-[3] flex -translate-y-1/2 flex-col gap-5 text-white/70">
+            <li><a href="#" className="text-lg text-white/70 transition hover:text-white"><i className="fa fa-facebook-square"></i></a></li>
+            <li><a href="#" className="text-lg text-white/70 transition hover:text-white"><i className="fa fa-twitter"></i></a></li>
+            <li><a href="#" className="text-lg text-white/70 transition hover:text-white"><i className="fa fa-instagram"></i></a></li>
         </ul> 
       </section>
 
@@ -105,31 +101,31 @@ export default async function HomePage() {
       {/* ==================================================================
           [2. ABOUT US 섹션] - ID를 'about'으로 변경!
           ================================================================== */}
-      <section id='about' className="s-about" style={{padding: '150px 20px', backgroundColor: '#000'}}>
+      <section id='about' className="s-about bg-black px-5 py-32">
         
-        <div className="row section-header" style={{maxWidth: '1200px', margin: '0 auto 80px', textAlign: 'center'}}>
-            <h1 style={{fontSize: 'clamp(2.5rem, 4vw, 3.5rem)', color: 'white', fontWeight: '700', margin: 0}}>About</h1>
+        <div className="row section-header mx-auto mb-20 max-w-5xl text-center">
+            <h1 className="text-3xl font-semibold text-white md:text-4xl">About</h1>
         </div> 
 
-        <div className="row" style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '60px'}}>
-            <div style={{flex: '1 1 500px', color: '#ccc', fontSize: '15px', lineHeight: '2', textAlign: 'center', wordBreak: 'keep-all'}}>
-                <p style={{marginBottom: '20px'}}>
+        <div className="row mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-12">
+            <div className="flex-1 basis-[500px] text-center text-sm leading-8 text-neutral-300">
+                <p className="mb-5">
                   제우스 스튜디오는 <br/> 전문적인 오디오 작업과 다양한 서비스로 <br/> 최고의 서비스를 제공하기 위해 노력하고 있습니다.
                 </p>
-                <p style={{marginBottom: '20px'}}>
+                <p className="mb-5">
                   제우스 스튜디오의 전문적인 제작자들과 책임감 있는 매니저들이 <br/> 콘텐츠에 매우 적합한 결과물과 철저한 서비스를 약속드립니다.
                 </p>
-                <p style={{marginBottom: '40px'}}>
+                <p className="mb-10">
                   항상 최선을 다하여 최고의 퀄리티를 낼 수 있도록 노력하겠습니다. <br/> 언제나 여러분의 소중한 작품에 최선을 다하겠습니다.
                 </p>
-                <div style={{fontSize: '14px', color: '#fff', fontWeight: '500'}}>
-                    <p style={{marginBottom: '15px'}}>ZEUS STUDIO provides high-quality sound works and the best <br/> services on sound production & mixing, dubbing etc.</p>
-                    <p style={{marginBottom: '15px'}}>We promise that our professional sound engineers and reliable <br/> project managers do our best to support your project and <br/> expand your content business with outstanding sound works.</p>
+                <div className="text-xs font-medium uppercase tracking-[0.2em] text-white/80">
+                    <p className="mb-4">ZEUS STUDIO provides high-quality sound works and the best <br/> services on sound production & mixing, dubbing etc.</p>
+                    <p className="mb-4">We promise that our professional sound engineers and reliable <br/> project managers do our best to support your project and <br/> expand your content business with outstanding sound works.</p>
                     <p>ZEUS STUDIO will be your capable production partner of your <br/> future business.</p>
                 </div>
             </div>
-            <div style={{flex: '1 1 400px', display: 'flex', justifyContent: 'center'}}>
-                 <Image src="/images/studio/astudiomain.png" width={600} height={600} alt="Mixing Console" style={{width: '100%', maxWidth: '500px', height: 'auto', borderRadius: '0', boxShadow: '0 10px 40px rgba(0,0,0,0.7)'}} />
+            <div className="flex flex-1 basis-[400px] justify-center">
+                 <Image src="/images/studio/astudiomain.png" width={600} height={600} alt="Mixing Console" className="h-auto w-full max-w-[500px] grayscale shadow-[0_20px_60px_rgba(0,0,0,0.6)]" />
             </div>
         </div> 
       </section> 
@@ -138,26 +134,26 @@ export default async function HomePage() {
       {/* ==================================================================
           [3. SERVICES 섹션 (NEW!)] - 사진 9.18.42.png 완벽 구현
           ================================================================== */}
-      <section id='services' className="s-services" style={{padding: '150px 20px', backgroundColor: '#050505'}}>
+      <section id='services' className="s-services bg-neutral-950 px-5 py-32">
         
-        <div className="row section-header" style={{maxWidth: '1200px', margin: '0 auto 60px', textAlign: 'center'}}>
-            <h1 style={{fontSize: 'clamp(2.5rem, 4vw, 3.5rem)', color: 'white', fontWeight: '700', margin: 0}}>Services</h1>
+        <div className="row section-header mx-auto mb-16 max-w-5xl text-center">
+            <h1 className="text-3xl font-semibold text-white md:text-4xl">Services</h1>
         </div>
 
-        <div style={{maxWidth: '1000px', margin: '0 auto', textAlign: 'center', color: '#ccc', lineHeight: '2', fontSize: '15px', wordBreak: 'keep-all'}}>
-            <p style={{marginBottom: '10px'}}>
+        <div className="mx-auto max-w-4xl text-center text-sm leading-8 text-neutral-300">
+            <p className="mb-3">
                 제우스 스튜디오는 한국어는 물론 영어, 중국어, 일본어, 프랑스어, 스페인어 등 전세계
             </p>
-            <p style={{marginBottom: '10px', color: '#fff', fontWeight: 'bold'}}>
+            <p className="mb-3 font-semibold text-white">
                 30개국 언어의 외국어 번역 및 성우 더빙 서비스를 제공합니다.
             </p>
-            <p style={{marginBottom: '40px'}}>
+            <p className="mb-10">
                 애니메이션, 광고, 게임, 오디오 북 등 각 종 콘텐츠에 맞는 성우를 추천하여 <br/>
                 최상의 퀄리티를 보장합니다.
             </p>
 
-            <div style={{fontSize: '14px', color: '#999', marginBottom: '60px', fontStyle: 'italic'}}>
-                <p style={{marginBottom: '10px'}}>
+            <div className="mb-14 text-xs uppercase tracking-[0.2em] text-neutral-500">
+                <p className="mb-3">
                     Zeus Studio provides global translation and voice dubbing in 30 different languages <br/>
                     including Korean, English, Chinese, Japanese, French, Spanish etc.
                 </p>
@@ -168,13 +164,13 @@ export default async function HomePage() {
             </div>
 
             {/* 사진: 녹음 부스 이미지 (studio2.jpg) 사용 */}
-            <div style={{maxWidth: '800px', margin: '0 auto'}}>
+            <div className="mx-auto max-w-3xl">
                 <Image 
                     src="/images/studio/studio2.jpg" 
                     width={800} 
                     height={500} 
                     alt="Recording Services" 
-                    style={{width: '100%', height: 'auto', borderRadius: '4px', opacity: '0.9'}}
+                    className="h-auto w-full rounded-md grayscale"
                 />
             </div>
         </div>
@@ -184,13 +180,17 @@ export default async function HomePage() {
       {/* ==================================================================
           [4. STUDIO 섹션]
           ================================================================== */}
-      <section id='portfolio' className="s-portfolio" style={{padding: '150px 20px', backgroundColor: '#000'}}>
-        <div style={{maxWidth: '1000px', margin: '0 auto 80px', textAlign: 'center'}}>
-            <h3 style={{color: '#cc005f', fontSize: '14px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px'}}>Studio</h3>
-            <h1 style={{fontSize: 'clamp(2rem, 4vw, 3.5rem)', color: 'white', fontWeight: '700'}}>Check Out Our Works.</h1>
+      <section id='portfolio' className="s-portfolio bg-black px-5 py-32">
+        <div className="mx-auto mb-16 max-w-4xl text-center">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">Studio</h3>
+            <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">Check Out Our Works.</h1>
         </div>
 
-        <StudioPostsGrid posts={studioPosts ?? []} />
+        <StudioPostsGrid
+          posts={studioPosts ?? []}
+          currentUserId={user?.id ?? null}
+          isAdmin={isAdmin}
+        />
       </section>
 
       <PostsSection
@@ -206,7 +206,7 @@ export default async function HomePage() {
       <section id="contact" className="s-contact" style={{padding: '100px 20px 40px', backgroundColor: '#0f0f0f'}}>
         
         <div style={{textAlign: 'center', marginBottom: '80px'}}>
-            <h3 style={{color: '#cc005f', fontSize: '14px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px'}}>Contact Us</h3>
+            <h3 style={{color: '#b3b3b3', fontSize: '14px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px'}}>Contact Us</h3>
             <h1 style={{fontSize: 'clamp(2.5rem, 4vw, 4rem)', color: 'white', fontWeight: '700'}}>Get In Touch.</h1>
         </div>
 

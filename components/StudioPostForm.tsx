@@ -20,7 +20,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-pink-500 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-pink-500/30 transition hover:-translate-y-0.5 hover:bg-pink-400 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-300"
+      className="rounded-full border border-white/30 bg-white/10 px-6 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:border-white/60 hover:bg-white/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-neutral-800 disabled:text-neutral-400"
     >
       {pending ? '작성 중...' : '게시물 작성'}
     </button>
@@ -65,7 +65,7 @@ export default function StudioPostForm() {
           name="title"
           maxLength={80}
           required
-          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-pink-400/60 focus:outline-none focus:ring-2 focus:ring-pink-400/30"
+          className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
           placeholder="스튜디오 게시물 제목을 입력하세요."
         />
       </div>
@@ -78,7 +78,7 @@ export default function StudioPostForm() {
           required
           maxLength={2000}
           rows={6}
-          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-pink-400/60 focus:outline-none focus:ring-2 focus:ring-pink-400/30"
+          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
           placeholder="작업 스토리와 소개를 작성해 주세요."
         />
       </div>
@@ -91,7 +91,7 @@ export default function StudioPostForm() {
           type="file"
           accept="image/*"
           required
-          className="block w-full cursor-pointer rounded-xl border border-dashed border-white/20 bg-black/20 px-4 py-3 text-sm text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-pink-500/80 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-pink-400"
+          className="block w-full cursor-pointer rounded-xl border border-dashed border-white/20 bg-black/20 px-4 py-3 text-sm text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-white/80 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-black hover:file:bg-white"
         />
         <p className="text-xs text-neutral-500">
           최대 5MB, JPG/PNG 등 이미지 파일만 업로드 가능합니다.

@@ -61,8 +61,8 @@ export default function Header() {
           </ul>
 
           {/* 🔥 로그인 버튼 추가된 부분! */}
-          <div className="header-auth-section" style={{ margin: '30px 0', textAlign: 'center' }}>
-             <p style={{fontSize: '12px', color: '#555', marginBottom: '10px', letterSpacing: '2px'}}>MEMBER ACCESS</p>
+          <div className="header-auth-section flex flex-col items-center justify-center gap-2 text-center">
+             <p className="text-[11px] uppercase tracking-[0.35em] text-neutral-500">Member Access</p>
              <AuthButton />
           </div>
 
