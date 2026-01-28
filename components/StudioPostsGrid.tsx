@@ -7,7 +7,7 @@ type StudioPost = {
   id: string;
   title: string;
   content: string;
-  image_url: string;
+  image_url: string | null;
   created_at: string;
 };
 
@@ -55,18 +55,24 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
             <button
               key={post.id}
               onClick={() => setSelected(post)}
-              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.4)] transition hover:-translate-y-1 hover:border-pink-400/40"
+              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.4)] transition hover:-translate-y-1 hover:border-white/40"
             >
               <div className="relative h-56 w-full overflow-hidden">
-                <img
-                  src={post.image_url}
-                  alt={post.title}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
+                {post.image_url ? (
+                  <img
+                    src={post.image_url}
+                    alt={post.title}
+                    className="h-full w-full object-cover grayscale transition duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-xs uppercase tracking-[0.3em] text-neutral-500">
+                    No Image
+                  </div>
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-2 p-5">
-                <p className="text-xs uppercase tracking-[0.3em] text-pink-300/70">
+                <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
                   {formatDate(post.created_at)}
                 </p>
                 <h3 className="text-lg font-semibold text-white">
@@ -108,7 +114,7 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-pink-300/70">
+                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
                     {formatDate(selected.created_at)}
                   </p>
                   <h3 className="text-lg font-semibold text-white">
@@ -117,18 +123,24 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
                 </div>
                 <button
                   onClick={close}
-                  className="rounded-full border border-white/20 px-3 py-1 text-xs text-neutral-300 transition hover:border-pink-400/60 hover:text-white"
+                  className="rounded-full border border-white/20 px-3 py-1 text-xs text-neutral-300 transition hover:border-white/60 hover:text-white"
                 >
                   닫기
                 </button>
               </div>
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-6">
                 <div className="overflow-hidden rounded-2xl border border-white/10">
-                  <img
-                    src={selected.image_url}
-                    alt={selected.title}
-                    className="h-full w-full object-cover"
-                  />
+                  {selected.image_url ? (
+                    <img
+                      src={selected.image_url}
+                      alt={selected.title}
+                      className="h-full w-full object-cover grayscale"
+                    />
+                  ) : (
+                    <div className="flex h-64 w-full items-center justify-center bg-neutral-900 text-xs uppercase tracking-[0.3em] text-neutral-500">
+                      No Image
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm leading-relaxed text-neutral-200">
                   {selected.content}

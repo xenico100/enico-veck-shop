@@ -39,35 +39,37 @@ export default function AuthButton({ onMyPageClick }: { onMyPageClick?: () => vo
   };
 
   return (
-    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+    <div className="mt-6 flex flex-col items-center gap-3">
       {!supabase ? (
         <button
           disabled
-          style={{ padding: '12px 30px', background: '#444', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'not-allowed' }}
+          className="rounded-full border border-white/10 bg-neutral-800 px-8 py-3 text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400"
         >
           LOGIN
         </button>
       ) : user ? (
         <>
-          <p style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>{user.email}님</p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {/* 내 정보 버튼 추가 */}
+          <p className="text-xs text-neutral-400">{user.email}님</p>
+          <div className="flex gap-3">
             <button
-              onClick={onMyPageClick}
-              style={{ padding: '8px 15px', border: '1px solid #fff', background: 'transparent', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
+              onClick={onMyPageClick ?? (() => router.push('/account'))}
+              className="rounded-full border border-white/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:border-white/60"
             >
               MY PAGE
             </button>
             <button
               onClick={handleSignOut}
-              style={{ padding: '8px 15px', border: '1px solid #cc005f', background: 'transparent', color: '#cc005f', fontSize: '12px', cursor: 'pointer' }}
+              className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400 transition hover:border-white/60 hover:text-white"
             >
               LOGOUT
             </button>
           </div>
         </>
       ) : (
-        <button onClick={handleSignIn} style={{ padding: '12px 30px', background: '#cc005f', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+        <button
+          onClick={handleSignIn}
+          className="rounded-full border border-white/30 bg-white/10 px-8 py-3 text-xs font-semibold uppercase tracking-[0.25em] text-white transition hover:border-white/60 hover:bg-white/20"
+        >
           LOGIN
         </button>
       )}

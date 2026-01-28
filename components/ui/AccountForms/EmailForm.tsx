@@ -52,7 +52,7 @@ export default function EmailForm({
           <input
             type="text"
             name="newEmail"
-            className="w-1/2 p-3 rounded-md bg-zinc-800"
+            className="w-full rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10 sm:w-1/2"
             defaultValue={userEmail ?? ''}
             placeholder="Your email"
             maxLength={64}
