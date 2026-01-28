@@ -20,8 +20,19 @@ module.exports = {
       }
     },
     extend: {
+      colors: {
+        'brand-black': '#000000',
+        'brand-white': '#ffffff',
+        'brand-charcoal': '#0c0c0c',
+        'brand-ink': '#151515',
+        'brand-steel': '#a5a5a5',
+        'brand-mist': '#b7b7b7',
+        'brand-smoke': '#8e8e8e'
+      },
       fontFamily: {
-        sans: ['var(--font-sans)', ...fontFamily.sans]
+        sans: ['montserrat-regular', ...fontFamily.sans],
+        display: ['montserrat-bold', ...fontFamily.sans],
+        serif: ['librebaskerville-regular', ...fontFamily.serif]
       },
       keyframes: {
         'accordion-down': {

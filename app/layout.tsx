@@ -9,8 +9,7 @@ import Header from '@/components/Header'; // 👈 새로 만든 헤더 불러오
 import "./styles/vendor.css";
 import "./styles/base.css";
 import "./styles/fonts.css";
-import './styles/main.css';
-import './styles/tailwind.css';
+import './globals.css';
 
 // ... (Metadata 부분은 그대로) ...
 
@@ -23,7 +22,10 @@ export default async function RootLayout({ children }: PropsWithChildren) {
         {/* 스크롤 부드럽게 만들기 (CSS 한 줄로 해결!) */}
         <style>{`html { scroll-behavior: smooth; }`}</style>
       </head>
-      <body id="top">
+      <body
+        id="top"
+        className="bg-brand-black text-brand-white font-serif antialiased"
+      >
         
         {/* 리액트로 만든 새 헤더 장착! */}
         <Header />
