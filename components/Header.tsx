@@ -1,24 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import cn from 'classnames';
-import AuthButton from './AuthButton';
+import { usePathname } from 'next/navigation';
+import MenuOverlay from './MenuOverlay';
 
-// 수정 파일: components/Header.tsx - 모바일 메뉴 토글/드롭다운 레이아웃 복원 목적
+type NavItem = { label: string; href: string };
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
-  const navItems = [
+  const pathname = usePathname();
+
+  const navItems: NavItem[] = [
     { label: 'Home', href: '/#home' },
     { label: 'About', href: '/#about' },
     { label: 'Services', href: '/#services' },
     { label: 'Studio', href: '/#portfolio' },
     { label: 'Posts', href: '/#posts' },
-    { label: 'Contact', href: '/#contact' }
+    { label: 'Contact', href: '/#contact' },
   ];
 
   const toggleMenu = () => setIsOpen((prev) => !prev);
   const closeMenu = () => setIsOpen(false);
+
+  // route change 시 자동 닫힘
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  // 메뉴 열릴 때 body 스크롤 잠금
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur">
@@ -29,53 +47,44 @@ export default function Header() {
             Zeus Studio
           </span>
         </Link>
-        {/* 데스크탑 메뉴는 항상 노출, 모바일은 버튼으로 토글 */}
-        <nav className="hidden items-center gap-6 text-xs uppercase tracking-[0.3em] text-white/70 lg:flex">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition hover:text-white">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+
+        {/* 데스크탑: 상단 링크 노출 + 메뉴 버튼 */}
+        <div className="hidden items-center gap-6 lg:flex">
+          <nav className="flex items-center gap-6 text-xs uppercase tracking-[0.3em] text-white/70">
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className="transition hover:text-white">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <button
+            type="button"
+            onClick={toggleMenu}
+            aria-expanded={isOpen}
+            aria-controls="menu-overlay"
+            className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:border-white/60"
+          >
+            {isOpen ? 'Close' : 'Menu'}
+          </button>
+        </div>
+
+        {/* 모바일: 메뉴 버튼만 */}
         <div className="flex items-center gap-3 lg:hidden">
           <button
             type="button"
             onClick={toggleMenu}
             aria-expanded={isOpen}
-            aria-controls="mobile-menu"
+            aria-controls="menu-overlay"
             className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:border-white/60"
           >
-            Menu
+            {isOpen ? 'Close' : 'Menu'}
           </button>
         </div>
       </div>
-      {/* 모바일 드롭다운: position/opacity/z-index 복원 */}
-      <div
-        id="mobile-menu"
-        className={cn(
-          'absolute right-4 top-full mt-3 w-[220px] rounded-2xl border border-white/15 bg-black/95 px-4 py-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition lg:hidden',
-          isOpen
-            ? 'opacity-100 translate-y-0'
-            : 'pointer-events-none opacity-0 -translate-y-2'
-        )}
-      >
-        <div className="flex flex-col gap-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={closeMenu}
-              className="text-xs uppercase tracking-[0.3em] text-white/70 transition hover:text-white"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-        <div className="mt-6 border-t border-white/10 pt-4">
-          <AuthButton onMyPageClick={closeMenu} />
-        </div>
-      </div>
 
+      {/* 오버레이 메뉴 (모바일/데스크탑 공통) */}
+      <MenuOverlay id="menu-overlay" isOpen={isOpen} navItems={navItems} onClose={closeMenu} />
     </header>
   );
 }

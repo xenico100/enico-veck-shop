@@ -2,13 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 수정 파일: app/styles/tailwind.css - html/body overflow-x 숨김으로 가로 오버플로우 방지 */
 @layer base {
   html {
     font-size: 18px;
+    @apply overflow-x-hidden;
   }
 
   body {
-    @apply text-[17px] leading-relaxed text-neutral-200 antialiased;
+    @apply overflow-x-hidden text-[17px] leading-relaxed text-neutral-200 antialiased;
   }
 
   h1,
