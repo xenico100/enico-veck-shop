@@ -1,6 +1,7 @@
 import CustomerPortalForm from '@/components/ui/AccountForms/CustomerPortalForm';
 import EmailForm from '@/components/ui/AccountForms/EmailForm';
 import NameForm from '@/components/ui/AccountForms/NameForm';
+import StudioPostForm from '@/components/StudioPostForm';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import {
@@ -37,6 +38,23 @@ export default async function Account() {
         <CustomerPortalForm subscription={subscription} />
         <NameForm userName={userDetails?.full_name ?? ''} />
         <EmailForm userEmail={user.email} />
+        <section className="mt-10">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-black via-neutral-950 to-black p-6">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-pink-400">
+                Studio
+              </p>
+              <h2 className="text-2xl font-semibold text-white">
+                게시물 작성
+              </h2>
+              <p className="text-sm text-neutral-300">
+                작업 스토리와 이미지를 등록하면 Studio 섹션에 바로
+                노출됩니다.
+              </p>
+            </div>
+            <StudioPostForm />
+          </div>
+        </section>
       </div>
     </section>
   );

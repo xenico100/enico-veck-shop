@@ -56,12 +56,15 @@ export default function Header() {
             <li><a href="#about" onClick={closeMenu}>About</a></li>
             <li><a href="#services" onClick={closeMenu}>Services</a></li>
             <li><a href="#portfolio" onClick={closeMenu}>Studio</a></li>
+            <li><a href="#posts" onClick={closeMenu}>Posts</a></li>
             <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
           </ul>
 
           {/* 🔥 로그인 버튼 추가된 부분! */}
-          <div className="header-auth-section" style={{ margin: '30px 0', textAlign: 'center' }}>
-             <p style={{fontSize: '12px', color: '#555', marginBottom: '10px', letterSpacing: '2px'}}>MEMBER ACCESS</p>
+          <div className="header-auth-section mt-6 text-center">
+             <p className="mb-3 text-xs uppercase tracking-[0.4em] text-white/40">
+               Member Access
+             </p>
              <AuthButton />
           </div>
 

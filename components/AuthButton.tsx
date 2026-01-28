@@ -3,15 +3,22 @@
 
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // props로 온 클릭 이벤트를 받아서 실행하게 함
 export default function AuthButton({ onMyPageClick }: { onMyPageClick?: () => void }) {
   const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
+  const isSupabaseConfigured =
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const supabase = useMemo(
+    () => (isSupabaseConfigured ? createClient() : null),
+    [isSupabaseConfigured]
+  );
   const router = useRouter();
 
   useEffect(() => {
+    if (!supabase) return;
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -22,37 +29,51 @@ export default function AuthButton({ onMyPageClick }: { onMyPageClick?: () => vo
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const handleSignIn = () => router.push('/login');
+  const handleMyPage = () =>
+    onMyPageClick ? onMyPageClick() : router.push('/mypage');
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     router.refresh();
   };
 
   return (
-    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-      {user ? (
+    <div className="mt-4 flex flex-col items-center gap-3">
+      {!supabase ? (
+        <button
+          disabled
+          className="rounded-full border border-white/10 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/40"
+        >
+          LOGIN
+        </button>
+      ) : user ? (
         <>
-          <p style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>{user.email}님</p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {/* 내 정보 버튼 추가 */}
+          <p className="text-xs tracking-[0.2em] text-white/50">
+            {user.email}님
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={onMyPageClick}
-              style={{ padding: '8px 15px', border: '1px solid #fff', background: 'transparent', color: '#fff', fontSize: '12px', cursor: 'pointer' }}
+              onClick={handleMyPage}
+              className="border border-white/30 px-3 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:border-white hover:text-white/80"
             >
-              MY PAGE
+              My Page
             </button>
             <button
               onClick={handleSignOut}
-              style={{ padding: '8px 15px', border: '1px solid #cc005f', background: 'transparent', color: '#cc005f', fontSize: '12px', cursor: 'pointer' }}
+              className="border border-white/20 px-3 py-2 text-xs uppercase tracking-[0.3em] text-white/70 transition hover:border-white hover:text-white"
             >
-              LOGOUT
+              Logout
             </button>
           </div>
         </>
       ) : (
-        <button onClick={handleSignIn} style={{ padding: '12px 30px', background: '#cc005f', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
+        <button
+          onClick={handleSignIn}
+          className="border border-white/50 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white transition hover:border-white hover:text-white/80"
+        >
           LOGIN
         </button>
       )}
