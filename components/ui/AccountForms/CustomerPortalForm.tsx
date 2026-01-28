@@ -46,21 +46,21 @@ export default function CustomerPortalForm({ subscription }: Props) {
 
   return (
     <Card
-      title="Your Plan"
+      title="이용 플랜"
       description={
         subscription
-          ? `You are currently on the ${subscription?.prices?.products?.name} plan.`
-          : 'You are not currently subscribed to any plan.'
+          ? `현재 ${subscription?.prices?.products?.name} 플랜을 이용 중입니다.`
+          : '현재 이용 중인 플랜이 없습니다.'
       }
       footer={
         <div className="flex flex-col items-start justify-between sm:flex-row sm:items-center">
-          <p className="pb-4 sm:pb-0">Manage your subscription on Stripe.</p>
+          <p className="pb-4 sm:pb-0">Stripe에서 구독을 관리할 수 있습니다.</p>
           <Button
             variant="slim"
             onClick={handleStripePortalRequest}
             loading={isSubmitting}
           >
-            Open customer portal
+            고객 포털 열기
           </Button>
         </div>
       }
@@ -69,7 +69,7 @@ export default function CustomerPortalForm({ subscription }: Props) {
         {subscription ? (
           `${subscriptionPrice}/${subscription?.prices?.interval}`
         ) : (
-          <Link href="/">Choose your plan</Link>
+          <Link href="/">플랜 선택</Link>
         )}
       </div>
     </Card>

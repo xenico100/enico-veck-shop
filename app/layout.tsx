@@ -6,10 +6,6 @@ import { getURL } from '@/utils/helpers';
 import Header from '@/components/Header'; // 👈 새로 만든 헤더 불러오기
 
 /* 스타일 파일들 */
-import "./styles/vendor.css";
-import "./styles/base.css";
-import "./styles/fonts.css";
-import './styles/main.css';
 import './styles/tailwind.css';
 
 // ... (Metadata 부분은 그대로) ...

@@ -35,18 +35,6 @@ export async function createStudioPost(
     return { status: 'error', message: '제목과 내용을 모두 입력해 주세요.' };
   }
 
-  if (!(file instanceof File)) {
-    return { status: 'error', message: '이미지를 첨부해 주세요.' };
-  }
-
-  if (!file.type.startsWith('image/')) {
-    return { status: 'error', message: '이미지 파일만 업로드할 수 있습니다.' };
-  }
-
-  if (file.size > MAX_UPLOAD_SIZE) {
-    return { status: 'error', message: '이미지 파일은 5MB 이하만 가능합니다.' };
-  }
-
   const supabase = createClient();
   const {
     data: { user }
@@ -56,29 +44,42 @@ export async function createStudioPost(
     return { status: 'error', message: '로그인이 필요합니다.' };
   }
 
-  const fileExt = file.name.split('.').pop() ?? 'png';
-  const fileName = `${randomUUID()}.${fileExt}`;
-  const filePath = `${user.id}/${fileName}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let imageUrl: string | null = null;
 
-  const { error: uploadError } = await supabase.storage
-    .from('studio-posts')
-    .upload(filePath, buffer, { contentType: file.type, upsert: false });
+  if (file instanceof File && file.size > 0) {
+    if (!file.type.startsWith('image/')) {
+      return { status: 'error', message: '이미지 파일만 업로드할 수 있습니다.' };
+    }
 
-  if (uploadError) {
-    return { status: 'error', message: '이미지 업로드에 실패했습니다.' };
+    if (file.size > MAX_UPLOAD_SIZE) {
+      return { status: 'error', message: '이미지 파일은 5MB 이하만 가능합니다.' };
+    }
+
+    const fileExt = file.name.split('.').pop() ?? 'png';
+    const fileName = `${randomUUID()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const { error: uploadError } = await supabase.storage
+      .from('studio-posts')
+      .upload(filePath, buffer, { contentType: file.type, upsert: false });
+
+    if (uploadError) {
+      return { status: 'error', message: '이미지 업로드에 실패했습니다.' };
+    }
+
+    const { data: publicData } = supabase.storage
+      .from('studio-posts')
+      .getPublicUrl(filePath);
+    imageUrl = publicData.publicUrl;
   }
-
-  const { data: publicData } = supabase.storage
-    .from('studio-posts')
-    .getPublicUrl(filePath);
 
   const { error: insertError } = await (supabase as never)
     .from('studio_posts')
     .insert({
       title,
       content,
-      image_url: publicData.publicUrl,
+      image_url: imageUrl,
       user_id: user.id
     });
 
