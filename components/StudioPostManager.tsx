@@ -88,7 +88,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
 
   const emptyState = useMemo(
     () => (
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-sm text-neutral-400">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-base text-neutral-400">
         아직 작성한 Studio 게시물이 없습니다. 첫 작업을 기록해 보세요.
       </div>
     ),
@@ -98,11 +98,13 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-2">
-        <p className="text-xs uppercase tracking-[0.35em] text-neutral-400">
+        <p className="text-sm uppercase tracking-[0.35em] text-neutral-400">
           Studio
         </p>
-        <h3 className="text-2xl font-semibold text-white">내 게시물 관리</h3>
-        <p className="text-sm text-neutral-400">
+        <h3 className="text-2xl font-semibold text-white md:text-3xl">
+          내 게시물 관리
+        </h3>
+        <p className="text-base text-neutral-400">
           등록한 Studio 게시물을 수정하거나 삭제할 수 있습니다. 관리자도
           동일한 화면에서 관리할 수 있습니다.
         </p>
@@ -119,21 +121,21 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                  <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">
                     {formatDate(post.created_at)}
                   </p>
-                  <h4 className="text-lg font-semibold text-white">
+                  <h4 className="text-xl font-semibold text-white">
                     {post.title}
                   </h4>
                 </div>
                 <button
                   onClick={() => setActivePost(post)}
-                  className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:border-white/60"
+                  className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:border-white/60"
                 >
                   수정
                 </button>
               </div>
-              <p className="text-sm leading-relaxed text-neutral-300">
+              <p className="text-base leading-relaxed text-neutral-300">
                 {post.content}
               </p>
               <div className="flex items-center justify-between">
@@ -146,11 +148,11 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                   }}
                 >
                   <input type="hidden" name="postId" value={post.id} />
-                  <button className="text-xs uppercase tracking-[0.2em] text-neutral-400 transition hover:text-white">
+                  <button className="text-sm uppercase tracking-[0.2em] text-neutral-400 transition hover:text-white">
                     삭제
                   </button>
                 </form>
-                <span className="text-xs text-neutral-500">
+                <span className="text-sm text-neutral-500">
                   공개됨 · Studio 게시판
                 </span>
               </div>
@@ -178,16 +180,16 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
             <>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-neutral-400">
-                    Studio Post
+                  <p className="text-sm uppercase tracking-[0.35em] text-neutral-400">
+                    스튜디오 게시물
                   </p>
-                  <h3 className="mt-2 text-2xl font-semibold text-white">
+                  <h3 className="mt-2 text-2xl font-semibold text-white md:text-3xl">
                     게시물 수정
                   </h3>
                 </div>
                 <button
                   onClick={() => setActivePost(null)}
-                  className="text-xs uppercase tracking-[0.2em] text-neutral-400 transition hover:text-white"
+                  className="text-sm uppercase tracking-[0.2em] text-neutral-400 transition hover:text-white"
                 >
                   닫기
                 </button>
@@ -195,7 +197,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
               <form action={updateAction} className="mt-6 space-y-4">
                 <input type="hidden" name="postId" value={activePost.id} />
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                  <label className="text-sm uppercase tracking-[0.3em] text-neutral-400">
                     제목
                   </label>
                   <input
@@ -203,11 +205,11 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     maxLength={80}
                     required
                     defaultValue={activePost.title}
-                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white placeholder:text-neutral-600 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                  <label className="text-sm uppercase tracking-[0.3em] text-neutral-400">
                     내용
                   </label>
                   <textarea
@@ -216,30 +218,30 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     maxLength={2000}
                     rows={6}
                     defaultValue={activePost.content}
-                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-neutral-600 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10"
+                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white placeholder:text-neutral-600 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                  <label className="text-sm uppercase tracking-[0.3em] text-neutral-400">
                     이미지 변경 (선택)
                   </label>
                   <input
                     name="image"
                     type="file"
                     accept="image/*"
-                    className="block w-full cursor-pointer rounded-2xl border border-dashed border-white/20 bg-black/30 px-4 py-3 text-sm text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-white/80 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-black hover:file:bg-white"
+                    className="block w-full cursor-pointer rounded-2xl border border-dashed border-white/20 bg-black/30 px-4 py-3 text-base text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-white/80 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-white"
                   />
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-sm text-neutral-500">
                     기존 이미지를 유지하려면 파일을 선택하지 마세요.
                   </p>
                 </div>
                 {updateState.status === 'error' && updateState.message && (
-                  <p className="text-sm text-neutral-300">
+                  <p className="text-base text-neutral-300">
                     {updateState.message}
                   </p>
                 )}
                 <div className="flex justify-end">
-                  <button className="rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white transition hover:border-white/60">
+                  <button className="rounded-full border border-white/20 px-6 py-2 text-base font-semibold text-white transition hover:border-white/60">
                     수정 저장
                   </button>
                 </div>

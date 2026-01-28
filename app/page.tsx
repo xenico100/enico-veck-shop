@@ -36,7 +36,7 @@ export default async function HomePage() {
     user = authUser;
 
     const { data } = await supabase
-      .from('posts' as never)
+      .from('studio_posts' as never)
       .select('id,title,content,created_at,user_id')
       .order('created_at', { ascending: false });
     posts = data as typeof posts;
@@ -71,12 +71,12 @@ export default async function HomePage() {
                 <Image src="/images/main_word.png" alt="ZEUS STUDIO" width={800} height={300} className="h-auto w-full grayscale" priority />
             </div>
 
-            <h3 className="text-xs font-light uppercase tracking-[0.35em] text-white/80">
+            <h3 className="text-sm font-light uppercase tracking-[0.35em] text-white/80">
                 Recording Studio / Localization <br /> Sound Production & Mixing / Dubbing
             </h3>
         </div> 
         
-        <div className="absolute bottom-8 left-0 z-[3] w-full text-center text-[11px] uppercase tracking-[0.2em] text-white/50">
+        <div className="absolute bottom-8 left-0 z-[3] w-full text-center text-sm uppercase tracking-[0.2em] text-white/50">
             <p className="m-0">서울 강서구 양천로 551-17 4층 <br/> 4F, 551-17, Yangcheon-ro, Gangseo-gu, Seoul, Republic of Korea</p>
             <p className="my-2">Contact Email: 07@zeus-studio.net</p>
             <p className="m-0 text-white/40">Copyrights©ZEUS STUDIO All rights reserved</p>
@@ -96,11 +96,11 @@ export default async function HomePage() {
       <section id='about' className="s-about bg-black px-5 py-32">
         
         <div className="row section-header mx-auto mb-20 max-w-5xl text-center">
-            <h1 className="text-3xl font-semibold text-white md:text-4xl">About</h1>
+            <h1 className="text-4xl font-semibold text-white md:text-5xl">About</h1>
         </div> 
 
         <div className="row mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-12">
-            <div className="flex-1 basis-[500px] text-center text-sm leading-8 text-neutral-300">
+            <div className="flex-1 basis-[500px] text-center text-base leading-8 text-neutral-300">
                 <p className="mb-5">
                   제우스 스튜디오는 <br/> 전문적인 오디오 작업과 다양한 서비스로 <br/> 최고의 서비스를 제공하기 위해 노력하고 있습니다.
                 </p>
@@ -110,7 +110,7 @@ export default async function HomePage() {
                 <p className="mb-10">
                   항상 최선을 다하여 최고의 퀄리티를 낼 수 있도록 노력하겠습니다. <br/> 언제나 여러분의 소중한 작품에 최선을 다하겠습니다.
                 </p>
-                <div className="text-xs font-medium uppercase tracking-[0.2em] text-white/80">
+                <div className="text-sm font-medium uppercase tracking-[0.2em] text-white/80">
                     <p className="mb-4">ZEUS STUDIO provides high-quality sound works and the best <br/> services on sound production & mixing, dubbing etc.</p>
                     <p className="mb-4">We promise that our professional sound engineers and reliable <br/> project managers do our best to support your project and <br/> expand your content business with outstanding sound works.</p>
                     <p>ZEUS STUDIO will be your capable production partner of your <br/> future business.</p>
@@ -129,10 +129,10 @@ export default async function HomePage() {
       <section id='services' className="s-services bg-neutral-950 px-5 py-32">
         
         <div className="row section-header mx-auto mb-16 max-w-5xl text-center">
-            <h1 className="text-3xl font-semibold text-white md:text-4xl">Services</h1>
+            <h1 className="text-4xl font-semibold text-white md:text-5xl">Services</h1>
         </div>
 
-        <div className="mx-auto max-w-4xl text-center text-sm leading-8 text-neutral-300">
+        <div className="mx-auto max-w-4xl text-center text-base leading-8 text-neutral-300">
             <p className="mb-3">
                 제우스 스튜디오는 한국어는 물론 영어, 중국어, 일본어, 프랑스어, 스페인어 등 전세계
             </p>
@@ -144,7 +144,7 @@ export default async function HomePage() {
                 최상의 퀄리티를 보장합니다.
             </p>
 
-            <div className="mb-14 text-xs uppercase tracking-[0.2em] text-neutral-500">
+            <div className="mb-14 text-sm uppercase tracking-[0.2em] text-neutral-500">
                 <p className="mb-3">
                     Zeus Studio provides global translation and voice dubbing in 30 different languages <br/>
                     including Korean, English, Chinese, Japanese, French, Spanish etc.
@@ -172,10 +172,10 @@ export default async function HomePage() {
       {/* ==================================================================
           [4. STUDIO 섹션]
           ================================================================== */}
-      <section id='portfolio' className="s-portfolio bg-black px-5 py-32">
+      <section id='portfolio' className="s-portfolio bg-black px-5 py-24">
         <div className="mx-auto mb-16 max-w-4xl text-center">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">Studio</h3>
-            <h1 className="mt-4 text-3xl font-semibold text-white md:text-4xl">Check Out Our Works.</h1>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-neutral-400">Studio</h3>
+            <h1 className="mt-4 text-4xl font-semibold text-white md:text-5xl">Check Out Our Works.</h1>
         </div>
 
         <StudioPostsGrid posts={studioPosts ?? []} />
@@ -194,26 +194,26 @@ export default async function HomePage() {
       <section id="contact" className="s-contact" style={{padding: '100px 20px 40px', backgroundColor: '#0f0f0f'}}>
         
         <div style={{textAlign: 'center', marginBottom: '80px'}}>
-            <h3 style={{color: '#b3b3b3', fontSize: '14px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px'}}>Contact Us</h3>
+            <h3 style={{color: '#b3b3b3', fontSize: '16px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '10px'}}>Contact Us</h3>
             <h1 style={{fontSize: 'clamp(2.5rem, 4vw, 4rem)', color: 'white', fontWeight: '700'}}>Get In Touch.</h1>
         </div>
 
         <div style={{maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', borderTop: '1px solid #333', paddingTop: '60px', color: '#888'}}>
              <div style={{flex: '1 1 400px', marginBottom: '40px', paddingRight: '20px'}}>
-                <h5 style={{color: 'white', fontSize: '14px', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', fontWeight: '700'}}>Location</h5>
-                <p style={{fontSize: '15px', lineHeight: '1.8'}}>
+                <h5 style={{color: 'white', fontSize: '16px', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', fontWeight: '700'}}>Location</h5>
+                <p style={{fontSize: '16px', lineHeight: '1.8'}}>
                 서울 강서구 양천로 551-17 4층 <br/> 4F, 551-17, Yangcheon-ro, Gangseo-gu, Seoul, Republic of Korea
                 </p>
-                <p style={{fontSize: '13px', marginTop: '20px'}}>Copyrights©ZEUS STUDIO All rights reserved</p>
+                <p style={{fontSize: '14px', marginTop: '20px'}}>Copyrights©ZEUS STUDIO All rights reserved</p>
             </div>
 
             <div style={{flex: '1 1 300px', marginBottom: '40px'}}>
-                <h5 style={{color: 'white', fontSize: '14px', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', fontWeight: '700'}}>Contact</h5>
-                <p style={{fontSize: '15px', lineHeight: '1.8', color: '#fff'}}>07@zeus-studio.net <br/> help@zeus-studio.net</p>
+                <h5 style={{color: 'white', fontSize: '16px', letterSpacing: '2px', marginBottom: '20px', textTransform: 'uppercase', fontWeight: '700'}}>Contact</h5>
+                <p style={{fontSize: '16px', lineHeight: '1.8', color: '#fff'}}>07@zeus-studio.net <br/> help@zeus-studio.net</p>
             </div>
         </div>
 
-        <div style={{textAlign: 'center', borderTop: '1px solid #222', paddingTop: '30px', marginTop: '20px', fontSize: '12px', color: '#444'}}>
+        <div style={{textAlign: 'center', borderTop: '1px solid #222', paddingTop: '30px', marginTop: '20px', fontSize: '14px', color: '#444'}}>
             Design by <span style={{color: '#fff', fontWeight: 'bold'}}>ZEUS STUDIO</span>
         </div>
       </section>

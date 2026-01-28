@@ -77,37 +77,37 @@ export default function PostsSection({
   return (
     <section
       id="posts"
-      className="bg-gradient-to-b from-black via-neutral-950 to-black py-24 px-4"
+      className="bg-gradient-to-b from-black via-neutral-950 to-black px-4 py-16"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
-        <div className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <div className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-neutral-400">
                 Community
               </p>
-              <h2 className="text-3xl font-semibold text-white">
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">
                 ZEUS Studio 게시판
               </h2>
-              <p className="text-sm text-neutral-300">
+              <p className="text-base text-neutral-300">
                 작업 후기와 문의를 남겨주세요. 로그인한 사용자만 글쓰기가
                 가능합니다.
               </p>
             </div>
             {isAuthenticated ? (
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                <div className="text-xs text-neutral-400">
+                <div className="text-sm text-neutral-400">
                   {userEmail ? `${userEmail} 로그인됨` : '로그인됨'}
                 </div>
                 <button
                   onClick={() => setIsOpen(true)}
-                  className="rounded-full border border-white/30 bg-white/10 px-6 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20"
+                  className="rounded-full border border-white/30 bg-white/10 px-6 py-2 text-base font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20"
                 >
                   글쓰기
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-start gap-2 text-sm text-neutral-300">
+              <div className="flex flex-col items-start gap-2 text-base text-neutral-300">
                 <span>글쓰기는 로그인 후 가능합니다.</span>
                 <Link
                   href="/login"
@@ -122,7 +122,7 @@ export default function PostsSection({
 
         <div className="grid gap-4 md:grid-cols-2">
           {posts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center text-sm text-neutral-400">
+            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center text-base text-neutral-400">
               아직 등록된 글이 없습니다. 첫 글을 작성해 주세요!
             </div>
           ) : (
@@ -132,13 +132,13 @@ export default function PostsSection({
                 className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg shadow-black/30 transition hover:-translate-y-1 hover:border-white/40"
               >
                 <div className="space-y-3">
-                  <div className="text-xs uppercase tracking-[0.25em] text-neutral-500">
+                  <div className="text-sm uppercase tracking-[0.25em] text-neutral-500">
                     {formatDate(post.created_at)}
                   </div>
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-xl font-semibold text-white">
                     {post.title}
                   </h3>
-                  <p className="text-sm leading-relaxed text-neutral-300">
+                  <p className="text-base leading-relaxed text-neutral-300">
                     {post.content}
                   </p>
                 </div>
@@ -156,53 +156,53 @@ export default function PostsSection({
         >
           <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-neutral-950 p-8 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">새 글 작성</h3>
+              <h3 className="text-xl font-semibold text-white">새 글 작성</h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-sm text-neutral-400 transition hover:text-white"
+                className="text-base text-neutral-400 transition hover:text-white"
               >
                 닫기
               </button>
             </div>
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                <label className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
                   제목
                 </label>
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
                   placeholder="제목을 입력해 주세요."
                   maxLength={80}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                <label className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
                   내용
                 </label>
                 <textarea
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
-                  className="min-h-[140px] w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
+                  className="min-h-[160px] w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
                   placeholder="작업 후기를 남겨주세요."
                   maxLength={1000}
                 />
               </div>
 
               {errorMessage && (
-                <p className="text-sm text-rose-300">{errorMessage}</p>
+                <p className="text-base text-rose-300">{errorMessage}</p>
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-neutral-500">
+                <p className="text-sm text-neutral-500">
                   {title.length}/80 · {content.length}/1000
                 </p>
                 <button
                   type="submit"
                   disabled={!canSubmit || isSubmitting}
                   className={cn(
-                    'rounded-full px-6 py-2 text-sm font-semibold text-white transition',
+                    'rounded-full px-6 py-2 text-base font-semibold text-white transition',
                     {
                       'border border-white/30 bg-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:border-white/60 hover:bg-white/20':
                         canSubmit && !isSubmitting,
