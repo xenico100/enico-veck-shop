@@ -10,6 +10,7 @@ import './styles/tailwind.css';
 
 // ... (Metadata 부분은 그대로) ...
 
+// 수정 파일: app/layout.tsx - 루트에서 overflow-x 숨김 적용으로 가로 스크롤 방지
 export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="ko" className="no-js">
@@ -19,7 +20,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
         {/* 스크롤 부드럽게 만들기 (CSS 한 줄로 해결!) */}
         <style>{`html { scroll-behavior: smooth; }`}</style>
       </head>
-      <body id="top">
+      <body id="top" className="overflow-x-hidden bg-black">
         
         {/* 리액트로 만든 새 헤더 장착! */}
         <Header />
