@@ -33,13 +33,13 @@ export default async function Account() {
     <section className="min-h-screen bg-black pb-24">
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 text-center">
-          <p className="text-xs uppercase tracking-[0.45em] text-neutral-400">
-            My Page
+          <p className="text-sm uppercase tracking-[0.45em] text-neutral-400">
+            회원정보
           </p>
           <h1 className="text-4xl font-semibold text-white sm:text-5xl">
-            Designer Studio Account
+            마이페이지
           </h1>
-          <p className="mx-auto max-w-2xl text-sm text-neutral-400">
+          <p className="mx-auto max-w-2xl text-base text-neutral-400">
             계정 정보와 Studio 게시물을 한 곳에서 관리하세요. 변경 사항은
             실시간으로 Studio 게시판에 반영됩니다.
           </p>
@@ -57,11 +57,13 @@ export default async function Account() {
 
         <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-black via-neutral-950 to-black p-8">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-neutral-400">
               Studio
             </p>
-            <h2 className="text-2xl font-semibold text-white">게시물 작성</h2>
-            <p className="text-sm text-neutral-400">
+            <h2 className="text-2xl font-semibold text-white md:text-3xl">
+              게시물 작성
+            </h2>
+            <p className="text-base text-neutral-400">
               작업 스토리와 이미지를 등록하면 Studio 섹션에 바로
               노출됩니다.
             </p>

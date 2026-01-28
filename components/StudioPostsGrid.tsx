@@ -37,7 +37,7 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
 
   const emptyState = useMemo(
     () => (
-      <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center text-sm text-neutral-400">
+      <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center text-base text-neutral-400">
         아직 등록된 Studio 게시물이 없습니다. 마이페이지에서 새 게시물을
         작성해 주세요.
       </div>
@@ -66,20 +66,20 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-xs uppercase tracking-[0.3em] text-neutral-500">
+                  <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-sm uppercase tracking-[0.3em] text-neutral-500">
                     No Image
                   </div>
                 )}
               </div>
               <div className="flex flex-1 flex-col gap-2 p-5">
-                <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">
                   {formatDate(post.created_at)}
                 </p>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-xl font-semibold text-white">
                   {post.title}
                 </h3>
                 <p
-                  className="text-sm text-neutral-300"
+                  className="text-base text-neutral-300"
                   style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 3,
@@ -114,16 +114,16 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                  <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">
                     {formatDate(selected.created_at)}
                   </p>
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-xl font-semibold text-white">
                     {selected.title}
                   </h3>
                 </div>
                 <button
                   onClick={close}
-                  className="rounded-full border border-white/20 px-3 py-1 text-xs text-neutral-300 transition hover:border-white/60 hover:text-white"
+                  className="rounded-full border border-white/20 px-3 py-1 text-sm text-neutral-300 transition hover:border-white/60 hover:text-white"
                 >
                   닫기
                 </button>
@@ -137,12 +137,12 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
                       className="h-full w-full object-cover grayscale"
                     />
                   ) : (
-                    <div className="flex h-64 w-full items-center justify-center bg-neutral-900 text-xs uppercase tracking-[0.3em] text-neutral-500">
+                    <div className="flex h-64 w-full items-center justify-center bg-neutral-900 text-sm uppercase tracking-[0.3em] text-neutral-500">
                       No Image
                     </div>
                   )}
                 </div>
-                <p className="text-sm leading-relaxed text-neutral-200">
+                <p className="text-base leading-relaxed text-neutral-200">
                   {selected.content}
                 </p>
               </div>

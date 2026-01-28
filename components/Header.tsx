@@ -52,17 +52,41 @@ export default function Header() {
           <h3>ZEUS STUDIO</h3>
           
           <ul className="nav-list">
-            <li className="current"><a href="#home" onClick={closeMenu}>Home</a></li>
-            <li><a href="#about" onClick={closeMenu}>About</a></li>
-            <li><a href="#services" onClick={closeMenu}>Services</a></li>
-            <li><a href="#portfolio" onClick={closeMenu}>Studio</a></li>
-            <li><a href="#posts" onClick={closeMenu}>Posts</a></li>
-            <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
+            <li className="current">
+              <Link href="/#home" onClick={closeMenu}>
+                Home
+              </Link>
+            </li>
+            <li>
+              <Link href="/#about" onClick={closeMenu}>
+                About
+              </Link>
+            </li>
+            <li>
+              <Link href="/#services" onClick={closeMenu}>
+                Services
+              </Link>
+            </li>
+            <li>
+              <Link href="/#portfolio" onClick={closeMenu}>
+                Studio
+              </Link>
+            </li>
+            <li>
+              <Link href="/#posts" onClick={closeMenu}>
+                Posts
+              </Link>
+            </li>
+            <li>
+              <Link href="/#contact" onClick={closeMenu}>
+                Contact
+              </Link>
+            </li>
           </ul>
 
           {/* 🔥 로그인 버튼 추가된 부분! */}
           <div className="header-auth-section flex flex-col items-center justify-center gap-2 text-center">
-             <p className="text-[11px] uppercase tracking-[0.35em] text-neutral-500">Member Access</p>
+             <p className="text-sm uppercase tracking-[0.35em] text-neutral-500">Member Access</p>
              <AuthButton />
           </div>
 
