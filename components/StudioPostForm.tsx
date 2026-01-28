@@ -65,7 +65,7 @@ export default function StudioPostForm() {
           name="title"
           maxLength={80}
           required
-          className="w-full rounded-xl border border-white/20 bg-transparent px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/10"
+
           placeholder="스튜디오 게시물 제목을 입력하세요."
         />
       </div>
@@ -78,7 +78,7 @@ export default function StudioPostForm() {
           required
           maxLength={2000}
           rows={6}
-          className="w-full resize-none rounded-xl border border-white/20 bg-transparent px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/10"
+
           placeholder="작업 스토리와 소개를 작성해 주세요."
         />
       </div>
@@ -90,7 +90,7 @@ export default function StudioPostForm() {
           name="image"
           type="file"
           accept="image/*"
-          className="block w-full cursor-pointer rounded-xl border border-dashed border-white/20 bg-transparent px-4 py-3 text-base text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-white/80 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-white"
+
         />
         <p className="text-sm text-neutral-500">
           최대 5MB, JPG/PNG 등 이미지 파일만 업로드 가능합니다.

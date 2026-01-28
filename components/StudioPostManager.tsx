@@ -189,8 +189,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                 </div>
                 <button
                   onClick={() => setActivePost(null)}
-                  aria-label="닫기"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 text-xs text-white/70 transition hover:border-white/60 hover:text-white"
+
                 >
                   ×
                 </button>
@@ -206,7 +205,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     maxLength={80}
                     required
                     defaultValue={activePost.title}
-                    className="w-full rounded-2xl border border-white/20 bg-transparent px-4 py-3 text-base text-white placeholder:text-neutral-600 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/10"
+main
                   />
                 </div>
                 <div className="space-y-2">
@@ -219,7 +218,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     maxLength={2000}
                     rows={6}
                     defaultValue={activePost.content}
-                    className="w-full resize-none rounded-2xl border border-white/20 bg-transparent px-4 py-3 text-base text-white placeholder:text-neutral-600 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/10"
+ main
                   />
                 </div>
                 <div className="space-y-2">
@@ -230,7 +229,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     name="image"
                     type="file"
                     accept="image/*"
-                    className="block w-full cursor-pointer rounded-2xl border border-dashed border-white/20 bg-transparent px-4 py-3 text-base text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-white/80 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-white"
+ main
                   />
                   <p className="text-sm text-neutral-500">
                     기존 이미지를 유지하려면 파일을 선택하지 마세요.

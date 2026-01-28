@@ -29,23 +29,7 @@ export default function Header() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-4">
-          <AuthButton />
-          <button
-            type="button"
-            onClick={toggleMenu}
-            aria-expanded={isOpen}
-            aria-label="메뉴 열기"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:border-white/60 hover:text-white"
-          >
-            <span className="flex h-4 w-4 flex-col justify-between">
-              <span className="h-px w-full bg-current"></span>
-              <span className="h-px w-full bg-current"></span>
-              <span className="h-px w-full bg-current"></span>
-            </span>
-          </button>
-        </div>
-      </div>
+
 
       <div
         className={cn(
