@@ -171,7 +171,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
       >
         <div
           className={cn(
-            'w-full max-w-2xl rounded-3xl border border-white/10 bg-neutral-950 p-8 shadow-[0_40px_120px_rgba(0,0,0,0.6)] transition-all',
+            'w-full max-w-2xl rounded-[28px] border border-white/20 bg-neutral-950 p-7 shadow-[0_40px_120px_rgba(0,0,0,0.65)] transition-all sm:p-8',
             activePost ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           )}
           onClick={(event) => event.stopPropagation()}
@@ -189,9 +189,9 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                 </div>
                 <button
                   onClick={() => setActivePost(null)}
-                  className="text-sm uppercase tracking-[0.2em] text-neutral-400 transition hover:text-white"
+
                 >
-                  닫기
+                  ×
                 </button>
               </div>
               <form action={updateAction} className="mt-6 space-y-4">
@@ -205,7 +205,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     maxLength={80}
                     required
                     defaultValue={activePost.title}
-                    className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white placeholder:text-neutral-600 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10"
+main
                   />
                 </div>
                 <div className="space-y-2">
@@ -218,7 +218,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     maxLength={2000}
                     rows={6}
                     defaultValue={activePost.content}
-                    className="w-full resize-none rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white placeholder:text-neutral-600 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10"
+ main
                   />
                 </div>
                 <div className="space-y-2">
@@ -229,7 +229,7 @@ export default function StudioPostManager({ posts }: StudioPostManagerProps) {
                     name="image"
                     type="file"
                     accept="image/*"
-                    className="block w-full cursor-pointer rounded-2xl border border-dashed border-white/20 bg-black/30 px-4 py-3 text-base text-neutral-200 file:mr-4 file:rounded-full file:border-0 file:bg-white/80 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-white"
+ main
                   />
                   <p className="text-sm text-neutral-500">
                     기존 이미지를 유지하려면 파일을 선택하지 마세요.
