@@ -5,25 +5,38 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import MenuOverlay from './MenuOverlay';
 
-// 수정 파일: components/Header.tsx - 메뉴 오버레이 상태/토글 및 라우팅 변경 시 자동 닫힘 처리
+type NavItem = { label: string; href: string };
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const navItems = [
+
+  const navItems: NavItem[] = [
     { label: 'Home', href: '/#home' },
     { label: 'About', href: '/#about' },
     { label: 'Services', href: '/#services' },
     { label: 'Studio', href: '/#portfolio' },
     { label: 'Posts', href: '/#posts' },
-    { label: 'Contact', href: '/#contact' }
+    { label: 'Contact', href: '/#contact' },
   ];
 
   const toggleMenu = () => setIsOpen((prev) => !prev);
   const closeMenu = () => setIsOpen(false);
 
+  // route change 시 자동 닫힘
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
+
+  // 메뉴 열릴 때 body 스크롤 잠금
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur">
@@ -34,7 +47,30 @@ export default function Header() {
             Zeus Studio
           </span>
         </Link>
-        <div className="flex items-center gap-3">
+
+        {/* 데스크탑: 상단 링크 노출 + 메뉴 버튼 */}
+        <div className="hidden items-center gap-6 lg:flex">
+          <nav className="flex items-center gap-6 text-xs uppercase tracking-[0.3em] text-white/70">
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className="transition hover:text-white">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <button
+            type="button"
+            onClick={toggleMenu}
+            aria-expanded={isOpen}
+            aria-controls="menu-overlay"
+            className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:border-white/60"
+          >
+            {isOpen ? 'Close' : 'Menu'}
+          </button>
+        </div>
+
+        {/* 모바일: 메뉴 버튼만 */}
+        <div className="flex items-center gap-3 lg:hidden">
           <button
             type="button"
             onClick={toggleMenu}
@@ -46,7 +82,9 @@ export default function Header() {
           </button>
         </div>
       </div>
-      <MenuOverlay isOpen={isOpen} navItems={navItems} onClose={closeMenu} />
+
+      {/* 오버레이 메뉴 (모바일/데스크탑 공통) */}
+      <MenuOverlay id="menu-overlay" isOpen={isOpen} navItems={navItems} onClose={closeMenu} />
     </header>
   );
 }
