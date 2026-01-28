@@ -2,77 +2,71 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import AuthButton from './AuthButton'; // 👈 아까 만든 로그인 버튼 가져오기
+import cn from 'classnames';
+import AuthButton from './AuthButton';
+
+const navItems = [
+  { label: 'Home', href: '/#home' },
+  { label: 'About', href: '/#about' },
+  { label: 'Services', href: '/#services' },
+  { label: 'Studio', href: '/#portfolio' },
+  { label: 'Posts', href: '/#posts' },
+  { label: 'Contact', href: '/#contact' }
+];
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const newState = !isOpen;
-    setIsOpen(newState);
-    
-    // 원본 CSS 애니메이션을 위해 body 클래스 제어
-    if (newState) {
-      document.body.classList.add('menu-is-open');
-    } else {
-      document.body.classList.remove('menu-is-open');
-    }
-  };
-
-  const closeMenu = () => {
-    setIsOpen(false);
-    document.body.classList.remove('menu-is-open');
-  };
+  const toggleMenu = () => setIsOpen((prev) => !prev);
+  const closeMenu = () => setIsOpen(false);
 
   return (
-    <header className="s-header"> {/* s-header 클래스 명시 (원본 CSS 적용) */}
-      
-      {/* 1. 로고 영역 */}
-      <div className="header-logo">
-        <Link href="/" className="site-logo">
-           <img src="/images/logo.png" alt="Homepage" />
+    <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-3">
+          <img src="/images/logo.png" alt="ZEUS STUDIO" className="h-8 w-auto" />
+          <span className="text-sm uppercase tracking-[0.4em] text-white/70">
+            Zeus Studio
+          </span>
         </Link>
+
+        <div className="flex items-center gap-4">
+          <AuthButton />
+          <button
+            type="button"
+            onClick={toggleMenu}
+            aria-expanded={isOpen}
+            aria-label="메뉴 열기"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:border-white/60 hover:text-white"
+          >
+            <span className="flex h-4 w-4 flex-col justify-between">
+              <span className="h-px w-full bg-current"></span>
+              <span className="h-px w-full bg-current"></span>
+              <span className="h-px w-full bg-current"></span>
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* 2. 메뉴 토글 버튼 (햄버거) */}
-      <a id="header-menu-trigger" href="#0" onClick={toggleMenu} className={isOpen ? 'is-clicked' : ''}>
-        <span className="header-menu-text">Menu</span>
-        <span className="header-menu-icon"></span>
-      </a>
-
-      {/* 3. 네비게이션 메뉴 영역 */}
-      <nav id="menu-nav-wrap" className={isOpen ? 'is-visible' : ''}>
-          
-          {/* 닫기 버튼 */}
-          <a href="#0" className="close-button" title="close" onClick={(e) => { e.preventDefault(); closeMenu(); }}>
-            <span>Close</span>
-          </a>
-
-          <h3>ZEUS STUDIO</h3>
-          
-          <ul className="nav-list">
-            <li className="current"><a href="#home" onClick={closeMenu}>Home</a></li>
-            <li><a href="#about" onClick={closeMenu}>About</a></li>
-            <li><a href="#services" onClick={closeMenu}>Services</a></li>
-            <li><a href="#portfolio" onClick={closeMenu}>Studio</a></li>
-            <li><a href="#posts" onClick={closeMenu}>Posts</a></li>
-            <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
-          </ul>
-
-          {/* 🔥 로그인 버튼 추가된 부분! */}
-          <div className="header-auth-section flex flex-col items-center justify-center gap-2 text-center">
-             <p className="text-[11px] uppercase tracking-[0.35em] text-neutral-500">Member Access</p>
-             <AuthButton />
-          </div>
-
-          <ul className="header-social-list">
-            <li><a href="#"><i className="fa fa-facebook-square"></i></a></li>
-            <li><a href="#"><i className="fa fa-twitter"></i></a></li>
-            <li><a href="#"><i className="fa fa-instagram"></i></a></li>
-          </ul>
-
-      </nav>
+      <div
+        className={cn(
+          'absolute right-4 top-full mt-3 w-[220px] rounded-2xl border border-white/15 bg-black/95 px-4 py-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition',
+          isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        )}
+      >
+        <div className="flex flex-col gap-4">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={closeMenu}
+              className="text-xs uppercase tracking-[0.3em] text-white/70 transition hover:text-white"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }

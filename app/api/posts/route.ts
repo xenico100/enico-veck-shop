@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   const { error: insertError } = await (supabase as never)
-    .from('posts')
+    .from('studio_posts')
     .insert({
       title: title.trim(),
       content: content.trim(),
@@ -58,8 +58,20 @@ export async function POST(request: Request) {
     });
 
   if (insertError) {
+    console.error('Studio post insert failed', {
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details
+    });
     return NextResponse.json(
-      { message: '게시글 저장에 실패했습니다.' },
+      {
+        message: '게시글 저장에 실패했습니다.',
+        error: {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details
+        }
+      },
       { status: 500 }
     );
   }

@@ -25,18 +25,18 @@ export default function NameForm({ userName }: { userName: string }) {
 
   return (
     <Card
-      title="Your Name"
-      description="Please enter your full name, or a display name you are comfortable with."
+      title="이름"
+      description="사용할 이름 또는 표시 이름을 입력해 주세요."
       footer={
         <div className="flex flex-col items-start justify-between sm:flex-row sm:items-center">
-          <p className="pb-4 sm:pb-0">64 characters maximum</p>
+          <p className="pb-4 sm:pb-0">최대 64자까지 입력할 수 있습니다.</p>
           <Button
             variant="slim"
             type="submit"
             form="nameForm"
             loading={isSubmitting}
           >
-            Update Name
+            수정
           </Button>
         </div>
       }
@@ -46,9 +46,9 @@ export default function NameForm({ userName }: { userName: string }) {
           <input
             type="text"
             name="fullName"
-            className="w-full rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10 sm:w-1/2"
+            className="w-full rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10 sm:w-1/2"
             defaultValue={userName}
-            placeholder="Your name"
+            placeholder="이름을 입력하세요"
             maxLength={64}
           />
         </form>
