@@ -2,6 +2,7 @@ import CustomerPortalForm from '@/components/ui/AccountForms/CustomerPortalForm'
 import EmailForm from '@/components/ui/AccountForms/EmailForm';
 import NameForm from '@/components/ui/AccountForms/NameForm';
 import StudioPostForm from '@/components/StudioPostForm';
+import StudioPostManager from '@/components/StudioPostManager';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import {
@@ -12,49 +13,63 @@ import {
 
 export default async function Account() {
   const supabase = createClient();
-  const [user, userDetails, subscription] = await Promise.all([
-    getUser(supabase),
-    getUserDetails(supabase),
-    getSubscription(supabase)
-  ]);
+  const user = await getUser(supabase);
 
   if (!user) {
     return redirect('/signin');
   }
 
+  const [userDetails, subscription, studioPosts] = await Promise.all([
+    getUserDetails(supabase),
+    getSubscription(supabase),
+    supabase
+      .from('studio_posts' as never)
+      .select('id,title,content,image_url,created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+  ]);
+
   return (
-    <section className="mb-32 bg-black">
-      <div className="max-w-6xl px-4 py-8 mx-auto sm:px-6 sm:pt-24 lg:px-8">
-        <div className="sm:align-center sm:flex sm:flex-col">
-          <h1 className="text-4xl font-extrabold text-white sm:text-center sm:text-6xl">
-            Account
+    <section className="min-h-screen bg-black pb-24">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 text-center">
+          <p className="text-xs uppercase tracking-[0.45em] text-neutral-400">
+            My Page
+          </p>
+          <h1 className="text-4xl font-semibold text-white sm:text-5xl">
+            Designer Studio Account
           </h1>
-          <p className="max-w-2xl m-auto mt-5 text-xl text-zinc-200 sm:text-center sm:text-2xl">
-            We partnered with Stripe for a simplified billing.
+          <p className="mx-auto max-w-2xl text-sm text-neutral-400">
+            계정 정보와 Studio 게시물을 한 곳에서 관리하세요. 변경 사항은
+            실시간으로 Studio 게시판에 반영됩니다.
           </p>
         </div>
       </div>
-      <div className="p-4">
-        <CustomerPortalForm subscription={subscription} />
-        <NameForm userName={userDetails?.full_name ?? ''} />
-        <EmailForm userEmail={user.email} />
-        <section className="mt-10">
-          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-black via-neutral-950 to-black p-6">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-pink-400">
-                Studio
-              </p>
-              <h2 className="text-2xl font-semibold text-white">
-                게시물 작성
-              </h2>
-              <p className="text-sm text-neutral-300">
-                작업 스토리와 이미지를 등록하면 Studio 섹션에 바로
-                노출됩니다.
-              </p>
-            </div>
-            <StudioPostForm />
+
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <CustomerPortalForm subscription={subscription} />
+          <div className="space-y-6">
+            <NameForm userName={userDetails?.full_name ?? ''} />
+            <EmailForm userEmail={user.email} />
           </div>
+        </div>
+
+        <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-black via-neutral-950 to-black p-8">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-neutral-400">
+              Studio
+            </p>
+            <h2 className="text-2xl font-semibold text-white">게시물 작성</h2>
+            <p className="text-sm text-neutral-400">
+              작업 스토리와 이미지를 등록하면 Studio 섹션에 바로
+              노출됩니다.
+            </p>
+          </div>
+          <StudioPostForm />
         </section>
+
+        <StudioPostManager posts={studioPosts.data ?? []} />
       </div>
     </section>
   );
