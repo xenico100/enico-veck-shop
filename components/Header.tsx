@@ -56,6 +56,7 @@ export default function Header() {
             <li><a href="#about" onClick={closeMenu}>About</a></li>
             <li><a href="#services" onClick={closeMenu}>Services</a></li>
             <li><a href="#portfolio" onClick={closeMenu}>Studio</a></li>
+            <li><a href="#posts" onClick={closeMenu}>Posts</a></li>
             <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
           </ul>
 

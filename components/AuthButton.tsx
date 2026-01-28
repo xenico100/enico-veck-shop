@@ -3,15 +3,22 @@
 
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // props로 온 클릭 이벤트를 받아서 실행하게 함
 export default function AuthButton({ onMyPageClick }: { onMyPageClick?: () => void }) {
   const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
+  const isSupabaseConfigured =
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const supabase = useMemo(
+    () => (isSupabaseConfigured ? createClient() : null),
+    [isSupabaseConfigured]
+  );
   const router = useRouter();
 
   useEffect(() => {
+    if (!supabase) return;
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -22,17 +29,25 @@ export default function AuthButton({ onMyPageClick }: { onMyPageClick?: () => vo
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const handleSignIn = () => router.push('/login');
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     router.refresh();
   };
 
   return (
     <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-      {user ? (
+      {!supabase ? (
+        <button
+          disabled
+          style={{ padding: '12px 30px', background: '#444', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'not-allowed' }}
+        >
+          LOGIN
+        </button>
+      ) : user ? (
         <>
           <p style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>{user.email}님</p>
           <div style={{ display: 'flex', gap: '10px' }}>

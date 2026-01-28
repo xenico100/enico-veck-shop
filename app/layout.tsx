@@ -10,6 +10,7 @@ import "./styles/vendor.css";
 import "./styles/base.css";
 import "./styles/fonts.css";
 import './styles/main.css';
+import './styles/tailwind.css';
 
 // ... (Metadata 부분은 그대로) ...
 
