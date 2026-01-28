@@ -1,26 +1,52 @@
-'use client';
-
-import { useEffect } from 'react';
 import Image from 'next/image';
-import Gallery from '@/components/Gallery';
+import PostsSection from '@/components/PostsSection';
+import StudioPostsGrid from '@/components/StudioPostsGrid';
+import { createClient } from '@/utils/supabase/server';
 
-export default function HomePage() {
-  useEffect(() => { 
-    // 스크롤 기능
-    const smoothScrollLinks = document.querySelectorAll('.smoothscroll');
-    smoothScrollLinks.forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href');
-        if (targetId && targetId.startsWith('#')) {
-          const targetElement = document.querySelector(targetId);
-          if (targetElement) {
-            targetElement.scrollIntoView({ behavior: 'smooth' });
-          }
-        }
-      });
-    });
-  }, []);
+export default async function HomePage() {
+  const isSupabaseConfigured =
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  let user: { id?: string; email?: string | null } | null = null;
+  let posts:
+    | Array<{
+        id: string;
+        title: string;
+        content: string;
+        created_at: string;
+        user_id: string;
+      }>
+    | null = null;
+  let studioPosts:
+    | Array<{
+        id: string;
+        title: string;
+        content: string;
+        image_url: string;
+        created_at: string;
+        user_id: string;
+      }>
+    | null = null;
+
+  if (isSupabaseConfigured) {
+    const supabase = createClient();
+    const {
+      data: { user: authUser }
+    } = await supabase.auth.getUser();
+    user = authUser;
+
+    const { data } = await supabase
+      .from('posts' as never)
+      .select('id,title,content,created_at,user_id')
+      .order('created_at', { ascending: false });
+    posts = data as typeof posts;
+
+    const { data: studioData } = await supabase
+      .from('studio_posts' as never)
+      .select('id,title,content,image_url,created_at,user_id')
+      .order('created_at', { ascending: false });
+    studioPosts = studioData as typeof studioPosts;
+  }
 
   return (
     <>
@@ -164,8 +190,14 @@ export default function HomePage() {
             <h1 style={{fontSize: 'clamp(2rem, 4vw, 3.5rem)', color: 'white', fontWeight: '700'}}>Check Out Our Works.</h1>
         </div>
 
-        <Gallery />
+        <StudioPostsGrid posts={studioPosts ?? []} />
       </section>
+
+      <PostsSection
+        isAuthenticated={Boolean(user?.id)}
+        userEmail={user?.email ?? null}
+        posts={posts ?? []}
+      />
 
 
       {/* ==================================================================

@@ -138,6 +138,44 @@ alter table subscriptions enable row level security;
 create policy "Can only view own subs data." on subscriptions for select using (auth.uid() = user_id);
 
 /**
+* POSTS
+* Note: posts are public to read, but only authenticated users can write their own posts.
+*/
+create table posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users not null,
+  title text not null,
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+alter table posts enable row level security;
+create policy "Allow public read-only access." on posts for select using (true);
+create policy "Allow authenticated users to insert posts." on posts
+  for insert with check (auth.uid() = user_id);
+create policy "Allow users to update their own posts." on posts
+  for update using (auth.uid() = user_id);
+create policy "Allow users to delete their own posts." on posts
+  for delete using (auth.uid() = user_id);
+
+/**
+* STUDIO POSTS
+* Note: public read access, authenticated users can insert their own posts.
+*/
+create table studio_posts (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  title text not null,
+  content text not null,
+  image_url text not null,
+  user_id uuid references auth.users not null
+);
+alter table studio_posts enable row level security;
+create policy "Allow public read-only access." on studio_posts
+  for select using (true);
+create policy "Allow authenticated users to insert studio posts." on studio_posts
+  for insert with check (auth.uid() = user_id);
+
+/**
  * REALTIME SUBSCRIPTIONS
  * Only allow realtime listening on public tables.
  */
