@@ -29,15 +29,15 @@ export function ServicesSection() {
         <h2 className="text-5xl md:text-6xl tracking-wide text-center mb-16">Services</h2>
         
         {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {services.map((service, index) => (
-            <div key={index} className="flex flex-col items-center text-center space-y-4">
+            <div key={index} className="flex w-full flex-col items-center text-center space-y-4">
               {/* Image */}
-              <div className="w-full aspect-square overflow-hidden rounded-lg">
+              <div className="w-full overflow-hidden rounded-lg aspect-[4/3]">
                 <img
                   src={service.image}
                   alt={service.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                 />
               </div>
               
