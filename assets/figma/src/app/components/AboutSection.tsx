@@ -1,6 +1,6 @@
 'use client';
 
-import studioImage from 'figma:asset/4e6dafb197e9159823cce4adc5f07a46918e2d39.png';
+import Image from 'next/image';
 
 export function AboutSection() {
   return (
@@ -11,10 +11,12 @@ export function AboutSection() {
         
         {/* Image */}
         <div className="relative w-full max-w-2xl">
-          <img 
-            src={studioImage} 
+          <Image
+            src="/images/studio/astudiomain.png"
             alt="ZEUS Studio Recording Equipment"
-            className="w-full h-auto rounded-lg"
+            width={800}
+            height={600}
+            className="h-auto w-full rounded-lg"
           />
         </div>
         
