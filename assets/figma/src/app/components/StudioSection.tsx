@@ -1,8 +1,26 @@
 'use client';
 
-export function StudioSection() {
+import StudioPostsGrid from '@/components/StudioPostsGrid';
+
+type StudioPost = {
+  id: string;
+  title: string;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+  user_id: string;
+};
+
+type StudioSectionProps = {
+  posts: StudioPost[];
+};
+
+export function StudioSection({ posts }: StudioSectionProps) {
   return (
-    <section id="studio" className="relative bg-black text-white min-h-screen flex items-center justify-center px-4 md:px-8 lg:px-16 py-20 max-w-full">
+    <section
+      id="studio"
+      className="relative bg-black text-white min-h-screen px-4 md:px-8 lg:px-16 py-20 max-w-full"
+    >
       <div className="max-w-4xl mx-auto w-full flex flex-col items-center text-center space-y-12">
         {/* Title */}
         <h2 className="text-5xl md:text-6xl tracking-wide">Studio</h2>
@@ -47,6 +65,10 @@ export function StudioSection() {
           <p>서울특별시 강남구 테헤란로 123</p>
           <p>Seoul, South Korea</p>
         </div>
+      </div>
+
+      <div className="mt-16">
+        <StudioPostsGrid posts={posts} />
       </div>
     </section>
   );
