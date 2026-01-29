@@ -18,8 +18,7 @@ export default function Header() {
     { label: 'Studio', href: '/#portfolio' },
     { label: 'Posts', href: '/#posts' },
     { label: 'Contact', href: '/#contact' },
-    // 필요하면 여기 My Page 추가:
-    // { label: 'My Page', href: '/mypage' },
+    { label: 'My Page', href: '/account' },
   ];
 
   const toggleMenu = () => setIsOpen((prev) => !prev);

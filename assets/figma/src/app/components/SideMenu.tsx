@@ -13,7 +13,7 @@ const menuItems = [
   { label: 'About', href: '#about' },
   { label: 'Services', href: '#services' },
   { label: 'Studio', href: '#studio' },
-  { label: 'My Page', href: '#mypage' },
+  { label: 'My Page', href: '/account' },
 ];
 
 export function SideMenu({ isOpen, onClose }: SideMenuProps) {
