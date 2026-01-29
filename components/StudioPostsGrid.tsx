@@ -15,6 +15,120 @@ type StudioPostsGridProps = {
   posts: StudioPost[];
 };
 
+type SmartImageDisplayProps = {
+  images: string[];
+  alt: string;
+};
+
+const normalizeImages = (post: StudioPost & { image_urls?: string[] }) => {
+  if (Array.isArray(post.image_urls) && post.image_urls.length > 0) {
+    return post.image_urls.filter(Boolean);
+  }
+  if (typeof post.image_url === 'string' && post.image_url.length > 0) {
+    if (post.image_url.includes(',')) {
+      return post.image_url
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+    return [post.image_url];
+  }
+  return [];
+};
+
+function SmartImageDisplay({ images, alt }: SmartImageDisplayProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  if (images.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-sm uppercase tracking-[0.3em] text-neutral-500">
+        No Image
+      </div>
+    );
+  }
+
+  if (images.length === 1) {
+    return (
+      <div className="relative h-full w-full overflow-hidden bg-neutral-900">
+        <img
+          src={images[0]}
+          alt=""
+          className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl"
+          aria-hidden="true"
+          loading="lazy"
+        />
+        <img
+          src={images[0]}
+          alt={alt}
+          className="relative h-full w-full object-contain"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  const total = images.length;
+  const safeIndex = Math.min(activeIndex, total - 1);
+  const activeImage = images[safeIndex];
+
+  return (
+    <div className="relative h-full w-full">
+      <div className="relative h-full w-full overflow-hidden bg-neutral-900">
+        <img
+          src={activeImage}
+          alt=""
+          className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl"
+          aria-hidden="true"
+          loading="lazy"
+        />
+        <img
+          src={activeImage}
+          alt={alt}
+          className="relative h-full w-full object-contain"
+          loading="lazy"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setActiveIndex((index) => (index - 1 + total) % total);
+        }}
+        className="absolute left-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white opacity-0 transition hover:border-white/60 group-hover:opacity-100"
+        aria-label="Previous image"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setActiveIndex((index) => (index + 1) % total);
+        }}
+        className="absolute right-3 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white opacity-0 transition hover:border-white/60 group-hover:opacity-100"
+        aria-label="Next image"
+      >
+        ›
+      </button>
+
+      <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1">
+        {images.map((_, index) => (
+          <span
+            key={`dot-${index}`}
+            className={cn(
+              'h-1.5 w-1.5 rounded-full bg-white/40',
+              index === safeIndex && 'bg-white'
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium'
@@ -50,48 +164,41 @@ export default function StudioPostsGrid({ posts }: StudioPostsGridProps) {
       {posts.length === 0 ? (
         emptyState
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post) => (
-            <button
-              key={post.id}
-              onClick={() => setSelected(post)}
-              className="group flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.4)] transition hover:-translate-y-1 hover:border-white/40"
-            >
-              <div className="relative h-56 w-full overflow-hidden">
-                {post.image_url ? (
-                  <img
-                    src={post.image_url}
-                    alt={post.title}
-                    className="h-full w-full object-cover grayscale transition duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-sm uppercase tracking-[0.3em] text-neutral-500">
-                    No Image
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-1 flex-col gap-2 p-5">
-                <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">
-                  {formatDate(post.created_at)}
-                </p>
-                <h3 className="text-xl font-semibold text-white">
-                  {post.title}
-                </h3>
-                <p
-                  className="text-base text-neutral-300"
-                  style={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {post.content}
-                </p>
-              </div>
-            </button>
-          ))}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+          {posts.map((post) => {
+            const images = normalizeImages(post);
+
+            return (
+              <button
+                key={post.id}
+                onClick={() => setSelected(post)}
+                className="group grid aspect-square grid-rows-[1fr_auto] overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.4)] transition hover:-translate-y-1 hover:border-white/40"
+              >
+                <div className="relative h-full w-full overflow-hidden">
+                  <SmartImageDisplay images={images} alt={post.title} />
+                </div>
+                <div className="flex flex-col gap-2 overflow-hidden p-5">
+                  <p className="text-sm uppercase tracking-[0.3em] text-neutral-400">
+                    {formatDate(post.created_at)}
+                  </p>
+                  <h3 className="text-xl font-semibold text-white">
+                    {post.title}
+                  </h3>
+                  <p
+                    className="text-base text-neutral-300"
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {post.content}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
 
