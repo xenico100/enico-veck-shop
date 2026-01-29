@@ -4,12 +4,14 @@ import NameForm from '@/components/ui/AccountForms/NameForm';
 import StudioPostForm from '@/components/StudioPostForm';
 import StudioPostManager from '@/components/StudioPostManager';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import {
   getUserDetails,
   getSubscription,
   getUser
 } from '@/utils/supabase/queries';
+import { isAdminEmail } from '@/utils/admin';
 
 export default async function Account() {
   const supabase = createClient();
@@ -29,6 +31,8 @@ export default async function Account() {
       .order('created_at', { ascending: false })
   ]);
 
+  const isAdmin = isAdminEmail(user.email);
+
   return (
     <section className="min-h-screen bg-black pb-24">
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
@@ -43,6 +47,16 @@ export default async function Account() {
             계정 정보와 Studio 게시물을 한 곳에서 관리하세요. 변경 사항은
             실시간으로 Studio 게시판에 반영됩니다.
           </p>
+          {isAdmin && (
+            <div className="pt-4">
+              <Link
+                href="/admin"
+                className="inline-flex items-center justify-center rounded-full border border-white/40 bg-white/10 px-6 py-2 text-sm font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:border-white/70 hover:bg-white/20"
+              >
+                Go to Admin Dashboard
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
