@@ -20,8 +20,8 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center">
         <img
           src="/images/logo.png"
-          alt="ZEUS Studio"
-          className="h-14 w-auto md:h-16"
+          alt=""
+          className="h-16 w-auto md:h-20 lg:h-24"
           draggable={false}
         />
       </div>
