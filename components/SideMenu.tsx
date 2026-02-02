@@ -16,7 +16,7 @@ const menuItems = [
   { label: 'My Page', href: '#mypage' },
 ];
 
-export function SideMenu({ isOpen, onClose }: SideMenuProps) {
+export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
