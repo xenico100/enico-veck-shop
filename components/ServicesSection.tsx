@@ -121,7 +121,7 @@ const services = [
 
 const categories = ['모든 제품', '녹음', '믹스/마스터', '더빙/성우'];
 
-export function ServicesSection() {
+export default function ServicesSection() {
   const [activeCategory, setActiveCategory] = useState('모든 제품');
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);

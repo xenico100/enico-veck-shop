@@ -3,12 +3,7 @@
 import { useState } from 'react';
 
 import Header from '@/components/Header';
-import { SideMenu } from '@/components/SideMenu';
-import MainContent from '@/components/MainContent';
-import { AboutSection } from '@/components/AboutSection';
-import { ServicesSection } from '@/components/ServicesSection';
-import { StudioSection } from '@/components/StudioSection';
-import { Footer } from '@/components/Footer';
+
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
