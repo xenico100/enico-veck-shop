@@ -11,17 +11,18 @@ const navItems = [
   { label: 'About', href: '#about' },
   { label: 'Services', href: '#services' },
   { label: 'Studio', href: '#studio' },
-  { label: 'My Page', href: '/account' }
+  { label: 'My Page', href: '/account' },
 ];
 
 export function Header({ onMenuClick }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-6 flex justify-between items-start max-w-full">
+    <header className="fixed top-0 left-0 right-0 z-40 flex items-start justify-between px-4 py-6 max-w-full md:px-8">
       <div className="flex items-center">
         <img
           src="/images/logo.png"
           alt="ZEUS Studio"
-          className="h-10 w-auto"
+          className="h-14 w-auto md:h-16"
+          draggable={false}
         />
       </div>
 
@@ -39,11 +40,12 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       <button
         onClick={onMenuClick}
-        className="flex items-center gap-3 text-white hover:opacity-80 transition-opacity md:hidden"
+        className="flex items-center gap-3 text-white transition-opacity hover:opacity-80 md:hidden"
         aria-label="메뉴 열기"
+        type="button"
       >
         <span className="text-sm tracking-[0.3em]">MENU</span>
-        <Menu className="w-6 h-6" />
+        <Menu className="h-6 w-6" />
       </button>
     </header>
   );
