@@ -1,7 +1,7 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -13,10 +13,9 @@ const menuItems = [
   { label: 'About', href: '#about' },
   { label: 'Services', href: '#services' },
   { label: 'Studio', href: '#studio' },
-  { label: 'My Page', href: '#mypage' },
 ];
 
-export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -28,7 +27,17 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setIsMyPageOpen(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleMyPageToggle = () => {
+    setIsMyPageOpen((prev) => !prev);
+  };
 
   return (
     <>
@@ -70,6 +79,42 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
                 </a>
               </li>
             ))}
+            <li>
+              <button
+                type="button"
+                onClick={handleMyPageToggle}
+                className="text-gray-500 hover:text-white transition-colors text-sm md:text-base tracking-wide"
+                aria-expanded={isMyPageOpen}
+                aria-controls="mypage-submenu"
+              >
+                My Page
+              </button>
+              <ul
+                id="mypage-submenu"
+                className={`mt-3 space-y-3 pl-4 border-l border-gray-800 ${
+                  isMyPageOpen ? 'block' : 'hidden'
+                }`}
+              >
+                <li>
+                  <a
+                    href="#login"
+                    onClick={onClose}
+                    className="text-gray-500 hover:text-white transition-colors text-xs md:text-sm tracking-wide"
+                  >
+                    Login
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#signup"
+                    onClick={onClose}
+                    className="text-gray-500 hover:text-white transition-colors text-xs md:text-sm tracking-wide"
+                  >
+                    Sign Up
+                  </a>
+                </li>
+              </ul>
+            </li>
           </ul>
         </nav>
       </div>
