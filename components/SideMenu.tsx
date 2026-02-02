@@ -15,8 +15,7 @@ const menuItems = [
   { label: 'Studio', href: '#studio' },
 ];
 
-export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
-  const [isMyPageOpen, setIsMyPageOpen] = useState(false);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -123,3 +122,4 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
     </>
   );
 }
+
