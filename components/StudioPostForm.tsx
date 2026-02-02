@@ -4,12 +4,9 @@ import { useEffect, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toasts/use-toast';
-import {
-  createStudioPost,
-  type StudioPostFormState
-} from '@/app/account/actions';
+import { createPost, type CreatePostState } from '@/app/posts/actions';
 
-const initialState: StudioPostFormState = {
+const initialState: CreatePostState = {
   status: 'idle'
 };
 
@@ -31,7 +28,7 @@ export default function StudioPostForm() {
   const router = useRouter();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction] = useFormState(createStudioPost, initialState);
+  const [state, formAction] = useFormState(createPost, initialState);
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -40,7 +37,7 @@ export default function StudioPostForm() {
         description: '스튜디오 게시물이 등록되었습니다.'
       });
       formRef.current?.reset();
-      router.refresh();
+      router.push(state.postId ? `/posts/${state.postId}` : '/posts');
     }
 
     if (state.status === 'error' && state.message) {
@@ -57,6 +54,11 @@ export default function StudioPostForm() {
       action={formAction}
       className="mt-6 space-y-5 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)]"
     >
+      {state.status === 'error' && state.message && (
+        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          {state.message}
+        </div>
+      )}
       <div className="space-y-2">
         <label className="text-sm font-semibold uppercase tracking-[0.3em] text-neutral-400">
           제목
@@ -65,9 +67,11 @@ export default function StudioPostForm() {
           name="title"
           maxLength={80}
           required
-
           placeholder="스튜디오 게시물 제목을 입력하세요."
         />
+        {state.status === 'error' && state.fieldErrors?.title && (
+          <p className="text-sm text-red-200">{state.fieldErrors.title}</p>
+        )}
       </div>
       <div className="space-y-2">
         <label className="text-sm font-semibold uppercase tracking-[0.3em] text-neutral-400">
@@ -78,9 +82,11 @@ export default function StudioPostForm() {
           required
           maxLength={2000}
           rows={6}
-
           placeholder="작업 스토리와 소개를 작성해 주세요."
         />
+        {state.status === 'error' && state.fieldErrors?.content && (
+          <p className="text-sm text-red-200">{state.fieldErrors.content}</p>
+        )}
       </div>
       <div className="space-y-2">
         <label className="text-sm font-semibold uppercase tracking-[0.3em] text-neutral-400">
@@ -90,8 +96,10 @@ export default function StudioPostForm() {
           name="image"
           type="file"
           accept="image/*"
-
         />
+        {state.status === 'error' && state.fieldErrors?.image && (
+          <p className="text-sm text-red-200">{state.fieldErrors.image}</p>
+        )}
         <p className="text-sm text-neutral-500">
           최대 5MB, JPG/PNG 등 이미지 파일만 업로드 가능합니다.
         </p>
