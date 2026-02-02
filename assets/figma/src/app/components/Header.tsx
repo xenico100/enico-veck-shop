@@ -17,9 +17,12 @@ const navItems = [
 export function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-6 flex justify-between items-start max-w-full">
-      <div className="flex flex-col text-white">
-        <span className="text-xs tracking-[0.3em] mb-1">STUDIO</span>
-        <span className="text-2xl tracking-[0.2em]">ZEUS</span>
+      <div className="flex items-center">
+        <img
+          src="/images/logo.png"
+          alt="ZEUS Studio"
+          className="h-12 w-auto md:h-14"
+        />
       </div>
 
       <nav className="hidden items-center gap-6 md:flex">
