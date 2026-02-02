@@ -23,7 +23,7 @@ const studioItems = [
   { id: 15, title: 'Pro Equipment', category: '장비', image: 'https://images.unsplash.com/photo-1760926421866-4ce684285fa6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdWRpbyUyMHdvcmtzdGF0aW9uJTIwY29tcHV0ZXJ8ZW58MXx8fHwxNzY5Njc1MTEzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
 ];
 
-export function StudioSection() {
+export default function StudioSection() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
