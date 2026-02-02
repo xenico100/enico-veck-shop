@@ -4,13 +4,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 
 import Header from '@/components/Header';
-import MainContent from '@/components/MainContent';
-import { AboutSection } from '@/components/AboutSection';
-import { ServicesSection } from '@/components/ServicesSection';
-import { StudioSection } from '@/components/StudioSection';
-import { Footer } from '@/components/Footer';
 
-const SideMenu = dynamic(() => import('@/components/SideMenu'), { ssr: false });
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
