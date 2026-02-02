@@ -1,57 +1,43 @@
-import App from '@/assets/figma/src/app/App';
-import { createClient } from '@/utils/supabase/server';
+'use client';
 
-export default async function HomePage() {
-  const isSupabaseConfigured =
-    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  let user: { id?: string; email?: string | null } | null = null;
-  let posts:
-    | Array<{
-        id: string;
-        title: string;
-        content: string;
-        created_at: string;
-        user_id: string;
-      }>
-    | null = null;
-  let studioPosts:
-    | Array<{
-        id: string;
-      title: string;
-      content: string;
-        image_url: string | null;
-      created_at: string;
-      user_id: string;
-    }>
-    | null = null;
+import { useState } from 'react';
+import Header from '@/components/Header';
+import SideMenu from '@/components/SideMenu';
+import MainContent from '@/components/MainContent';
+import AboutSection from '@/components/AboutSection';
+import ServicesSection from '@/components/ServicesSection';
+import StudioSection from '@/components/StudioSection';
+import Footer from '@/components/Footer';
 
-  if (isSupabaseConfigured) {
-    const supabase = createClient();
-    const {
-      data: { user: authUser }
-    } = await supabase.auth.getUser();
-    user = authUser;
-
-    const { data } = await supabase
-      .from('studio_posts' as never)
-      .select('id,title,content,created_at,user_id')
-      .order('created_at', { ascending: false });
-    posts = data as typeof posts;
-
-    const { data: studioData } = await supabase
-      .from('studio_posts' as never)
-      .select('id,title,content,image_url,created_at,user_id')
-      .order('created_at', { ascending: false });
-    studioPosts = studioData as typeof studioPosts;
-  }
+export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <App
-      isAuthenticated={Boolean(user?.id)}
-      userEmail={user?.email ?? null}
-      posts={posts ?? []}
-      studioPosts={studioPosts ?? []}
-    />
+    <main className="relative min-h-screen bg-black text-white">
+      <Header onMenuClick={() => setIsMenuOpen(true)} />
+
+      <SideMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+      />
+
+      <div id="home">
+        <MainContent />
+      </div>
+
+      <div id="about">
+        <AboutSection />
+      </div>
+
+      <div id="services">
+        <ServicesSection />
+      </div>
+
+      <div id="studio">
+        <StudioSection />
+      </div>
+
+      <Footer />
+    </main>
   );
 }
