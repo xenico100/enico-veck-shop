@@ -4,27 +4,30 @@ export function MainContent() {
   return (
     <section
       id="home"
-      className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 pb-16 pt-28 text-white max-w-full md:px-8 lg:px-16"
+      className="relative flex min-h-screen flex-col items-center justify-center px-6 pb-16 pt-28 text-white max-w-full md:px-8 lg:px-16"
     >
-      {/* Main Title */}
-      <div className="text-center">
-        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl tracking-[0.3em] leading-[1.1] mb-10">
-          ZEUS
-        </h1>
-
-        <div className="mx-auto max-w-lg space-y-2 text-xs sm:text-sm md:text-base tracking-[0.15em] leading-relaxed">
-          <p>RECORDING STUDIO / LOCALIZATION /</p>
-          <p>SOUND PRODUCTION & MIXING / DUBBING</p>
-        </div>
-      </div>
-      
-      {/* Footer Info */}
-      <div className="mt-auto w-full text-center pt-12">
-        <div className="text-[10px] leading-relaxed tracking-wide opacity-80 space-y-1">
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        src="/images/hero-bg.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
+      <div className="absolute inset-0 bg-black/20" />
+      <div className="relative z-10 flex w-full flex-1 flex-col items-center justify-center text-center">
+        <img
+          src="/images/main_word.png"
+          alt="ZEUS Studio"
+          className="w-full max-w-3xl"
+        />
+        <div className="absolute bottom-10 left-1/2 w-full max-w-2xl -translate-x-1/2 text-center text-xs leading-relaxed tracking-wide text-white/80">
           <p>서울 강남구 양재천로 551 4F</p>
-          <p>4F, 551-17, Yangcheon-ro, Gangse-gu, Seoul, Republic of Korea</p>
+          <p>
+            4F, 551-17, Yangcheon-ro, Gangse-gu, Seoul, Republic of Korea
+          </p>
           <p>Contact Email: 070@zeus-studio.net</p>
-          <p className="text-[9px]">Copyrights©ZEUS STUDIO All rights reserved</p>
+          <p>Copyrights©ZEUS STUDIO All rights reserved</p>
         </div>
       </div>
     </section>
