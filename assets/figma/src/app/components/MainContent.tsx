@@ -4,11 +4,11 @@ export function MainContent() {
   return (
     <section
       id="home"
-      className="relative flex min-h-screen w-full overflow-hidden px-6 pt-28 text-white md:px-8 lg:px-16"
+      className="relative min-h-screen w-full overflow-hidden px-6 pt-28 text-white md:px-8 lg:px-16"
     >
       {/* Background video */}
       <video
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 z-0 h-full w-full object-cover"
         src="/images/hero-bg.mp4"
         autoPlay
         loop
@@ -17,16 +17,24 @@ export function MainContent() {
       />
 
       {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 z-10 bg-black/30" />
 
       {/* Bottom-center pinned block */}
-      <div className="absolute bottom-6 left-1/2 z-10 w-full max-w-2xl -translate-x-1/2 px-4 text-center">
-        <div className="mx-auto inline-flex flex-col items-center gap-3 rounded-2xl bg-black/35 px-6 py-4 text-xs leading-relaxed tracking-wide text-white/85 backdrop-blur-sm">
+      <div
+        className="fixed z-50 text-center"
+        style={{
+          left: '50%',
+          bottom: '24px',
+          transform: 'translateX(-50%)',
+          width: 'min(640px, calc(100vw - 32px))',
+        }}
+      >
+        <div className="mx-auto inline-flex flex-col items-center gap-2 rounded-2xl bg-black/35 px-5 py-3 text-xs leading-relaxed tracking-wide text-white/85 backdrop-blur-sm">
           {/* Main word image */}
           <img
             src="/images/main_word.png"
             alt="ZEUS Studio"
-            className="w-56 sm:w-64 md:w-72"
+            className="w-40 sm:w-44 md:w-48"
             draggable={false}
           />
 
