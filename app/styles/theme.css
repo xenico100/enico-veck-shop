@@ -1,4 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @custom-variant dark (&:is(.dark *));
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
 
 :root {
   --font-size: 16px;
@@ -139,11 +148,6 @@
     margin: 0;
     padding: 0;
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);
