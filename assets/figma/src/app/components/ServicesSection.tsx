@@ -1,5 +1,7 @@
 'use client';
 
+import { useRef } from 'react';
+
 const services = [
   {
     title: 'Recording',
@@ -22,33 +24,96 @@ const services = [
 ];
 
 export function ServicesSection() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startScrollLeft = useRef(0);
+
+  const scrollByPage = (direction: 'left' | 'right') => {
+    const track = trackRef.current;
+    if (!track) return;
+    const amount = track.clientWidth * 0.9;
+    track.scrollBy({
+      left: direction === 'left' ? -amount : amount,
+      behavior: 'smooth'
+    });
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const track = trackRef.current;
+    if (!track) return;
+    isDragging.current = true;
+    startX.current = event.clientX;
+    startScrollLeft.current = track.scrollLeft;
+    track.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const track = trackRef.current;
+    if (!track || !isDragging.current) return;
+    const delta = startX.current - event.clientX;
+    track.scrollLeft = startScrollLeft.current + delta;
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const track = trackRef.current;
+    if (!track) return;
+    isDragging.current = false;
+    track.releasePointerCapture(event.pointerId);
+  };
+
   return (
     <section id="services" className="relative bg-black text-white min-h-screen flex items-center justify-center px-4 md:px-8 lg:px-16 py-20 max-w-full">
       <div className="max-w-6xl mx-auto w-full">
         {/* Title */}
         <h2 className="text-5xl md:text-6xl tracking-wide text-center mb-16">Services</h2>
         
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((service, index) => (
-            <div key={index} className="flex w-full flex-col items-center text-center space-y-4">
-              {/* Image */}
-              <div className="w-full overflow-hidden rounded-lg aspect-[4/3]">
-                <img
-                  src={service.image}
-                  alt={service.title}
-                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-                />
+        {/* Services Carousel */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => scrollByPage('left')}
+            className="absolute left-0 top-1/2 hidden -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-3 text-white backdrop-blur transition hover:border-white/60 md:block"
+            aria-label="이전 서비스"
+          >
+            ←
+          </button>
+          <div
+            ref={trackRef}
+            className="flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth px-2 pb-4"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+          >
+            {services.map((service, index) => (
+              <div
+                key={index}
+                className="flex min-h-[360px] min-w-[75%] snap-start flex-col items-center justify-between text-center sm:min-w-[45%] lg:min-w-[30%] xl:min-w-[24%]"
+              >
+                <div className="w-full overflow-hidden rounded-lg aspect-[4/3]">
+                  <img
+                    src={service.image}
+                    alt={service.title}
+                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
+                <div className="space-y-2 px-2 pt-4">
+                  <h3 className="text-xl tracking-wide">{service.title}</h3>
+                  <p className="text-sm text-gray-300">{service.description}</p>
+                  <p className="text-xs text-gray-400">{service.detail}</p>
+                </div>
               </div>
-              
-              {/* Content */}
-              <div className="space-y-2">
-                <h3 className="text-xl tracking-wide">{service.title}</h3>
-                <p className="text-sm text-gray-300">{service.description}</p>
-                <p className="text-xs text-gray-400">{service.detail}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => scrollByPage('right')}
+            className="absolute right-0 top-1/2 hidden -translate-y-1/2 rounded-full border border-white/20 bg-black/60 p-3 text-white backdrop-blur transition hover:border-white/60 md:block"
+            aria-label="다음 서비스"
+          >
+            →
+          </button>
         </div>
       </div>
     </section>
