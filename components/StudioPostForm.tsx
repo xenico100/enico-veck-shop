@@ -52,6 +52,7 @@ export default function StudioPostForm() {
     <form
       ref={formRef}
       action={formAction}
+      encType="multipart/form-data"
       className="mt-6 space-y-5 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)]"
     >
       {state.status === 'error' && state.message && (
