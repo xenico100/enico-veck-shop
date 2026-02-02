@@ -21,7 +21,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         <img
           src="/images/logo.png"
           alt=""
-          className="h-16 w-auto md:h-20 lg:h-24"
+
           draggable={false}
         />
       </div>
