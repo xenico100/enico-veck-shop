@@ -183,12 +183,6 @@
     line-height: 1.5;
   }
 
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
   input {
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
