@@ -1,40 +1,28 @@
 // components/AuthButton.tsx
 'use client';
 
-import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/app/context/AuthContext';
 
 // props로 온 클릭 이벤트를 받아서 실행하게 함
-export default function AuthButton({ onMyPageClick }: { onMyPageClick?: () => void }) {
-  const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
-  const router = useRouter();
+export default function AuthButton({
+  onMyPageClick,
+  onLoginClick,
+}: {
+  onMyPageClick?: () => void;
+  onLoginClick?: () => void;
+}) {
+  const { user, isAuthenticated, signOut } = useAuth();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const handleSignIn = () => router.push('/login');
+  const handleSignIn = () => onLoginClick?.();
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.refresh();
+    await signOut();
   };
 
   return (
     <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-      {user ? (
+      {isAuthenticated ? (
         <>
-          <p style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>{user.email}님</p>
+          <p style={{ fontSize: '12px', color: '#888', marginBottom: '5px' }}>{user?.email}님</p>
           <div style={{ display: 'flex', gap: '10px' }}>
             {/* 내 정보 버튼 추가 */}
             <button
