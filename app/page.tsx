@@ -10,6 +10,7 @@ import ServicesSection from '../components/ServicesSection';
 import StudioSection from '../components/StudioSection';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
+import { useAuth } from './context/AuthContext';
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,6 +20,7 @@ export default function LandingPage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
   // 임시 핸들러 (나중에 실제 모달/기능으로 교체)
   const openCart = () => alert('TODO: Cart modal');
@@ -62,10 +64,7 @@ export default function LandingPage() {
           try {
             setAuthLoading(true);
             setAuthError(null);
-
-            // TODO: supabase 로그인 여기서 호출
-            console.log('login', email, password);
-
+            await signInWithEmail(email, password);
             setAuthOpen(false);
           } catch (e: any) {
             setAuthError(e?.message ?? '로그인 실패');
@@ -77,10 +76,7 @@ export default function LandingPage() {
           try {
             setAuthLoading(true);
             setAuthError(null);
-
-            // TODO: supabase 회원가입 여기서 호출
-            console.log('signup', name, email, password);
-
+            await signUpWithEmail(name, email, password);
             setAuthOpen(false);
           } catch (e: any) {
             setAuthError(e?.message ?? '회원가입 실패');
@@ -89,8 +85,12 @@ export default function LandingPage() {
           }
         }}
         onGoogle={() => {
-          // TODO: supabase google oauth
-          console.log('google login');
+          setAuthError(null);
+          setAuthLoading(true);
+          signInWithGoogle().catch((e: any) => {
+            setAuthError(e?.message ?? 'Google 로그인 실패');
+            setAuthLoading(false);
+          });
         }}
       />
     </main>

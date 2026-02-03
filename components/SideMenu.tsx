@@ -3,29 +3,7 @@
 import { X, ShoppingCart, LogIn, User as UserIcon, LogOut } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
-// ✅ 안전하게 optional import (컨텍스트 없으면 빌드 터지는 거 방지)
-let useCartSafe: null | (() => { totalItems: number }) = null;
-let useAuthSafe:
-  | null
-  | (() => {
-      isAuthenticated: boolean;
-      user?: { name?: string; email?: string } | null;
-      signOut?: () => Promise<void> | void;
-    }) = null;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  useCartSafe = require('@/app/context/CartContext')?.useCart ?? null;
-} catch (_) {
-  useCartSafe = null;
-}
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  useAuthSafe = require('@/app/context/AuthContext')?.useAuth ?? null;
-} catch (_) {
-  useAuthSafe = null;
-}
+import { useAuth } from '@/app/context/AuthContext';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -51,13 +29,9 @@ export default function SideMenu({
   onLoginClick,
   onMyPageClick,
 }: SideMenuProps) {
-  // ✅ 컨텍스트 있으면 쓰고, 없으면 fallback
-  const cart = useCartSafe ? useCartSafe() : { totalItems: 0 };
-  const auth = useAuthSafe
-    ? useAuthSafe()
-    : { isAuthenticated: false, user: null as any, signOut: undefined as any };
+  const auth = useAuth();
 
-  const totalItems = cart?.totalItems ?? 0;
+  const totalItems = 0;
   const isAuthenticated = !!auth?.isAuthenticated;
   const user = auth?.user;
 
