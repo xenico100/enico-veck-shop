@@ -1,7 +1,6 @@
 'use client';
 
-import { X, ShoppingCart, ArrowRight } from 'lucide-react';
-import { useEffect, type KeyboardEvent } from 'react';
+
 
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -90,12 +89,7 @@ export default function SideMenu({
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex justify-between items-center mb-10 md:mb-12 pt-6 pb-6 pl-6 pr-6 md:pt-8 md:pb-8 md:pl-12 md:pr-12">
-          <span className="text-white text-lg md:text-xl tracking-[0.2em] font-light">ZEUS</span>
-          <div
-            onClick={onClose}
-            onKeyDown={handleKeyActivate}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer"
+
             aria-label="메뉴 닫기"
             role="button"
             tabIndex={0}
@@ -104,15 +98,14 @@ export default function SideMenu({
           </div>
         </div>
 
-        <nav className="pl-6 pr-6 md:pl-12 md:pr-12">
+
           <ul className="space-y-4 md:space-y-5 text-sm md:text-base font-light tracking-wide">
             {menuItems.map((item) => (
               <li key={item.label}>
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors cursor-pointer"
-                >
+
                   {item.label}
                 </a>
               </li>
@@ -123,10 +116,7 @@ export default function SideMenu({
               <li>
                 <div
                   onClick={handleMyPageClick}
-                  onKeyDown={handleKeyActivate}
-                  className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors cursor-pointer"
-                  role="button"
-                  tabIndex={0}
+
                 >
                   <span>My Page</span>
                 </div>
@@ -137,10 +127,7 @@ export default function SideMenu({
             <li>
               <div
                 onClick={handleCartClick}
-                onKeyDown={handleKeyActivate}
-                className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors cursor-pointer"
-                role="button"
-                tabIndex={0}
+
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>Cart{totalItems > 0 ? ` (${totalItems})` : ''}</span>
@@ -149,7 +136,7 @@ export default function SideMenu({
 
             {/* Divider */}
             <li className="pt-3">
-              <span className="text-gray-500">—</span>
+
             </li>
 
             {/* Auth */}
@@ -165,10 +152,7 @@ export default function SideMenu({
                 <li>
                   <div
                     onClick={handleLogout}
-                    onKeyDown={handleKeyActivate}
-                    className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors cursor-pointer"
-                    role="button"
-                    tabIndex={0}
+
                   >
                     <span>로그아웃</span>
                   </div>
@@ -178,14 +162,7 @@ export default function SideMenu({
               <li>
                 <div
                   onClick={handleLoginClick}
-                  onKeyDown={handleKeyActivate}
-                  className="flex items-center justify-between text-gray-500 hover:text-white transition-colors cursor-pointer"
-                  role="button"
-                  tabIndex={0}
-                >
-                  <span>로그인 / 회원가입</span>
-                  <ArrowRight className="w-4 h-4" />
-                </div>
+
               </li>
             )}
           </ul>
