@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 
 import "./styles/tailwind.css";
 import "./styles/theme.css";
+import Providers from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="dark">
       <body className={`${inter.className} bg-background text-foreground antialiased`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
