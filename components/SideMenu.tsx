@@ -1,31 +1,9 @@
 'use client';
 
-import { X, ShoppingCart, LogIn, User as UserIcon, LogOut } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { X, ShoppingCart, LogOut, ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
 
-// ✅ 안전하게 optional import (컨텍스트 없으면 빌드 터지는 거 방지)
-let useCartSafe: null | (() => { totalItems: number }) = null;
-let useAuthSafe:
-  | null
-  | (() => {
-      isAuthenticated: boolean;
-      user?: { name?: string; email?: string } | null;
-      signOut?: () => Promise<void> | void;
-    }) = null;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  useCartSafe = require('@/app/context/CartContext')?.useCart ?? null;
-} catch (_) {
-  useCartSafe = null;
-}
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  useAuthSafe = require('@/app/context/AuthContext')?.useAuth ?? null;
-} catch (_) {
-  useAuthSafe = null;
-}
+import { useAuth } from '@/app/context/AuthContext';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -51,22 +29,11 @@ export default function SideMenu({
   onLoginClick,
   onMyPageClick,
 }: SideMenuProps) {
-  // ✅ 컨텍스트 있으면 쓰고, 없으면 fallback
-  const cart = useCartSafe ? useCartSafe() : { totalItems: 0 };
-  const auth = useAuthSafe
-    ? useAuthSafe()
-    : { isAuthenticated: false, user: null as any, signOut: undefined as any };
+  const auth = useAuth();
 
-  const totalItems = cart?.totalItems ?? 0;
+  const totalItems = 0;
   const isAuthenticated = !!auth?.isAuthenticated;
   const user = auth?.user;
-
-  const userInitial = useMemo(() => {
-    const name = user?.name?.trim();
-    const email = user?.email?.trim();
-    const base = name || email || '';
-    return base ? base[0].toUpperCase() : 'U';
-  }, [user?.name, user?.email]);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
@@ -116,11 +83,11 @@ export default function SideMenu({
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex justify-between items-center mb-12 md:mb-16">
-          <span className="text-white text-lg md:text-xl tracking-[0.2em]">ZEUS</span>
+        <div className="flex justify-between items-center mb-10 md:mb-12">
+          <span className="text-white text-lg md:text-xl tracking-[0.2em] font-light">ZEUS</span>
           <button
             onClick={onClose}
-            className="text-white hover:opacity-80 transition-opacity"
+            className="text-white/80 hover:text-white transition-colors"
             aria-label="메뉴 닫기"
             type="button"
           >
@@ -129,13 +96,13 @@ export default function SideMenu({
         </div>
 
         <nav>
-          <ul className="space-y-5 md:space-y-6">
+          <ul className="space-y-4 md:space-y-5 text-sm md:text-base font-light tracking-wide">
             {menuItems.map((item) => (
               <li key={item.label}>
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="text-gray-500 hover:text-white transition-colors text-sm md:text-base tracking-wide"
+                  className="text-gray-500 hover:text-white transition-colors"
                 >
                   {item.label}
                 </a>
@@ -147,10 +114,9 @@ export default function SideMenu({
               <li>
                 <button
                   onClick={handleMyPageClick}
-                  className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm md:text-base tracking-wide w-full text-left"
+                  className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors w-full text-left"
                   type="button"
                 >
-                  <UserIcon className="w-4 h-4" />
                   <span>My Page</span>
                 </button>
               </li>
@@ -160,7 +126,7 @@ export default function SideMenu({
             <li>
               <button
                 onClick={handleCartClick}
-                className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm md:text-base tracking-wide w-full text-left"
+                className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors w-full text-left"
                 type="button"
               >
                 <ShoppingCart className="w-4 h-4" />
@@ -174,29 +140,24 @@ export default function SideMenu({
             </li>
 
             {/* Divider */}
-            <li className="pt-4">
-              <div className="w-full h-px bg-gray-800" />
+            <li className="pt-3">
+              <div className="w-full h-px bg-white/10" />
             </li>
 
             {/* Auth */}
             {isAuthenticated ? (
               <>
                 <li>
-                  <div className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-lg">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm font-medium">{userInitial}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{user?.name ?? 'User'}</p>
-                      <p className="text-gray-500 text-xs truncate">{user?.email ?? ''}</p>
-                    </div>
+                  <div className="space-y-1">
+                    <p className="text-white/90 text-sm truncate">{user?.name ?? 'User'}</p>
+                    <p className="text-gray-500 text-xs truncate">{user?.email ?? ''}</p>
                   </div>
                 </li>
 
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm md:text-base tracking-wide w-full text-left"
+                    className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors w-full text-left"
                     type="button"
                   >
                     <LogOut className="w-4 h-4" />
@@ -208,11 +169,11 @@ export default function SideMenu({
               <li>
                 <button
                   onClick={handleLoginClick}
-                  className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm md:text-base tracking-wide w-full text-left"
+                  className="flex items-center justify-between text-gray-500 hover:text-white transition-colors w-full text-left"
                   type="button"
                 >
-                  <LogIn className="w-4 h-4" />
                   <span>로그인 / 회원가입</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </li>
             )}
