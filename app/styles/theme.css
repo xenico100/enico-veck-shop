@@ -3,12 +3,6 @@
 @tailwind utilities;
 
 @custom-variant dark (&:is(.dark *));
-@layer base {
-  * {
-    @apply border-border;
-  }
-}
-
 :root {
   --font-size: 16px;
   --background: #ffffff;
@@ -130,12 +124,11 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
     box-sizing: border-box;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     overflow-x: hidden;
     margin: 0;
     padding: 0;
@@ -178,12 +171,6 @@
   }
 
   label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;

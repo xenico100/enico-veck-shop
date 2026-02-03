@@ -1,7 +1,6 @@
 'use client';
 
-import { X, ShoppingCart, LogOut, ArrowRight } from 'lucide-react';
-import { useEffect } from 'react';
+
 
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -65,11 +64,18 @@ export default function SideMenu({
     }
   };
 
+  const handleKeyActivate = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      (event.currentTarget as HTMLElement).click();
+    }
+  };
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -77,33 +83,29 @@ export default function SideMenu({
 
       {/* Side Menu */}
       <div
-        className={`fixed right-0 top-0 bottom-0 w-56 md:w-64 bg-[#0a0a0a] z-50 px-6 md:px-12 py-6 md:py-8 transition-transform duration-300 ${
+        className={`fixed right-0 top-0 bottom-0 w-56 md:w-64 z-50 transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex justify-between items-center mb-10 md:mb-12">
-          <span className="text-white text-lg md:text-xl tracking-[0.2em] font-light">ZEUS</span>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
+
             aria-label="메뉴 닫기"
-            type="button"
+            role="button"
+            tabIndex={0}
           >
             <X className="w-5 h-5" />
-          </button>
+          </div>
         </div>
 
-        <nav>
+
           <ul className="space-y-4 md:space-y-5 text-sm md:text-base font-light tracking-wide">
             {menuItems.map((item) => (
               <li key={item.label}>
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="text-gray-500 hover:text-white transition-colors"
-                >
+
                   {item.label}
                 </a>
               </li>
@@ -112,36 +114,29 @@ export default function SideMenu({
             {/* My Page (로그인 시만) */}
             {isAuthenticated && (
               <li>
-                <button
+                <div
                   onClick={handleMyPageClick}
-                  className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors w-full text-left"
-                  type="button"
+
                 >
                   <span>My Page</span>
-                </button>
+                </div>
               </li>
             )}
 
             {/* Cart */}
             <li>
-              <button
+              <div
                 onClick={handleCartClick}
-                className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors w-full text-left"
-                type="button"
+
               >
                 <ShoppingCart className="w-4 h-4" />
-                <span>Cart</span>
-                {totalItems > 0 && (
-                  <span className="ml-auto bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
+                <span>Cart{totalItems > 0 ? ` (${totalItems})` : ''}</span>
+              </div>
             </li>
 
             {/* Divider */}
             <li className="pt-3">
-              <div className="w-full h-px bg-white/10" />
+
             </li>
 
             {/* Auth */}
@@ -155,26 +150,19 @@ export default function SideMenu({
                 </li>
 
                 <li>
-                  <button
+                  <div
                     onClick={handleLogout}
-                    className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors w-full text-left"
-                    type="button"
+
                   >
-                    <LogOut className="w-4 h-4" />
                     <span>로그아웃</span>
-                  </button>
+                  </div>
                 </li>
               </>
             ) : (
               <li>
-                <button
+                <div
                   onClick={handleLoginClick}
-                  className="flex items-center justify-between text-gray-500 hover:text-white transition-colors w-full text-left"
-                  type="button"
-                >
-                  <span>로그인 / 회원가입</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+
               </li>
             )}
           </ul>
