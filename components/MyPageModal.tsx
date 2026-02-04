@@ -5,6 +5,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
+import { checkIsAdmin } from '@/utils/supabase/admins';
 
 type TabKey = 'profile' | 'orders' | 'membership' | 'admin' | 'posts';
 
@@ -24,13 +25,10 @@ const tabs: Array<{ key: TabKey; label: string; adminOnly?: boolean }> = [
 export default function MyPageModal({ open, onOpenChange }: Props) {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  const isAdmin = useMemo(() => {
-    const role = (user as { role?: string } | null)?.role;
-    return role === 'admin';
-  }, [user]);
 
   const name = user?.name ?? '관리자';
   const email = user?.email ?? 'admin@example.com';
@@ -55,6 +53,29 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onOpenChange]);
+
+  useEffect(() => {
+    let active = true;
+
+    const runAdminCheck = async () => {
+      if (!user?.id) {
+        setIsAdmin(false);
+        setAdminLoading(false);
+        return;
+      }
+      setAdminLoading(true);
+      const admin = await checkIsAdmin(user.id);
+      if (!active) return;
+      setIsAdmin(admin);
+      setAdminLoading(false);
+    };
+
+    runAdminCheck();
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
@@ -89,6 +110,12 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     }
   };
 
+  const visibleTabs = useMemo(
+    () => tabs.filter((tab) => !tab.adminOnly || isAdmin),
+    [isAdmin]
+  );
+  const isAdminTab = activeTab === 'admin' || activeTab === 'posts';
+
   if (!open) return null;
 
   return (
@@ -111,18 +138,16 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                 마이페이지
               </h2>
               <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                {tabs.map((tab) => {
-                  const disabled = tab.adminOnly && !isAdmin;
+                {visibleTabs.map((tab) => {
                   const isActive = activeTab === tab.key;
                   return (
                     <button
                       key={tab.key}
                       type="button"
-                      onClick={() => !disabled && setActiveTab(tab.key)}
+                      onClick={() => setActiveTab(tab.key)}
                       className={`relative pb-2 ${
                         isActive ? 'text-white' : 'text-gray-500 hover:text-gray-200'
-                      } ${disabled ? 'cursor-not-allowed opacity-50 hover:text-gray-500' : ''}`}
-                      disabled={disabled}
+                      }`}
                     >
                       {tab.label}
                       {isActive && (
@@ -145,7 +170,21 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
           </div>
 
           <div className="max-h-[70vh] overflow-y-auto px-6 pb-8 pt-6">
-            {activeTab === 'profile' && (
+            {isAdminTab && adminLoading && (
+              <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
+                <p className="text-sm font-semibold text-white">권한 확인 중...</p>
+                <p className="text-xs text-gray-500">관리자 권한을 확인하고 있습니다.</p>
+              </div>
+            )}
+
+            {isAdminTab && !adminLoading && !isAdmin && (
+              <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
+                <p className="text-sm font-semibold text-white">권한이 없습니다</p>
+                <p className="text-xs text-gray-500">관리자 전용 메뉴입니다.</p>
+              </div>
+            )}
+
+            {activeTab === 'profile' && !isAdminTab && (
               <div className="space-y-6">
                 <div className="rounded-2xl border border-white/10 bg-[#131720] p-6">
                   <div className="flex items-center gap-4">
@@ -226,7 +265,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            {activeTab === 'orders' && (
+            {activeTab === 'orders' && !isAdminTab && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-white">주문 내역</h3>
                 <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
@@ -239,7 +278,8 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            {activeTab !== 'profile' && activeTab !== 'orders' && (
+            {((!isAdminTab && activeTab !== 'profile' && activeTab !== 'orders')
+              || (isAdminTab && isAdmin && !adminLoading)) && (
               <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
                 <p className="text-sm font-semibold text-white">준비 중입니다</p>
                 <p className="text-xs text-gray-500">곧 새로운 기능으로 찾아올게요.</p>
