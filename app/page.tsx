@@ -10,6 +10,7 @@ import ServicesSection from '../components/ServicesSection';
 import StudioSection from '../components/StudioSection';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
+import MyPageModal from '../components/MyPageModal';
 import { useAuth } from './context/AuthContext';
 
 export default function LandingPage() {
@@ -20,11 +21,12 @@ export default function LandingPage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [myPageOpen, setMyPageOpen] = useState(false);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
   // 임시 핸들러 (나중에 실제 모달/기능으로 교체)
   const openCart = () => alert('TODO: Cart modal');
-  const openMyPage = () => alert('TODO: My Page');
+  const openMyPage = () => setMyPageOpen(true);
 
   return (
     <main className="relative min-h-screen bg-black text-white">
@@ -93,6 +95,8 @@ export default function LandingPage() {
           });
         }}
       />
+
+      <MyPageModal open={myPageOpen} onOpenChange={setMyPageOpen} />
     </main>
   );
 }
