@@ -4,21 +4,21 @@
 
 /* 수정 파일: app/styles/tailwind.css - html/body overflow-x 숨김으로 가로 오버플로우 방지 */
 @layer base {
-  html {
+  html.legacy {
     font-size: 18px;
     @apply overflow-x-hidden;
   }
 
-  body {
+  body.legacy {
     @apply overflow-x-hidden text-[17px] leading-relaxed text-neutral-200 antialiased;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  .legacy h1,
+  .legacy h2,
+  .legacy h3,
+  .legacy h4,
+  .legacy h5,
+  .legacy h6 {
     @apply text-white;
   }
 }

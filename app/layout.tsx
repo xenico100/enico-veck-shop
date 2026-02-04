@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className="dark">
-      <body className={`${inter.className} bg-background text-foreground antialiased`}>
+    <html lang="ko" className="dark legacy">
+      <body className={`${inter.className} legacy bg-background text-foreground antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

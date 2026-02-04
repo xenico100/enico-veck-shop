@@ -123,11 +123,11 @@
 }
 
 @layer base {
-  * {
+  .legacy * {
     box-sizing: border-box;
   }
 
-  body {
+  body.legacy {
     @apply text-foreground;
     overflow-x: hidden;
     margin: 0;
@@ -135,48 +135,48 @@
     width: 100%;
   }
 
-  html {
+  html.legacy {
     overflow-x: hidden;
     width: 100%;
     margin: 0;
     padding: 0;
   }
 
-  html {
+  html.legacy {
     font-size: var(--font-size);
   }
 
-  h1 {
+  .legacy h1 {
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  h2 {
+  .legacy h2 {
     font-size: var(--text-xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  h3 {
+  .legacy h3 {
     font-size: var(--text-lg);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  h4 {
+  .legacy h4 {
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  label {
+  .legacy label {
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
-  input {
+  .legacy input {
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;

@@ -10,7 +10,7 @@ import ServicesSection from '../components/ServicesSection';
 import StudioSection from '../components/StudioSection';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
-import MyPageModal from '../components/MyPageModal';
+import MyPageModal from '../components/mypage/MyPageModal';
 import { useAuth } from './context/AuthContext';
 
 export default function LandingPage() {
