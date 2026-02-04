@@ -8,12 +8,12 @@ export async function checkIsAdmin(
     .from('admins')
     .select('user_id')
     .eq('user_id', userId)
-    .limit(1);
+    .maybeSingle();
 
   if (error) {
     console.warn('Failed to check admin status', error);
     return false;
   }
 
-  return (data?.length ?? 0) > 0;
+  return !!data;
 }

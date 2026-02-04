@@ -26,8 +26,7 @@ const tabs: Array<{ key: TabKey; label: string; adminOnly?: boolean }> = [
 export default function MyPageModal({ open, onOpenChange }: Props) {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isAdminLoading, setIsAdminLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
@@ -36,9 +35,10 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const email = user?.email ?? 'admin@example.com';
   const initial = name.trim().charAt(0) || '관';
 
+  const adminLoading = isAdmin === null;
   const visibleTabs = useMemo(
-    () => tabs.filter((tab) => !tab.adminOnly || (!isAdminLoading && isAdmin)),
-    [isAdmin, isAdminLoading]
+    () => tabs.filter((tab) => !tab.adminOnly || isAdmin === true),
+    [isAdmin]
   );
 
   useEffect(() => {
@@ -68,16 +68,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
       if (!user?.id) {
         if (active) {
           setIsAdmin(false);
-          setIsAdminLoading(false);
         }
         return;
       }
 
-      setIsAdminLoading(true);
+      setIsAdmin(null);
       const adminStatus = await checkIsAdmin(supabase, user.id);
       if (!active) return;
       setIsAdmin(adminStatus);
-      setIsAdminLoading(false);
     };
 
     fetchAdminStatus();
@@ -164,6 +162,12 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                     </button>
                   );
                 })}
+                {adminLoading && (
+                  <>
+                    <div className="h-[22px] w-20 animate-pulse rounded-full bg-white/10" />
+                    <div className="h-[22px] w-20 animate-pulse rounded-full bg-white/10" />
+                  </>
+                )}
               </div>
             </div>
             <button
@@ -281,7 +285,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
 
             {isAdminTab && (
               <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
-                {isAdminLoading ? (
+                {adminLoading ? (
                   <>
                     <p className="text-sm font-semibold text-white">권한 확인 중...</p>
                     <p className="text-xs text-gray-500">관리자 권한을 확인하고 있습니다.</p>
