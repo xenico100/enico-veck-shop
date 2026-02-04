@@ -5,6 +5,8 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
+import { checkIsAdmin } from '@/utils/supabase/admins';
+import { createClient } from '@/utils/supabase/client';
 
 type TabKey = 'profile' | 'orders' | 'membership' | 'admin' | 'posts';
 
@@ -24,17 +26,20 @@ const tabs: Array<{ key: TabKey; label: string; adminOnly?: boolean }> = [
 export default function MyPageModal({ open, onOpenChange }: Props) {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminLoading, setIsAdminLoading] = useState(true);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  const isAdmin = useMemo(() => {
-    const role = (user as { role?: string } | null)?.role;
-    return role === 'admin';
-  }, [user]);
+  const supabase = useMemo(() => createClient(), []);
 
   const name = user?.name ?? '관리자';
   const email = user?.email ?? 'admin@example.com';
   const initial = name.trim().charAt(0) || '관';
+
+  const visibleTabs = useMemo(
+    () => tabs.filter((tab) => !tab.adminOnly || (!isAdminLoading && isAdmin)),
+    [isAdmin, isAdminLoading]
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -55,6 +60,32 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onOpenChange]);
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchAdminStatus = async () => {
+      if (!user?.id) {
+        if (active) {
+          setIsAdmin(false);
+          setIsAdminLoading(false);
+        }
+        return;
+      }
+
+      setIsAdminLoading(true);
+      const adminStatus = await checkIsAdmin(supabase, user.id);
+      if (!active) return;
+      setIsAdmin(adminStatus);
+      setIsAdminLoading(false);
+    };
+
+    fetchAdminStatus();
+
+    return () => {
+      active = false;
+    };
+  }, [supabase, user?.id]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
@@ -91,6 +122,8 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
 
   if (!open) return null;
 
+  const isAdminTab = activeTab === 'admin' || activeTab === 'posts';
+
   return (
     <>
       <div className="fixed inset-0 z-[70] bg-black/70" onClick={() => onOpenChange(false)} />
@@ -111,7 +144,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                 마이페이지
               </h2>
               <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                {tabs.map((tab) => {
+                {visibleTabs.map((tab) => {
                   const disabled = tab.adminOnly && !isAdmin;
                   const isActive = activeTab === tab.key;
                   return (
@@ -239,10 +272,31 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            {activeTab !== 'profile' && activeTab !== 'orders' && (
+            {activeTab === 'membership' && (
               <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
                 <p className="text-sm font-semibold text-white">준비 중입니다</p>
                 <p className="text-xs text-gray-500">곧 새로운 기능으로 찾아올게요.</p>
+              </div>
+            )}
+
+            {isAdminTab && (
+              <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-[#131720] p-8 text-center">
+                {isAdminLoading ? (
+                  <>
+                    <p className="text-sm font-semibold text-white">권한 확인 중...</p>
+                    <p className="text-xs text-gray-500">관리자 권한을 확인하고 있습니다.</p>
+                  </>
+                ) : isAdmin ? (
+                  <>
+                    <p className="text-sm font-semibold text-white">준비 중입니다</p>
+                    <p className="text-xs text-gray-500">곧 새로운 기능으로 찾아올게요.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-white">권한이 없습니다</p>
+                    <p className="text-xs text-gray-500">관리자 전용 메뉴입니다.</p>
+                  </>
+                )}
               </div>
             )}
           </div>
