@@ -14,15 +14,43 @@ export default function LoginPage() {
 
   // 🔥 구글 로그인 함수 (이게 핵심)
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`, // 로그인 끝나면 돌아올 주소
-      },
-    });
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    console.log('[OAuth Debug] NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log(
+      '[OAuth Debug] NEXT_PUBLIC_SUPABASE_ANON_KEY exists?',
+      Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    );
+    console.log('[OAuth Debug] window.location.origin', window.location.origin);
+    console.log('[OAuth Debug] redirectTo', redirectTo);
 
-    if (error) {
-      alert('구글 로그인 에러: ' + error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo, // 로그인 끝나면 돌아올 주소
+          skipBrowserRedirect: true,
+        },
+      });
+
+      console.log('[OAuth Debug] signInWithOAuth data', data);
+      console.log('[OAuth Debug] signInWithOAuth error', error);
+
+      if (error) {
+        alert('구글 로그인 에러: ' + error.message);
+        return;
+      }
+
+      if (data?.url) {
+        console.log('[OAuth Debug] authorize URL', data.url);
+        window.location.assign(data.url);
+        return;
+      }
+
+      console.warn('[OAuth Debug] No authorize URL returned from Supabase OAuth response');
+    } catch (error) {
+      console.log('[OAuth Debug] signInWithOAuth catch error', error);
+      const message = error instanceof Error ? error.message : String(error);
+      alert('구글 로그인 에러: ' + message);
     }
   };
 

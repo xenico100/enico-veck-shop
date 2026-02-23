@@ -28,6 +28,16 @@ export default function AuthModal({
   loading = false,
   error = null,
 }: Props) {
+  const appleFontClass =
+    '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
+  const closeButtonClass =
+    'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-[#f5f5f7] backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18]';
+  const tabGroupClass =
+    'inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md';
+  const tabButtonBase = `rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] no-underline transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const primaryButtonClass = `w-full rounded-full bg-white py-3 text-sm font-medium text-black transition-colors duration-200 ease-in-out hover:bg-neutral-200 disabled:opacity-50 ${appleFontClass}`;
+  const secondaryButtonClass = `w-full rounded-full border border-white/20 bg-white/10 py-3 text-sm font-medium text-white backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/20 disabled:opacity-50 ${appleFontClass}`;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -62,31 +72,34 @@ export default function AuthModal({
 
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
-            <div className="flex gap-2">
+        <div className={`w-full max-w-md rounded-3xl border border-white/10 bg-[#0a0a0a]/95 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ${appleFontClass}`}>
+          <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+            <div className={tabGroupClass}>
               <button
                 type="button"
                 onClick={() => onSwitchMode('login')}
-                className={`text-sm tracking-wide ${
-                  mode === 'login' ? 'text-white' : 'text-gray-500 hover:text-white'
+                className={`${tabButtonBase} ${
+                  mode === 'login'
+                    ? 'bg-white text-black hover:bg-neutral-200'
+                    : 'border border-transparent bg-transparent text-white/80 hover:bg-white/20 hover:text-white'
                 }`}
               >
                 로그인
               </button>
-              <span className="text-gray-700">/</span>
               <button
                 type="button"
                 onClick={() => onSwitchMode('signup')}
-                className={`text-sm tracking-wide ${
-                  mode === 'signup' ? 'text-white' : 'text-gray-500 hover:text-white'
+                className={`${tabButtonBase} ${
+                  mode === 'signup'
+                    ? 'bg-white text-black hover:bg-neutral-200'
+                    : 'border border-transparent bg-transparent text-white/80 hover:bg-white/20 hover:text-white'
                 }`}
               >
                 회원가입
               </button>
             </div>
 
-            <button type="button" onClick={onClose} className="text-white/80 hover:text-white" aria-label="닫기">
+            <button type="button" onClick={onClose} className={closeButtonClass} aria-label="닫기">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -131,7 +144,7 @@ export default function AuthModal({
               type="button"
               onClick={submit}
               disabled={loading}
-              className="w-full rounded-xl bg-white text-black py-3 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              className={primaryButtonClass}
             >
               {loading ? '처리중…' : mode === 'login' ? '로그인' : '회원가입'}
             </button>
@@ -140,7 +153,7 @@ export default function AuthModal({
               type="button"
               onClick={onGoogle}
               disabled={loading}
-              className="w-full rounded-xl bg-white/5 border border-white/10 text-white py-3 text-sm hover:bg-white/10 disabled:opacity-50"
+              className={secondaryButtonClass}
             >
               Google로 계속
             </button>

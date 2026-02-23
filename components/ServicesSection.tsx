@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { ServiceDetailModal } from './ServiceDetailModal';
 
 const services = [
@@ -121,16 +123,60 @@ const services = [
 
 const categories = ['모든 제품', '녹음', '믹스/마스터', '더빙/성우'];
 
+const serviceSwatchBgClasses: Record<string, string> = {
+  '#1a1a1a': 'bg-[#1a1a1a]',
+  '#4a4a4a': 'bg-[#4a4a4a]',
+  '#8a8a8a': 'bg-[#8a8a8a]',
+  '#2a2a2a': 'bg-[#2a2a2a]',
+  '#5a5a5a': 'bg-[#5a5a5a]',
+  '#9a9a9a': 'bg-[#9a9a9a]',
+  '#3a3a3a': 'bg-[#3a3a3a]',
+  '#6a6a6a': 'bg-[#6a6a6a]',
+  '#aaaaaa': 'bg-[#aaaaaa]',
+  '#1a1a2a': 'bg-[#1a1a2a]',
+  '#4a4a5a': 'bg-[#4a4a5a]',
+  '#8a8a9a': 'bg-[#8a8a9a]',
+  '#2a3a5a': 'bg-[#2a3a5a]',
+  '#4a5a7a': 'bg-[#4a5a7a]',
+  '#6a7a9a': 'bg-[#6a7a9a]',
+  '#3a4a6a': 'bg-[#3a4a6a]',
+  '#5a6a8a': 'bg-[#5a6a8a]',
+  '#7a8aaa': 'bg-[#7a8aaa]',
+  '#2a3a4a': 'bg-[#2a3a4a]',
+  '#4a5a6a': 'bg-[#4a5a6a]',
+  '#6a7a8a': 'bg-[#6a7a8a]',
+  '#8a9aaa': 'bg-[#8a9aaa]',
+  '#3a2a4a': 'bg-[#3a2a4a]',
+  '#5a4a6a': 'bg-[#5a4a6a]',
+  '#7a6a8a': 'bg-[#7a6a8a]',
+  '#4a3a5a': 'bg-[#4a3a5a]',
+  '#6a5a7a': 'bg-[#6a5a7a]',
+  '#8a7a9a': 'bg-[#8a7a9a]',
+  '#9a8aaa': 'bg-[#9a8aaa]',
+  '#2a1a3a': 'bg-[#2a1a3a]',
+};
+
 export default function ServicesSection() {
   const [activeCategory, setActiveCategory] = useState('모든 제품');
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
+  const [isDraggingUi, setIsDraggingUi] = useState(false);
   const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollLeft = useRef(0);
+  const appleFontClass =
+    '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
+  const segmentedContainerClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md ${appleFontClass}`;
+  const segmentedTabBaseClass = `rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
+  const serviceGhostButtonClass = `rounded-full border border-white/20 bg-white/0 px-4 py-2 text-sm font-medium tracking-[0.2px] text-white/80 no-underline transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-white/10 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const servicePrimaryButtonClass = `rounded-full bg-white px-4 py-2 text-sm font-medium tracking-[0.2px] text-black no-underline transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-neutral-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const arrowButtonClass = `size-11 rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
+
+  const getSwatchClass = (color: string) =>
+    serviceSwatchBgClasses[color] ?? 'bg-white/30';
 
   // 카테고리별 필터링
   const filteredServices = useMemo(() => {
@@ -173,9 +219,9 @@ export default function ServicesSection() {
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
     isDragging.current = true;
+    setIsDraggingUi(true);
     startX.current = e.pageX - containerRef.current.offsetLeft;
     scrollLeft.current = containerRef.current.scrollLeft;
-    containerRef.current.style.cursor = 'grabbing';
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -188,16 +234,12 @@ export default function ServicesSection() {
 
   const handleMouseUp = () => {
     isDragging.current = false;
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab';
-    }
+    setIsDraggingUi(false);
   };
 
   const handleMouseLeave = () => {
     isDragging.current = false;
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab';
-    }
+    setIsDraggingUi(false);
   };
 
   // 스크롤 처리
@@ -224,20 +266,25 @@ export default function ServicesSection() {
         <h2 className="text-4xl md:text-5xl mb-8 tracking-tight">Services</h2>
         
         {/* Category Tabs */}
-        <div className="flex gap-3 mb-12 overflow-x-auto pb-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => handleCategoryChange(category)}
-              className={`px-5 py-2 rounded-full text-xs whitespace-nowrap transition-all ${
-                activeCategory === category
-                  ? 'bg-white text-black'
-                  : 'bg-[#1a1a1a] text-gray-400 hover:bg-[#2a2a2a]'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+        <div className="mb-12 overflow-x-auto pb-2">
+          <div className={segmentedContainerClass}>
+            {categories.map((category) => (
+              <Button
+                key={category}
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCategoryChange(category)}
+                className={`${segmentedTabBaseClass} whitespace-nowrap ${
+                  activeCategory === category
+                    ? 'bg-white text-black shadow-sm hover:bg-white'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
         </div>
         
         {/* Services Carousel */}
@@ -248,17 +295,19 @@ export default function ServicesSection() {
             {canScrollLeft && (
               <button
                 onClick={() => handleScroll('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-[#1a1a1a] shadow-lg flex items-center justify-center hover:bg-[#2a2a2a] transition-colors -ml-6"
+                className={`absolute left-0 top-1/2 z-10 -ml-6 -translate-y-1/2 ${arrowButtonClass}`}
+                aria-label="이전 서비스"
               >
-                ←
+                <ChevronLeft className="h-5 w-5" />
               </button>
             )}
             
             {/* Scrollable Container */}
             <div
               ref={containerRef}
-              className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth cursor-grab"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              className={`scrollbar-hide flex gap-6 overflow-x-auto scroll-smooth ${
+                isDraggingUi ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
               onScroll={(e) => setScrollPosition((e.target as HTMLDivElement).scrollLeft)}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
@@ -271,9 +320,6 @@ export default function ServicesSection() {
                   className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-white/10 transition-all duration-300 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
-                  style={{
-                    transitionDelay: isChanging ? '0ms' : `${index * 50}ms`
-                  }}
                 >
                   {/* Image */}
                   <div className="relative w-full h-64 bg-[#0f0f0f] flex items-center justify-center p-8">
@@ -290,8 +336,7 @@ export default function ServicesSection() {
                     {service.colors.map((color, idx) => (
                       <div
                         key={idx}
-                        className="w-3 h-3 rounded-full border border-gray-600"
-                        style={{ backgroundColor: color }}
+                        className={`h-3 w-3 rounded-full border border-gray-600 ${getSwatchClass(color)}`}
                       />
                     ))}
                   </div>
@@ -306,13 +351,20 @@ export default function ServicesSection() {
                     <p className="text-sm text-white mb-4">{service.price}</p>
                     
                     {/* Buttons */}
-                    <div className="flex items-center gap-4">
-                      <button className="bg-red-600 text-white px-4 py-2 rounded-full text-xs hover:bg-red-700 transition-colors" onClick={() => openServiceDetail(service)}>
+                    <div className="flex items-center gap-2.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openServiceDetail(service)}
+                        className={serviceGhostButtonClass}
+                      >
                         더 알아보기
-                      </button>
-                      <a href="#" className="text-red-400 text-xs hover:underline">
-                        구매하기 &gt;
-                      </a>
+                      </Button>
+                      <Button asChild type="button" className={servicePrimaryButtonClass}>
+                        <a href="#" onClick={(e) => e.preventDefault()}>
+                          구매하기
+                        </a>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -323,9 +375,10 @@ export default function ServicesSection() {
             {canScrollRight && (
               <button
                 onClick={() => handleScroll('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-[#1a1a1a] shadow-lg flex items-center justify-center hover:bg-[#2a2a2a] transition-colors -mr-6"
+                className={`absolute right-0 top-1/2 z-10 -mr-6 -translate-y-1/2 ${arrowButtonClass}`}
+                aria-label="다음 서비스"
               >
-                →
+                <ChevronRight className="h-5 w-5" />
               </button>
             )}
           </div>
@@ -339,9 +392,6 @@ export default function ServicesSection() {
                   className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden transition-all duration-300 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
-                  style={{
-                    transitionDelay: isChanging ? '0ms' : `${index * 50}ms`
-                  }}
                 >
                   {/* Image */}
                   <div className="relative w-full h-56 bg-[#0f0f0f] flex items-center justify-center p-6">
@@ -357,8 +407,7 @@ export default function ServicesSection() {
                     {service.colors.map((color, idx) => (
                       <div
                         key={idx}
-                        className="w-3 h-3 rounded-full border border-gray-600"
-                        style={{ backgroundColor: color }}
+                        className={`h-3 w-3 rounded-full border border-gray-600 ${getSwatchClass(color)}`}
                       />
                     ))}
                   </div>
@@ -373,13 +422,20 @@ export default function ServicesSection() {
                     <p className="text-sm text-white mb-4">{service.price}</p>
                     
                     {/* Buttons */}
-                    <div className="flex items-center gap-4">
-                      <button className="bg-red-600 text-white px-4 py-2 rounded-full text-xs hover:bg-red-700 transition-colors" onClick={() => openServiceDetail(service)}>
+                    <div className="flex items-center gap-2.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openServiceDetail(service)}
+                        className={serviceGhostButtonClass}
+                      >
                         더 알아보기
-                      </button>
-                      <a href="#" className="text-red-400 text-xs hover:underline">
-                        구매하기 &gt;
-                      </a>
+                      </Button>
+                      <Button asChild type="button" className={servicePrimaryButtonClass}>
+                        <a href="#" onClick={(e) => e.preventDefault()}>
+                          구매하기
+                        </a>
+                      </Button>
                     </div>
                   </div>
                 </div>

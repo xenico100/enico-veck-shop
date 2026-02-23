@@ -31,6 +31,30 @@ export default function SideMenu({
   const totalItems = 0;
   const isAuthenticated = !!auth?.isAuthenticated;
   const user = auth?.user;
+  const appleFontClass = `[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]`;
+  const navItemClass = [
+    'block w-full text-left no-underline',
+    'text-[#f5f5f7] opacity-80 hover:opacity-100 hover:text-white',
+    'transition-colors duration-200 ease-in-out',
+    'text-[19px] font-medium leading-7 [letter-spacing:0.28px]',
+    appleFontClass
+  ].join(' ');
+  const pillButtonClass = [
+    'flex w-full items-center justify-start gap-2 rounded-full',
+    'border border-white/[0.15] bg-white/[0.08] px-4 py-2.5',
+    'text-left no-underline text-[#f5f5f7] opacity-90',
+    'hover:opacity-100 hover:text-white hover:bg-white/[0.12]',
+    'transition-colors duration-200 ease-in-out backdrop-blur-md',
+    'text-[18px] font-medium [letter-spacing:0.24px]',
+    appleFontClass
+  ].join(' ');
+  const iconCircleButtonClass = [
+    'flex h-10 w-10 items-center justify-center rounded-full',
+    'border border-white/[0.15] bg-white/[0.08] text-[#f5f5f7]',
+    'backdrop-blur-md transition-colors duration-200 ease-in-out',
+    'hover:bg-white/[0.18]'
+  ].join(' ');
+  const secondaryMetaClass = ['truncate', appleFontClass].join(' ');
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
@@ -74,7 +98,7 @@ export default function SideMenu({
 
       {/* Side Menu */}
       <aside
-        className={`fixed right-0 top-0 bottom-0 z-50 w-56 md:w-64 bg-black text-white
+        className={`fixed right-0 top-0 bottom-0 z-50 w-72 max-w-[85vw] bg-black/95 text-white
         transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
@@ -82,26 +106,30 @@ export default function SideMenu({
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <span className="text-sm tracking-wide">Menu</span>
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+          <span
+            className={`text-xs font-medium tracking-[0.3px] uppercase text-white/70 ${appleFontClass}`}
+          >
+            Menu
+          </span>
           <button
             aria-label="메뉴 닫기"
             onClick={onClose}
-            className="p-1 rounded hover:bg-white/10"
+            className={iconCircleButtonClass}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Menu list */}
-        <nav className="px-5 py-6">
-          <ul className="space-y-4 text-sm font-light tracking-wide">
+        <nav className="px-6 py-7">
+          <ul className="list-none space-y-5 p-0 m-0">
             {menuItems.map((item) => (
               <li key={item.label}>
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="block hover:text-white/70"
+                  className={navItemClass}
                 >
                   {item.label}
                 </a>
@@ -112,7 +140,7 @@ export default function SideMenu({
               <li>
                 <button
                   onClick={handleMyPageClick}
-                  className="block w-full text-left hover:text-white/70"
+                  className={navItemClass}
                 >
                   My Page
                 </button>
@@ -122,25 +150,25 @@ export default function SideMenu({
             <li>
               <button
                 onClick={handleCartClick}
-                className="flex items-center gap-2 hover:text-white/70"
+                className={pillButtonClass}
               >
-                <ShoppingCart className="w-4 h-4" />
+                <ShoppingCart className="h-4 w-4 shrink-0" />
                 <span>
                   Cart{totalItems > 0 ? ` (${totalItems})` : ''}
                 </span>
               </button>
             </li>
 
-            <li className="pt-4 border-t border-white/10" />
+            <li className="border-t border-white/10 pt-5" />
 
             {isAuthenticated ? (
               <>
                 <li>
-                  <div className="space-y-1">
-                    <p className="text-white/90 text-sm truncate">
+                  <div className="space-y-1.5">
+                    <p className={`text-sm text-white/90 ${secondaryMetaClass}`}>
                       {user?.name ?? 'User'}
                     </p>
-                    <p className="text-white/50 text-xs truncate">
+                    <p className={`text-xs text-white/55 ${secondaryMetaClass}`}>
                       {user?.email ?? ''}
                     </p>
                   </div>
@@ -148,7 +176,7 @@ export default function SideMenu({
                 <li>
                   <button
                     onClick={handleLogout}
-                    className="hover:text-red-400"
+                    className={`${navItemClass} hover:text-red-300`}
                   >
                     로그아웃
                   </button>
@@ -158,7 +186,7 @@ export default function SideMenu({
               <li>
                 <button
                   onClick={handleLoginClick}
-                  className="hover:text-white/70"
+                  className={pillButtonClass}
                 >
                   로그인
                 </button>

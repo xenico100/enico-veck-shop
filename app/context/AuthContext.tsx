@@ -101,13 +101,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
-    const redirectTo = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
-    if (oauthError) {
-      setError(oauthError.message);
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    console.log('[OAuth Debug] NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log(
+      '[OAuth Debug] NEXT_PUBLIC_SUPABASE_ANON_KEY exists?',
+      Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    );
+    console.log('[OAuth Debug] window.location.origin', window.location.origin);
+    console.log('[OAuth Debug] redirectTo', redirectTo);
+
+    try {
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+
+      console.log('[OAuth Debug] signInWithOAuth data', data);
+      console.log('[OAuth Debug] signInWithOAuth error', oauthError);
+
+      if (oauthError) {
+        setError(oauthError.message);
+        throw oauthError;
+      }
+
+      if (data?.url) {
+        console.log('[OAuth Debug] authorize URL', data.url);
+        window.location.assign(data.url);
+        return;
+      }
+
+      console.warn('[OAuth Debug] No authorize URL returned from Supabase OAuth response');
+    } catch (oauthError) {
+      console.log('[OAuth Debug] signInWithOAuth catch error', oauthError);
+      const message =
+        oauthError instanceof Error ? oauthError.message : 'Google OAuth login failed';
+      setError(message);
       throw oauthError;
     }
   }, [supabase]);
