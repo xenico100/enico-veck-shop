@@ -6,8 +6,9 @@ import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import MyPageAdminPanel from '@/components/MyPageAdminPanel';
+import ActionButton from '@/components/ui/ActionButton';
 import PillTab from '@/components/ui/PillTab';
-import { createClient } from '@/utils/supabase/client';
+import { useToast } from '@/components/ui/Toasts/use-toast';
 import { SERVICE_CATEGORIES, isAdminUserLike, type ServicePost } from '@/utils/service-posts';
 
 type TabKey = 'profile' | 'orders' | 'membership' | 'admin' | 'posts';
@@ -59,7 +60,7 @@ const emptyPostEditor = (): ServicePostEditorState => ({
 
 export default function MyPageModal({ open, onOpenChange }: Props) {
   const { user, signOut } = useAuth();
-  const supabase = useMemo(() => createClient(), []);
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
   const [servicePosts, setServicePosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -100,12 +101,6 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/25';
   const labelClass =
     `text-xs uppercase tracking-[0.16em] text-white/50 ${appleFontClass}`;
-  const pillPrimaryClass =
-    `inline-flex w-full items-center justify-center rounded-full border border-white/70 bg-white px-5 py-3 text-sm font-semibold tracking-[0.2px] text-black shadow-sm transition-colors duration-200 ease-in-out hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:w-auto md:min-w-[200px] ${appleFontClass}`;
-  const pillGlassClass =
-    `inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/30 bg-white/18 px-4 py-3 text-sm font-medium tracking-[0.2px] text-white shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/28 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 md:w-auto ${appleFontClass}`;
-  const pillDangerClass =
-    `inline-flex w-full items-center justify-center gap-2 rounded-full border border-rose-200/40 bg-rose-400/18 px-4 py-3 text-sm font-medium tracking-[0.2px] text-rose-50 shadow-sm transition-colors duration-200 ease-in-out hover:bg-rose-400/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/35 md:w-auto ${appleFontClass}`;
 
   useEffect(() => {
     if (!open) return;
@@ -202,26 +197,18 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
       setProfileMessage(null);
 
       try {
-        const { data, error } = await (supabase as never)
-          .from('users')
-          .select('id,name,phone,address,full_name')
-          .eq('id', user.id)
-          .maybeSingle();
+        const response = await fetch('/api/account/profile', { cache: 'no-store' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.message || '프로필 정보를 불러오지 못했습니다.');
+        }
 
-        if (error) throw error;
-
-        const row = (data ?? null) as
-          | {
-              id: string;
-              name?: string | null;
-              phone?: string | null;
-              address?: string | null;
-              full_name?: string | null;
-            }
+        const row = (payload?.data ?? null) as
+          | { name?: string | null; phone?: string | null; address?: string | null }
           | null;
 
         setProfileForm({
-          name: row?.name ?? row?.full_name ?? user.name ?? '',
+          name: row?.name ?? user.name ?? '',
           phone: row?.phone ?? '',
           address: row?.address ?? ''
         });
@@ -238,7 +225,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
         setProfileLoading(false);
       }
     },
-    [supabase, user]
+    [user]
   );
 
   useEffect(() => {
@@ -250,9 +237,36 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     setProfileForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const validateProfileForm = () => {
+    const phone = profileForm.phone.trim();
+    const address = profileForm.address.trim();
+    const nameValue = profileForm.name.trim();
+
+    if (!nameValue) return '이름을 입력해 주세요.';
+    if (nameValue.length > 80) return '이름은 80자 이하로 입력해 주세요.';
+    if (phone && !/^[0-9+()\-\s]{7,20}$/.test(phone)) {
+      return '전화번호 형식이 올바르지 않습니다.';
+    }
+    if (address && address.length < 3) return '주소는 3자 이상 입력해 주세요.';
+    if (address.length > 200) return '주소는 200자 이하로 입력해 주세요.';
+    return null;
+  };
+
   const handleSaveProfile = async () => {
     if (!user?.id) {
       setProfileError('로그인이 필요합니다.');
+      toast({
+        title: '저장 실패',
+        description: '로그인이 필요합니다.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const validationError = validateProfileForm();
+    if (validationError) {
+      setProfileError(validationError);
+      setProfileMessage(null);
       return;
     }
 
@@ -261,23 +275,42 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     setProfileMessage(null);
 
     try {
-      const payload = {
-        id: user.id,
-        name: profileForm.name.trim() || null,
-        full_name: profileForm.name.trim() || null,
-        phone: profileForm.phone.trim() || null,
-        address: profileForm.address.trim() || null
-      };
+      const response = await fetch('/api/account/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profileForm.name,
+          phone: profileForm.phone,
+          address: profileForm.address
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || '회원정보 저장에 실패했습니다.');
+      }
 
-      const { error } = await (supabase as never)
-        .from('users')
-        .upsert(payload, { onConflict: 'id' });
+      const next = payload?.data as Partial<UserProfileFormState> | undefined;
+      if (next) {
+        setProfileForm((prev) => ({
+          name: typeof next.name === 'string' ? next.name : prev.name,
+          phone: typeof next.phone === 'string' ? next.phone : prev.phone,
+          address: typeof next.address === 'string' ? next.address : prev.address
+        }));
+      }
 
-      if (error) throw error;
-
-      setProfileMessage('회원정보를 저장했습니다.');
+      setProfileMessage(payload?.message || '회원정보가 저장되었습니다.');
+      toast({
+        title: '저장 완료',
+        description: '회원정보가 저장되었습니다.'
+      });
     } catch (error) {
-      setProfileError(error instanceof Error ? error.message : '회원정보 저장에 실패했습니다.');
+      const message = error instanceof Error ? error.message : '회원정보 저장에 실패했습니다.';
+      setProfileError(message);
+      toast({
+        title: '저장 실패',
+        description: message,
+        variant: 'destructive'
+      });
     } finally {
       setProfileSaving(false);
     }
@@ -530,48 +563,54 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                   )}
 
                   <div className="flex justify-start">
-                    <button
-                      type="button"
-                      className={pillPrimaryClass}
+                    <ActionButton
+                      variant="primary"
+                      size="md"
+                      className={`w-full md:min-w-[200px] md:w-auto ${appleFontClass}`}
                       onClick={handleSaveProfile}
                       disabled={profileLoading || profileSaving}
                     >
                       {profileSaving ? '저장 중…' : '회원정보 수정'}
-                    </button>
+                    </ActionButton>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold tracking-tight text-white">보안</h3>
                   <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
-                    <button
-                      type="button"
-                      className={pillGlassClass}
+                    <ActionButton
+                      variant="secondary"
+                      size="md"
+                      className={`w-full md:w-auto ${appleFontClass}`}
                     >
                       <Lock className="h-4 w-4" />
                       비밀번호 변경
-                    </button>
+                    </ActionButton>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold tracking-tight text-white">계정 관리</h3>
-                  <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
-                    <button
-                      type="button"
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+                    <div className="flex flex-wrap gap-3">
+                    <ActionButton
+                      variant="secondary"
+                      size="md"
                       onClick={handleLogout}
-                      className={pillGlassClass}
+                      className={`w-full md:w-auto ${appleFontClass}`}
                     >
                       로그아웃
-                    </button>
-                    <button
-                      type="button"
+                    </ActionButton>
+                    <ActionButton
+                      variant="destructive"
+                      size="md"
                       onClick={handleDeleteAccount}
-                      className={pillDangerClass}
+                      className={`w-full md:w-auto ${appleFontClass}`}
                     >
                       <Trash2 className="h-4 w-4" />
                       회원 탈퇴
-                    </button>
+                    </ActionButton>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -601,13 +640,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                       Services 섹션에 노출될 게시글을 생성/수정/삭제합니다.
                     </p>
                   </div>
-                  <button
-                    type="button"
+                  <ActionButton
+                    variant="primary"
+                    size="md"
                     onClick={openCreateEditor}
-                    className={pillPrimaryClass}
+                    className={appleFontClass}
                   >
                     새 게시글
-                  </button>
+                  </ActionButton>
                 </div>
 
                 {postsError && (
@@ -648,21 +688,23 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                             {new Date(post.updated_at).toLocaleDateString('ko-KR')}
                           </p>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
+                        <div className="flex items-center justify-end gap-2">
+                          <ActionButton
+                            variant="secondary"
+                            size="sm"
                             onClick={() => openEditEditor(post)}
-                            className={pillGlassClass}
+                            className={appleFontClass}
                           >
                             수정
-                          </button>
-                          <button
-                            type="button"
+                          </ActionButton>
+                          <ActionButton
+                            variant="destructive"
+                            size="sm"
                             onClick={() => handleDeleteServicePost(post)}
-                            className={pillDangerClass}
+                            className={appleFontClass}
                           >
                             삭제
-                          </button>
+                          </ActionButton>
                         </div>
                       </div>
                     ))}
@@ -787,26 +829,28 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                         게시글 공개
                       </label>
 
-                      <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
-                        <button
-                          type="button"
+                      <div className="flex flex-wrap gap-3 pt-2 sm:justify-end">
+                        <ActionButton
+                          variant="secondary"
+                          size="md"
                           onClick={() => {
                             setEditorOpen(false);
                             setEditorState(emptyPostEditor());
                           }}
-                          className={pillGlassClass}
+                          className={appleFontClass}
                           disabled={editorSubmitting}
                         >
                           취소
-                        </button>
-                        <button
-                          type="button"
+                        </ActionButton>
+                        <ActionButton
+                          variant="primary"
+                          size="md"
                           onClick={handleSubmitServicePost}
-                          className={pillPrimaryClass}
+                          className={appleFontClass}
                           disabled={editorSubmitting}
                         >
                           {editorSubmitting ? '저장 중…' : editorState.id ? '수정 저장' : '게시글 생성'}
-                        </button>
+                        </ActionButton>
                       </div>
                     </div>
                   </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toasts/use-toast';
+import ActionButton from '@/components/ui/ActionButton';
 import { createPost, type CreatePostState } from '@/app/posts/actions';
 
 const initialState: CreatePostState = {
@@ -14,13 +15,9 @@ function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-full border border-white/30 bg-white/10 px-6 py-2 text-base font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:border-white/60 hover:bg-white/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-neutral-800 disabled:text-neutral-400"
-    >
+    <ActionButton type="submit" variant="primary" size="md" disabled={pending}>
       {pending ? '작성 중...' : '게시물 작성'}
-    </button>
+    </ActionButton>
   );
 }
 

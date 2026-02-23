@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StudioPostForm from '@/components/StudioPostForm';
 import { useAuth } from '@/app/context/AuthContext';
+import ActionButton from '@/components/ui/ActionButton';
 import PillTab from '@/components/ui/PillTab';
 import type { ServicePost } from '@/utils/service-posts';
 
@@ -79,14 +80,6 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
   const segmentedWrapClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
-  const pillGlassClass =
-    `inline-flex items-center justify-center rounded-full border border-white/30 bg-white/18 px-3 py-2 text-xs font-medium tracking-[0.2px] text-white shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 ${appleFontClass}`;
-  const pillDangerClass =
-    `inline-flex items-center justify-center rounded-full border border-rose-200/40 bg-rose-400/18 px-3 py-2 text-xs font-medium tracking-[0.2px] text-rose-50 shadow-sm transition-colors duration-200 ease-in-out hover:bg-rose-400/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/35 ${appleFontClass}`;
-  const pillPrimaryClass =
-    `inline-flex items-center justify-center rounded-full border border-white/70 bg-white px-4 py-2 text-xs font-semibold tracking-[0.2px] text-black shadow-sm transition-colors duration-200 ease-in-out hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${appleFontClass}`;
-  const pillMutedClass =
-    `inline-flex items-center justify-center rounded-full border border-white/25 bg-white/14 px-3 py-2 text-xs font-medium tracking-[0.2px] text-white/95 shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 ${appleFontClass}`;
   const inputClass =
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/25';
 
@@ -449,9 +442,16 @@ export default function MyPageAdminPanel({ enabled }: Props) {
             회원 관리와 Studio 게시글 관리 기능을 마이페이지 안에서 바로 사용합니다.
           </p>
         </div>
-        <button type="button" onClick={fetchDashboard} className={pillPrimaryClass} disabled={loading}>
+        <ActionButton
+          type="button"
+          onClick={fetchDashboard}
+          variant="primary"
+          size="md"
+          className={appleFontClass}
+          disabled={loading}
+        >
           {loading ? '불러오는 중…' : '새로고침'}
-        </button>
+        </ActionButton>
       </div>
 
       <div className="overflow-x-auto pb-1">
@@ -523,7 +523,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
                         <select
                           value={roleDrafts[member.id] ?? member.role}
                           onChange={(e) =>
@@ -542,18 +542,22 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             admin
                           </option>
                         </select>
-                        <button
+                        <ActionButton
                           type="button"
                           onClick={() => handleRoleSave(member)}
-                          className={pillPrimaryClass}
+                          variant="primary"
+                          size="sm"
+                          className={appleFontClass}
                           disabled={isBusy || protectedAdmin}
                         >
                           역할 변경
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                           type="button"
                           onClick={() => handleMemberDelete(member)}
-                          className={pillDangerClass}
+                          variant="destructive"
+                          size="sm"
+                          className={appleFontClass}
                           disabled={isBusy || isSelf || protectedAdmin}
                           title={
                             isSelf
@@ -564,7 +568,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           }
                         >
                           삭제
-                        </button>
+                        </ActionButton>
                       </div>
                     </div>
                   </div>
@@ -606,24 +610,28 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           생성일: {formatDate(post.created_at)}
                         </p>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <ActionButton
                           type="button"
                           onClick={() =>
                             setEditingPostId((prev) => (prev === post.id ? null : post.id))
                           }
-                          className={pillMutedClass}
+                          variant="secondary"
+                          size="sm"
+                          className={appleFontClass}
                         >
                           {editingPostId === post.id ? '닫기' : '수정'}
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                           type="button"
                           onClick={() => handleStudioPostDelete(post)}
-                          className={pillDangerClass}
+                          variant="destructive"
+                          size="sm"
+                          className={appleFontClass}
                           disabled={isBusy}
                         >
                           삭제
-                        </button>
+                        </ActionButton>
                       </div>
                     </div>
 
@@ -670,14 +678,16 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           />
                         </div>
                         <div className="flex justify-end">
-                          <button
+                          <ActionButton
                             type="button"
                             onClick={() => handleStudioPostSave(post)}
-                            className={pillPrimaryClass}
+                            variant="primary"
+                            size="sm"
+                            className={appleFontClass}
                             disabled={isBusy}
                           >
                             {isBusy ? '저장 중…' : '저장'}
-                          </button>
+                          </ActionButton>
                         </div>
                       </div>
                     )}
@@ -698,9 +708,16 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 Services 섹션에 노출되는 `service_posts` 목록입니다.
               </p>
             </div>
-            <button type="button" onClick={fetchDashboard} className={pillMutedClass} disabled={loading}>
+            <ActionButton
+              type="button"
+              onClick={fetchDashboard}
+              variant="secondary"
+              size="sm"
+              className={appleFontClass}
+              disabled={loading}
+            >
               새로고침
-            </button>
+            </ActionButton>
           </div>
 
           <div className="space-y-3">
@@ -736,25 +753,29 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           <p className="mt-1 line-clamp-2 text-xs text-white/45">{post.summary}</p>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <ActionButton
                           type="button"
                           onClick={() =>
                             setEditingServicePostId((prev) => (prev === post.id ? null : post.id))
                           }
-                          className={pillMutedClass}
+                          variant="secondary"
+                          size="sm"
+                          className={appleFontClass}
                           disabled={isBusy}
                         >
                           {isEditing ? '닫기' : '수정'}
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                           type="button"
                           onClick={() => handleServicePostDelete(post)}
-                          className={pillDangerClass}
+                          variant="destructive"
+                          size="sm"
+                          className={appleFontClass}
                           disabled={isBusy}
                         >
                           삭제
-                        </button>
+                        </ActionButton>
                       </div>
                     </div>
 
@@ -861,14 +882,16 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         </label>
 
                         <div className="flex justify-end">
-                          <button
+                          <ActionButton
                             type="button"
                             onClick={() => handleServicePostSave(post)}
-                            className={pillPrimaryClass}
+                            variant="primary"
+                            size="sm"
+                            className={appleFontClass}
                             disabled={isBusy}
                           >
                             {isBusy ? '저장 중…' : '저장'}
-                          </button>
+                          </ActionButton>
                         </div>
                       </div>
                     )}
