@@ -4,6 +4,11 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ServiceDetailModal } from './ServiceDetailModal';
+import {
+  categoryColorPresets,
+  formatPriceFrom,
+  type ServicePost
+} from '@/utils/service-posts';
 
 const services = [
   // 녹음 카테고리
@@ -123,6 +128,24 @@ const services = [
 
 const categories = ['모든 제품', '녹음', '믹스/마스터', '더빙/성우'];
 
+type ServiceCardItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  price: string;
+  category: string;
+  image: string;
+  colors: string[];
+  images: string[];
+};
+
+const fallbackServices: ServiceCardItem[] = services.map((service, index) => ({
+  id: `fallback-${index}`,
+  ...service,
+  images: [service.image, service.image, service.image]
+}));
+
 const serviceSwatchBgClasses: Record<string, string> = {
   '#1a1a1a': 'bg-[#1a1a1a]',
   '#4a4a4a': 'bg-[#4a4a4a]',
@@ -161,7 +184,12 @@ export default function ServicesSection() {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
   const [isDraggingUi, setIsDraggingUi] = useState(false);
-  const [selectedService, setSelectedService] = useState<typeof services[0] | null>(null);
+  const [serviceItems, setServiceItems] = useState<ServiceCardItem[]>(fallbackServices);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceCardItem | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -178,23 +206,103 @@ export default function ServicesSection() {
   const getSwatchClass = (color: string) =>
     serviceSwatchBgClasses[color] ?? 'bg-white/30';
 
+  const mapPostToCardItem = (post: Partial<ServicePost> & { id: string }): ServiceCardItem => {
+    const images =
+      Array.isArray(post.image_urls) && post.image_urls.length > 0
+        ? post.image_urls.filter(Boolean)
+        : ['https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'];
+    const category = (post.category?.trim() || '녹음') as string;
+    const summary = post.summary?.trim() || category;
+    const content = post.content?.trim() || post.summary?.trim() || '서비스 설명이 준비 중입니다.';
+
+    return {
+      id: post.id,
+      title: post.title?.trim() || 'Untitled Service',
+      subtitle: summary,
+      description: content,
+      price: formatPriceFrom(post.price_from, post.currency || 'KRW'),
+      category,
+      image: images[0],
+      images,
+      colors: categoryColorPresets[category] ?? ['#1a1a1a', '#4a4a4a', '#8a8a8a']
+    };
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchServices = async () => {
+      setServicesLoading(true);
+      setServicesError(null);
+      try {
+        const response = await fetch('/api/service-posts', { cache: 'no-store' });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload?.message || '서비스 목록을 불러오지 못했습니다.');
+        }
+
+        const rows = Array.isArray(payload?.data) ? (payload.data as ServicePost[]) : [];
+        if (!cancelled) {
+          setServiceItems(rows.length > 0 ? rows.map(mapPostToCardItem) : []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setServicesError(error instanceof Error ? error.message : '서비스 목록을 불러오지 못했습니다.');
+          setServiceItems([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setServicesLoading(false);
+        }
+      }
+    };
+
+    fetchServices();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // 카테고리별 필터링
   const filteredServices = useMemo(() => {
     if (activeCategory === '모든 제품') {
-      return services;
+      return serviceItems;
     }
-    return services.filter(service => service.category === activeCategory);
-  }, [activeCategory]);
+    return serviceItems.filter(service => service.category === activeCategory);
+  }, [activeCategory, serviceItems]);
 
   // 서비스 상세보기 열기
-  const openServiceDetail = (service: typeof services[0]) => {
+  const openServiceDetail = async (service: ServiceCardItem) => {
     setSelectedService(service);
+    setDetailError(null);
+    setDetailLoading(true);
     setIsModalOpen(true);
+
+    try {
+      const response = await fetch(`/api/service-posts/${service.id}`, {
+        cache: 'no-store'
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message || '서비스 상세를 불러오지 못했습니다.');
+      }
+      const detail = payload?.data as ServicePost | undefined;
+      if (detail?.id) {
+        setSelectedService(mapPostToCardItem(detail));
+      }
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : '서비스 상세를 불러오지 못했습니다.');
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   // 서비스 상세보기 닫기
   const closeServiceDetail = () => {
     setIsModalOpen(false);
+    setDetailLoading(false);
+    setDetailError(null);
     setTimeout(() => {
       setSelectedService(null);
     }, 300);
@@ -289,6 +397,12 @@ export default function ServicesSection() {
         
         {/* Services Carousel */}
         <div className="relative">
+          {servicesError && (
+            <div className="mb-6 rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+              {servicesError}
+            </div>
+          )}
+
           {/* Desktop: Scrollable Row */}
           <div className={`hidden md:block relative transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}>
             {/* Left Arrow */}
@@ -314,6 +428,11 @@ export default function ServicesSection() {
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
             >
+              {!servicesLoading && filteredServices.length === 0 && (
+                <div className="flex min-h-[360px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/70">
+                  등록된 서비스 게시글이 없습니다.
+                </div>
+              )}
               {filteredServices.map((service, index) => (
                 <div 
                   key={index} 
@@ -386,6 +505,11 @@ export default function ServicesSection() {
           {/* Mobile: Simple Scroll */}
           <div className={`md:hidden overflow-x-auto pb-4 transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex gap-4">
+              {!servicesLoading && filteredServices.length === 0 && (
+                <div className="flex min-h-[280px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/70">
+                  등록된 서비스 게시글이 없습니다.
+                </div>
+              )}
               {filteredServices.map((service, index) => (
                 <div 
                   key={index} 
@@ -449,6 +573,8 @@ export default function ServicesSection() {
         isOpen={isModalOpen} 
         service={selectedService} 
         onClose={closeServiceDetail} 
+        isLoading={detailLoading}
+        error={detailError}
       />
     </section>
   );

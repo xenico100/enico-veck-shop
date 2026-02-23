@@ -7,23 +7,36 @@ interface ServiceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   service: {
+    id?: string;
     title: string;
     subtitle: string;
     description: string;
     price: string;
-    category: string;
+    category?: string;
     image: string;
-    colors: string[];
+    colors?: string[];
     images?: string[]; // 여러 이미지를 위한 배열
   } | null;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailModalProps) {
+export function ServiceDetailModal({
+  isOpen,
+  onClose,
+  service,
+  isLoading = false,
+  error = null
+}: ServiceDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
 
   // 이미지 배열 (없으면 기본 이미지 사용)
-  const images = service?.images || (service ? [service.image, service.image, service.image] : []);
+  const images = service?.images?.length
+    ? service.images
+    : service
+      ? [service.image, service.image, service.image]
+      : [];
 
   useEffect(() => {
     if (isOpen) {
@@ -39,7 +52,7 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
     };
   }, [isOpen]);
 
-  if (!isOpen || !service) return null;
+  if (!isOpen) return null;
 
   const handlePrevImage = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -75,6 +88,26 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
             <X className="w-4 h-4 md:w-5 md:h-5 text-white" />
           </button>
 
+          {isLoading && (
+            <div className="flex h-[70vh] items-center justify-center px-6 text-center">
+              <div className="space-y-3">
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                <p className="text-sm text-white/70">서비스 정보를 불러오는 중입니다…</p>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && error && (
+            <div className="flex h-[70vh] items-center justify-center px-6 text-center">
+              <div className="space-y-2">
+                <p className="text-base font-medium text-white">불러오기에 실패했습니다</p>
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && !error && service && (
+            <>
           {/* Image Carousel */}
           <div className="relative w-full h-[250px] md:h-[500px] bg-[#1a1a1a] flex items-center justify-center group">
             <img
@@ -123,7 +156,9 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
           {/* Content */}
           <div className="p-6 md:p-8">
             {/* Category */}
-            <p className="text-xs text-red-500 mb-2 uppercase tracking-wide">무료 각인</p>
+            <p className="text-xs text-red-500 mb-2 uppercase tracking-wide">
+              {service.category || '서비스'}
+            </p>
 
             {/* Title */}
             <h2 className="text-3xl md:text-4xl mb-2 tracking-tight text-white">{service.title}</h2>
@@ -200,7 +235,7 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
             <div className="mb-6">
               <p className="text-sm text-gray-400 mb-3">색상</p>
               <div className="flex gap-3">
-                {service.colors.map((color, idx) => (
+                {(service.colors ?? []).map((color, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedColor(idx)}
@@ -242,6 +277,8 @@ export function ServiceDetailModal({ isOpen, onClose, service }: ServiceDetailMo
               </p>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </>
