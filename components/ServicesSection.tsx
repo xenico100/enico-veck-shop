@@ -217,7 +217,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
   const [isDraggingUi, setIsDraggingUi] = useState(false);
-  const [serviceItems, setServiceItems] = useState<ServiceCardItem[]>(fallbackServices);
+  const [serviceItems, setServiceItems] = useState<ServiceCardItem[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [servicesError, setServicesError] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceCardItem | null>(null);
@@ -531,6 +531,36 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const canScrollLeft = scrollPosition > 0;
   const canScrollRight = scrollPosition < (filteredServices.length * 300);
 
+  const renderServiceSkeletonCards = (count: number, mobile = false) =>
+    Array.from({ length: count }).map((_, index) => (
+      <div
+        key={`service-skeleton-${mobile ? 'm' : 'd'}-${index}`}
+        className={`flex-shrink-0 w-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#151515] ${
+          mobile ? '' : 'min-h-[420px]'
+        }`}
+        aria-hidden="true"
+      >
+        <div className={`${mobile ? 'h-56' : 'h-64'} w-full bg-white/5`} />
+        <div className="flex justify-center gap-2 py-4">
+          <div className="h-3 w-3 rounded-full bg-white/10" />
+          <div className="h-3 w-3 rounded-full bg-white/10" />
+          <div className="h-3 w-3 rounded-full bg-white/10" />
+        </div>
+        <div className="space-y-3 p-6">
+          <div className="h-6 w-3/4 rounded bg-white/10" />
+          <div className="h-4 w-1/2 rounded bg-white/10" />
+          <div className="h-4 w-full rounded bg-white/5" />
+          <div className="h-4 w-5/6 rounded bg-white/5" />
+          <div className="h-4 w-2/3 rounded bg-white/5" />
+          <div className="mt-2 h-5 w-24 rounded bg-white/10" />
+          <div className="flex gap-2.5 pt-1">
+            <div className="h-11 flex-1 rounded-full bg-white/10" />
+            <div className="h-11 flex-1 rounded-full bg-white/5" />
+          </div>
+        </div>
+      </div>
+    ));
+
   return (
     <section id="services" className="relative bg-[#0a0a0a] text-white min-h-screen flex flex-col justify-center px-4 md:px-8 lg:px-16 py-20 max-w-full">
       <div className="max-w-7xl mx-auto w-full">
@@ -602,12 +632,13 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
             >
+              {servicesLoading && renderServiceSkeletonCards(4)}
               {!servicesLoading && filteredServices.length === 0 && (
                 <div className="flex min-h-[360px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/70">
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
-              {filteredServices.map((service, index) => (
+              {!servicesLoading && filteredServices.map((service, index) => (
                 <div 
                   key={index} 
                   className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-white/10 transition-all duration-300 ${
@@ -681,12 +712,13 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           {/* Mobile: Simple Scroll */}
           <div className={`md:hidden overflow-x-auto pb-4 transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex gap-4">
+              {servicesLoading && renderServiceSkeletonCards(2, true)}
               {!servicesLoading && filteredServices.length === 0 && (
                 <div className="flex min-h-[280px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/70">
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
-              {filteredServices.map((service, index) => (
+              {!servicesLoading && filteredServices.map((service, index) => (
                 <div 
                   key={index} 
                   className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden transition-all duration-300 ${

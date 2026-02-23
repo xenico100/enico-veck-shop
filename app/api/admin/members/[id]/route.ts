@@ -8,6 +8,9 @@ type RouteContext = {
 
 type MemberPatchBody = {
   role?: string;
+  name?: string | null;
+  phone?: string | null;
+  address?: string | null;
 };
 
 async function parseBody(request: Request) {
@@ -28,7 +31,21 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   const body = await parseBody(request);
-  const nextRole = body?.role === 'admin' ? 'admin' : 'user';
+  if (!body) {
+    return NextResponse.json({ message: '요청 본문이 올바르지 않습니다.' }, { status: 400 });
+  }
+
+  const shouldUpdateRole = typeof body.role === 'string';
+  const shouldUpdateProfile =
+    Object.prototype.hasOwnProperty.call(body, 'name') ||
+    Object.prototype.hasOwnProperty.call(body, 'phone') ||
+    Object.prototype.hasOwnProperty.call(body, 'address');
+
+  if (!shouldUpdateRole && !shouldUpdateProfile) {
+    return NextResponse.json({ message: '변경할 값이 없습니다.' }, { status: 400 });
+  }
+
+  const nextRole = body.role === 'admin' ? 'admin' : 'user';
   const targetUserId = params.id;
 
   if (!targetUserId) {
@@ -43,33 +60,89 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   const targetEmail = targetUser.user.email?.trim().toLowerCase() ?? '';
-  if (targetEmail === FORCED_ADMIN_EMAIL) {
+  if (shouldUpdateRole && targetEmail === FORCED_ADMIN_EMAIL) {
     return NextResponse.json(
       { message: '보호된 관리자 계정의 역할은 변경할 수 없습니다.' },
       { status: 403 }
     );
   }
 
-  const currentAppMetadata =
-    targetUser.user.app_metadata && typeof targetUser.user.app_metadata === 'object'
-      ? (targetUser.user.app_metadata as Record<string, unknown>)
-      : {};
+  if (shouldUpdateRole) {
+    const currentAppMetadata =
+      targetUser.user.app_metadata && typeof targetUser.user.app_metadata === 'object'
+        ? (targetUser.user.app_metadata as Record<string, unknown>)
+        : {};
 
-  const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
-    app_metadata: {
-      ...currentAppMetadata,
-      role: nextRole
+    const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
+      app_metadata: {
+        ...currentAppMetadata,
+        role: nextRole
+      }
+    });
+
+    if (error) {
+      return NextResponse.json(
+        { message: '역할 변경에 실패했습니다.', error },
+        { status: 500 }
+      );
     }
-  });
-
-  if (error) {
-    return NextResponse.json(
-      { message: '역할 변경에 실패했습니다.', error },
-      { status: 500 }
-    );
   }
 
-  return NextResponse.json({ ok: true });
+  if (shouldUpdateProfile) {
+    const normalizeText = (value: unknown) => {
+      if (typeof value !== 'string') return null;
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+
+    const nextName = normalizeText(body.name);
+    const nextPhone = normalizeText(body.phone);
+    const nextAddress = normalizeText(body.address);
+
+    if (nextPhone && nextPhone.length < 9) {
+      return NextResponse.json(
+        { message: '전화번호는 최소 9자 이상 입력해 주세요.' },
+        { status: 400 }
+      );
+    }
+
+    if (nextAddress && nextAddress.length < 5) {
+      return NextResponse.json(
+        { message: '주소는 최소 5자 이상 입력해 주세요.' },
+        { status: 400 }
+      );
+    }
+
+    const { error: profileError } = await (adminClient as never)
+      .from('users')
+      .upsert(
+        {
+          id: targetUserId,
+          name: nextName,
+          full_name: nextName,
+          phone: nextPhone,
+          address: nextAddress
+        },
+        { onConflict: 'id' }
+      );
+
+    if (profileError) {
+      return NextResponse.json(
+        { message: profileError.message || '회원 정보 수정에 실패했습니다.' },
+        { status: 500 }
+      );
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    data: {
+      role: shouldUpdateRole ? nextRole : undefined,
+      name: shouldUpdateProfile ? (body.name ?? null) : undefined,
+      phone: shouldUpdateProfile ? (body.phone ?? null) : undefined,
+      address: shouldUpdateProfile ? (body.address ?? null) : undefined
+    }
+  });
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {

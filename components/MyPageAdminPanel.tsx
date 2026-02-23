@@ -74,11 +74,15 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, 'user' | 'admin'>>({});
+  const [memberProfileDrafts, setMemberProfileDrafts] = useState<
+    Record<string, { name: string; phone: string; address: string }>
+  >({});
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
   const [busyServicePostId, setBusyServicePostId] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editingServicePostId, setEditingServicePostId] = useState<string | null>(null);
+  const [editingMemberProfileId, setEditingMemberProfileId] = useState<string | null>(null);
   const [postDrafts, setPostDrafts] = useState<
     Record<string, { title: string; content: string; image_url: string }>
   >({});
@@ -124,6 +128,18 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         string,
         'user' | 'admin'
       >
+    );
+    setMemberProfileDrafts(
+      Object.fromEntries(
+        nextMembers.map((member) => [
+          member.id,
+          {
+            name: member.name ?? member.full_name ?? '',
+            phone: member.phone ?? '',
+            address: member.address ?? ''
+          }
+        ])
+      )
     );
     setPostDrafts(
       Object.fromEntries(
@@ -254,6 +270,85 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       setMessage('회원을 삭제했습니다.');
     } catch (err) {
       setError(err instanceof Error ? err.message : '회원 삭제에 실패했습니다.');
+    } finally {
+      setBusyMemberId(null);
+    }
+  };
+
+  const handleMemberProfileDraftChange = (
+    memberId: string,
+    key: 'name' | 'phone' | 'address',
+    value: string
+  ) => {
+    setMemberProfileDrafts((prev) => ({
+      ...prev,
+      [memberId]: {
+        name: prev[memberId]?.name ?? '',
+        phone: prev[memberId]?.phone ?? '',
+        address: prev[memberId]?.address ?? '',
+        [key]: value
+      }
+    }));
+  };
+
+  const handleMemberProfileSave = async (member: AdminMember) => {
+    const draft = memberProfileDrafts[member.id] ?? {
+      name: member.name ?? member.full_name ?? '',
+      phone: member.phone ?? '',
+      address: member.address ?? ''
+    };
+
+    const phone = draft.phone.trim();
+    const address = draft.address.trim();
+
+    if (phone && phone.length < 9) {
+      setError('전화번호는 최소 9자 이상 입력해 주세요.');
+      setMessage(null);
+      return;
+    }
+
+    if (address && address.length < 5) {
+      setError('주소는 최소 5자 이상 입력해 주세요.');
+      setMessage(null);
+      return;
+    }
+
+    setBusyMemberId(member.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/members/${member.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: draft.name,
+          phone: draft.phone,
+          address: draft.address
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || '회원 정보 수정에 실패했습니다.');
+      }
+
+      setMembers((prev) =>
+        prev.map((row) =>
+          row.id === member.id
+            ? {
+                ...row,
+                name: draft.name.trim() || null,
+                full_name: draft.name.trim() || null,
+                phone: draft.phone.trim() || null,
+                address: draft.address.trim() || null
+              }
+            : row
+        )
+      );
+      setMessage('회원 정보를 수정했습니다.');
+      setEditingMemberProfileId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '회원 정보 수정에 실패했습니다.');
     } finally {
       setBusyMemberId(null);
     }
@@ -548,6 +643,12 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 const isSelf = currentUserId === member.id;
                 const isBusy = busyMemberId === member.id;
                 const protectedAdmin = member.is_protected_admin;
+                const isEditingProfile = editingMemberProfileId === member.id;
+                const memberProfileDraft = memberProfileDrafts[member.id] ?? {
+                  name: member.name ?? member.full_name ?? '',
+                  phone: member.phone ?? '',
+                  address: member.address ?? ''
+                };
                 return (
                   <div
                     key={member.id}
@@ -605,6 +706,18 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         </ActionButton>
                         <ActionButton
                           type="button"
+                          onClick={() =>
+                            setEditingMemberProfileId((prev) => (prev === member.id ? null : member.id))
+                          }
+                          variant="secondary"
+                          size="sm"
+                          className={appleFontClass}
+                          disabled={isBusy}
+                        >
+                          {isEditingProfile ? '닫기' : '회원정보 수정'}
+                        </ActionButton>
+                        <ActionButton
+                          type="button"
                           onClick={() => void handleOpenMemberOrders(member)}
                           variant="secondary"
                           size="sm"
@@ -632,6 +745,76 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         </ActionButton>
                       </div>
                     </div>
+
+                    {isEditingProfile && (
+                      <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="grid gap-2">
+                            <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                              이름
+                            </label>
+                            <input
+                              className={inputClass}
+                              value={memberProfileDraft.name}
+                              onChange={(e) =>
+                                handleMemberProfileDraftChange(member.id, 'name', e.target.value)
+                              }
+                              disabled={isBusy}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                              전화번호
+                            </label>
+                            <input
+                              className={inputClass}
+                              value={memberProfileDraft.phone}
+                              onChange={(e) =>
+                                handleMemberProfileDraftChange(member.id, 'phone', e.target.value)
+                              }
+                              placeholder="010-0000-0000"
+                              disabled={isBusy}
+                            />
+                          </div>
+                          <div className="grid gap-2 md:col-span-1">
+                            <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                              주소
+                            </label>
+                            <input
+                              className={inputClass}
+                              value={memberProfileDraft.address}
+                              onChange={(e) =>
+                                handleMemberProfileDraftChange(member.id, 'address', e.target.value)
+                              }
+                              placeholder="주소 입력"
+                              disabled={isBusy}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          <ActionButton
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setEditingMemberProfileId(null)}
+                            className={appleFontClass}
+                            disabled={isBusy}
+                          >
+                            취소
+                          </ActionButton>
+                          <ActionButton
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleMemberProfileSave(member)}
+                            className={appleFontClass}
+                            disabled={isBusy}
+                          >
+                            {isBusy ? '저장 중…' : '저장'}
+                          </ActionButton>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })
