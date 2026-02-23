@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PillTab from '@/components/ui/PillTab';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart, type CartItemInput } from '@/app/context/CartContext';
 import { useToast } from '@/components/ui/Toasts/use-toast';
@@ -244,8 +245,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const scrollLeft = useRef(0);
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
-  const segmentedContainerClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md ${appleFontClass}`;
-  const segmentedTabBaseClass = `rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
+  const segmentedContainerClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
   const serviceSecondaryButtonClass = `h-11 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold tracking-[0.2px] text-white/90 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-white/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
   const servicePrimaryButtonClass = `h-11 rounded-full bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black no-underline shadow-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
   const arrowButtonClass = `size-11 rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
@@ -557,20 +557,14 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         <div className="mb-12 overflow-x-auto pb-2">
           <div className={segmentedContainerClass}>
             {categories.map((category) => (
-              <Button
+              <PillTab
                 key={category}
-                type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => handleCategoryChange(category)}
-                className={`${segmentedTabBaseClass} whitespace-nowrap ${
-                  activeCategory === category
-                    ? 'bg-white text-black shadow-sm hover:bg-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                }`}
+                active={activeCategory === category}
+                className="whitespace-nowrap"
               >
                 {category}
-              </Button>
+              </PillTab>
             ))}
           </div>
         </div>

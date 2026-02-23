@@ -6,6 +6,7 @@ import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import MyPageAdminPanel from '@/components/MyPageAdminPanel';
+import PillTab from '@/components/ui/PillTab';
 import { createClient } from '@/utils/supabase/client';
 import { SERVICE_CATEGORIES, isAdminUserLike, type ServicePost } from '@/utils/service-posts';
 
@@ -94,9 +95,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
   const glassIconButtonClass =
     'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-white/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30';
-  const segmentedWrapClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/15 bg-white/10 p-1 shadow-sm backdrop-blur-md ${appleFontClass}`;
-  const segmentedTabBaseClass =
-    'inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 whitespace-nowrap shadow-sm';
+  const segmentedWrapClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
   const inputClass =
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/25';
   const labelClass =
@@ -430,18 +429,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                   {visibleTabs.map((tab) => {
                     const isActive = activeTab === tab.key;
                     return (
-                      <button
+                      <PillTab
                         key={tab.key}
-                        type="button"
                         onClick={() => setActiveTab(tab.key)}
-                        className={`${segmentedTabBaseClass} ${
-                          isActive
-                            ? 'border border-white/80 bg-white text-black shadow-md'
-                            : 'border border-transparent bg-white/5 text-white/90 hover:bg-white/15 hover:text-white'
-                        }`}
+                        active={isActive}
+                        className="whitespace-nowrap"
                       >
                         {tab.label}
-                      </button>
+                      </PillTab>
                     );
                   })}
                 </div>

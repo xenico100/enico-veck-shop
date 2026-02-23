@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StudioPostForm from '@/components/StudioPostForm';
 import { useAuth } from '@/app/context/AuthContext';
+import PillTab from '@/components/ui/PillTab';
 import type { ServicePost } from '@/utils/service-posts';
 
 type AdminMember = {
@@ -77,9 +78,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
 
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
-  const segmentedWrapClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md ${appleFontClass}`;
-  const segmentedTabBaseClass =
-    'rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 whitespace-nowrap';
+  const segmentedWrapClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
   const pillGlassClass =
     `inline-flex items-center justify-center rounded-full border border-white/30 bg-white/18 px-3 py-2 text-xs font-medium tracking-[0.2px] text-white shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 ${appleFontClass}`;
   const pillDangerClass =
@@ -463,18 +462,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
             { key: 'service-posts', label: `Service 게시글 (${servicePostCountLabel})` },
             { key: 'create-post', label: '게시물 작성' }
           ].map((tab) => (
-            <button
+            <PillTab
               key={tab.key}
-              type="button"
               onClick={() => setActiveTab(tab.key as AdminTabKey)}
-              className={`${segmentedTabBaseClass} ${
-                activeTab === tab.key
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-white/85 hover:bg-white/15 hover:text-white'
-              }`}
+              active={activeTab === tab.key}
+              className="whitespace-nowrap"
             >
               {tab.label}
-            </button>
+            </PillTab>
           ))}
         </div>
       </div>
