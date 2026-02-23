@@ -82,6 +82,10 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const isAdmin = useMemo(() => {
     return isAdminUserLike(user);
   }, [user]);
+  const visibleTabs = useMemo(
+    () => tabs.filter((tab) => !tab.adminOnly || isAdmin),
+    [isAdmin]
+  );
 
   const name = profileForm.name || user?.name || '관리자';
   const email = user?.email ?? 'admin@example.com';
@@ -90,9 +94,9 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
   const glassIconButtonClass =
     'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-white/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30';
-  const segmentedWrapClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md ${appleFontClass}`;
+  const segmentedWrapClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/15 bg-white/10 p-1 shadow-sm backdrop-blur-md ${appleFontClass}`;
   const segmentedTabBaseClass =
-    'rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 whitespace-nowrap';
+    'inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 whitespace-nowrap shadow-sm';
   const inputClass =
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/25';
   const labelClass =
@@ -112,6 +116,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
       document.body.style.overflow = 'unset';
     };
   }, [open]);
+
+  useEffect(() => {
+    if (activeTab === 'admin' || activeTab === 'posts') {
+      if (!isAdmin) {
+        setActiveTab('profile');
+      }
+    }
+  }, [activeTab, isAdmin]);
 
   useEffect(() => {
     if (!open) return;
@@ -415,24 +427,18 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </h2>
               <div className="mt-4 overflow-x-auto pb-1">
                 <div className={segmentedWrapClass}>
-                  {tabs.map((tab) => {
-                    const disabled = tab.adminOnly && !isAdmin;
+                  {visibleTabs.map((tab) => {
                     const isActive = activeTab === tab.key;
                     return (
                       <button
                         key={tab.key}
                         type="button"
-                        onClick={() => !disabled && setActiveTab(tab.key)}
+                        onClick={() => setActiveTab(tab.key)}
                         className={`${segmentedTabBaseClass} ${
                           isActive
-                            ? 'bg-white text-black shadow-sm'
-                            : 'text-white/85 hover:bg-white/15 hover:text-white'
-                        } ${
-                          disabled
-                            ? 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-white/70'
-                            : ''
+                            ? 'border border-white/80 bg-white text-black shadow-md'
+                            : 'border border-transparent bg-white/5 text-white/90 hover:bg-white/15 hover:text-white'
                         }`}
-                        disabled={disabled}
                       >
                         {tab.label}
                       </button>

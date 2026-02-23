@@ -8,9 +8,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
   // 🔥 구글 로그인 함수 (이게 핵심)
   const handleGoogleLogin = async () => {
@@ -56,6 +61,8 @@ export default function LoginPage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setResetError(null);
+    setResetMessage(null);
     setLoading(true);
 
     if (isSignUp) {
@@ -74,6 +81,42 @@ export default function LoginPage() {
       }
     }
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    const normalizedEmail = email.trim();
+    setResetError(null);
+    setResetMessage(null);
+
+    if (!isValidEmail(normalizedEmail)) {
+      setResetError('올바른 이메일 주소를 입력해 주세요.');
+      return;
+    }
+
+    const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    const origin = configuredSiteUrl
+      ? configuredSiteUrl.replace(/\/+$/, '')
+      : window.location.origin;
+    const redirectTo = `${origin}/auth/reset_password`;
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setResetMessage('비밀번호 재설정 이메일을 보냈습니다. 메일함을 확인해 주세요.');
+    } catch (error) {
+      setResetError(
+        error instanceof Error ? error.message : '재설정 이메일 전송에 실패했습니다.'
+      );
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -113,13 +156,38 @@ export default function LoginPage() {
             className="rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
           />
           
+          {!isSignUp && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading || resetLoading}
+                className="inline-flex min-h-11 items-center rounded-full border border-white/20 bg-white/10 px-4 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              >
+                {resetLoading ? '전송 중…' : '비밀번호 찾기'}
+              </button>
+            </div>
+          )}
+
           <button 
-            type="submit" disabled={loading}
+            type="submit" disabled={loading || resetLoading}
             className="rounded-full border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.25em] text-white transition hover:border-white/60 hover:bg-white/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-neutral-800 disabled:text-neutral-500"
           >
             {loading ? '처리 중...' : (isSignUp ? '이메일로 회원가입' : '이메일로 로그인')}
           </button>
         </form>
+
+        {!isSignUp && (resetError || resetMessage) && (
+          <div
+            className={`rounded-2xl border p-3 text-sm ${
+              resetError
+                ? 'border-red-300/20 bg-red-300/10 text-red-100'
+                : 'border-white/10 bg-white/5 text-white/85'
+            }`}
+          >
+            {resetError ?? resetMessage}
+          </div>
+        )}
 
         <p className="text-center text-sm text-neutral-400">
           {isSignUp ? '이미 계정이 있으신가요?' : '계정이 없으신가요?'} 

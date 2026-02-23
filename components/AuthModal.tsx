@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 
 type Mode = 'login' | 'signup';
 
@@ -28,6 +29,7 @@ export default function AuthModal({
   loading = false,
   error = null,
 }: Props) {
+  const supabase = useMemo(() => createClient(), []);
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
   const closeButtonClass =
@@ -41,6 +43,12 @@ export default function AuthModal({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
   useEffect(() => {
     if (!open) return;
@@ -53,15 +61,55 @@ export default function AuthModal({
     if (!open) return;
     // 모달 열릴 때 초기화(원하면 제거)
     setPassword('');
+    setResetError(null);
+    setResetMessage(null);
   }, [open, mode]);
 
   if (!open) return null;
 
   const submit = async () => {
+    setResetError(null);
+    setResetMessage(null);
     if (mode === 'login') {
       await onLogin?.(email.trim(), password);
     } else {
       await onSignup?.(name.trim(), email.trim(), password);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const normalizedEmail = email.trim();
+    setResetError(null);
+    setResetMessage(null);
+
+    if (!isValidEmail(normalizedEmail)) {
+      setResetError('올바른 이메일 주소를 입력해 주세요.');
+      return;
+    }
+
+    const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    const origin = configuredSiteUrl
+      ? configuredSiteUrl.replace(/\/+$/, '')
+      : window.location.origin;
+    const redirectTo = `${origin}/auth/reset_password`;
+
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setResetMessage('비밀번호 재설정 이메일을 보냈습니다. 메일함을 확인해 주세요.');
+    } catch (error) {
+      setResetError(
+        error instanceof Error ? error.message : '재설정 이메일 전송에 실패했습니다.'
+      );
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -139,11 +187,34 @@ export default function AuthModal({
             </div>
 
             {error && <div className="text-sm text-red-400">{error}</div>}
+            {mode === 'login' && resetError && (
+              <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
+                {resetError}
+              </div>
+            )}
+            {mode === 'login' && resetMessage && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+                {resetMessage}
+              </div>
+            )}
+
+            {mode === 'login' && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading || resetLoading}
+                  className={`inline-flex min-h-11 items-center rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium tracking-[0.2px] text-white/85 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`}
+                >
+                  {resetLoading ? '전송 중…' : '비밀번호 찾기'}
+                </button>
+              </div>
+            )}
 
             <button
               type="button"
               onClick={submit}
-              disabled={loading}
+              disabled={loading || resetLoading}
               className={primaryButtonClass}
             >
               {loading ? '처리중…' : mode === 'login' ? '로그인' : '회원가입'}
@@ -152,7 +223,7 @@ export default function AuthModal({
             <button
               type="button"
               onClick={onGoogle}
-              disabled={loading}
+              disabled={loading || resetLoading}
               className={secondaryButtonClass}
             >
               Google로 계속
