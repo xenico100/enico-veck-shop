@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-const phoneRegex = /^[0-9+()\-\s]{7,20}$/;
+const phoneRegex = /^[0-9+()\-\s]{9,20}$/;
 
 const validateProfilePayload = (input: {
   name?: unknown;
@@ -19,10 +19,10 @@ const validateProfilePayload = (input: {
     return { error: '이름은 80자 이하로 입력해 주세요.' } as const;
   }
   if (phone && !phoneRegex.test(phone)) {
-    return { error: '전화번호 형식이 올바르지 않습니다.' } as const;
+    return { error: '전화번호는 숫자/하이픈 형식으로 9자 이상 입력해 주세요.' } as const;
   }
-  if (address && address.length < 3) {
-    return { error: '주소는 3자 이상 입력해 주세요.' } as const;
+  if (address && address.length < 5) {
+    return { error: '주소는 5자 이상 입력해 주세요.' } as const;
   }
   if (address.length > 200) {
     return { error: '주소는 200자 이하로 입력해 주세요.' } as const;

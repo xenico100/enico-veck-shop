@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { CreditCard, Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
+import { CreditCard, ShoppingBag, Trash2, X } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
+import ActionButton from '@/components/ui/ActionButton';
+import QuantityStepper from '@/components/ui/QuantityStepper';
 import { useToast } from '@/components/ui/Toasts/use-toast';
-import { useCart, type CartItem } from '@/app/context/CartContext';
+import { useCart } from '@/app/context/CartContext';
 
 const appleFontClass =
   '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -41,38 +42,6 @@ function GlassCloseButton({
     >
       <X className="h-4 w-4" />
     </button>
-  );
-}
-
-function QtyControl({
-  item,
-  onDecrease,
-  onIncrease
-}: {
-  item: CartItem;
-  onDecrease: () => void;
-  onIncrease: () => void;
-}) {
-  return (
-    <div className="inline-flex items-center rounded-full border border-white/15 bg-white/5 p-1 backdrop-blur-md">
-      <button
-        type="button"
-        onClick={onDecrease}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-        aria-label={`${item.title} 수량 감소`}
-      >
-        <Minus className="h-4 w-4" />
-      </button>
-      <span className="min-w-8 text-center text-sm font-medium text-white">{item.quantity}</span>
-      <button
-        type="button"
-        onClick={onIncrease}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-        aria-label={`${item.title} 수량 증가`}
-      >
-        <Plus className="h-4 w-4" />
-      </button>
-    </div>
   );
 }
 
@@ -219,19 +188,23 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           </button>
 
                           <div className="flex shrink-0 flex-col items-end gap-2">
-                            <QtyControl
-                              item={item}
+                            <QuantityStepper
+                              value={item.quantity}
                               onDecrease={() => updateQty(item.key, item.quantity - 1)}
                               onIncrease={() => updateQty(item.key, item.quantity + 1)}
+                              decrementLabel={`${item.title} 수량 감소`}
+                              incrementLabel={`${item.title} 수량 증가`}
                             />
-                            <button
+                            <ActionButton
                               type="button"
+                              variant="destructive"
+                              size="sm"
                               onClick={() => removeItem(item.key)}
-                              className="inline-flex h-9 items-center justify-center gap-1 rounded-full border border-rose-300/25 bg-rose-300/10 px-3 text-xs font-medium text-rose-100 transition hover:bg-rose-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                              className="gap-1"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               삭제
-                            </button>
+                            </ActionButton>
                           </div>
                         </div>
                       </div>
@@ -247,28 +220,31 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                 <p className="mt-1 text-lg font-semibold text-white">{formatMoney(total, 'KRW')}</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
+                <ActionButton
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
+                  size="md"
                   onClick={() => clear()}
-                  className="h-11 rounded-full border border-white/15 bg-white/5 px-4 text-white/80 hover:bg-white/10 hover:text-white focus-visible:ring-white/30"
+                  className="px-5"
                   disabled={items.length === 0}
                 >
                   비우기
-                </Button>
-                <Button
+                </ActionButton>
+                <ActionButton
                   type="button"
+                  variant="primary"
+                  size="md"
                   onClick={() => {
                     const first = items[0];
                     if (!first) return;
                     setCheckoutError(null);
                     setCheckoutItemKey(first.key);
                   }}
-                  className="h-11 rounded-full bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition hover:bg-neutral-200 focus-visible:ring-white/30"
+                  className="px-5"
                   disabled={items.length === 0}
                 >
                   결제하기
-                </Button>
+                </ActionButton>
               </div>
             </div>
           </DialogPrimitive.Content>
@@ -315,10 +291,12 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
 
                   <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
                     <span className="text-sm text-white/70">수량</span>
-                    <QtyControl
-                      item={checkoutItem}
+                    <QuantityStepper
+                      value={checkoutItem.quantity}
                       onDecrease={() => updateQty(checkoutItem.key, checkoutItem.quantity - 1)}
                       onIncrease={() => updateQty(checkoutItem.key, checkoutItem.quantity + 1)}
+                      decrementLabel={`${checkoutItem.title} 수량 감소`}
+                      incrementLabel={`${checkoutItem.title} 수량 증가`}
                     />
                   </div>
 
@@ -339,24 +317,27 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                 )}
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <Button
+                  <ActionButton
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
+                    size="md"
                     onClick={() => setCheckoutItemKey(null)}
-                    className="h-11 rounded-full border border-white/15 bg-white/5 px-4 text-white/85 hover:bg-white/10 hover:text-white"
+                    className="px-5"
                     disabled={checkoutLoading}
                   >
                     취소
-                  </Button>
-                  <Button
+                  </ActionButton>
+                  <ActionButton
                     type="button"
+                    variant="primary"
+                    size="md"
                     onClick={handlePay}
-                    className="h-11 rounded-full bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition hover:bg-neutral-200"
+                    className="gap-2 px-5"
                     disabled={checkoutLoading || checkoutItem.price == null}
                   >
                     <CreditCard className="h-4 w-4" />
                     {checkoutLoading ? '결제 준비 중…' : 'Pay'}
-                  </Button>
+                  </ActionButton>
                 </div>
               </div>
             )}

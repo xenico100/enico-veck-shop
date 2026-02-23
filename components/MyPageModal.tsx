@@ -244,10 +244,10 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
 
     if (!nameValue) return '이름을 입력해 주세요.';
     if (nameValue.length > 80) return '이름은 80자 이하로 입력해 주세요.';
-    if (phone && !/^[0-9+()\-\s]{7,20}$/.test(phone)) {
-      return '전화번호 형식이 올바르지 않습니다.';
+    if (phone && !/^[0-9+()\-\s]{9,20}$/.test(phone)) {
+      return '전화번호는 숫자/하이픈 형식으로 9자 이상 입력해 주세요.';
     }
-    if (address && address.length < 3) return '주소는 3자 이상 입력해 주세요.';
+    if (address && address.length < 5) return '주소는 5자 이상 입력해 주세요.';
     if (address.length > 200) return '주소는 200자 이하로 입력해 주세요.';
     return null;
   };

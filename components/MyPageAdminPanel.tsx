@@ -532,7 +532,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                               [member.id]: (e.target.value === 'admin' ? 'admin' : 'user')
                             }))
                           }
-                          className="rounded-full border border-white/30 bg-white/18 px-3 py-2 text-xs text-white shadow-sm outline-none focus:ring-2 focus:ring-white/30"
+                          className="h-9 rounded-full border border-white/20 bg-white/10 px-3 pr-8 text-sm font-medium text-white shadow-sm backdrop-blur-sm outline-none focus:ring-2 focus:ring-white/40"
                           disabled={isBusy || protectedAdmin}
                         >
                           <option value="user" className="bg-neutral-900">
