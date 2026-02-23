@@ -169,67 +169,17 @@ export function ServiceDetailModal({
             {/* Divider */}
             <div className="w-full h-px bg-gray-800 my-6" />
 
-            {/* Payment Info */}
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center text-xs text-white">
-                ◐
-              </div>
-              <p className="text-sm text-blue-500">교육 할인</p>
-            </div>
-            <p className="text-sm text-blue-500 mb-4 hover:underline cursor-pointer">
-              월부 옵션 제공
-            </p>
-
-            {/* Divider */}
-            <div className="w-full h-px bg-gray-800 my-6" />
-
-            {/* Description Section */}
+            {/* Description */}
             <div className="mb-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 bg-gray-800 rounded-md flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">📦</span>
-                </div>
-                <div>
-                  <p className="text-sm text-white mb-1">무료로 새기는 나만의 메시지</p>
-                  <p className="text-xs text-gray-400">
-                    {service.description}
-                  </p>
-                </div>
-              </div>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-300">
+                {service.description}
+              </p>
+              {service.subtitle ? (
+                <p className="mt-3 text-xs text-gray-500">
+                  {service.subtitle}
+                </p>
+              ) : null}
             </div>
-
-            {/* Pick-up and Delivery Info */}
-            <div className="mb-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-8 h-8 bg-gray-800 rounded-md flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">📍</span>
-                </div>
-                <div>
-                  <p className="text-sm text-white mb-1">매장:</p>
-                  <p className="text-xs text-blue-500 hover:underline cursor-pointer">
-                    재고 확인
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-800 rounded-md flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">🚚</span>
-                </div>
-                <div>
-                  <p className="text-sm text-white mb-1">도착:</p>
-                  <p className="text-xs text-gray-400">
-                    목 2026/01/31 — 무료 배송
-                  </p>
-                  <p className="text-xs text-blue-500 hover:underline cursor-pointer mt-1">
-                    추가 배송 옵션 확인
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="w-full h-px bg-gray-800 my-6" />
 
             {/* Color Selection */}
             <div className="mb-6">
@@ -250,32 +200,9 @@ export function ServiceDetailModal({
             </div>
 
             {/* CTA Button */}
-            <button className="w-full bg-blue-600 text-white py-3 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors mb-3">
+            <button className="w-full bg-blue-600 text-white py-3 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">
               장바구니에 담기
             </button>
-
-            {/* Favorite Button */}
-            <button className="w-full border border-gray-700 text-blue-500 py-3 rounded-full text-sm font-medium hover:bg-gray-900 transition-colors flex items-center justify-center gap-2">
-              <span>♡</span>
-              <span>찜하기</span>
-            </button>
-
-            {/* Additional Info */}
-            <div className="mt-8 space-y-4">
-              <div className="border border-gray-800 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">💬</span>
-                  <p className="text-sm text-white">제품 구입에 필요한 도움말이 있으신가요?</p>
-                </div>
-                <p className="text-xs text-blue-500 hover:underline cursor-pointer ml-7">
-                  전문 제작자와 고객 상담 080-330-8877에 전화로 문의하세요.
-                </p>
-              </div>
-
-              <p className="text-xs text-gray-500 leading-relaxed">
-                {service.subtitle} 업그레이드 오늘로 받아야 하는 제품의 경우 오늘 이용합니다.
-              </p>
-            </div>
           </div>
             </>
           )}

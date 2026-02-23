@@ -98,11 +98,11 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const labelClass =
     `text-xs uppercase tracking-[0.16em] text-white/50 ${appleFontClass}`;
   const pillPrimaryClass =
-    `inline-flex w-full items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-medium tracking-[0.2px] text-black transition-colors duration-200 ease-in-out hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:w-auto md:min-w-[200px] ${appleFontClass}`;
+    `inline-flex w-full items-center justify-center rounded-full border border-white/70 bg-white px-5 py-3 text-sm font-semibold tracking-[0.2px] text-black shadow-sm transition-colors duration-200 ease-in-out hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:w-auto md:min-w-[200px] ${appleFontClass}`;
   const pillGlassClass =
-    `inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-3 text-sm font-medium tracking-[0.2px] text-white/85 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:w-auto ${appleFontClass}`;
+    `inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/30 bg-white/18 px-4 py-3 text-sm font-medium tracking-[0.2px] text-white shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/28 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 md:w-auto ${appleFontClass}`;
   const pillDangerClass =
-    `inline-flex w-full items-center justify-center gap-2 rounded-full border border-rose-300/30 bg-rose-300/10 px-4 py-3 text-sm font-medium tracking-[0.2px] text-rose-100 transition-colors duration-200 ease-in-out hover:bg-rose-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:w-auto ${appleFontClass}`;
+    `inline-flex w-full items-center justify-center gap-2 rounded-full border border-rose-200/40 bg-rose-400/18 px-4 py-3 text-sm font-medium tracking-[0.2px] text-rose-50 shadow-sm transition-colors duration-200 ease-in-out hover:bg-rose-400/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/35 md:w-auto ${appleFontClass}`;
 
   useEffect(() => {
     if (!open) return;
@@ -425,8 +425,8 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                         onClick={() => !disabled && setActiveTab(tab.key)}
                         className={`${segmentedTabBaseClass} ${
                           isActive
-                            ? 'bg-white text-black'
-                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                            ? 'bg-white text-black shadow-sm'
+                            : 'text-white/85 hover:bg-white/15 hover:text-white'
                         } ${
                           disabled
                             ? 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-white/70'

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StudioPostForm from '@/components/StudioPostForm';
 import { useAuth } from '@/app/context/AuthContext';
+import type { ServicePost } from '@/utils/service-posts';
 
 type AdminMember = {
   id: string;
@@ -39,22 +40,39 @@ type Props = {
   enabled: boolean;
 };
 
-type AdminTabKey = 'members' | 'studio-posts' | 'create-post';
+type AdminTabKey = 'members' | 'studio-posts' | 'service-posts' | 'create-post';
+
+type AdminServicePostDraft = {
+  title: string;
+  category: string;
+  summary: string;
+  content: string;
+  price_from: string;
+  currency: string;
+  is_published: boolean;
+  image_urls_text: string;
+};
 
 export default function MyPageAdminPanel({ enabled }: Props) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('members');
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [studioPosts, setStudioPosts] = useState<AdminStudioPost[]>([]);
+  const [servicePosts, setServicePosts] = useState<ServicePost[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, 'user' | 'admin'>>({});
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
+  const [busyServicePostId, setBusyServicePostId] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingServicePostId, setEditingServicePostId] = useState<string | null>(null);
   const [postDrafts, setPostDrafts] = useState<
     Record<string, { title: string; content: string; image_url: string }>
+  >({});
+  const [servicePostDrafts, setServicePostDrafts] = useState<
+    Record<string, AdminServicePostDraft>
   >({});
 
   const appleFontClass =
@@ -63,11 +81,13 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const segmentedTabBaseClass =
     'rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 whitespace-nowrap';
   const pillGlassClass =
-    `inline-flex items-center justify-center rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+    `inline-flex items-center justify-center rounded-full border border-white/30 bg-white/18 px-3 py-2 text-xs font-medium tracking-[0.2px] text-white shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 ${appleFontClass}`;
   const pillDangerClass =
-    `inline-flex items-center justify-center rounded-full border border-rose-300/30 bg-rose-300/10 px-3 py-2 text-xs font-medium tracking-[0.2px] text-rose-100 transition-colors duration-200 ease-in-out hover:bg-rose-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+    `inline-flex items-center justify-center rounded-full border border-rose-200/40 bg-rose-400/18 px-3 py-2 text-xs font-medium tracking-[0.2px] text-rose-50 shadow-sm transition-colors duration-200 ease-in-out hover:bg-rose-400/28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200/35 ${appleFontClass}`;
   const pillPrimaryClass =
-    `inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-medium tracking-[0.2px] text-black transition-colors duration-200 ease-in-out hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+    `inline-flex items-center justify-center rounded-full border border-white/70 bg-white px-4 py-2 text-xs font-semibold tracking-[0.2px] text-black shadow-sm transition-colors duration-200 ease-in-out hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${appleFontClass}`;
+  const pillMutedClass =
+    `inline-flex items-center justify-center rounded-full border border-white/25 bg-white/14 px-3 py-2 text-xs font-medium tracking-[0.2px] text-white/95 shadow-sm backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/24 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 ${appleFontClass}`;
   const inputClass =
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/25';
 
@@ -111,6 +131,27 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     );
   }, []);
 
+  const hydrateServicePosts = useCallback((rows: ServicePost[]) => {
+    setServicePosts(rows);
+    setServicePostDrafts(
+      Object.fromEntries(
+        rows.map((post) => [
+          post.id,
+          {
+            title: post.title ?? '',
+            category: post.category ?? '',
+            summary: post.summary ?? '',
+            content: post.content ?? '',
+            price_from: post.price_from != null ? String(post.price_from) : '',
+            currency: post.currency ?? 'KRW',
+            is_published: Boolean(post.is_published),
+            image_urls_text: (post.image_urls ?? []).join('\n')
+          }
+        ])
+      )
+    );
+  }, []);
+
   const fetchDashboard = useCallback(async () => {
     if (!enabled) return;
     setLoading(true);
@@ -118,18 +159,31 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/admin/dashboard', { cache: 'no-store' });
-      const payload = (await response.json()) as DashboardResponse;
-      if (!response.ok) {
-        throw new Error(payload?.message || '관리자 데이터를 불러오지 못했습니다.');
+      const [dashboardResponse, servicePostsResponse] = await Promise.all([
+        fetch('/api/admin/dashboard', { cache: 'no-store' }),
+        fetch('/api/service-posts?all=true', { cache: 'no-store' })
+      ]);
+
+      const dashboardPayload = (await dashboardResponse.json()) as DashboardResponse;
+      if (!dashboardResponse.ok) {
+        throw new Error(dashboardPayload?.message || '관리자 데이터를 불러오지 못했습니다.');
       }
-      hydrateFromResponse(payload);
+      hydrateFromResponse(dashboardPayload);
+
+      const servicePayload = await servicePostsResponse.json().catch(() => ({}));
+      if (!servicePostsResponse.ok) {
+        throw new Error(servicePayload?.message || 'Service 게시글을 불러오지 못했습니다.');
+      }
+      const serviceRows = Array.isArray(servicePayload?.data)
+        ? (servicePayload.data as ServicePost[])
+        : [];
+      hydrateServicePosts(serviceRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : '관리자 데이터를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
-  }, [enabled, hydrateFromResponse]);
+  }, [enabled, hydrateFromResponse, hydrateServicePosts]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -139,6 +193,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const currentUserId = user?.id ?? null;
 
   const memberCountLabel = useMemo(() => `${members.length}명`, [members.length]);
+  const servicePostCountLabel = useMemo(
+    () => `${servicePosts.length}개`,
+    [servicePosts.length]
+  );
 
   const handleRoleSave = async (member: AdminMember) => {
     const nextRole = roleDrafts[member.id] ?? member.role;
@@ -273,6 +331,112 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     }
   };
 
+  const handleServicePostDraftChange = (
+    postId: string,
+    key: keyof AdminServicePostDraft,
+    value: string | boolean
+  ) => {
+    setServicePostDrafts((prev) => ({
+      ...prev,
+      [postId]: {
+        title: prev[postId]?.title ?? '',
+        category: prev[postId]?.category ?? '',
+        summary: prev[postId]?.summary ?? '',
+        content: prev[postId]?.content ?? '',
+        price_from: prev[postId]?.price_from ?? '',
+        currency: prev[postId]?.currency ?? 'KRW',
+        is_published: prev[postId]?.is_published ?? true,
+        image_urls_text: prev[postId]?.image_urls_text ?? '',
+        [key]: value
+      } as AdminServicePostDraft
+    }));
+  };
+
+  const handleServicePostSave = async (post: ServicePost) => {
+    const draft = servicePostDrafts[post.id];
+    if (!draft) return;
+
+    setBusyServicePostId(post.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const imageUrls = draft.image_urls_text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const response = await fetch(`/api/service-posts/${post.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: draft.title.trim(),
+          category: draft.category.trim() || null,
+          summary: draft.summary.trim() || null,
+          content: draft.content.trim() || null,
+          price_from: draft.price_from ? Number(draft.price_from) : null,
+          currency: draft.currency.trim() || 'KRW',
+          is_published: draft.is_published,
+          image_urls: imageUrls
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Service 게시글 수정에 실패했습니다.');
+      }
+
+      const updated = payload?.data as ServicePost | undefined;
+      if (updated?.id) {
+        setServicePosts((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+        setServicePostDrafts((prev) => ({
+          ...prev,
+          [updated.id]: {
+            title: updated.title ?? '',
+            category: updated.category ?? '',
+            summary: updated.summary ?? '',
+            content: updated.content ?? '',
+            price_from: updated.price_from != null ? String(updated.price_from) : '',
+            currency: updated.currency ?? 'KRW',
+            is_published: Boolean(updated.is_published),
+            image_urls_text: (updated.image_urls ?? []).join('\n')
+          }
+        }));
+      }
+      setMessage('Service 게시글을 수정했습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Service 게시글 수정에 실패했습니다.');
+    } finally {
+      setBusyServicePostId(null);
+    }
+  };
+
+  const handleServicePostDelete = async (post: ServicePost) => {
+    if (!window.confirm(`"${post.title}" Service 게시글을 삭제할까요?`)) return;
+
+    setBusyServicePostId(post.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/service-posts/${post.id}`, { method: 'DELETE' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Service 게시글 삭제에 실패했습니다.');
+      }
+      setServicePosts((prev) => prev.filter((row) => row.id !== post.id));
+      setServicePostDrafts((prev) => {
+        const next = { ...prev };
+        delete next[post.id];
+        return next;
+      });
+      setMessage('Service 게시글을 삭제했습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Service 게시글 삭제에 실패했습니다.');
+    } finally {
+      setBusyServicePostId(null);
+    }
+  };
+
   if (!enabled) {
     return null;
   }
@@ -296,6 +460,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           {[
             { key: 'members', label: `회원 관리 (${memberCountLabel})` },
             { key: 'studio-posts', label: `Studio 게시글 (${studioPosts.length})` },
+            { key: 'service-posts', label: `Service 게시글 (${servicePostCountLabel})` },
             { key: 'create-post', label: '게시물 작성' }
           ].map((tab) => (
             <button
@@ -304,8 +469,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
               onClick={() => setActiveTab(tab.key as AdminTabKey)}
               className={`${segmentedTabBaseClass} ${
                 activeTab === tab.key
-                  ? 'bg-white text-black'
-                  : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  ? 'bg-white text-black shadow-sm'
+                  : 'text-white/85 hover:bg-white/15 hover:text-white'
               }`}
             >
               {tab.label}
@@ -372,7 +537,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                               [member.id]: (e.target.value === 'admin' ? 'admin' : 'user')
                             }))
                           }
-                          className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+                          className="rounded-full border border-white/30 bg-white/18 px-3 py-2 text-xs text-white shadow-sm outline-none focus:ring-2 focus:ring-white/30"
                           disabled={isBusy || protectedAdmin}
                         >
                           <option value="user" className="bg-neutral-900">
@@ -385,7 +550,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         <button
                           type="button"
                           onClick={() => handleRoleSave(member)}
-                          className={pillGlassClass}
+                          className={pillPrimaryClass}
                           disabled={isBusy || protectedAdmin}
                         >
                           역할 변경
@@ -452,7 +617,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           onClick={() =>
                             setEditingPostId((prev) => (prev === post.id ? null : post.id))
                           }
-                          className={pillGlassClass}
+                          className={pillMutedClass}
                         >
                           {editingPostId === post.id ? '닫기' : '수정'}
                         </button>
@@ -513,6 +678,197 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           <button
                             type="button"
                             onClick={() => handleStudioPostSave(post)}
+                            className={pillPrimaryClass}
+                            disabled={isBusy}
+                          >
+                            {isBusy ? '저장 중…' : '저장'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'service-posts' && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Service 게시글 관리</p>
+              <p className="text-xs text-white/55">
+                Services 섹션에 노출되는 `service_posts` 목록입니다.
+              </p>
+            </div>
+            <button type="button" onClick={fetchDashboard} className={pillMutedClass} disabled={loading}>
+              새로고침
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {servicePosts.length === 0 && !loading ? (
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+                등록된 Service 게시글이 없습니다.
+              </div>
+            ) : (
+              servicePosts.map((post) => {
+                const isBusy = busyServicePostId === post.id;
+                const isEditing = editingServicePostId === post.id;
+                const draft = servicePostDrafts[post.id] ?? {
+                  title: post.title ?? '',
+                  category: post.category ?? '',
+                  summary: post.summary ?? '',
+                  content: post.content ?? '',
+                  price_from: post.price_from != null ? String(post.price_from) : '',
+                  currency: post.currency ?? 'KRW',
+                  is_published: Boolean(post.is_published),
+                  image_urls_text: (post.image_urls ?? []).join('\n')
+                };
+
+                return (
+                  <div key={post.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-white">{post.title}</p>
+                        <p className="mt-1 text-xs text-white/55">
+                          {post.category || '카테고리 없음'} · {post.is_published ? '공개' : '비공개'} · 수정{' '}
+                          {formatDate(post.updated_at)}
+                        </p>
+                        {post.summary && (
+                          <p className="mt-1 line-clamp-2 text-xs text-white/45">{post.summary}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingServicePostId((prev) => (prev === post.id ? null : post.id))
+                          }
+                          className={pillMutedClass}
+                          disabled={isBusy}
+                        >
+                          {isEditing ? '닫기' : '수정'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleServicePostDelete(post)}
+                          className={pillDangerClass}
+                          disabled={isBusy}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+
+                    {isEditing && (
+                      <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            제목
+                          </label>
+                          <input
+                            className={inputClass}
+                            value={draft.title}
+                            onChange={(e) =>
+                              handleServicePostDraftChange(post.id, 'title', e.target.value)
+                            }
+                            disabled={isBusy}
+                          />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="grid gap-2">
+                            <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                              카테고리
+                            </label>
+                            <input
+                              className={inputClass}
+                              value={draft.category}
+                              onChange={(e) =>
+                                handleServicePostDraftChange(post.id, 'category', e.target.value)
+                              }
+                              disabled={isBusy}
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                              가격 시작
+                            </label>
+                            <input
+                              className={inputClass}
+                              type="number"
+                              min={0}
+                              value={draft.price_from}
+                              onChange={(e) =>
+                                handleServicePostDraftChange(post.id, 'price_from', e.target.value)
+                              }
+                              disabled={isBusy}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            요약
+                          </label>
+                          <input
+                            className={inputClass}
+                            value={draft.summary}
+                            onChange={(e) =>
+                              handleServicePostDraftChange(post.id, 'summary', e.target.value)
+                            }
+                            disabled={isBusy}
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            상세 내용
+                          </label>
+                          <textarea
+                            className={`${inputClass} min-h-28 resize-y`}
+                            value={draft.content}
+                            onChange={(e) =>
+                              handleServicePostDraftChange(post.id, 'content', e.target.value)
+                            }
+                            disabled={isBusy}
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            이미지 URL 목록 (한 줄에 하나)
+                          </label>
+                          <textarea
+                            className={`${inputClass} min-h-24 resize-y`}
+                            value={draft.image_urls_text}
+                            onChange={(e) =>
+                              handleServicePostDraftChange(post.id, 'image_urls_text', e.target.value)
+                            }
+                            disabled={isBusy}
+                          />
+                        </div>
+
+                        <label className="flex items-center gap-2 text-sm text-white/85">
+                          <input
+                            type="checkbox"
+                            checked={draft.is_published}
+                            onChange={(e) =>
+                              handleServicePostDraftChange(post.id, 'is_published', e.target.checked)
+                            }
+                            className="h-4 w-4 rounded border-white/20 bg-white/10"
+                            disabled={isBusy}
+                          />
+                          게시글 공개
+                        </label>
+
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleServicePostSave(post)}
                             className={pillPrimaryClass}
                             disabled={isBusy}
                           >
