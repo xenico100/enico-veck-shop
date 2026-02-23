@@ -5,6 +5,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
+import { createClient } from '@/utils/supabase/client';
 import { SERVICE_CATEGORIES, type ServicePost } from '@/utils/service-posts';
 
 type TabKey = 'profile' | 'orders' | 'membership' | 'admin' | 'posts';
@@ -35,6 +36,12 @@ type ServicePostEditorState = {
   files: File[];
 };
 
+type UserProfileFormState = {
+  name: string;
+  phone: string;
+  address: string;
+};
+
 const emptyPostEditor = (): ServicePostEditorState => ({
   id: null,
   title: '',
@@ -50,6 +57,7 @@ const emptyPostEditor = (): ServicePostEditorState => ({
 
 export default function MyPageModal({ open, onOpenChange }: Props) {
   const { user, signOut } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
   const [servicePosts, setServicePosts] = useState<ServicePost[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -58,20 +66,25 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const [editorState, setEditorState] = useState<ServicePostEditorState>(emptyPostEditor);
   const [editorSubmitting, setEditorSubmitting] = useState(false);
   const [editorMessage, setEditorMessage] = useState<string | null>(null);
+  const [profileForm, setProfileForm] = useState<UserProfileFormState>({
+    name: '',
+    phone: '',
+    address: ''
+  });
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const isAdmin = useMemo(() => {
-    const adminEnv =
-      process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? '';
-    const adminEmails = adminEnv
-      .split(',')
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean);
-    return Boolean(user?.email && adminEmails.includes(user.email.toLowerCase()));
+    const role = (user as { role?: string } | null)?.role;
+    const email = user?.email?.trim().toLowerCase();
+    return email === 'morba9850@gmail.com' || role === 'admin';
   }, [user]);
 
-  const name = user?.name ?? '관리자';
+  const name = profileForm.name || user?.name || '관리자';
   const email = user?.email ?? 'admin@example.com';
   const initial = name.trim().charAt(0) || '관';
   const appleFontClass =
@@ -166,6 +179,99 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     if (!open || activeTab !== 'posts' || !isAdmin) return;
     fetchServicePosts();
   }, [open, activeTab, isAdmin]);
+
+  const fetchProfile = useMemo(
+    () => async () => {
+      if (!user?.id) {
+        setProfileForm({ name: '', phone: '', address: '' });
+        return;
+      }
+
+      setProfileLoading(true);
+      setProfileError(null);
+      setProfileMessage(null);
+
+      try {
+        const { data, error } = await (supabase as never)
+          .from('users')
+          .select('id,name,phone,address,full_name')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const row = (data ?? null) as
+          | {
+              id: string;
+              name?: string | null;
+              phone?: string | null;
+              address?: string | null;
+              full_name?: string | null;
+            }
+          | null;
+
+        setProfileForm({
+          name: row?.name ?? row?.full_name ?? user.name ?? '',
+          phone: row?.phone ?? '',
+          address: row?.address ?? ''
+        });
+      } catch (error) {
+        setProfileError(
+          error instanceof Error ? error.message : '프로필 정보를 불러오지 못했습니다.'
+        );
+        setProfileForm({
+          name: user.name ?? '',
+          phone: '',
+          address: ''
+        });
+      } finally {
+        setProfileLoading(false);
+      }
+    },
+    [supabase, user]
+  );
+
+  useEffect(() => {
+    if (!open || activeTab !== 'profile') return;
+    fetchProfile();
+  }, [open, activeTab, fetchProfile]);
+
+  const handleProfileFieldChange = (key: keyof UserProfileFormState, value: string) => {
+    setProfileForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user?.id) {
+      setProfileError('로그인이 필요합니다.');
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileError(null);
+    setProfileMessage(null);
+
+    try {
+      const payload = {
+        id: user.id,
+        name: profileForm.name.trim() || null,
+        full_name: profileForm.name.trim() || null,
+        phone: profileForm.phone.trim() || null,
+        address: profileForm.address.trim() || null
+      };
+
+      const { error } = await (supabase as never)
+        .from('users')
+        .upsert(payload, { onConflict: 'id' });
+
+      if (error) throw error;
+
+      setProfileMessage('회원정보를 저장했습니다.');
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : '회원정보 저장에 실패했습니다.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const openCreateEditor = () => {
     setEditorMessage(null);
@@ -364,7 +470,13 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                   <div className="grid gap-4">
                     <div className="grid gap-2">
                       <label className={labelClass}>이름</label>
-                      <input className={inputClass} value={name} readOnly />
+                      <input
+                        className={inputClass}
+                        value={profileForm.name}
+                        onChange={(e) => handleProfileFieldChange('name', e.target.value)}
+                        placeholder="이름을 입력하세요"
+                        disabled={profileLoading || profileSaving}
+                      />
                     </div>
                     <div className="grid gap-2">
                       <label className={labelClass}>이메일 (아이디)</label>
@@ -374,7 +486,13 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                     <div className="grid gap-2 md:grid-cols-2 md:gap-4">
                       <div className="grid gap-2">
                         <label className={labelClass}>전화번호</label>
-                        <input className={inputClass} value="010-0000-0000" readOnly />
+                        <input
+                          className={inputClass}
+                          value={profileForm.phone}
+                          onChange={(e) => handleProfileFieldChange('phone', e.target.value)}
+                          placeholder="010-0000-0000"
+                          disabled={profileLoading || profileSaving}
+                        />
                       </div>
                       <div className="grid gap-2">
                         <label className={labelClass}>결제수단</label>
@@ -383,13 +501,42 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                     </div>
                     <div className="grid gap-2">
                       <label className={labelClass}>주소</label>
-                      <input className={inputClass} value="서울시 어딘가" readOnly />
+                      <input
+                        className={inputClass}
+                        value={profileForm.address}
+                        onChange={(e) => handleProfileFieldChange('address', e.target.value)}
+                        placeholder="주소를 입력하세요"
+                        disabled={profileLoading || profileSaving}
+                      />
                     </div>
                   </div>
 
+                  {(profileLoading || profileError || profileMessage) && (
+                    <div className="space-y-2">
+                      {profileLoading && (
+                        <p className="text-xs text-white/50">프로필 정보를 불러오는 중…</p>
+                      )}
+                      {profileError && (
+                        <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-xs text-red-100">
+                          {profileError}
+                        </div>
+                      )}
+                      {profileMessage && (
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-white/80">
+                          {profileMessage}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex justify-start">
-                    <button type="button" className={pillPrimaryClass}>
-                      회원정보 수정
+                    <button
+                      type="button"
+                      className={pillPrimaryClass}
+                      onClick={handleSaveProfile}
+                      disabled={profileLoading || profileSaving}
+                    >
+                      {profileSaving ? '저장 중…' : '회원정보 수정'}
                     </button>
                   </div>
                 </div>
