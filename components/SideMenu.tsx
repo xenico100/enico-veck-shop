@@ -48,6 +48,33 @@ export default function SideMenu({
     'text-[18px] font-medium [letter-spacing:0.24px]',
     appleFontClass
   ].join(' ');
+  const menuActionPillClass = [
+    'flex w-full items-center justify-center rounded-full',
+    'border border-white/[0.15] bg-white/[0.10] px-4 py-3',
+    'text-base font-medium tracking-[0.2px] text-white/85',
+    'backdrop-blur-md transition-colors duration-200 ease-in-out',
+    'hover:bg-white/[0.20] hover:text-white',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
+    appleFontClass
+  ].join(' ');
+  const menuActionPrimaryPillClass = [
+    'flex w-full items-center justify-center rounded-full',
+    'border border-white/[0.20] bg-white/[0.15] px-4 py-3',
+    'text-base font-medium tracking-[0.2px] text-white',
+    'backdrop-blur-md transition-colors duration-200 ease-in-out',
+    'hover:bg-white/[0.22]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
+    appleFontClass
+  ].join(' ');
+  const menuDangerPillClass = [
+    'flex w-full items-center justify-center rounded-full',
+    'border border-rose-300/25 bg-rose-300/10 px-4 py-3',
+    'text-base font-medium tracking-[0.2px] text-rose-100',
+    'transition-colors duration-200 ease-in-out',
+    'hover:bg-rose-300/20 hover:text-white',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
+    appleFontClass
+  ].join(' ');
   const iconCircleButtonClass = [
     'flex h-10 w-10 items-center justify-center rounded-full',
     'border border-white/[0.15] bg-white/[0.08] text-[#f5f5f7]',
@@ -140,7 +167,7 @@ export default function SideMenu({
               <li>
                 <button
                   onClick={handleMyPageClick}
-                  className={navItemClass}
+                  className={menuActionPrimaryPillClass}
                 >
                   My Page
                 </button>
@@ -176,7 +203,7 @@ export default function SideMenu({
                 <li>
                   <button
                     onClick={handleLogout}
-                    className={`${navItemClass} hover:text-red-300`}
+                    className={menuDangerPillClass}
                   >
                     로그아웃
                   </button>
@@ -186,7 +213,7 @@ export default function SideMenu({
               <li>
                 <button
                   onClick={handleLoginClick}
-                  className={pillButtonClass}
+                  className={menuActionPillClass}
                 >
                   로그인
                 </button>
