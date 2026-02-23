@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { createClient } from '@/utils/supabase/server';
 
 type CheckoutItemPayload = {
   id: string;
@@ -57,6 +58,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: buildStubUrl(request), mode: 'stub' });
     }
 
+    const supabase = createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
     const stripe = new Stripe(stripeSecret, {
       apiVersion: '2024-06-20' as Stripe.LatestApiVersion
     });
@@ -66,6 +72,17 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
+      client_reference_id: user?.id ?? undefined,
+      metadata: {
+        user_id: user?.id ?? '',
+        item_id: item.id,
+        item_type: item.type,
+        item_title: item.title.slice(0, 200),
+        item_qty: String(item.quantity),
+        item_price: String(Math.round(item.price)),
+        item_currency: item.currency.toUpperCase(),
+        item_image: (item.image ?? '').slice(0, 400)
+      },
       line_items: [
         {
           quantity: item.quantity,

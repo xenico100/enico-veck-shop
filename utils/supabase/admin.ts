@@ -293,11 +293,150 @@ const manageSubscriptionStatusChange = async (
     );
 };
 
+type OrderItemSnapshot = {
+  id: string;
+  title: string;
+  type: string;
+  price: number | null;
+  qty: number;
+  image: string | null;
+};
+
+const getUserIdForCheckoutSession = async (session: Stripe.Checkout.Session) => {
+  const metadataUserId =
+    typeof session.metadata?.user_id === 'string' && session.metadata.user_id.trim()
+      ? session.metadata.user_id.trim()
+      : null;
+  if (metadataUserId) return metadataUserId;
+
+  const clientRef = typeof session.client_reference_id === 'string' ? session.client_reference_id : null;
+  if (clientRef) return clientRef;
+
+  if (typeof session.customer === 'string') {
+    const { data, error } = await supabaseAdmin
+      .from('customers')
+      .select('id')
+      .eq('stripe_customer_id', session.customer)
+      .maybeSingle();
+
+    if (!error && data?.id) {
+      return data.id as string;
+    }
+  }
+
+  return null;
+};
+
+const buildFallbackOrderItemsFromSessionMetadata = (
+  session: Stripe.Checkout.Session
+): OrderItemSnapshot[] => {
+  const qty = Math.max(1, Number(session.metadata?.item_qty ?? 1) || 1);
+  const price = Number(session.metadata?.item_price ?? '');
+  const title = session.metadata?.item_title?.trim();
+
+  if (!title) return [];
+
+  return [
+    {
+      id: session.metadata?.item_id?.trim() || title,
+      title,
+      type: session.metadata?.item_type?.trim() || 'item',
+      price: Number.isFinite(price) ? price : null,
+      qty,
+      image: session.metadata?.item_image?.trim() || null
+    }
+  ];
+};
+
+const buildOrderItemsFromStripeLineItems = async (
+  session: Stripe.Checkout.Session
+): Promise<OrderItemSnapshot[]> => {
+  if (!session.id) return [];
+
+  try {
+    const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+      limit: 100,
+      expand: ['data.price.product']
+    });
+
+    return (lineItems.data ?? [])
+      .map((lineItem) => {
+        const qty = Math.max(1, lineItem.quantity ?? 1);
+        const unitAmount =
+          lineItem.price?.unit_amount ??
+          (lineItem.amount_total != null ? Math.round(lineItem.amount_total / qty) : null);
+
+        const product = lineItem.price?.product;
+        const productObj =
+          product && typeof product === 'object' && 'id' in product ? (product as Stripe.Product) : null;
+
+        const title = lineItem.description?.trim() || productObj?.name?.trim() || '주문 항목';
+
+        return {
+          id:
+            productObj?.metadata?.item_id ||
+            productObj?.id ||
+            lineItem.price?.id ||
+            title,
+          title,
+          type: productObj?.metadata?.item_type || 'item',
+          price: unitAmount != null ? Number(unitAmount) : null,
+          qty,
+          image: productObj?.images?.[0] ?? null
+        } satisfies OrderItemSnapshot;
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.warn('Could not fetch checkout line items, falling back to session metadata.', error);
+    return [];
+  }
+};
+
+const upsertOrderRecordFromCheckoutSession = async (
+  session: Stripe.Checkout.Session
+) => {
+  if (session.mode !== 'payment') return;
+  if (!session.id) return;
+
+  const userId = await getUserIdForCheckoutSession(session);
+  if (!userId) {
+    console.warn(`Skipping order record for checkout session ${session.id}: no user_id found.`);
+    return;
+  }
+
+  const stripeItems = await buildOrderItemsFromStripeLineItems(session);
+  const fallbackItems = buildFallbackOrderItemsFromSessionMetadata(session);
+  const items = stripeItems.length > 0 ? stripeItems : fallbackItems;
+
+  const orderPayload = {
+    user_id: userId,
+    status: session.payment_status === 'paid' ? 'paid' : 'pending',
+    currency: session.currency ? session.currency.toUpperCase() : null,
+    amount_total: session.amount_total ?? null,
+    stripe_checkout_session_id: session.id,
+    stripe_payment_intent_id:
+      typeof session.payment_intent === 'string' ? session.payment_intent : null,
+    items,
+    metadata: session.metadata ?? {}
+  };
+
+  const { error } = await (supabaseAdmin as never)
+    .from('orders')
+    .upsert(orderPayload, { onConflict: 'stripe_checkout_session_id' });
+
+  if (error) {
+    throw new Error(`Order insert/update failed: ${error.message}`);
+  }
+
+  console.log(`Order inserted/updated from checkout session: ${session.id}`);
+};
+
 export {
   upsertProductRecord,
   upsertPriceRecord,
   deleteProductRecord,
   deletePriceRecord,
   createOrRetrieveCustomer,
-  manageSubscriptionStatusChange
+  manageSubscriptionStatusChange,
+  upsertOrderRecordFromCheckoutSession
 };

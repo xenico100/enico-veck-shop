@@ -6,9 +6,18 @@ import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import MyPageAdminPanel from '@/components/MyPageAdminPanel';
+import OrderDetailModal from '@/components/OrderDetailModal';
 import ActionButton from '@/components/ui/ActionButton';
 import PillTab from '@/components/ui/PillTab';
 import { useToast } from '@/components/ui/Toasts/use-toast';
+import {
+  formatOrderDate,
+  formatOrderMoney,
+  getOrderStatusBadgeClass,
+  mapOrderStatusLabel,
+  normalizeOrders,
+  type OrderRecord
+} from '@/utils/orders';
 import { SERVICE_CATEGORIES, isAdminUserLike, type ServicePost } from '@/utils/service-posts';
 
 type TabKey = 'profile' | 'orders' | 'membership' | 'admin' | 'posts';
@@ -78,6 +87,11 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
+  const [orderDetailOpen, setOrderDetailOpen] = useState(false);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -184,6 +198,36 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     if (!open || activeTab !== 'posts' || !isAdmin) return;
     fetchServicePosts();
   }, [open, activeTab, isAdmin]);
+
+  const fetchOrders = useMemo(
+    () => async () => {
+      if (!user?.id) {
+        setOrders([]);
+        return;
+      }
+
+      setOrdersLoading(true);
+      setOrdersError(null);
+      try {
+        const response = await fetch('/api/account/orders', { cache: 'no-store' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.message || '주문 내역을 불러오지 못했습니다.');
+        }
+        setOrders(normalizeOrders(payload?.data));
+      } catch (error) {
+        setOrdersError(error instanceof Error ? error.message : '주문 내역을 불러오지 못했습니다.');
+      } finally {
+        setOrdersLoading(false);
+      }
+    },
+    [user?.id]
+  );
+
+  useEffect(() => {
+    if (!open || activeTab !== 'orders') return;
+    void fetchOrders();
+  }, [open, activeTab, fetchOrders]);
 
   const fetchProfile = useMemo(
     () => async () => {
@@ -618,13 +662,81 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
 
             {activeTab === 'orders' && (
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold tracking-tight text-white">주문 내역</h3>
-                <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
-                    <Package className="h-6 w-6" />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h3 className="text-lg font-semibold tracking-tight text-white">주문 내역</h3>
+                  <ActionButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void fetchOrders()}
+                    className={appleFontClass}
+                    disabled={ordersLoading}
+                  >
+                    {ordersLoading ? '불러오는 중…' : '새로고침'}
+                  </ActionButton>
+                </div>
+
+                {ordersError && (
+                  <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+                    {ordersError}
                   </div>
-                  <p className="text-sm font-semibold text-white">주문 내역이 없습니다</p>
-                  <p className="text-xs text-white/50">첫 주문을 시작해보세요</p>
+                )}
+
+                <div className="space-y-3">
+                  {!ordersLoading && orders.length === 0 ? (
+                    <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
+                        <Package className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">주문 내역이 없습니다</p>
+                      <p className="text-xs text-white/50">첫 주문을 시작해보세요</p>
+                    </div>
+                  ) : (
+                    orders.map((order) => {
+                      const firstItem = order.items[0];
+                      const extraCount = Math.max(0, order.items.length - 1);
+                      return (
+                        <button
+                          key={order.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setOrderDetailOpen(true);
+                          }}
+                          className="w-full rounded-3xl border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
+                        >
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getOrderStatusBadgeClass(order.status)}`}
+                                >
+                                  {mapOrderStatusLabel(order.status)}
+                                </span>
+                                <span className="text-xs text-white/55">
+                                  {formatOrderDate(order.created_at)}
+                                </span>
+                              </div>
+                              <p className="mt-2 truncate text-sm font-semibold text-white">
+                                {firstItem?.title ?? '주문 항목'}
+                                {extraCount > 0 ? ` 외 ${extraCount}건` : ''}
+                              </p>
+                              <p className="mt-1 text-xs text-white/50">
+                                주문번호 {order.id.slice(0, 8)}…
+                              </p>
+                            </div>
+                            <div className="text-left md:text-right">
+                              <p className="text-sm font-semibold text-white">
+                                {formatOrderMoney(order.amount_total, order.currency || 'KRW')}
+                              </p>
+                              <p className="mt-1 text-xs text-white/50">
+                                항목 {order.items.length || 0}개
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -870,6 +982,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
           </div>
         </div>
       </div>
+      <OrderDetailModal
+        open={orderDetailOpen}
+        onOpenChange={(next) => {
+          setOrderDetailOpen(next);
+          if (!next) setSelectedOrder(null);
+        }}
+        order={selectedOrder}
+      />
     </>
   );
 }

@@ -1,10 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import OrderDetailModal from '@/components/OrderDetailModal';
 import StudioPostForm from '@/components/StudioPostForm';
 import { useAuth } from '@/app/context/AuthContext';
 import ActionButton from '@/components/ui/ActionButton';
 import PillTab from '@/components/ui/PillTab';
+import {
+  formatOrderDate,
+  formatOrderMoney,
+  getOrderStatusBadgeClass,
+  mapOrderStatusLabel,
+  normalizeOrders,
+  type OrderRecord
+} from '@/utils/orders';
 import type { ServicePost } from '@/utils/service-posts';
 
 type AdminMember = {
@@ -76,6 +85,13 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [servicePostDrafts, setServicePostDrafts] = useState<
     Record<string, AdminServicePostDraft>
   >({});
+  const [memberOrdersModalOpen, setMemberOrdersModalOpen] = useState(false);
+  const [memberOrdersLoading, setMemberOrdersLoading] = useState(false);
+  const [memberOrdersError, setMemberOrdersError] = useState<string | null>(null);
+  const [memberOrdersTarget, setMemberOrdersTarget] = useState<AdminMember | null>(null);
+  const [memberOrders, setMemberOrders] = useState<OrderRecord[]>([]);
+  const [selectedMemberOrder, setSelectedMemberOrder] = useState<OrderRecord | null>(null);
+  const [memberOrderDetailOpen, setMemberOrderDetailOpen] = useState(false);
 
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -240,6 +256,41 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       setError(err instanceof Error ? err.message : '회원 삭제에 실패했습니다.');
     } finally {
       setBusyMemberId(null);
+    }
+  };
+
+  const closeMemberOrdersModal = () => {
+    setMemberOrdersModalOpen(false);
+    setMemberOrdersTarget(null);
+    setMemberOrders([]);
+    setMemberOrdersError(null);
+    setMemberOrdersLoading(false);
+    setSelectedMemberOrder(null);
+    setMemberOrderDetailOpen(false);
+  };
+
+  const handleOpenMemberOrders = async (member: AdminMember) => {
+    setMemberOrdersTarget(member);
+    setMemberOrders([]);
+    setMemberOrdersError(null);
+    setMemberOrdersModalOpen(true);
+    setMemberOrdersLoading(true);
+    setSelectedMemberOrder(null);
+    setMemberOrderDetailOpen(false);
+
+    try {
+      const response = await fetch(`/api/admin/users/${member.id}/orders`, { cache: 'no-store' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || '회원 주문 내역을 불러오지 못했습니다.');
+      }
+      setMemberOrders(normalizeOrders(payload?.data));
+    } catch (err) {
+      setMemberOrdersError(
+        err instanceof Error ? err.message : '회원 주문 내역을 불러오지 못했습니다.'
+      );
+    } finally {
+      setMemberOrdersLoading(false);
     }
   };
 
@@ -551,6 +602,16 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           disabled={isBusy || protectedAdmin}
                         >
                           역할 변경
+                        </ActionButton>
+                        <ActionButton
+                          type="button"
+                          onClick={() => void handleOpenMemberOrders(member)}
+                          variant="secondary"
+                          size="sm"
+                          className={appleFontClass}
+                          disabled={isBusy}
+                        >
+                          주문 보기
                         </ActionButton>
                         <ActionButton
                           type="button"
@@ -911,6 +972,130 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           <StudioPostForm />
         </div>
       )}
+
+      {memberOrdersModalOpen && (
+        <div
+          className="fixed inset-0 z-[84] bg-black/70 backdrop-blur-sm"
+          onClick={closeMemberOrdersModal}
+          aria-hidden="true"
+        />
+      )}
+      {memberOrdersModalOpen && (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="회원 주문 내역"
+            className="w-full max-w-3xl rounded-3xl border border-white/10 bg-black/75 p-5 shadow-2xl backdrop-blur-xl md:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h4 className="text-base font-semibold tracking-tight text-white">
+                  회원 주문 내역
+                </h4>
+                <p className="mt-1 break-all text-sm text-white/60">
+                  {memberOrdersTarget?.email ?? memberOrdersTarget?.id ?? '-'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <ActionButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    memberOrdersTarget ? void handleOpenMemberOrders(memberOrdersTarget) : undefined
+                  }
+                  className={appleFontClass}
+                  disabled={memberOrdersLoading || !memberOrdersTarget}
+                >
+                  {memberOrdersLoading ? '불러오는 중…' : '새로고침'}
+                </ActionButton>
+                <ActionButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={closeMemberOrdersModal}
+                  className={appleFontClass}
+                >
+                  닫기
+                </ActionButton>
+              </div>
+            </div>
+
+            {memberOrdersError && (
+              <div className="mb-4 rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+                {memberOrdersError}
+              </div>
+            )}
+
+            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+              {!memberOrdersLoading && memberOrders.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/60">
+                  주문 내역이 없습니다.
+                </div>
+              ) : (
+                memberOrders.map((order) => {
+                  const firstItem = order.items[0];
+                  const extraCount = Math.max(0, order.items.length - 1);
+                  return (
+                    <button
+                      key={order.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMemberOrder(order);
+                        setMemberOrderDetailOpen(true);
+                      }}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
+                    >
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getOrderStatusBadgeClass(order.status)}`}
+                            >
+                              {mapOrderStatusLabel(order.status)}
+                            </span>
+                            <span className="text-xs text-white/55">
+                              {formatOrderDate(order.created_at)}
+                            </span>
+                          </div>
+                          <p className="mt-2 truncate text-sm font-semibold text-white">
+                            {firstItem?.title ?? '주문 항목'}
+                            {extraCount > 0 ? ` 외 ${extraCount}건` : ''}
+                          </p>
+                          <p className="mt-1 text-xs text-white/45">
+                            주문번호 {order.id.slice(0, 8)}…
+                          </p>
+                        </div>
+                        <div className="text-left md:text-right">
+                          <p className="text-sm font-semibold text-white">
+                            {formatOrderMoney(order.amount_total, order.currency || 'KRW')}
+                          </p>
+                          <p className="mt-1 text-xs text-white/50">
+                            항목 {order.items.length || 0}개
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <OrderDetailModal
+        open={memberOrderDetailOpen}
+        onOpenChange={(next) => {
+          setMemberOrderDetailOpen(next);
+          if (!next) {
+            setSelectedMemberOrder(null);
+          }
+        }}
+        order={selectedMemberOrder}
+      />
     </div>
   );
 }
