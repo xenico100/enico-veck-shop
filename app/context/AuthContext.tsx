@@ -9,6 +9,7 @@ type AuthUser = {
   id: string;
   name: string;
   email: string;
+  role?: string;
 };
 
 type AuthContextValue = {
@@ -36,6 +37,9 @@ const mapUser = (user: User | null): AuthUser | null => {
     id: user.id,
     name,
     email: user.email ?? '',
+    role:
+      (user.app_metadata?.role as string | undefined) ??
+      (user.user_metadata?.role as string | undefined)
   };
 };
 

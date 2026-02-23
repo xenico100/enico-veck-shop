@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/app/context/AuthContext';
 import { ServiceDetailModal } from './ServiceDetailModal';
 import {
+  SERVICE_CATEGORIES,
   categoryColorPresets,
   formatPriceFrom,
+  isAdminUserLike,
   type ServicePost
 } from '@/utils/service-posts';
 
@@ -140,6 +143,18 @@ type ServiceCardItem = {
   images: string[];
 };
 
+type ServiceCreateFormState = {
+  title: string;
+  category: string;
+  summary: string;
+  content: string;
+  price_from: string;
+  currency: string;
+  image_urls_text: string;
+  files: File[];
+  is_published: boolean;
+};
+
 const fallbackServices: ServiceCardItem[] = services.map((service, index) => ({
   id: `fallback-${index}`,
   ...service,
@@ -180,6 +195,7 @@ const serviceSwatchBgClasses: Record<string, string> = {
 };
 
 export default function ServicesSection() {
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState('모든 제품');
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
@@ -191,6 +207,21 @@ export default function ServicesSection() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createMessage, setCreateMessage] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createForm, setCreateForm] = useState<ServiceCreateFormState>({
+    title: '',
+    category: SERVICE_CATEGORIES[0],
+    summary: '',
+    content: '',
+    price_from: '',
+    currency: 'KRW',
+    image_urls_text: '',
+    files: [],
+    is_published: true
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -202,6 +233,13 @@ export default function ServicesSection() {
   const serviceGhostButtonClass = `rounded-full border border-white/20 bg-white/0 px-4 py-2 text-sm font-medium tracking-[0.2px] text-white/80 no-underline transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-white/10 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
   const servicePrimaryButtonClass = `rounded-full bg-white px-4 py-2 text-sm font-medium tracking-[0.2px] text-black no-underline transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-neutral-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
   const arrowButtonClass = `size-11 rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
+  const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const createInputClass =
+    'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/25';
+  const createLabelClass = `text-xs uppercase tracking-[0.18em] text-white/50 ${appleFontClass}`;
+  const adminCloseButtonClass =
+    'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-white/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30';
+  const isAdmin = isAdminUserLike(user);
 
   const getSwatchClass = (color: string) =>
     serviceSwatchBgClasses[color] ?? 'bg-white/30';
@@ -228,41 +266,121 @@ export default function ServicesSection() {
     };
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchServices = async () => {
-      setServicesLoading(true);
-      setServicesError(null);
-      try {
-        const response = await fetch('/api/service-posts', { cache: 'no-store' });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload?.message || '서비스 목록을 불러오지 못했습니다.');
-        }
-
-        const rows = Array.isArray(payload?.data) ? (payload.data as ServicePost[]) : [];
-        if (!cancelled) {
-          setServiceItems(rows.length > 0 ? rows.map(mapPostToCardItem) : []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setServicesError(error instanceof Error ? error.message : '서비스 목록을 불러오지 못했습니다.');
-          setServiceItems([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setServicesLoading(false);
-        }
+  const fetchServices = useCallback(async () => {
+    setServicesLoading(true);
+    setServicesError(null);
+    try {
+      const response = await fetch('/api/service-posts', { cache: 'no-store' });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message || '서비스 목록을 불러오지 못했습니다.');
       }
-    };
 
-    fetchServices();
-
-    return () => {
-      cancelled = true;
-    };
+      const rows = Array.isArray(payload?.data) ? (payload.data as ServicePost[]) : [];
+      setServiceItems(rows.length > 0 ? rows.map(mapPostToCardItem) : []);
+    } catch (error) {
+      setServicesError(error instanceof Error ? error.message : '서비스 목록을 불러오지 못했습니다.');
+      setServiceItems([]);
+    } finally {
+      setServicesLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchServices();
+  }, [fetchServices]);
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      title: '',
+      category: SERVICE_CATEGORIES[0],
+      summary: '',
+      content: '',
+      price_from: '',
+      currency: 'KRW',
+      image_urls_text: '',
+      files: [],
+      is_published: true
+    });
+  };
+
+  const handleCreateFormFieldChange = (
+    key: keyof ServiceCreateFormState,
+    value: string | boolean | File[]
+  ) => {
+    setCreateForm((prev) => ({ ...prev, [key]: value } as ServiceCreateFormState));
+  };
+
+  const handleCreateFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    setCreateForm((prev) => ({ ...prev, files }));
+  };
+
+  const handleSubmitCreatePost = async () => {
+    if (!isAdmin) return;
+    if (!createForm.title.trim()) {
+      setCreateError('제목을 입력해 주세요.');
+      setCreateMessage(null);
+      return;
+    }
+
+    setCreateSubmitting(true);
+    setCreateError(null);
+    setCreateMessage(null);
+
+    try {
+      let uploadedImageUrls: string[] = [];
+      if (createForm.files.length > 0) {
+        const uploadForm = new FormData();
+        createForm.files.forEach((file) => uploadForm.append('files', file));
+        const uploadResponse = await fetch('/api/service-posts/upload', {
+          method: 'POST',
+          body: uploadForm
+        });
+        const uploadPayload = await uploadResponse.json();
+        if (!uploadResponse.ok) {
+          throw new Error(uploadPayload?.message || '이미지 업로드에 실패했습니다.');
+        }
+        uploadedImageUrls = Array.isArray(uploadPayload?.data?.image_urls)
+          ? uploadPayload.data.image_urls
+          : [];
+      }
+
+      const manualUrls = createForm.image_urls_text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const response = await fetch('/api/service-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: createForm.title.trim(),
+          category: createForm.category || null,
+          summary: createForm.summary.trim() || null,
+          content: createForm.content.trim() || null,
+          price_from: createForm.price_from ? Number(createForm.price_from) : null,
+          currency: createForm.currency || 'KRW',
+          is_published: createForm.is_published,
+          image_urls: [...manualUrls, ...uploadedImageUrls]
+        })
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || '게시글 생성에 실패했습니다.');
+      }
+
+      setCreateMessage('서비스 게시글을 생성했습니다.');
+      resetCreateForm();
+      setIsCreateModalOpen(false);
+      await fetchServices();
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : '게시글 생성에 실패했습니다.');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
 
   // 카테고리별 필터링
   const filteredServices = useMemo(() => {
@@ -371,7 +489,23 @@ export default function ServicesSection() {
     <section id="services" className="relative bg-[#0a0a0a] text-white min-h-screen flex flex-col justify-center px-4 md:px-8 lg:px-16 py-20 max-w-full">
       <div className="max-w-7xl mx-auto w-full">
         {/* Title */}
-        <h2 className="text-4xl md:text-5xl mb-8 tracking-tight">Services</h2>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-4xl tracking-tight md:text-5xl">Services</h2>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setCreateError(null);
+                setCreateMessage(null);
+                setIsCreateModalOpen(true);
+              }}
+              className={adminWriteButtonClass}
+            >
+              <Plus className="h-4 w-4" />
+              게시물 작성
+            </button>
+          )}
+        </div>
         
         {/* Category Tabs */}
         <div className="mb-12 overflow-x-auto pb-2">
@@ -568,6 +702,176 @@ export default function ServicesSection() {
           </div>
         </div>
       </div>
+      {isAdmin && isCreateModalOpen && (
+        <div
+          className="fixed inset-0 z-[72] flex items-center justify-center bg-black/70 p-4"
+          onClick={() => {
+            if (createSubmitting) return;
+            setIsCreateModalOpen(false);
+          }}
+        >
+          <div
+            className={`w-full max-w-2xl rounded-3xl border border-white/10 bg-black/70 p-5 shadow-2xl backdrop-blur-xl md:p-6 ${appleFontClass}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-white/50">Services</p>
+                <h3 className="mt-2 text-lg font-semibold tracking-tight text-white">
+                  게시물 작성
+                </h3>
+                <p className="mt-1 text-sm text-white/60">
+                  Services 섹션용 새 게시글을 생성합니다.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={adminCloseButtonClass}
+                onClick={() => !createSubmitting && setIsCreateModalOpen(false)}
+                aria-label="작성 모달 닫기"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <label className={createLabelClass}>제목</label>
+                <input
+                  className={createInputClass}
+                  value={createForm.title}
+                  onChange={(e) => handleCreateFormFieldChange('title', e.target.value)}
+                  placeholder="서비스 제목"
+                  disabled={createSubmitting}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className={createLabelClass}>카테고리</label>
+                  <select
+                    className={createInputClass}
+                    value={createForm.category}
+                    onChange={(e) => handleCreateFormFieldChange('category', e.target.value)}
+                    disabled={createSubmitting}
+                  >
+                    {SERVICE_CATEGORIES.map((category) => (
+                      <option key={category} value={category} className="bg-neutral-900">
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <label className={createLabelClass}>가격 시작 (KRW)</label>
+                  <input
+                    className={createInputClass}
+                    type="number"
+                    min={0}
+                    value={createForm.price_from}
+                    onChange={(e) => handleCreateFormFieldChange('price_from', e.target.value)}
+                    placeholder="150000"
+                    disabled={createSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className={createLabelClass}>요약</label>
+                <input
+                  className={createInputClass}
+                  value={createForm.summary}
+                  onChange={(e) => handleCreateFormFieldChange('summary', e.target.value)}
+                  placeholder="카드에 표시될 짧은 요약"
+                  disabled={createSubmitting}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label className={createLabelClass}>상세 내용</label>
+                <textarea
+                  className={`${createInputClass} min-h-32 resize-y`}
+                  value={createForm.content}
+                  onChange={(e) => handleCreateFormFieldChange('content', e.target.value)}
+                  placeholder="상세 설명"
+                  disabled={createSubmitting}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label className={createLabelClass}>이미지 URL 목록 (한 줄에 하나)</label>
+                <textarea
+                  className={`${createInputClass} min-h-24 resize-y`}
+                  value={createForm.image_urls_text}
+                  onChange={(e) =>
+                    handleCreateFormFieldChange('image_urls_text', e.target.value)
+                  }
+                  placeholder="https://..."
+                  disabled={createSubmitting}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label className={createLabelClass}>이미지 업로드</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleCreateFilesChange}
+                  disabled={createSubmitting}
+                  className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/15 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white/85 hover:file:bg-white/20"
+                />
+                {createForm.files.length > 0 && (
+                  <p className="text-xs text-white/50">
+                    선택됨: {createForm.files.map((file) => file.name).join(', ')}
+                  </p>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-white/80">
+                <input
+                  type="checkbox"
+                  checked={createForm.is_published}
+                  onChange={(e) => handleCreateFormFieldChange('is_published', e.target.checked)}
+                  className="h-4 w-4 rounded border-white/20 bg-white/10"
+                  disabled={createSubmitting}
+                />
+                게시글 공개
+              </label>
+
+              {createError && (
+                <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
+                  {createError}
+                </div>
+              )}
+              {createMessage && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+                  {createMessage}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className={serviceGhostButtonClass}
+                  disabled={createSubmitting}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitCreatePost}
+                  className={servicePrimaryButtonClass}
+                  disabled={createSubmitting}
+                >
+                  {createSubmitting ? '저장 중…' : '게시글 생성'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Service Detail Modal */}
       <ServiceDetailModal 
         isOpen={isModalOpen} 

@@ -27,6 +27,7 @@ export type ServicePostPayload = {
 };
 
 export const SERVICE_CATEGORIES = ['녹음', '믹스/마스터', '더빙/성우'] as const;
+export const FORCED_ADMIN_EMAIL = 'morba9850@gmail.com';
 
 export const categoryColorPresets: Record<string, string[]> = {
   녹음: ['#1a1a1a', '#4a4a4a', '#8a8a8a'],
@@ -78,6 +79,19 @@ export const parseAdminEmailEnv = () => {
 
 export const isAdminEmailValue = (email?: string | null) => {
   if (!email) return false;
+  const normalized = email.trim().toLowerCase();
+  if (normalized === FORCED_ADMIN_EMAIL) return true;
   const adminEmails = parseAdminEmailEnv();
-  return adminEmails.includes(email.trim().toLowerCase());
+  return adminEmails.includes(normalized);
+};
+
+export const isAdminRoleValue = (role?: string | null) =>
+  (role ?? '').trim().toLowerCase() === 'admin';
+
+export const isAdminUserLike = (user?: {
+  email?: string | null;
+  role?: string | null;
+} | null) => {
+  if (!user) return false;
+  return isAdminEmailValue(user.email) || isAdminRoleValue(user.role);
 };

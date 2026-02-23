@@ -5,8 +5,9 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
+import MyPageAdminPanel from '@/components/MyPageAdminPanel';
 import { createClient } from '@/utils/supabase/client';
-import { SERVICE_CATEGORIES, type ServicePost } from '@/utils/service-posts';
+import { SERVICE_CATEGORIES, isAdminUserLike, type ServicePost } from '@/utils/service-posts';
 
 type TabKey = 'profile' | 'orders' | 'membership' | 'admin' | 'posts';
 
@@ -79,9 +80,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const isAdmin = useMemo(() => {
-    const role = (user as { role?: string } | null)?.role;
-    const email = user?.email?.trim().toLowerCase();
-    return email === 'morba9850@gmail.com' || role === 'admin';
+    return isAdminUserLike(user);
   }, [user]);
 
   const name = profileForm.name || user?.name || '관리자';
@@ -590,6 +589,8 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
+            {activeTab === 'admin' && isAdmin && <MyPageAdminPanel enabled={open && isAdmin} />}
+
             {activeTab === 'posts' && isAdmin && (
               <div className="space-y-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -812,7 +813,10 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
-            {activeTab !== 'profile' && activeTab !== 'orders' && activeTab !== 'posts' && (
+            {activeTab !== 'profile' &&
+              activeTab !== 'orders' &&
+              activeTab !== 'admin' &&
+              activeTab !== 'posts' && (
               <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
                 <p className="text-sm font-semibold text-white">준비 중입니다</p>
                 <p className="text-xs text-white/50">곧 새로운 기능으로 찾아올게요.</p>
