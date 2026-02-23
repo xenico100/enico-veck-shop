@@ -4,6 +4,9 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/app/context/AuthContext';
+import { useCart, type CartItemInput } from '@/app/context/CartContext';
+import { useToast } from '@/components/ui/Toasts/use-toast';
+import { ToastAction } from '@/components/ui/Toasts/toast';
 import { ServiceDetailModal } from './ServiceDetailModal';
 import {
   SERVICE_CATEGORIES,
@@ -137,6 +140,8 @@ type ServiceCardItem = {
   subtitle: string;
   description: string;
   price: string;
+  priceAmount: number | null;
+  currency: string;
   category: string;
   image: string;
   colors: string[];
@@ -155,11 +160,16 @@ type ServiceCreateFormState = {
   is_published: boolean;
 };
 
-const fallbackServices: ServiceCardItem[] = services.map((service, index) => ({
-  id: `fallback-${index}`,
-  ...service,
-  images: [service.image, service.image, service.image]
-}));
+const fallbackServices: ServiceCardItem[] = services.map((service, index) => {
+  const parsedPrice = Number(service.price.replace(/[^\d]/g, ''));
+  return {
+    id: `fallback-${index}`,
+    ...service,
+    priceAmount: Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
+    currency: 'KRW',
+    images: [service.image, service.image, service.image]
+  };
+});
 
 const serviceSwatchBgClasses: Record<string, string> = {
   '#1a1a1a': 'bg-[#1a1a1a]',
@@ -194,8 +204,14 @@ const serviceSwatchBgClasses: Record<string, string> = {
   '#2a1a3a': 'bg-[#2a1a3a]',
 };
 
-export default function ServicesSection() {
+type ServicesSectionProps = {
+  onOpenCart?: () => void;
+};
+
+export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const { user } = useAuth();
+  const { addItem } = useCart();
+  const { toast } = useToast();
   const [activeCategory, setActiveCategory] = useState('모든 제품');
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
@@ -230,8 +246,8 @@ export default function ServicesSection() {
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
   const segmentedContainerClass = `inline-flex min-w-max items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md ${appleFontClass}`;
   const segmentedTabBaseClass = `rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
-  const serviceGhostButtonClass = `rounded-full border border-white/20 bg-white/0 px-4 py-2 text-sm font-medium tracking-[0.2px] text-white/80 no-underline transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-white/10 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
-  const servicePrimaryButtonClass = `rounded-full bg-white px-4 py-2 text-sm font-medium tracking-[0.2px] text-black no-underline transition-all duration-200 ease-out hover:scale-[1.02] hover:bg-neutral-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const serviceSecondaryButtonClass = `h-11 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold tracking-[0.2px] text-white/90 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-white/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const servicePrimaryButtonClass = `h-11 rounded-full bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black no-underline shadow-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
   const arrowButtonClass = `size-11 rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
   const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
   const createInputClass =
@@ -259,11 +275,41 @@ export default function ServicesSection() {
       subtitle: summary,
       description: content,
       price: formatPriceFrom(post.price_from, post.currency || 'KRW'),
+      priceAmount: typeof post.price_from === 'number' ? post.price_from : null,
+      currency: post.currency || 'KRW',
       category,
       image: images[0],
       images,
       colors: categoryColorPresets[category] ?? ['#1a1a1a', '#4a4a4a', '#8a8a8a']
     };
+  };
+
+  const toCartItem = (service: ServiceCardItem): CartItemInput => ({
+    id: service.id,
+    type: 'service',
+    title: service.title,
+    image: service.image,
+    price: service.priceAmount,
+    currency: service.currency || 'KRW'
+  });
+
+  const handleAddToCart = (service: ServiceCardItem) => {
+    addItem(toCartItem(service));
+    toast({
+      title: '장바구니에 담았습니다',
+      description: `${service.title} (${service.price})`,
+      action: onOpenCart ? (
+        <ToastAction
+          altText="장바구니 보기"
+          onClick={() => {
+            onOpenCart();
+          }}
+          className="rounded-full"
+        >
+          View cart
+        </ToastAction>
+      ) : undefined
+    });
   };
 
   const fetchServices = useCallback(async () => {
@@ -607,16 +653,18 @@ export default function ServicesSection() {
                     <div className="flex items-center gap-2.5">
                       <Button
                         type="button"
-                        variant="outline"
                         onClick={() => openServiceDetail(service)}
-                        className={serviceGhostButtonClass}
+                        className={servicePrimaryButtonClass}
                       >
                         더 알아보기
                       </Button>
-                      <Button asChild type="button" className={servicePrimaryButtonClass}>
-                        <a href="#" onClick={(e) => e.preventDefault()}>
-                          구매하기
-                        </a>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleAddToCart(service)}
+                        className={serviceSecondaryButtonClass}
+                      >
+                        장바구니 담기
                       </Button>
                     </div>
                   </div>
@@ -683,16 +731,18 @@ export default function ServicesSection() {
                     <div className="flex items-center gap-2.5">
                       <Button
                         type="button"
-                        variant="outline"
                         onClick={() => openServiceDetail(service)}
-                        className={serviceGhostButtonClass}
+                        className={servicePrimaryButtonClass}
                       >
                         더 알아보기
                       </Button>
-                      <Button asChild type="button" className={servicePrimaryButtonClass}>
-                        <a href="#" onClick={(e) => e.preventDefault()}>
-                          구매하기
-                        </a>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleAddToCart(service)}
+                        className={serviceSecondaryButtonClass}
+                      >
+                        장바구니 담기
                       </Button>
                     </div>
                   </div>
@@ -854,7 +904,7 @@ export default function ServicesSection() {
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className={serviceGhostButtonClass}
+                  className={serviceSecondaryButtonClass}
                   disabled={createSubmitting}
                 >
                   취소
@@ -879,6 +929,7 @@ export default function ServicesSection() {
         onClose={closeServiceDetail} 
         isLoading={detailLoading}
         error={detailError}
+        onAddToCart={handleAddToCart}
       />
     </section>
   );

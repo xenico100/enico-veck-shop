@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { X, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
+import { useCart } from '@/app/context/CartContext';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -27,8 +28,9 @@ export default function SideMenu({
   onMyPageClick,
 }: SideMenuProps) {
   const auth = useAuth();
+  const { itemCount } = useCart();
 
-  const totalItems = 0;
+  const totalItems = itemCount;
   const isAuthenticated = !!auth?.isAuthenticated;
   const user = auth?.user;
   const appleFontClass = `[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]`;

@@ -11,6 +11,7 @@ import StudioSection from '../components/StudioSection';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
 import MyPageModal from '../components/MyPageModal';
+import CartModal from '../components/CartModal';
 import { useAuth } from './context/AuthContext';
 
 export default function LandingPage() {
@@ -22,10 +23,10 @@ export default function LandingPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [myPageOpen, setMyPageOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
-  // 임시 핸들러 (나중에 실제 모달/기능으로 교체)
-  const openCart = () => alert('TODO: Cart modal');
+  const openCart = () => setCartOpen(true);
   const openMyPage = () => setMyPageOpen(true);
 
   return (
@@ -46,7 +47,7 @@ export default function LandingPage() {
 
       <div id="home"><MainContent /></div>
       <div id="about"><AboutSection /></div>
-      <div id="services"><ServicesSection /></div>
+      <div id="services"><ServicesSection onOpenCart={openCart} /></div>
       <div id="studio"><StudioSection /></div>
 
       <Footer />
@@ -97,6 +98,7 @@ export default function LandingPage() {
       />
 
       <MyPageModal open={myPageOpen} onOpenChange={setMyPageOpen} />
+      <CartModal open={cartOpen} onOpenChange={setCartOpen} />
     </main>
   );
 }

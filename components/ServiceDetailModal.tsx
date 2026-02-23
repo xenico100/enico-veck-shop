@@ -12,6 +12,8 @@ interface ServiceDetailModalProps {
     subtitle: string;
     description: string;
     price: string;
+    priceAmount: number | null;
+    currency: string;
     category?: string;
     image: string;
     colors?: string[];
@@ -19,6 +21,7 @@ interface ServiceDetailModalProps {
   } | null;
   isLoading?: boolean;
   error?: string | null;
+  onAddToCart?: (service: NonNullable<ServiceDetailModalProps['service']>) => void;
 }
 
 export function ServiceDetailModal({
@@ -26,7 +29,8 @@ export function ServiceDetailModal({
   onClose,
   service,
   isLoading = false,
-  error = null
+  error = null,
+  onAddToCart
 }: ServiceDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
@@ -51,6 +55,19 @@ export function ServiceDetailModal({
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -82,10 +99,10 @@ export function ServiceDetailModal({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="sticky top-3 md:top-4 right-3 md:right-4 float-right z-10 w-9 h-9 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center hover:bg-black/70 transition-colors"
+            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 shadow-md backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:right-5 md:top-5"
             aria-label="닫기"
           >
-            <X className="w-4 h-4 md:w-5 md:h-5 text-white" />
+            <X className="h-4 w-4 md:h-5 md:w-5" />
           </button>
 
           {isLoading && (
@@ -200,7 +217,11 @@ export function ServiceDetailModal({
             </div>
 
             {/* CTA Button */}
-            <button className="w-full bg-blue-600 text-white py-3 rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">
+            <button
+              type="button"
+              onClick={() => service && onAddToCart?.(service)}
+              className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            >
               장바구니에 담기
             </button>
           </div>
