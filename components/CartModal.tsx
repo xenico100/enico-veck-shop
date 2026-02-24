@@ -183,8 +183,8 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           <div className="flex shrink-0 flex-col items-end gap-2">
                             <QuantityStepper
                               value={item.quantity}
-                              onDecrease={() => updateQty(item.key, item.quantity - 1)}
-                              onIncrease={() => updateQty(item.key, item.quantity + 1)}
+                              onDecrement={() => updateQty(item.key, item.quantity - 1)}
+                              onIncrement={() => updateQty(item.key, item.quantity + 1)}
                               decrementLabel={`${item.title} 수량 감소`}
                               incrementLabel={`${item.title} 수량 증가`}
                             />
@@ -249,6 +249,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           }
 
                           return actions.order.create({
+                            intent: 'CAPTURE',
                             purchase_units: [
                               {
                                 amount: {

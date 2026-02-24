@@ -8,9 +8,10 @@ import { CartProvider } from './context/CartContext';
 import { Toaster } from '@/components/ui/Toasts/toaster';
 
 const paypalOptions: ReactPayPalScriptOptions = {
-  'client-id': process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
+  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
   currency: 'USD',
-  intent: 'capture'
+  intent: 'capture',
+  components: 'buttons'
 };
 
 export default function Providers({ children }: { children: React.ReactNode }) {
