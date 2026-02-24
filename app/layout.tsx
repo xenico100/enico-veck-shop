@@ -6,6 +6,7 @@ import Providers from "./providers";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || "http://localhost:3000";
+const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="dark">
       <body className="bg-background text-foreground antialiased">
-        <Providers>{children}</Providers>
+        <Providers paypalClientId={paypalClientId}>{children}</Providers>
       </body>
     </html>
   );
