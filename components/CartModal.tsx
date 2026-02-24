@@ -158,7 +158,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     return (
                       <div
                         key={item.key}
-                        className="rounded-3xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm"
+                        className="rounded-3xl border border-white/10 bg-white/[0.04] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm"
                       >
                         <div className="flex gap-3">
                           <button
@@ -167,9 +167,9 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                               setCheckoutError(null);
                               setCheckoutItemKey(item.key);
                             }}
-                            className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-1 text-left transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                            className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.09] to-white/[0.04] p-1 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition hover:from-white/[0.12] hover:to-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                           >
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07]">
                               {item.image ? (
                                 <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
                               ) : (
@@ -178,8 +178,8 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-white">{item.title}</p>
-                              <p className="mt-1 text-xs text-white/55">수량 {item.quantity}</p>
-                              <p className="mt-1 text-sm text-white/90">
+                              <p className="mt-1 text-xs text-white/65">수량 {item.quantity}</p>
+                              <p className="mt-1 text-sm font-medium text-white/95">
                                 {itemTotal == null
                                   ? '가격 문의'
                                   : `${formatMoney(itemTotal, item.currency)}`}

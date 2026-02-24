@@ -1,103 +1,150 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Pause, Play } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { Pause, Play, X } from 'lucide-react';
 
-const studioItems = [
-  { id: 1, title: 'Vocal Recording', category: '녹음', image: 'https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWNvcmRpbmclMjBzdHVkaW8lMjBlcXVpcG1lbnQlMjBwcm9mZXNzaW9uYWx8ZW58MXx8fHwxNzY5Njc1MTEyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 2, title: 'Production Suite', category: '믹싱', image: 'https://images.unsplash.com/photo-1756719164587-3dfcacc9a6e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMHByb2R1Y3Rpb24lMjBzdHVkaW8lMjBpbnRlcmlvcnxlbnwxfHx8fDE3Njk2NzUxMTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 3, title: 'Mixing Console', category: '장비', image: 'https://images.unsplash.com/photo-1615268734097-12b6b02ca8ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkaW8lMjBtaXhpbmclMjBjb25zb2xlJTIwZGVza3xlbnwxfHx8fDE3Njk2NzUxMTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 4, title: 'Professional Mic', category: '녹음', image: 'https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBtaWNyb3Bob25lJTIwcmVjb3JkaW5nfGVufDF8fHx8MTc2OTY2NzU0OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 5, title: 'DAW Workstation', category: '장비', image: 'https://images.unsplash.com/photo-1760926421866-4ce684285fa6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdWRpbyUyMHdvcmtzdGF0aW9uJTIwY29tcHV0ZXJ8ZW58MXx8fHwxNzY5Njc1MTEzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 6, title: 'Sound Engineering', category: '믹싱', image: 'https://images.unsplash.com/photo-1543060797-19e2654eb1b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb3VuZCUyMGVuZ2luZWVyJTIwd29ya2luZyUyMHN0dWRpb3xlbnwxfHx8fDE3Njk2NzUxMTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 7, title: 'Studio Monitors', category: '장비', image: 'https://images.unsplash.com/photo-1762983870490-63e5ba07105b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkaW8lMjBtb25pdG9yJTIwc3BlYWtlcnMlMjBzZXR1cHxlbnwxfHx8fDE3Njk2NzUxMTV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  
-  { id: 8, title: 'Acoustic Treatment', category: '시설', image: 'https://images.unsplash.com/photo-1636294155438-9c62231bc173?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhY291c3RpYyUyMHRyZWF0bWVudCUyMGZvYW0lMjBzdHVkaW98ZW58MXx8fHwxNzY5Njc1MTE1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 9, title: 'Production Session', category: '녹음', image: 'https://images.unsplash.com/photo-1615297658577-dc5cec88e81a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMHByb2R1Y2VyJTIwc3R1ZGlvJTIwc2Vzc2lvbnxlbnwxfHx8fDE3Njk2NzUxMTd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 10, title: 'Studio Headphones', category: '장비', image: 'https://images.unsplash.com/photo-1763407178461-2efa5726e241?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkaW8lMjBoZWFkcGhvbmVzJTIwZXF1aXBtZW50fGVufDF8fHx8MTc2OTY3NTExNXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 11, title: 'Audio Interface', category: '장비', image: 'https://images.unsplash.com/photo-1766182065635-75b013345dc3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdWRpbyUyMGludGVyZmFjZSUyMHJlY29yZGluZyUyMGdlYXJ8ZW58MXx8fHwxNzY5Njc1MTE1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 12, title: 'Recording Studio', category: '녹음', image: 'https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWNvcmRpbmclMjBzdHVkaW8lMjBlcXVpcG1lbnQlMjBwcm9mZXNzaW9uYWx8ZW58MXx8fHwxNzY5Njc1MTEyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 13, title: 'Mixing Desk', category: '믹싱', image: 'https://images.unsplash.com/photo-1615268734097-12b6b02ca8ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkaW8lMjBtaXhpbmclMjBjb25zb2xlJTIwZGVza3xlbnwxfHx8fDE3Njk2NzUxMTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  { id: 14, title: 'Studio Space', category: '시설', image: 'https://images.unsplash.com/photo-1756719164587-3dfcacc9a6e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtdXNpYyUyMHByb2R1Y3Rpb24lMjBzdHVkaW8lMjBpbnRlcmlvcnxlbnwxfHx8fDE3Njk2NzUxMTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-  
-  { id: 15, title: 'Pro Equipment', category: '장비', image: 'https://images.unsplash.com/photo-1760926421866-4ce684285fa6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdWRpbyUyMHdvcmtzdGF0aW9uJTIwY29tcHV0ZXJ8ZW58MXx8fHwxNzY5Njc1MTEzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral' },
-];
+import { createClient } from '@/utils/supabase/client';
+
+type StudioPost = {
+  id: string;
+  title: string | null;
+  content: string | null;
+  image_url: string | null;
+  created_at: string | null;
+};
+
+const ITEMS_PER_ROW = 7;
+
+const formatStudioDate = (value: string | null) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(date);
+};
 
 export default function StudioSection() {
+  const supabase = useMemo(() => createClient(), []);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [studioPosts, setStudioPosts] = useState<StudioPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<StudioPost | null>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const hoveredRowRef = useRef<number | null>(null);
   const animationFrameIds = useRef<number[]>([]);
-  
-  // 한 행당 최대 7개 항목
-  const ITEMS_PER_ROW = 7;
-  
-  // 전체 행 수 계산
-  const totalRows = Math.ceil(studioItems.length / ITEMS_PER_ROW);
-  
-  // 모바일 감지
+
+  const totalRows = Math.ceil(studioPosts.length / ITEMS_PER_ROW);
+  const hasPosts = studioPosts.length > 0;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchStudioPosts = async () => {
+      setPostsLoading(true);
+      setPostsError(null);
+
+      try {
+        const { data, error } = await (supabase as never)
+          .from('studio_posts')
+          .select('id,title,content,image_url,created_at')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        if (!isMounted) return;
+
+        setStudioPosts(Array.isArray(data) ? (data as StudioPost[]) : []);
+      } catch (error) {
+        if (!isMounted) return;
+
+        setStudioPosts([]);
+        setPostsError(
+          error instanceof Error ? error.message : '스튜디오 게시물을 불러오지 못했습니다.'
+        );
+      } finally {
+        if (isMounted) {
+          setPostsLoading(false);
+        }
+      }
+    };
+
+    void fetchStudioPosts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
-  // 각 행별 속도 (다양성 위해 패턴 사용)
-  const getRowSpeed = (rowIndex: number) => {
-    const speeds = [0.5, 0.7, 0.6, 0.8, 0.55, 0.65, 0.75];
-    const baseSpeed = speeds[rowIndex % speeds.length];
-    // 모바일에서는 속도를 0.55배로 줄여서 웹과 비슷하게 만듦
-    return isMobile ? baseSpeed * 0.55 : baseSpeed;
-  };
+
+  const getRowSpeed = useCallback(
+    (rowIndex: number) => {
+      const speeds = [0.5, 0.7, 0.6, 0.8, 0.55, 0.65, 0.75];
+      const baseSpeed = speeds[rowIndex % speeds.length];
+      return isMobile ? baseSpeed * 0.55 : baseSpeed;
+    },
+    [isMobile]
+  );
 
   useEffect(() => {
-    if (!isPlaying) return;
+    animationFrameIds.current.forEach((frameId) => cancelAnimationFrame(frameId));
+    animationFrameIds.current = [];
+
+    if (!isPlaying || totalRows === 0) return;
 
     const animateRow = (ref: HTMLDivElement | null, baseSpeed: number, rowNumber: number) => {
       if (!ref) return;
-      
+
       let position = 0;
       let currentSpeed = baseSpeed;
-      
+
       const animate = () => {
         if (!ref) return;
-        
-        // hoveredRowRef를 사용하여 현재 hover 상태 확인
+
         const targetSpeed = hoveredRowRef.current === rowNumber ? 0 : baseSpeed;
-        
-        // 천천히 감속/가속
         const speedDiff = targetSpeed - currentSpeed;
-        currentSpeed += speedDiff * 0.05; // 부드러운 전환을 위한 easing
-        
-        // 속도가 매우 작으면 0으로 설정
+        currentSpeed += speedDiff * 0.05;
+
         if (Math.abs(currentSpeed) < 0.01 && targetSpeed === 0) {
           currentSpeed = 0;
         }
-        
+
         position -= currentSpeed;
-        
-        // Reset position for infinite loop
+
         const itemWidth = ref.scrollWidth / 2;
         if (Math.abs(position) >= itemWidth) {
           position = 0;
         }
-        
+
         ref.style.transform = `translateX(${position}px)`;
-        
+
         const frameId = requestAnimationFrame(animate);
         animationFrameIds.current.push(frameId);
       };
-      
+
       animate();
     };
 
-    // 모든 행 애니메이션 시작
+    rowRefs.current = rowRefs.current.slice(0, totalRows);
+
     rowRefs.current.forEach((ref, index) => {
       if (ref) {
         animateRow(ref, getRowSpeed(index), index);
@@ -105,10 +152,29 @@ export default function StudioSection() {
     });
 
     return () => {
-      animationFrameIds.current.forEach(frameId => cancelAnimationFrame(frameId));
+      animationFrameIds.current.forEach((frameId) => cancelAnimationFrame(frameId));
       animationFrameIds.current = [];
     };
-  }, [isPlaying, totalRows]);
+  }, [isPlaying, totalRows, getRowSpeed]);
+
+  useEffect(() => {
+    if (!selectedPost) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedPost(null);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedPost]);
 
   const handleRowMouseEnter = (rowNumber: number) => {
     hoveredRowRef.current = rowNumber;
@@ -119,73 +185,90 @@ export default function StudioSection() {
   };
 
   const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    setIsPlaying((prev) => !prev);
+  };
+
+  const openStudioPost = (post: StudioPost) => {
+    hoveredRowRef.current = null;
+    setSelectedPost(post);
   };
 
   const renderRow = (rowIndex: number) => {
-    // 해당 행의 항목들 추출
     const startIdx = rowIndex * ITEMS_PER_ROW;
     const endIdx = startIdx + ITEMS_PER_ROW;
-    const items = studioItems.slice(startIdx, endIdx);
-    
+    const items = studioPosts.slice(startIdx, endIdx);
+
     if (items.length === 0) return null;
-    
-    const duplicatedItems = [...items, ...items]; // Duplicate for infinite scroll
+
+    const duplicatedItems = [...items, ...items];
 
     return (
-      <div 
+      <div
         key={rowIndex}
-        className="overflow-hidden mb-4"
+        className="mb-4 overflow-hidden"
         onMouseEnter={() => handleRowMouseEnter(rowIndex)}
         onMouseLeave={handleRowMouseLeave}
       >
-        <div 
-          ref={(el) => rowRefs.current[rowIndex] = el}
-          className="flex gap-4" 
+        <div
+          ref={(el) => {
+            rowRefs.current[rowIndex] = el;
+          }}
+          className="flex gap-4"
           style={{ width: 'fit-content' }}
         >
           {duplicatedItems.map((item, index) => (
-            <div
+            <button
               key={`${item.id}-${index}`}
-              className="flex-shrink-0 w-[220px] md:w-[400px] h-[130px] md:h-[240px] rounded-lg md:rounded-2xl overflow-hidden relative group cursor-pointer"
+              type="button"
+              onClick={() => openStudioPost(item)}
+              className="group relative h-[130px] w-[220px] flex-shrink-0 overflow-hidden rounded-lg text-left md:h-[240px] md:w-[400px] md:rounded-2xl"
             >
-              {/* 이미지 */}
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
-              />
-              
-              {/* 겉에서 안으로 퍼지는 블러 효과 */}
-              <div 
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out pointer-events-none"
+              {item.image_url ? (
+                <img
+                  src={item.image_url}
+                  alt={item.title ?? 'Studio post image'}
+                  className="h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-neutral-900 text-xs uppercase tracking-[0.24em] text-neutral-500 md:text-sm">
+                  No Image
+                </div>
+              )}
+
+              <div
+                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-700 ease-out group-hover:opacity-100"
                 style={{
                   backdropFilter: 'blur(0px)',
                   WebkitBackdropFilter: 'blur(0px)',
-                  background: 'radial-gradient(circle, transparent 0%, rgba(0,0,0,0.3) 100%)',
+                  background: 'radial-gradient(circle, transparent 0%, rgba(0,0,0,0.3) 100%)'
                 }}
               >
-                <div className="w-full h-full" style={{
-                  backdropFilter: 'blur(4px)',
-                  WebkitBackdropFilter: 'blur(4px)',
-                  maskImage: 'radial-gradient(circle, transparent 30%, black 70%)',
-                  WebkitMaskImage: 'radial-gradient(circle, transparent 30%, black 70%)',
-                }} />
+                <div
+                  className="h-full w-full"
+                  style={{
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                    maskImage: 'radial-gradient(circle, transparent 30%, black 70%)',
+                    WebkitMaskImage: 'radial-gradient(circle, transparent 30%, black 70%)'
+                  }}
+                />
               </div>
-              
-              {/* 텍스트 그라데이션 */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3 md:p-6 transition-opacity duration-500">
-                <p className="text-[9px] md:text-xs text-gray-400 mb-0.5 md:mb-1">{item.category}</p>
-                <h3 className="text-white text-sm md:text-xl font-medium">{item.title}</h3>
+
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-3 transition-opacity duration-500 md:p-6">
+                <p className="mb-0.5 text-[9px] text-gray-400 md:mb-1 md:text-xs">
+                  {item.created_at ? formatStudioDate(item.created_at) : 'Studio'}
+                </p>
+                <h3 className="text-sm font-medium text-white md:text-xl">
+                  {item.title?.trim() || 'Untitled Post'}
+                </h3>
               </div>
-              
-              {/* 알아보기 버튼 - hover 시 나타남 */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out bg-black/30">
-                <button className="bg-white text-black px-3 py-1.5 md:px-6 md:py-3 rounded-full text-[11px] md:text-sm font-medium hover:bg-gray-200 transition-all duration-300 transform translate-y-8 group-hover:translate-y-0">
+
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity duration-700 ease-out group-hover:opacity-100">
+                <span className="translate-y-8 rounded-full bg-white px-3 py-1.5 text-[11px] font-medium text-black transition-all duration-300 group-hover:translate-y-0 md:px-6 md:py-3 md:text-sm">
                   알아보기
-                </button>
+                </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -193,31 +276,102 @@ export default function StudioSection() {
   };
 
   return (
-    <section id="studio" className="relative bg-black text-white min-h-screen flex flex-col justify-center py-20 max-w-full overflow-hidden">
-      {/* Title */}
-      <div className="px-4 md:px-8 lg:px-16 mb-12">
-        <h2 className="text-4xl md:text-5xl tracking-tight">Studio</h2>
-      </div>
+    <>
+      <section
+        id="studio"
+        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden bg-black py-20 text-white"
+      >
+        <div className="mb-12 px-4 md:px-8 lg:px-16">
+          <h2 className="text-4xl tracking-tight md:text-5xl">Studio</h2>
+        </div>
 
-      {/* Scrolling Rows */}
-      <div className="space-y-4 mb-12">
-        {Array.from({ length: totalRows }, (_, index) => renderRow(index))}
-      </div>
-
-      {/* Play/Pause Button - 섹션 내 고정 */}
-      <div className="flex justify-end px-4 md:px-8 lg:px-16 mt-8">
-        <button
-          onClick={togglePlayPause}
-          className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors"
-          aria-label={isPlaying ? '일시정지' : '재생'}
-        >
-          {isPlaying ? (
-            <Pause className="w-5 h-5 text-white" fill="white" />
+        <div className="mb-12 space-y-4">
+          {postsLoading ? (
+            <div className="px-4 md:px-8 lg:px-16">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/70">
+                Loading studio posts...
+              </div>
+            </div>
+          ) : hasPosts ? (
+            Array.from({ length: totalRows }, (_, index) => renderRow(index))
           ) : (
-            <Play className="w-5 h-5 text-white" fill="white" />
+            <div className="px-4 md:px-8 lg:px-16">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/80">
+                No studio posts yet.
+              </div>
+              {postsError ? <p className="mt-3 text-xs text-red-300/90">{postsError}</p> : null}
+            </div>
           )}
-        </button>
-      </div>
-    </section>
+        </div>
+
+        <div className="mt-8 flex justify-end px-4 md:px-8 lg:px-16">
+          <button
+            onClick={togglePlayPause}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={isPlaying ? '일시정지' : '재생'}
+            disabled={!hasPosts}
+          >
+            {isPlaying ? (
+              <Pause className="h-5 w-5 text-white" fill="white" />
+            ) : (
+              <Play className="h-5 w-5 text-white" fill="white" />
+            )}
+          </button>
+        </div>
+      </section>
+
+      <DialogPrimitive.Root open={Boolean(selectedPost)} onOpenChange={(open) => !open && setSelectedPost(null)}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 duration-300" />
+          <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[94vw] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-300 md:rounded-3xl">
+            {selectedPost && (
+              <div className="relative max-h-[88vh] overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPost(null)}
+                  className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 shadow-md backdrop-blur-md transition-all duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:right-5 md:top-5"
+                  aria-label="닫기"
+                >
+                  <X className="h-4 w-4 md:h-5 md:w-5" />
+                </button>
+
+                {selectedPost.image_url ? (
+                  <div className="h-[260px] w-full bg-neutral-950 md:h-[460px]">
+                    <img
+                      src={selectedPost.image_url}
+                      alt={selectedPost.title ?? 'Studio post image'}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-[260px] w-full items-center justify-center bg-neutral-950 text-sm uppercase tracking-[0.28em] text-neutral-500 md:h-[460px]">
+                    No Image
+                  </div>
+                )}
+
+                <div className="space-y-5 p-6 md:p-8">
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/55">
+                      {formatStudioDate(selectedPost.created_at)}
+                    </p>
+                    <DialogPrimitive.Title className="text-2xl font-semibold tracking-tight text-white md:text-4xl">
+                      {selectedPost.title?.trim() || 'Untitled Post'}
+                    </DialogPrimitive.Title>
+                  </div>
+
+                  <div className="h-px w-full bg-white/10" />
+
+                  <DialogPrimitive.Description asChild>
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-white/80 md:text-base">
+                      {selectedPost.content?.trim() || '내용이 없습니다.'}
+                    </p>
+                  </DialogPrimitive.Description>
+                </div>
+              </div>
+            )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </>
   );
 }
