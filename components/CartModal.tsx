@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
-import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
+import {
+  PayPalButtons,
+  usePayPalScriptReducer,
+  useScriptProviderContext
+} from '@paypal/react-paypal-js';
 
 import ActionButton from '@/components/ui/ActionButton';
 import QuantityStepper from '@/components/ui/QuantityStepper';
@@ -60,10 +64,10 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
     {
       isPending: isPayPalPending,
       isRejected: isPayPalRejected,
-      isResolved: isPayPalResolved,
-      loadingStatusErrorMessage
+      isResolved: isPayPalResolved
     }
   ] = usePayPalScriptReducer();
+  const [payPalScriptContext] = useScriptProviderContext();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
@@ -347,11 +351,14 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                       ) : isPayPalRejected ? (
                         <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
                           PayPal SDK 로드에 실패했습니다. 개발 서버를 재시작하고(환경변수 반영), 광고 차단기/추적 차단을 잠시 끈 뒤 다시 시도해 주세요.
-                          {loadingStatusErrorMessage ? (
+                          {payPalScriptContext.loadingStatusErrorMessage ? (
                             <p className="mt-2 break-all text-xs text-red-100/85">
-                              SDK error: {loadingStatusErrorMessage}
+                              SDK error: {payPalScriptContext.loadingStatusErrorMessage}
                             </p>
                           ) : null}
+                          <p className="mt-2 text-xs text-red-100/75">
+                            clientId present: {payPalScriptContext.options?.clientId ? 'yes' : 'no'}
+                          </p>
                         </div>
                       ) : (
                         <PayPalButtons

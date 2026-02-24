@@ -13,14 +13,20 @@ type ProvidersProps = {
 };
 
 export default function Providers({ children, paypalClientId = '' }: ProvidersProps) {
+  const resolvedPayPalClientId = useMemo(
+    () => (paypalClientId || process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '').trim(),
+    [paypalClientId]
+  );
+
   const paypalOptions = useMemo<ReactPayPalScriptOptions>(
     () => ({
-      clientId: paypalClientId,
+      clientId: resolvedPayPalClientId,
+      'client-id': resolvedPayPalClientId,
       currency: 'USD',
       intent: 'capture',
       components: 'buttons'
     }),
-    [paypalClientId]
+    [resolvedPayPalClientId]
   );
 
   return (
