@@ -106,16 +106,44 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
     setIsCheckingOut(false);
   };
 
-  const handlePayPalApprove = async (data: any, actions: any) => {
+  const handlePayPalApprove = async (data: any) => {
     try {
-      if (!actions?.order) {
-        throw new Error('PayPal order action is unavailable.');
-      }
-
       setIsSavingOrder(true);
       setCheckoutError(null);
+      const orderId = typeof data?.orderID === 'string' ? data.orderID : '';
 
-      const captureDetails = await actions.order.capture();
+      if (!orderId) {
+        throw new Error('Missing PayPal order ID');
+      }
+
+      console.log('[PayPal Diagnostic] onApprove -> capture request start', {
+        orderId
+      });
+
+      const captureResponse = await fetch('/api/paypal/capture-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ orderId })
+      });
+      const capturePayload = await captureResponse.json().catch(() => ({}));
+
+      console.log('[PayPal Diagnostic] capture-order API response', {
+        ok: captureResponse.ok,
+        status: captureResponse.status,
+        environment: capturePayload?.debug?.environment ?? null,
+        baseUrl: capturePayload?.debug?.baseUrl ?? null,
+        orderId: capturePayload?.paypal?.id ?? orderId,
+        orderStatus: capturePayload?.paypal?.status ?? null,
+        message: capturePayload?.message ?? null
+      });
+
+      if (!captureResponse.ok) {
+        throw new Error(capturePayload?.message || 'PayPal capture failed');
+      }
+
+      const captureDetails = capturePayload?.paypal ?? capturePayload;
 
       const {
         data: authData,
@@ -190,6 +218,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       setCheckoutError(null);
       onOpenChange(false);
     } catch (error) {
+      console.error('[PayPal Diagnostic] onApprove/capture failed', error);
       const message =
         error instanceof Error
           ? error.message
@@ -207,6 +236,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   };
 
   const handlePayPalError = (error: unknown) => {
+    console.error('[PayPal Diagnostic] paypal button onError', error);
     const message = error instanceof Error ? error.message : 'PayPal 결제 중 오류가 발생했습니다.';
     setCheckoutError(message);
     window.alert(`PayPal 결제 오류: ${message}`);
@@ -337,40 +367,85 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           style: { layout: 'vertical', shape: 'pill', label: 'paypal' },
                           disabled: isSavingOrder,
                           forceReRender: [usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder],
-                          createOrder: (_data, actions) => {
-                            if (!user?.id) {
-                              window.alert('로그인 후 결제를 진행할 수 있습니다.');
-                              throw new Error('로그인 후 결제를 진행할 수 있습니다.');
-                            }
-
-                            if (!actions.order) {
-                              throw new Error('PayPal order actions not available');
-                            }
-
-                            const parsedAmount = Number(String(usdTotalLabel).replace(/,/g, ''));
-                            if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-                              throw new Error('Invalid USD amount for PayPal checkout');
-                            }
-
-                            const normalizedUsdAmount = parsedAmount.toFixed(2);
-                            const paypalUsdAmount = '1.00'; // Temporary test value to verify checkout flow
-
-                            return actions.order.create({
-                              intent: 'CAPTURE',
-                              purchase_units: [
-                                {
-                                  amount: {
-                                    currency_code: 'USD',
-                                    value: paypalUsdAmount
-                                  },
-                                  description: `ZEUS Studio Cart (${itemCount} items)`
-                                }
-                              ]
+                          onClick: async () => {
+                            console.log('[PayPal Diagnostic] PayPal button clicked (popup should open)', {
+                              host:
+                                typeof window !== 'undefined' ? window.location.host : 'unknown',
+                              siteMode:
+                                typeof window !== 'undefined' &&
+                                (window.location.hostname === 'localhost' ||
+                                  window.location.hostname === '127.0.0.1')
+                                  ? 'localhost'
+                                  : 'production-like'
                             });
+                          },
+                          createOrder: async () => {
+                            try {
+                              if (!user?.id) {
+                                window.alert('로그인 후 결제를 진행할 수 있습니다.');
+                                throw new Error('로그인 후 결제를 진행할 수 있습니다.');
+                              }
+
+                              const parsedAmount = Number(String(usdTotalLabel).replace(/,/g, ''));
+                              if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+                                throw new Error('Invalid USD amount for PayPal checkout');
+                              }
+
+                              const normalizedUsdAmount = parsedAmount.toFixed(2);
+                              const paypalUsdAmount = '1.00'; // Temporary test value to verify checkout flow
+
+                              console.log('[PayPal Diagnostic] createOrder start', {
+                                usdTotalLabel,
+                                normalizedUsdAmount,
+                                paypalUsdAmount,
+                                currency: 'USD'
+                              });
+
+                              const response = await fetch('/api/paypal/create-order', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                  amount: paypalUsdAmount,
+                                  currency: 'USD'
+                                })
+                              });
+                              const payload = await response.json().catch(() => ({}));
+
+                              console.log('[PayPal Diagnostic] create-order API response', {
+                                ok: response.ok,
+                                status: response.status,
+                                environment: payload?.debug?.environment ?? null,
+                                baseUrl: payload?.debug?.baseUrl ?? null,
+                                orderId: payload?.id ?? null,
+                                orderStatus: payload?.status ?? null,
+                                message: payload?.message ?? null
+                              });
+
+                              if (!response.ok || typeof payload?.id !== 'string') {
+                                throw new Error(payload?.message || 'Failed to create PayPal order');
+                              }
+
+                              return payload.id;
+                            } catch (error) {
+                              console.error('[PayPal Diagnostic] createOrder failed', error);
+                              const message =
+                                error instanceof Error
+                                  ? error.message
+                                  : 'PayPal 주문 생성 중 오류가 발생했습니다.';
+                              setCheckoutError(message);
+                              window.alert(`PayPal 주문 생성 실패: ${message}`);
+                              throw error;
+                            }
                           },
                           onApprove: handlePayPalApprove,
                           onError: handlePayPalError,
-                          onCancel: () => {
+                          onCancel: (cancelData: unknown, cancelActions: unknown) => {
+                            console.warn('[PayPal Diagnostic] paypal button onCancel', {
+                              cancelData,
+                              cancelActions
+                            });
                             toast({
                               title: '결제가 취소되었습니다',
                               description: '원하시면 다른 결제 수단 또는 다시 시도해 주세요.'

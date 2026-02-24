@@ -250,12 +250,17 @@ If PayPal shows `Missing PayPal Client ID` or `Expected client-id to be passed`,
 
 - `.env.local` is in the same folder where you run `pnpm dev` (the Next.js app root that contains `package.json` and `app/`)
 - `NEXT_PUBLIC_PAYPAL_CLIENT_ID` is defined in `.env.local`
+- `PAYPAL_CLIENT_SECRET` is defined in `.env.local` (server-only; never expose it to the browser)
+- `PAYPAL_ENV=sandbox` is defined in `.env.local` while testing Sandbox
 - PayPal SDK is initialized only in a Client Component (this project uses `components/paypal-button.tsx`)
+- PayPal order creation/capture uses App Router API routes (`/api/paypal/create-order`, `/api/paypal/capture-order`)
 
 Example `.env.local` entry:
 
 ```bash
 NEXT_PUBLIC_PAYPAL_CLIENT_ID=REPLACE_WITH_MY_CLIENT_ID
+PAYPAL_CLIENT_SECRET=REPLACE_WITH_SANDBOX_SECRET
+PAYPAL_ENV=sandbox
 ```
 
 After changing env vars, stop the dev server, clear the Next.js cache, and restart:

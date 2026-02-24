@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentProps } from "react";
+import { type ComponentProps, useEffect, useMemo } from "react";
 import {
   PayPalButtons,
   PayPalScriptProvider,
@@ -40,11 +40,25 @@ function PaypalButtonInner({ buttonProps }: PaypalButtonProps) {
 
 export default function PaypalButton({ buttonProps }: PaypalButtonProps) {
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() ?? "";
+  const sdkUrlForDiagnostics = useMemo(() => {
+    const maskedClientId = clientId ? `${clientId.slice(0, 6)}...` : "missing";
+    return `https://www.paypal.com/sdk/js?client-id=${maskedClientId}&currency=USD&intent=capture&components=buttons`;
+  }, [clientId]);
 
-  console.log(
-    "PAYPAL CLIENT ID:",
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID
-  );
+  useEffect(() => {
+    const host = window.location.hostname;
+    const siteMode =
+      host === "localhost" || host === "127.0.0.1" ? "localhost" : "production-like";
+
+    console.log("[PayPal Diagnostic] client env", {
+      sdkUrl: sdkUrlForDiagnostics,
+      host,
+      siteMode,
+      hasClientId: Boolean(clientId),
+      clientIdPrefix: clientId ? `${clientId.slice(0, 6)}...` : null,
+      environment: "sandbox expected when using sandbox client id",
+    });
+  }, [clientId, sdkUrlForDiagnostics]);
 
   if (!clientId) {
     return <div>Missing PayPal Client ID</div>;
