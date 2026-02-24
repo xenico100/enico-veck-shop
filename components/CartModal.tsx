@@ -96,16 +96,6 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const handleOpenCheckout = () => {
     if (items.length === 0) return;
 
-    if (authLoading) {
-      window.alert('로그인 상태를 확인 중입니다. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-
-    if (!user?.id) {
-      window.alert('로그인 후 결제를 진행할 수 있습니다.');
-      return;
-    }
-
     setCheckoutError(null);
     setIsCheckingOut(true);
   };
