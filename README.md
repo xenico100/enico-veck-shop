@@ -244,6 +244,32 @@ Note that webhook forwarding and the development server must be running concurre
 
 Finally, navigate to [http://localhost:3000](http://localhost:3000) in your browser to see the application rendered.
 
+## PayPal env troubleshooting
+
+If PayPal shows `Missing PayPal Client ID` or `Expected client-id to be passed`, verify the following:
+
+- `.env.local` is in the same folder where you run `pnpm dev` (the Next.js app root that contains `package.json` and `app/`)
+- `NEXT_PUBLIC_PAYPAL_CLIENT_ID` is defined in `.env.local`
+- PayPal SDK is initialized only in a Client Component (this project uses `components/paypal-button.tsx`)
+
+Example `.env.local` entry:
+
+```bash
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=REPLACE_WITH_MY_CLIENT_ID
+```
+
+After changing env vars, stop the dev server, clear the Next.js cache, and restart:
+
+```bash
+rm -rf .next
+pnpm dev
+```
+
+Diagnostics:
+
+- Browser bundle check: `/env-check`
+- Server runtime check: `/api/env-check`
+
 ## Going live
 
 ### Archive testing products
