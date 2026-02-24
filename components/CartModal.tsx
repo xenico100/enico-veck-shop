@@ -3,13 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
-import {
-  PayPalButtons,
-  usePayPalScriptReducer,
-  useScriptProviderContext
-} from '@paypal/react-paypal-js';
 
 import ActionButton from '@/components/ui/ActionButton';
+import PaypalButton from '@/components/paypal-button';
 import QuantityStepper from '@/components/ui/QuantityStepper';
 import { useToast } from '@/components/ui/Toasts/use-toast';
 import { useAuth } from '@/app/context/AuthContext';
@@ -60,14 +56,6 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const { user, loading: authLoading } = useAuth();
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
-  const [
-    {
-      isPending: isPayPalPending,
-      isRejected: isPayPalRejected,
-      isResolved: isPayPalResolved
-    }
-  ] = usePayPalScriptReducer();
-  const [payPalScriptContext] = useScriptProviderContext();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
@@ -344,28 +332,12 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      {isPayPalPending ? (
-                        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
-                          PayPal 버튼을 불러오는 중입니다...
-                        </div>
-                      ) : isPayPalRejected ? (
-                        <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
-                          PayPal SDK 로드에 실패했습니다. 개발 서버를 재시작하고(환경변수 반영), 광고 차단기/추적 차단을 잠시 끈 뒤 다시 시도해 주세요.
-                          {payPalScriptContext.loadingStatusErrorMessage ? (
-                            <p className="mt-2 break-all text-xs text-red-100/85">
-                              SDK error: {payPalScriptContext.loadingStatusErrorMessage}
-                            </p>
-                          ) : null}
-                          <p className="mt-2 text-xs text-red-100/75">
-                            clientId present: {payPalScriptContext.options?.clientId ? 'yes' : 'no'}
-                          </p>
-                        </div>
-                      ) : (
-                        <PayPalButtons
-                          style={{ layout: 'vertical', shape: 'pill', label: 'paypal' }}
-                          disabled={isSavingOrder || !isPayPalResolved}
-                          forceReRender={[usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder]}
-                          createOrder={(_data, actions) => {
+                      <PaypalButton
+                        buttonProps={{
+                          style: { layout: 'vertical', shape: 'pill', label: 'paypal' },
+                          disabled: isSavingOrder,
+                          forceReRender: [usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder],
+                          createOrder: (_data, actions) => {
                             if (!user?.id) {
                               window.alert('로그인 후 결제를 진행할 수 있습니다.');
                               throw new Error('로그인 후 결제를 진행할 수 있습니다.');
@@ -392,17 +364,17 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                                 }
                               ]
                             });
-                          }}
-                          onApprove={handlePayPalApprove}
-                          onError={handlePayPalError}
-                          onCancel={() => {
+                          },
+                          onApprove: handlePayPalApprove,
+                          onError: handlePayPalError,
+                          onCancel: () => {
                             toast({
                               title: '결제가 취소되었습니다',
                               description: '원하시면 다른 결제 수단 또는 다시 시도해 주세요.'
                             });
-                          }}
-                        />
-                      )}
+                          }
+                        }}
+                      />
                       {authLoading ? (
                         <p className="mt-2 text-xs text-white/45">로그인 상태 확인 중...</p>
                       ) : null}
