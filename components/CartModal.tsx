@@ -56,8 +56,14 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const { user, loading: authLoading } = useAuth();
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
-  const [{ isPending: isPayPalPending, isRejected: isPayPalRejected, isResolved: isPayPalResolved }] =
-    usePayPalScriptReducer();
+  const [
+    {
+      isPending: isPayPalPending,
+      isRejected: isPayPalRejected,
+      isResolved: isPayPalResolved,
+      loadingStatusErrorMessage
+    }
+  ] = usePayPalScriptReducer();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
@@ -341,6 +347,11 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                       ) : isPayPalRejected ? (
                         <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
                           PayPal SDK 로드에 실패했습니다. 개발 서버를 재시작하고(환경변수 반영), 광고 차단기/추적 차단을 잠시 끈 뒤 다시 시도해 주세요.
+                          {loadingStatusErrorMessage ? (
+                            <p className="mt-2 break-all text-xs text-red-100/85">
+                              SDK error: {loadingStatusErrorMessage}
+                            </p>
+                          ) : null}
                         </div>
                       ) : (
                         <PayPalButtons
