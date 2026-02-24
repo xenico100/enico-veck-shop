@@ -1,8 +1,8 @@
 'use client';
 
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ImageIcon, PencilLine, X } from 'lucide-react';
+import { ImageIcon, Pause, PencilLine, Play, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import { createClient } from '@/utils/supabase/client';
@@ -45,6 +45,17 @@ const chunkPosts = <T,>(items: T[], size: number) => {
   return rows;
 };
 
+const buildLoopSeed = (rowItems: StudioPost[]) => {
+  if (rowItems.length === 0) return [] as StudioPost[];
+  if (rowItems.length >= STUDIO_COLUMNS_PER_ROW) return rowItems;
+
+  const seed: StudioPost[] = [];
+  while (seed.length < STUDIO_COLUMNS_PER_ROW) {
+    seed.push(...rowItems);
+  }
+  return seed.slice(0, STUDIO_COLUMNS_PER_ROW);
+};
+
 const formatStudioDate = (value: string | null) => {
   if (!value) return '-';
 
@@ -57,7 +68,7 @@ const formatStudioDate = (value: string | null) => {
   }).format(date);
 };
 
-const getExcerpt = (value: string | null, maxLength = 110) => {
+const getExcerpt = (value: string | null, maxLength = 72) => {
   const normalized = (value ?? '').replace(/\s+/g, ' ').trim();
   if (!normalized) return '';
   if (normalized.length <= maxLength) return normalized;
@@ -158,7 +169,7 @@ function StudioWriteModal({
                 Write
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-1 text-sm text-white/55">
-                Studio 게시물을 작성하면 바로 그리드에 반영됩니다.
+                Studio 게시물을 작성하면 바로 마퀴 행에 반영됩니다.
               </DialogPrimitive.Description>
             </div>
             <button
@@ -166,6 +177,7 @@ function StudioWriteModal({
               onClick={() => onOpenChange(false)}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
               aria-label="작성 모달 닫기"
+              disabled={submitting}
             >
               <X className="h-4 w-4" />
             </button>
@@ -257,6 +269,8 @@ export default function StudioSection() {
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<StudioPost | null>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [writeSubmitting, setWriteSubmitting] = useState(false);
@@ -266,6 +280,10 @@ export default function StudioSection() {
     content: '',
     imageUrl: ''
   });
+
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const hoveredRowRef = useRef<number | null>(null);
+  const animationFrameIds = useRef<number[]>([]);
 
   const rows = useMemo(() => chunkPosts(studioPosts, STUDIO_COLUMNS_PER_ROW), [studioPosts]);
 
@@ -297,6 +315,87 @@ export default function StudioSection() {
   useEffect(() => {
     void fetchStudioPosts();
   }, [fetchStudioPosts]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const getRowSpeed = useCallback(
+    (rowIndex: number) => {
+      const speeds = [0.5, 0.7, 0.6, 0.8, 0.55, 0.65, 0.75];
+      const baseSpeed = speeds[rowIndex % speeds.length];
+      return isMobile ? baseSpeed * 0.55 : baseSpeed;
+    },
+    [isMobile]
+  );
+
+  useEffect(() => {
+    animationFrameIds.current.forEach((frameId) => {
+      if (frameId) cancelAnimationFrame(frameId);
+    });
+    animationFrameIds.current = [];
+
+    if (!isPlaying || rows.length === 0) return;
+
+    const animateRow = (ref: HTMLDivElement | null, baseSpeed: number, rowNumber: number) => {
+      if (!ref) return;
+
+      let position = 0;
+      let currentSpeed = baseSpeed;
+
+      const animate = () => {
+        if (!ref) return;
+
+        const itemWidth = ref.scrollWidth / 2;
+        if (!itemWidth) {
+          animationFrameIds.current[rowNumber] = requestAnimationFrame(animate);
+          return;
+        }
+
+        const targetSpeed = hoveredRowRef.current === rowNumber ? 0 : baseSpeed;
+        const speedDiff = targetSpeed - currentSpeed;
+        currentSpeed += speedDiff * 0.05;
+
+        if (Math.abs(currentSpeed) < 0.01 && targetSpeed === 0) {
+          currentSpeed = 0;
+        }
+
+        position -= currentSpeed;
+        if (Math.abs(position) >= itemWidth) {
+          position = 0;
+        }
+
+        ref.style.transform = `translateX(${position}px)`;
+        ref.style.willChange = 'transform';
+
+        animationFrameIds.current[rowNumber] = requestAnimationFrame(animate);
+      };
+
+      animate();
+    };
+
+    rowRefs.current = rowRefs.current.slice(0, rows.length);
+
+    rowRefs.current.forEach((ref, index) => {
+      if (ref) {
+        animateRow(ref, getRowSpeed(index), index);
+      }
+    });
+
+    return () => {
+      animationFrameIds.current.forEach((frameId) => {
+        if (frameId) cancelAnimationFrame(frameId);
+      });
+      animationFrameIds.current = [];
+    };
+  }, [isPlaying, rows, getRowSpeed]);
 
   const handleWriteFormChange = (patch: Partial<StudioWriteForm>) => {
     setWriteForm((prev) => ({ ...prev, ...patch }));
@@ -377,113 +476,157 @@ export default function StudioSection() {
     }
   };
 
+  const handleRowMouseEnter = (rowNumber: number) => {
+    hoveredRowRef.current = rowNumber;
+  };
+
+  const handleRowMouseLeave = () => {
+    hoveredRowRef.current = null;
+  };
+
+  const togglePlayPause = () => {
+    setIsPlaying((prev) => !prev);
+  };
+
+  const renderRow = (rowIndex: number) => {
+    const rowItems = rows[rowIndex] ?? [];
+    if (rowItems.length === 0) return null;
+
+    const loopSeed = buildLoopSeed(rowItems);
+    const duplicatedItems = [...loopSeed, ...loopSeed];
+
+    return (
+      <div
+        key={`studio-row-${rowIndex}`}
+        className="overflow-hidden"
+        onMouseEnter={() => handleRowMouseEnter(rowIndex)}
+        onMouseLeave={handleRowMouseLeave}
+      >
+        <div
+          ref={(el) => {
+            rowRefs.current[rowIndex] = el;
+          }}
+          className="flex gap-4"
+          style={{ width: 'fit-content' }}
+        >
+          {duplicatedItems.map((post, index) => {
+            const excerpt = getExcerpt(post.content);
+            return (
+              <button
+                key={`${post.id}-${rowIndex}-${index}`}
+                type="button"
+                onClick={() => setSelectedPost(post)}
+                className="group relative h-[130px] w-[220px] flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] text-left shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:shadow-[0_20px_42px_rgba(0,0,0,0.36)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:h-[240px] md:w-[400px] md:rounded-2xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-white/[0.02] to-transparent" />
+                {post.image_url ? (
+                  <img
+                    src={post.image_url}
+                    alt={post.title?.trim() || 'Studio post image'}
+                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.02]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/35 md:h-14 md:w-14">
+                      <ImageIcon className="h-4 w-4 md:h-5 md:w-5" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/5 transition-opacity duration-300 group-hover:from-black/70" />
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-white/[0.03]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.14),transparent_42%)]" />
+                </div>
+
+                <div className="absolute inset-x-0 bottom-0 p-3 md:p-5">
+                  <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 backdrop-blur-sm md:rounded-xl md:px-4 md:py-3">
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-white/60 md:text-[11px]">
+                      {formatStudioDate(post.created_at)}
+                    </p>
+                    <h3 className="truncate text-sm font-semibold tracking-tight text-white md:text-xl">
+                      {post.title?.trim() || 'Untitled Post'}
+                    </h3>
+                    {excerpt ? (
+                      <p className="hidden text-xs leading-relaxed text-white/70 md:block">{excerpt}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      <section id="studio" className="relative bg-black py-20 text-white md:py-24">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10">
-          <div className="mb-8 flex items-start justify-between gap-4 md:mb-10">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.34em] text-white/45">Studio</p>
-              <h2 className="text-3xl font-semibold tracking-tight text-white md:text-5xl">
-                Studio
-              </h2>
-              <p className="max-w-2xl text-sm leading-relaxed text-white/55 md:text-base">
-                최근 작업 기록과 스튜디오 게시물을 한눈에 확인하세요.
-              </p>
-            </div>
-
-            {!authLoading && isAdmin ? (
-              <button
-                type="button"
-                onClick={handleOpenWrite}
-                className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 text-sm font-medium text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-              >
-                <PencilLine className="h-4 w-4" />
-                Write
-              </button>
-            ) : null}
+      <section
+        id="studio"
+        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden bg-black py-20 text-white"
+      >
+        <div className="mb-10 flex items-start justify-between gap-4 px-4 md:px-8 lg:px-16">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.34em] text-white/45">Studio</p>
+            <h2 className="text-4xl tracking-tight md:text-5xl">Studio</h2>
+            <p className="max-w-2xl text-sm leading-relaxed text-white/55 md:text-base">
+              최근 작업 기록과 스튜디오 게시물을 둘러보세요.
+            </p>
           </div>
 
+          {!authLoading && isAdmin ? (
+            <button
+              type="button"
+              onClick={handleOpenWrite}
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 text-sm font-medium text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            >
+              <PencilLine className="h-4 w-4" />
+              Write
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
           {postsLoading ? (
-            <div className="space-y-6">
-              {Array.from({ length: 2 }).map((_, rowIndex) => (
-                <div
-                  key={`studio-skeleton-row-${rowIndex}`}
-                  className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6"
-                >
+            Array.from({ length: 2 }).map((_, rowIndex) => (
+              <div key={`studio-skeleton-row-${rowIndex}`} className="overflow-hidden">
+                <div className="flex gap-4" style={{ width: 'fit-content' }}>
                   {Array.from({ length: 3 }).map((__, cardIndex) => (
                     <div
                       key={`studio-skeleton-${rowIndex}-${cardIndex}`}
-                      className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-[0_20px_45px_rgba(0,0,0,0.24)] md:rounded-3xl"
+                      className="h-[130px] w-[220px] overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
                     >
-                      <div className="aspect-[4/3] w-full animate-pulse bg-white/[0.05]" />
-                      <div className="space-y-3 p-5 md:p-6">
-                        <div className="h-2.5 w-28 animate-pulse rounded-full bg-white/[0.06]" />
-                        <div className="h-6 w-3/4 animate-pulse rounded-full bg-white/[0.07]" />
-                        <div className="h-4 w-full animate-pulse rounded-full bg-white/[0.05]" />
-                        <div className="h-4 w-5/6 animate-pulse rounded-full bg-white/[0.05]" />
-                      </div>
+                      <div className="h-full w-full animate-pulse bg-white/[0.05]" />
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           ) : rows.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/80 md:rounded-3xl md:px-6">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/80">
               No studio posts yet.
               {postsError ? <p className="mt-2 text-xs text-red-300/90">{postsError}</p> : null}
             </div>
           ) : (
-            <div className="space-y-6 md:space-y-7">
-              {rows.map((row, rowIndex) => (
-                <div
-                  key={`studio-row-${rowIndex}`}
-                  className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6"
-                >
-                  {row.map((post) => {
-                    const excerpt = getExcerpt(post.content);
-                    return (
-                      <button
-                        key={post.id}
-                        type="button"
-                        onClick={() => setSelectedPost(post)}
-                        className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] text-left shadow-[0_20px_45px_rgba(0,0,0,0.24)] transition-all duration-300 hover:-translate-y-1 hover:border-white/15 hover:bg-white/[0.04] hover:shadow-[0_28px_65px_rgba(0,0,0,0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:rounded-3xl"
-                      >
-                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent">
-                          {post.image_url ? (
-                            <img
-                              src={post.image_url}
-                              alt={post.title?.trim() || 'Studio post image'}
-                              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/35">
-                                <ImageIcon className="h-5 w-5" />
-                              </div>
-                            </div>
-                          )}
-                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
-                        </div>
-
-                        <div className="space-y-3 p-5 md:p-6">
-                          <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">
-                            {formatStudioDate(post.created_at)}
-                          </p>
-                          <h3 className="text-xl font-semibold tracking-tight text-white md:text-2xl">
-                            {post.title?.trim() || 'Untitled Post'}
-                          </h3>
-                          {excerpt ? (
-                            <p className="text-sm leading-relaxed text-white/60">{excerpt}</p>
-                          ) : null}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+            rows.map((_, rowIndex) => renderRow(rowIndex))
           )}
+        </div>
+
+        <div className="mt-6 flex justify-end px-4 md:px-8 lg:px-16">
+          <button
+            type="button"
+            onClick={togglePlayPause}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={isPlaying ? '일시정지' : '재생'}
+            disabled={rows.length === 0}
+          >
+            {isPlaying ? (
+              <Pause className="h-5 w-5 text-white" fill="white" />
+            ) : (
+              <Play className="h-5 w-5 text-white" fill="white" />
+            )}
+          </button>
         </div>
       </section>
 
