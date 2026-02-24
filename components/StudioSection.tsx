@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ImageIcon, Pause, PencilLine, Play, X } from 'lucide-react';
 
@@ -23,6 +23,7 @@ type StudioWriteForm = {
 };
 
 const STUDIO_COLUMNS_PER_ROW = 3;
+const MARQUEE_GAP_REM = 1; // gap-4 == 1rem
 
 const dialogOverlayClass =
   'fixed inset-0 z-40 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 duration-300';
@@ -271,6 +272,7 @@ export default function StudioSection() {
   const [selectedPost, setSelectedPost] = useState<StudioPost | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
 
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [writeSubmitting, setWriteSubmitting] = useState(false);
@@ -280,10 +282,6 @@ export default function StudioSection() {
     content: '',
     imageUrl: ''
   });
-
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const hoveredRowRef = useRef<number | null>(null);
-  const animationFrameIds = useRef<number[]>([]);
 
   const rows = useMemo(() => chunkPosts(studioPosts, STUDIO_COLUMNS_PER_ROW), [studioPosts]);
 
@@ -327,75 +325,14 @@ export default function StudioSection() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const getRowSpeed = useCallback(
+  const getRowDuration = useCallback(
     (rowIndex: number) => {
-      const speeds = [0.5, 0.7, 0.6, 0.8, 0.55, 0.65, 0.75];
-      const baseSpeed = speeds[rowIndex % speeds.length];
-      return isMobile ? baseSpeed * 0.55 : baseSpeed;
+      const durations = [28, 22, 25, 20, 24, 18, 26];
+      const base = durations[rowIndex % durations.length];
+      return isMobile ? base * 1.45 : base;
     },
     [isMobile]
   );
-
-  useEffect(() => {
-    animationFrameIds.current.forEach((frameId) => {
-      if (frameId) cancelAnimationFrame(frameId);
-    });
-    animationFrameIds.current = [];
-
-    if (!isPlaying || rows.length === 0) return;
-
-    const animateRow = (ref: HTMLDivElement | null, baseSpeed: number, rowNumber: number) => {
-      if (!ref) return;
-
-      let position = 0;
-      let currentSpeed = baseSpeed;
-
-      const animate = () => {
-        if (!ref) return;
-
-        const itemWidth = ref.scrollWidth / 2;
-        if (!itemWidth) {
-          animationFrameIds.current[rowNumber] = requestAnimationFrame(animate);
-          return;
-        }
-
-        const targetSpeed = hoveredRowRef.current === rowNumber ? 0 : baseSpeed;
-        const speedDiff = targetSpeed - currentSpeed;
-        currentSpeed += speedDiff * 0.05;
-
-        if (Math.abs(currentSpeed) < 0.01 && targetSpeed === 0) {
-          currentSpeed = 0;
-        }
-
-        position -= currentSpeed;
-        if (Math.abs(position) >= itemWidth) {
-          position = 0;
-        }
-
-        ref.style.transform = `translateX(${position}px)`;
-        ref.style.willChange = 'transform';
-
-        animationFrameIds.current[rowNumber] = requestAnimationFrame(animate);
-      };
-
-      animate();
-    };
-
-    rowRefs.current = rowRefs.current.slice(0, rows.length);
-
-    rowRefs.current.forEach((ref, index) => {
-      if (ref) {
-        animateRow(ref, getRowSpeed(index), index);
-      }
-    });
-
-    return () => {
-      animationFrameIds.current.forEach((frameId) => {
-        if (frameId) cancelAnimationFrame(frameId);
-      });
-      animationFrameIds.current = [];
-    };
-  }, [isPlaying, rows, getRowSpeed]);
 
   const handleWriteFormChange = (patch: Partial<StudioWriteForm>) => {
     setWriteForm((prev) => ({ ...prev, ...patch }));
@@ -476,14 +413,6 @@ export default function StudioSection() {
     }
   };
 
-  const handleRowMouseEnter = (rowNumber: number) => {
-    hoveredRowRef.current = rowNumber;
-  };
-
-  const handleRowMouseLeave = () => {
-    hoveredRowRef.current = null;
-  };
-
   const togglePlayPause = () => {
     setIsPlaying((prev) => !prev);
   };
@@ -494,20 +423,26 @@ export default function StudioSection() {
 
     const loopSeed = buildLoopSeed(rowItems);
     const duplicatedItems = [...loopSeed, ...loopSeed];
+    const isRowPaused = !isPlaying || hoveredRowIndex === rowIndex;
 
     return (
       <div
         key={`studio-row-${rowIndex}`}
         className="overflow-hidden"
-        onMouseEnter={() => handleRowMouseEnter(rowIndex)}
-        onMouseLeave={handleRowMouseLeave}
+        onMouseEnter={() => setHoveredRowIndex(rowIndex)}
+        onMouseLeave={() => setHoveredRowIndex((prev) => (prev === rowIndex ? null : prev))}
       >
         <div
-          ref={(el) => {
-            rowRefs.current[rowIndex] = el;
-          }}
           className="flex gap-4"
-          style={{ width: 'fit-content' }}
+          style={{
+            width: 'fit-content',
+            animationName: 'studio-marquee-rtl',
+            animationDuration: `${getRowDuration(rowIndex)}s`,
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
+            animationPlayState: isRowPaused ? 'paused' : 'running',
+            willChange: 'transform'
+          }}
         >
           {duplicatedItems.map((post, index) => {
             const excerpt = getExcerpt(post.content);
@@ -562,6 +497,17 @@ export default function StudioSection() {
 
   return (
     <>
+      <style jsx global>{`
+        @keyframes studio-marquee-rtl {
+          from {
+            transform: translate3d(0, 0, 0);
+          }
+          to {
+            transform: translate3d(calc(-50% - ${MARQUEE_GAP_REM / 2}rem), 0, 0);
+          }
+        }
+      `}</style>
+
       <section
         id="studio"
         className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden bg-black py-20 text-white"
