@@ -347,10 +347,13 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                               throw new Error('PayPal order actions not available');
                             }
 
-                            const amount = Number(usdTotalLabel);
-                            if (!Number.isFinite(amount) || amount <= 0) {
+                            const parsedAmount = Number(String(usdTotalLabel).replace(/,/g, ''));
+                            if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
                               throw new Error('Invalid USD amount for PayPal checkout');
                             }
+
+                            const normalizedUsdAmount = parsedAmount.toFixed(2);
+                            const paypalUsdAmount = '1.00'; // Temporary test value to verify checkout flow
 
                             return actions.order.create({
                               intent: 'CAPTURE',
@@ -358,7 +361,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                                 {
                                   amount: {
                                     currency_code: 'USD',
-                                    value: usdTotalLabel
+                                    value: paypalUsdAmount
                                   },
                                   description: `ZEUS Studio Cart (${itemCount} items)`
                                 }
