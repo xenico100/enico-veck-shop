@@ -8,7 +8,9 @@ import { PayPalButtons } from '@paypal/react-paypal-js';
 import ActionButton from '@/components/ui/ActionButton';
 import QuantityStepper from '@/components/ui/QuantityStepper';
 import { useToast } from '@/components/ui/Toasts/use-toast';
+import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
+import { createClient } from '@/utils/supabase/client';
 
 const appleFontClass =
   '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -50,22 +52,38 @@ function GlassCloseButton({
 }
 
 export default function CartModal({ open, onOpenChange }: CartModalProps) {
+  const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
-  const hasUnpricedItems = useMemo(
-    () => items.some((item) => item.price == null),
+  const hasUnpricedItems = useMemo(() => items.some((item) => item.price == null), [items]);
+  const totalKRW = useMemo(() => Math.round(total), [total]);
+  const usdTotal = useMemo(() => Number((totalKRW / USD_EXCHANGE_RATE).toFixed(2)), [totalKRW]);
+  const usdTotalLabel = useMemo(() => usdTotal.toFixed(2), [usdTotal]);
+  const cartSnapshot = useMemo(
+    () =>
+      items.map((item) => ({
+        key: item.key,
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        image: item.image,
+        price: item.price,
+        currency: item.currency,
+        quantity: item.quantity
+      })),
     [items]
   );
-  const usdTotal = useMemo(() => Number((total / USD_EXCHANGE_RATE).toFixed(2)), [total]);
-  const usdTotalLabel = useMemo(() => usdTotal.toFixed(2), [usdTotal]);
 
   useEffect(() => {
     if (!open) {
       setIsCheckingOut(false);
       setCheckoutError(null);
+      setIsSavingOrder(false);
     }
   }, [open]);
 
@@ -77,42 +95,131 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
 
   const handleOpenCheckout = () => {
     if (items.length === 0) return;
+
+    if (authLoading) {
+      window.alert('로그인 상태를 확인 중입니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+
+    if (!user?.id) {
+      window.alert('로그인 후 결제를 진행할 수 있습니다.');
+      return;
+    }
+
     setCheckoutError(null);
     setIsCheckingOut(true);
   };
 
   const handleBackToCart = () => {
+    if (isSavingOrder) return;
     setCheckoutError(null);
     setIsCheckingOut(false);
   };
 
-  const handlePayPalSuccess = async (data: unknown, actions: any) => {
+  const handlePayPalApprove = async (data: any, actions: any) => {
     try {
       if (!actions?.order) {
         throw new Error('PayPal order action is unavailable.');
       }
 
-      const details = await actions.order.capture();
-      console.log('PayPal payment success:', { data, details });
+      setIsSavingOrder(true);
+      setCheckoutError(null);
+
+      const captureDetails = await actions.order.capture();
+
+      const {
+        data: authData,
+        error: authError
+      } = await supabase.auth.getUser();
+
+      if (authError || !authData.user) {
+        const message = '로그인 후 결제를 진행할 수 있습니다.';
+        setCheckoutError(message);
+        window.alert(message);
+        return;
+      }
+
+      const captureRecord =
+        captureDetails && typeof captureDetails === 'object'
+          ? (captureDetails as Record<string, any>)
+          : {};
+      const purchaseUnits = Array.isArray(captureRecord.purchase_units)
+        ? (captureRecord.purchase_units as Array<Record<string, any>>)
+        : [];
+      const firstPurchaseUnit = purchaseUnits.find(
+        (unit) => unit && typeof unit === 'object'
+      );
+      const shippingAddress =
+        captureRecord.payer || firstPurchaseUnit?.shipping
+          ? {
+              payer: captureRecord.payer ?? null,
+              shipping: firstPurchaseUnit?.shipping ?? null
+            }
+          : {};
+
+      const orderItems = cartSnapshot.map((item) => ({
+        id: item.id,
+        name: item.title,
+        price: item.price,
+        quantity: item.quantity
+      }));
+
+      const paypalOrderId =
+        (typeof captureRecord.id === 'string' && captureRecord.id) ||
+        (typeof data?.orderID === 'string' && data.orderID) ||
+        null;
+
+      const { data: insertedOrder, error: insertError } = await (supabase as any)
+        .from('orders')
+        .insert({
+          user_id: authData.user.id,
+          status: 'paid',
+          total_amount: totalKRW,
+          amount_total: totalKRW,
+          shipping_address: shippingAddress,
+          tracking_number: null,
+          items: orderItems,
+          paypal_order_id: paypalOrderId,
+          currency: 'KRW'
+        })
+        .select('id,user_id,status,total_amount,paypal_order_id')
+        .single();
+
+      if (insertError) {
+        throw new Error(insertError.message || '결제 완료 후 주문 저장에 실패했습니다.');
+      }
+
+      console.log('PayPal payment success:', {
+        data,
+        captureDetails,
+        orderRecord: insertedOrder
+      });
       window.alert('Payment Successful!');
       clear();
       setIsCheckingOut(false);
       setCheckoutError(null);
       onOpenChange(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '결제 완료 처리에 실패했습니다.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : '결제 완료 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
       setCheckoutError(message);
+      window.alert(`결제 처리 실패: ${message}`);
       toast({
-        title: '결제 완료 처리 실패',
+        title: '결제 처리 실패',
         description: message,
         variant: 'destructive'
       });
+    } finally {
+      setIsSavingOrder(false);
     }
   };
 
   const handlePayPalError = (error: unknown) => {
     const message = error instanceof Error ? error.message : 'PayPal 결제 중 오류가 발생했습니다.';
     setCheckoutError(message);
+    window.alert(`PayPal 결제 오류: ${message}`);
     toast({
       title: 'PayPal 결제 오류',
       description: message,
@@ -210,7 +317,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
                   <p className="text-xs uppercase tracking-[0.18em] text-white/50">Order Summary</p>
                   <p className="mt-2 text-sm text-white/80">
-                    총 결제 금액: <span className="font-semibold text-white">{formatMoney(total, 'KRW')}</span>{' '}
+                    총 결제 금액: <span className="font-semibold text-white">{formatMoney(totalKRW, 'KRW')}</span>{' '}
                     <span className="text-white/60">(approx. {formatMoney(usdTotal, 'USD')})</span>
                   </p>
                   <p className="mt-2 text-xs text-white/50">
@@ -229,7 +336,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
                       가격 정보가 없는 항목이 있어 PayPal 결제를 진행할 수 없습니다.
                     </div>
-                  ) : total <= 0 ? (
+                  ) : totalKRW <= 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-white/70">
                       결제 가능한 금액이 없습니다.
                     </div>
@@ -237,8 +344,13 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                       <PayPalButtons
                         style={{ layout: 'vertical', shape: 'pill', label: 'paypal' }}
-                        forceReRender={[usdTotalLabel, itemCount]}
+                        disabled={!user?.id || authLoading || isSavingOrder}
+                        forceReRender={[usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder]}
                         createOrder={(_data, actions) => {
+                          if (!user?.id) {
+                            throw new Error('로그인 후 결제를 진행할 수 있습니다.');
+                          }
+
                           if (!actions.order) {
                             throw new Error('PayPal order actions not available');
                           }
@@ -261,7 +373,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                             ]
                           });
                         }}
-                        onApprove={handlePayPalSuccess}
+                        onApprove={handlePayPalApprove}
                         onError={handlePayPalError}
                         onCancel={() => {
                           toast({
@@ -288,7 +400,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
               <>
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-white/45">Total</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{formatMoney(total, 'KRW')}</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{formatMoney(totalKRW, 'KRW')}</p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <ActionButton
@@ -297,7 +409,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     size="md"
                     onClick={() => clear()}
                     className="px-5"
-                    disabled={items.length === 0}
+                    disabled={items.length === 0 || isSavingOrder}
                   >
                     비우기
                   </ActionButton>
@@ -307,7 +419,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     size="md"
                     onClick={handleOpenCheckout}
                     className="px-5"
-                    disabled={items.length === 0}
+                    disabled={items.length === 0 || isSavingOrder}
                   >
                     결제하기
                   </ActionButton>
@@ -318,7 +430,8 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-white/45">Payment Total</p>
                   <p className="mt-1 text-sm font-medium text-white">
-                    {formatMoney(total, 'KRW')} <span className="text-white/60">(approx. {formatMoney(usdTotal, 'USD')})</span>
+                    {formatMoney(totalKRW, 'KRW')}{' '}
+                    <span className="text-white/60">(approx. {formatMoney(usdTotal, 'USD')})</span>
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -328,6 +441,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     size="md"
                     onClick={handleBackToCart}
                     className="px-5"
+                    disabled={isSavingOrder}
                   >
                     Back to Cart
                   </ActionButton>

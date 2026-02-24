@@ -7,8 +7,10 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { Toaster } from '@/components/ui/Toasts/toaster';
 
+const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? '';
+
 const paypalOptions: ReactPayPalScriptOptions = {
-  clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || 'test',
+  clientId: paypalClientId,
   currency: 'USD',
   intent: 'capture',
   components: 'buttons'
