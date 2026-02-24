@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
-import { PayPalButtons } from '@paypal/react-paypal-js';
+import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 
 import ActionButton from '@/components/ui/ActionButton';
 import QuantityStepper from '@/components/ui/QuantityStepper';
@@ -56,6 +56,8 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const { user, loading: authLoading } = useAuth();
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
+  const [{ isPending: isPayPalPending, isRejected: isPayPalRejected, isResolved: isPayPalResolved }] =
+    usePayPalScriptReducer();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
@@ -332,46 +334,65 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <PayPalButtons
-                        style={{ layout: 'vertical', shape: 'pill', label: 'paypal' }}
-                        disabled={!user?.id || authLoading || isSavingOrder}
-                        forceReRender={[usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder]}
-                        createOrder={(_data, actions) => {
-                          if (!user?.id) {
-                            throw new Error('로그인 후 결제를 진행할 수 있습니다.');
-                          }
+                      {isPayPalPending ? (
+                        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+                          PayPal 버튼을 불러오는 중입니다...
+                        </div>
+                      ) : isPayPalRejected ? (
+                        <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
+                          PayPal SDK 로드에 실패했습니다. 개발 서버를 재시작하고(환경변수 반영), 광고 차단기/추적 차단을 잠시 끈 뒤 다시 시도해 주세요.
+                        </div>
+                      ) : (
+                        <PayPalButtons
+                          style={{ layout: 'vertical', shape: 'pill', label: 'paypal' }}
+                          disabled={isSavingOrder || !isPayPalResolved}
+                          forceReRender={[usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder]}
+                          createOrder={(_data, actions) => {
+                            if (!user?.id) {
+                              window.alert('로그인 후 결제를 진행할 수 있습니다.');
+                              throw new Error('로그인 후 결제를 진행할 수 있습니다.');
+                            }
 
-                          if (!actions.order) {
-                            throw new Error('PayPal order actions not available');
-                          }
+                            if (!actions.order) {
+                              throw new Error('PayPal order actions not available');
+                            }
 
-                          const amount = Number(usdTotalLabel);
-                          if (!Number.isFinite(amount) || amount <= 0) {
-                            throw new Error('Invalid USD amount for PayPal checkout');
-                          }
+                            const amount = Number(usdTotalLabel);
+                            if (!Number.isFinite(amount) || amount <= 0) {
+                              throw new Error('Invalid USD amount for PayPal checkout');
+                            }
 
-                          return actions.order.create({
-                            intent: 'CAPTURE',
-                            purchase_units: [
-                              {
-                                amount: {
-                                  currency_code: 'USD',
-                                  value: usdTotalLabel
-                                },
-                                description: `ZEUS Studio Cart (${itemCount} items)`
-                              }
-                            ]
-                          });
-                        }}
-                        onApprove={handlePayPalApprove}
-                        onError={handlePayPalError}
-                        onCancel={() => {
-                          toast({
-                            title: '결제가 취소되었습니다',
-                            description: '원하시면 다른 결제 수단 또는 다시 시도해 주세요.'
-                          });
-                        }}
-                      />
+                            return actions.order.create({
+                              intent: 'CAPTURE',
+                              purchase_units: [
+                                {
+                                  amount: {
+                                    currency_code: 'USD',
+                                    value: usdTotalLabel
+                                  },
+                                  description: `ZEUS Studio Cart (${itemCount} items)`
+                                }
+                              ]
+                            });
+                          }}
+                          onApprove={handlePayPalApprove}
+                          onError={handlePayPalError}
+                          onCancel={() => {
+                            toast({
+                              title: '결제가 취소되었습니다',
+                              description: '원하시면 다른 결제 수단 또는 다시 시도해 주세요.'
+                            });
+                          }}
+                        />
+                      )}
+                      {authLoading ? (
+                        <p className="mt-2 text-xs text-white/45">로그인 상태 확인 중...</p>
+                      ) : null}
+                      {!authLoading && !user?.id ? (
+                        <p className="mt-2 text-xs text-white/45">
+                          로그인 후 결제 승인 시 주문 저장이 가능합니다.
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 </div>
