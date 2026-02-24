@@ -1,12 +1,10 @@
 "use client";
 
-import { type ComponentProps, useMemo } from "react";
+import { type ComponentProps } from "react";
 import {
   PayPalButtons,
   PayPalScriptProvider,
   usePayPalScriptReducer,
-  useScriptProviderContext,
-  type ReactPayPalScriptOptions,
 } from "@paypal/react-paypal-js";
 
 type PaypalButtonProps = {
@@ -15,7 +13,6 @@ type PaypalButtonProps = {
 
 function PaypalButtonInner({ buttonProps }: PaypalButtonProps) {
   const [{ isPending, isRejected, isResolved }] = usePayPalScriptReducer();
-  const [scriptContext] = useScriptProviderContext();
 
   if (isPending) {
     return (
@@ -29,14 +26,6 @@ function PaypalButtonInner({ buttonProps }: PaypalButtonProps) {
     return (
       <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
         PayPal SDK 로드에 실패했습니다. 개발 서버를 재시작하고(환경변수 반영), 광고 차단기/추적 차단을 잠시 끈 뒤 다시 시도해 주세요.
-        {scriptContext.loadingStatusErrorMessage ? (
-          <p className="mt-2 break-all text-xs text-red-100/85">
-            SDK error: {scriptContext.loadingStatusErrorMessage}
-          </p>
-        ) : null}
-        <p className="mt-2 text-xs text-red-100/75">
-          clientId present: {scriptContext.options?.clientId ? "yes" : "no"}
-        </p>
       </div>
     );
   }
@@ -51,16 +40,6 @@ function PaypalButtonInner({ buttonProps }: PaypalButtonProps) {
 
 export default function PaypalButton({ buttonProps }: PaypalButtonProps) {
   const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() ?? "";
-  const options = useMemo<ReactPayPalScriptOptions>(
-    () => ({
-      clientId,
-      "client-id": clientId,
-      currency: "USD",
-      intent: "capture",
-      components: "buttons",
-    }),
-    [clientId]
-  );
 
   console.log(
     "PAYPAL CLIENT ID:",
@@ -72,7 +51,14 @@ export default function PaypalButton({ buttonProps }: PaypalButtonProps) {
   }
 
   return (
-    <PayPalScriptProvider options={options}>
+    <PayPalScriptProvider
+      options={{
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+        currency: "USD",
+        intent: "capture",
+        components: "buttons",
+      }}
+    >
       <PaypalButtonInner buttonProps={buttonProps} />
     </PayPalScriptProvider>
   );
