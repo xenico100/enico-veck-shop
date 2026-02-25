@@ -114,7 +114,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
         throw new Error('Missing PayPal order ID');
       }
 
-      const captureResponse = await fetch('/api/paypal/capture-order', {
+      const captureResponse = await fetch('/api/paypal/order/capture', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -357,7 +357,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                               }
 
                               const normalizedUsdAmount = parsedAmount.toFixed(2);
-                              const response = await fetch('/api/paypal/create-order', {
+                              const response = await fetch('/api/paypal/order/create', {
                                 method: 'POST',
                                 headers: {
                                   'Content-Type': 'application/json'

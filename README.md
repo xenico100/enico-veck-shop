@@ -249,15 +249,17 @@ Finally, navigate to [http://localhost:3000](http://localhost:3000) in your brow
 If PayPal shows `Missing PayPal Client ID` or `Expected client-id to be passed`, verify the following:
 
 - `.env.local` is in the same folder where you run `pnpm dev` (the Next.js app root that contains `package.json` and `app/`)
-- `PAYPAL_CLIENT_ID` is defined in `.env.local` (server-side; the client fetches a safe config from `/api/paypal/client-config`)
+- `NEXT_PUBLIC_PAYPAL_CLIENT_ID` is defined in `.env.local` (client-side; used only for the PayPal JS SDK)
+- `PAYPAL_CLIENT_ID` is defined in `.env.local` (server-side credential for API routes)
 - `PAYPAL_CLIENT_SECRET` is defined in `.env.local` (server-only; never expose it to the browser)
 - `PAYPAL_ENV=sandbox` is defined in `.env.local` while testing Sandbox
 - PayPal SDK is initialized only in a Client Component (this project uses `components/paypal-button.tsx`)
-- PayPal order creation/capture uses App Router API routes (`/api/paypal/create-order`, `/api/paypal/capture-order`)
+- PayPal order creation/capture uses App Router API routes (`/api/paypal/order/create`, `/api/paypal/order/capture`)
 
 Example `.env.local` entry:
 
 ```bash
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=REPLACE_WITH_MY_CLIENT_ID
 PAYPAL_CLIENT_ID=REPLACE_WITH_MY_CLIENT_ID
 PAYPAL_CLIENT_SECRET=REPLACE_WITH_SANDBOX_SECRET
 PAYPAL_ENV=sandbox
@@ -285,6 +287,7 @@ Add the following to `.env.local` (see `.env.local.example`):
 
 ```bash
 PAYPAL_ENV=sandbox
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=...
 PAYPAL_CLIENT_ID=...
 PAYPAL_CLIENT_SECRET=...
 PAYPAL_WEBHOOK_ID=...
