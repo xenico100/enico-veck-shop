@@ -54,6 +54,9 @@ const getFriendlyInsertError = (message: string) => {
   if (lower.includes('row-level security') || lower.includes('permission denied')) {
     return '주문 저장 권한이 없어 주문 기록을 저장하지 못했습니다.';
   }
+  if (lower.includes('duplicate') && lower.includes('paypal_order_id')) {
+    return '이미 저장된 PayPal 주문입니다.';
+  }
   if (lower.includes('column') && lower.includes('orders')) {
     return 'orders 테이블 컬럼 구성이 현재 결제 저장 코드와 다릅니다.';
   }
@@ -122,15 +125,38 @@ export async function POST(request: Request) {
     status: 'paid',
     currency: 'KRW',
     amount_total: totalKRW,
+    total_amount: totalKRW,
+    paypal_order_id:
+      (typeof body.paypalOrderId === 'string' && body.paypalOrderId) ||
+      (typeof captureRecord?.id === 'string' ? captureRecord.id : null),
+    shipping_address: shippingAddressJson,
+    tracking_number: null,
     items,
     metadata
   };
 
-  let insertResult = await (supabase as any)
-    .from('orders')
-    .insert(orderPayload)
-    .select('id,user_id,status,currency,amount_total,created_at,items,metadata')
-    .single();
+  const paypalOrderIdForLookup =
+    (typeof orderPayload.paypal_order_id === 'string' && orderPayload.paypal_order_id) || null;
+
+  let insertResult;
+
+  if (paypalOrderIdForLookup) {
+    insertResult = await (supabase as any)
+      .from('orders')
+      .upsert(orderPayload, { onConflict: 'paypal_order_id' })
+      .select(
+        'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
+      )
+      .single();
+  } else {
+    insertResult = await (supabase as any)
+      .from('orders')
+      .insert(orderPayload)
+      .select(
+        'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
+      )
+      .single();
+  }
 
   if (insertResult.error) {
     const lower = (insertResult.error.message || '').toLowerCase();
@@ -140,11 +166,21 @@ export async function POST(request: Request) {
       try {
         const { createAdminClient } = await import('@/utils/supabase/adminClient');
         const adminClient = createAdminClient();
-        insertResult = await (adminClient as any)
-          .from('orders')
-          .insert(orderPayload)
-          .select('id,user_id,status,currency,amount_total,created_at,items,metadata')
-          .single();
+        insertResult = paypalOrderIdForLookup
+          ? await (adminClient as any)
+              .from('orders')
+              .upsert(orderPayload, { onConflict: 'paypal_order_id' })
+              .select(
+                'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
+              )
+              .single()
+          : await (adminClient as any)
+              .from('orders')
+              .insert(orderPayload)
+              .select(
+                'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
+              )
+              .single();
       } catch (adminError) {
         return NextResponse.json(
           {

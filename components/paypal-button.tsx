@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentProps, useEffect, useMemo } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 import {
   PayPalButtons,
   PayPalScriptProvider,
@@ -39,35 +39,69 @@ function PaypalButtonInner({ buttonProps }: PaypalButtonProps) {
 }
 
 export default function PaypalButton({ buttonProps }: PaypalButtonProps) {
-  const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() ?? "";
-  const sdkUrlForDiagnostics = useMemo(() => {
-    const maskedClientId = clientId ? `${clientId.slice(0, 6)}...` : "missing";
-    return `https://www.paypal.com/sdk/js?client-id=${maskedClientId}&currency=USD&intent=capture&components=buttons`;
-  }, [clientId]);
+  const [clientId, setClientId] = useState("");
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
 
   useEffect(() => {
-    const host = window.location.hostname;
-    const siteMode =
-      host === "localhost" || host === "127.0.0.1" ? "localhost" : "production-like";
+    let cancelled = false;
 
-    console.log("[PayPal Diagnostic] client env", {
-      sdkUrl: sdkUrlForDiagnostics,
-      host,
-      siteMode,
-      hasClientId: Boolean(clientId),
-      clientIdPrefix: clientId ? `${clientId.slice(0, 6)}...` : null,
-      environment: "sandbox expected when using sandbox client id",
-    });
-  }, [clientId, sdkUrlForDiagnostics]);
+    const loadConfig = async () => {
+      setConfigLoading(true);
+      setConfigError(null);
+      try {
+        const response = await fetch("/api/paypal/client-config", { cache: "no-store" });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || typeof payload?.clientId !== "string") {
+          throw new Error(payload?.message || "PayPal client configuration load failed.");
+        }
+        if (!cancelled) {
+          setClientId(payload.clientId.trim());
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setClientId("");
+          setConfigError(
+            error instanceof Error ? error.message : "PayPal client configuration load failed."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setConfigLoading(false);
+        }
+      }
+    };
+
+    void loadConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (configLoading) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/70">
+        PayPal 설정을 불러오는 중입니다...
+      </div>
+    );
+  }
+
+  if (configError) {
+    return (
+      <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
+        {configError}
+      </div>
+    );
+  }
 
   if (!clientId) {
-    return <div>Missing PayPal Client ID</div>;
+    return <div>Missing PayPal Client ID (server: PAYPAL_CLIENT_ID)</div>;
   }
 
   return (
     <PayPalScriptProvider
       options={{
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+        clientId,
         currency: "USD",
         intent: "capture",
         components: "buttons",

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       return jsonError('Missing PAYPAL_PLAN_ID_MONTHLY', 500);
     }
 
-    const returnUrl = new URL(getURL('/api/paypal/capture'));
+    const returnUrl = new URL(getURL('/api/paypal/subscription/return'));
     if (studioPostId) {
       returnUrl.searchParams.set('studioPostId', studioPostId);
     }
@@ -72,4 +72,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

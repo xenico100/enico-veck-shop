@@ -10,7 +10,6 @@ import QuantityStepper from '@/components/ui/QuantityStepper';
 import { useToast } from '@/components/ui/Toasts/use-toast';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
-import { createClient } from '@/utils/supabase/client';
 
 const appleFontClass =
   '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -52,7 +51,6 @@ function GlassCloseButton({
 }
 
 export default function CartModal({ open, onOpenChange }: CartModalProps) {
-  const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
@@ -116,10 +114,6 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
         throw new Error('Missing PayPal order ID');
       }
 
-      console.log('[PayPal Diagnostic] onApprove -> capture request start', {
-        orderId
-      });
-
       const captureResponse = await fetch('/api/paypal/capture-order', {
         method: 'POST',
         headers: {
@@ -129,94 +123,45 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       });
       const capturePayload = await captureResponse.json().catch(() => ({}));
 
-      console.log('[PayPal Diagnostic] capture-order API response', {
-        ok: captureResponse.ok,
-        status: captureResponse.status,
-        environment: capturePayload?.debug?.environment ?? null,
-        baseUrl: capturePayload?.debug?.baseUrl ?? null,
-        orderId: capturePayload?.paypal?.id ?? orderId,
-        orderStatus: capturePayload?.paypal?.status ?? null,
-        message: capturePayload?.message ?? null
-      });
-
       if (!captureResponse.ok) {
         throw new Error(capturePayload?.message || 'PayPal capture failed');
       }
 
       const captureDetails = capturePayload?.paypal ?? capturePayload;
-
-      const {
-        data: authData,
-        error: authError
-      } = await supabase.auth.getUser();
-
-      if (authError || !authData.user) {
-        const message = '로그인 후 결제를 진행할 수 있습니다.';
-        setCheckoutError(message);
-        window.alert(message);
-        return;
-      }
-
-      const captureRecord =
-        captureDetails && typeof captureDetails === 'object'
-          ? (captureDetails as Record<string, any>)
-          : {};
-      const purchaseUnits = Array.isArray(captureRecord.purchase_units)
-        ? (captureRecord.purchase_units as Array<Record<string, any>>)
-        : [];
-      const firstPurchaseUnit = purchaseUnits.find(
-        (unit) => unit && typeof unit === 'object'
-      );
-      const shippingAddress =
-        captureRecord.payer || firstPurchaseUnit?.shipping
-          ? {
-              payer: captureRecord.payer ?? null,
-              shipping: firstPurchaseUnit?.shipping ?? null
-            }
-          : {};
-
-      const orderItems = cartSnapshot.map((item) => ({
-        id: item.id,
-        name: item.title,
-        price: item.price,
-        quantity: item.quantity
-      }));
-
       const paypalOrderId =
-        (typeof captureRecord.id === 'string' && captureRecord.id) ||
-        (typeof data?.orderID === 'string' && data.orderID) ||
-        null;
+        typeof (captureDetails as any)?.id === 'string'
+          ? (captureDetails as any).id
+          : typeof data?.orderID === 'string'
+            ? data.orderID
+            : null;
 
-      const { data: insertedOrder, error: insertError } = await (supabase as any)
-        .from('orders')
-        .insert({
-          user_id: authData.user.id,
-          status: 'paid',
-          total_amount: totalKRW,
-          amount_total: totalKRW,
-          shipping_address: shippingAddress,
-          tracking_number: null,
-          items: orderItems,
-          paypal_order_id: paypalOrderId,
-          currency: 'KRW'
+      const saveOrderResponse = await fetch('/api/orders/paypal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          totalKRW,
+          approxUsd: usdTotal,
+          paypalOrderId,
+          paypalCapture: captureDetails,
+          items: cartSnapshot
         })
-        .select('id,user_id,status,total_amount,paypal_order_id')
-        .single();
+      });
+      const saveOrderPayload = await saveOrderResponse.json().catch(() => ({}));
 
-      if (insertError) {
-        throw new Error(insertError.message || '결제 완료 후 주문 저장에 실패했습니다.');
+      if (!saveOrderResponse.ok) {
+        throw new Error(saveOrderPayload?.message || '결제 완료 후 주문 저장에 실패했습니다.');
       }
 
-      console.log('PayPal payment success:', {
-        data,
-        captureDetails,
-        orderRecord: insertedOrder
-      });
-      window.alert('Payment Successful!');
       clear();
       setIsCheckingOut(false);
       setCheckoutError(null);
       onOpenChange(false);
+      toast({
+        title: '결제가 완료되었습니다',
+        description: '주문이 저장되었습니다.'
+      });
     } catch (error) {
       console.error('[PayPal Diagnostic] onApprove/capture failed', error);
       const message =
@@ -392,22 +337,13 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                               }
 
                               const normalizedUsdAmount = parsedAmount.toFixed(2);
-                              const paypalUsdAmount = '1.00'; // Temporary test value to verify checkout flow
-
-                              console.log('[PayPal Diagnostic] createOrder start', {
-                                usdTotalLabel,
-                                normalizedUsdAmount,
-                                paypalUsdAmount,
-                                currency: 'USD'
-                              });
-
                               const response = await fetch('/api/paypal/create-order', {
                                 method: 'POST',
                                 headers: {
                                   'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
-                                  amount: paypalUsdAmount,
+                                  amount: normalizedUsdAmount,
                                   currency: 'USD'
                                 })
                               });
@@ -417,7 +353,6 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                                 ok: response.ok,
                                 status: response.status,
                                 environment: payload?.debug?.environment ?? null,
-                                baseUrl: payload?.debug?.baseUrl ?? null,
                                 orderId: payload?.id ?? null,
                                 orderStatus: payload?.status ?? null,
                                 message: payload?.message ?? null

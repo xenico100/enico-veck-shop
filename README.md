@@ -249,7 +249,7 @@ Finally, navigate to [http://localhost:3000](http://localhost:3000) in your brow
 If PayPal shows `Missing PayPal Client ID` or `Expected client-id to be passed`, verify the following:
 
 - `.env.local` is in the same folder where you run `pnpm dev` (the Next.js app root that contains `package.json` and `app/`)
-- `NEXT_PUBLIC_PAYPAL_CLIENT_ID` is defined in `.env.local`
+- `PAYPAL_CLIENT_ID` is defined in `.env.local` (server-side; the client fetches a safe config from `/api/paypal/client-config`)
 - `PAYPAL_CLIENT_SECRET` is defined in `.env.local` (server-only; never expose it to the browser)
 - `PAYPAL_ENV=sandbox` is defined in `.env.local` while testing Sandbox
 - PayPal SDK is initialized only in a Client Component (this project uses `components/paypal-button.tsx`)
@@ -258,7 +258,7 @@ If PayPal shows `Missing PayPal Client ID` or `Expected client-id to be passed`,
 Example `.env.local` entry:
 
 ```bash
-NEXT_PUBLIC_PAYPAL_CLIENT_ID=REPLACE_WITH_MY_CLIENT_ID
+PAYPAL_CLIENT_ID=REPLACE_WITH_MY_CLIENT_ID
 PAYPAL_CLIENT_SECRET=REPLACE_WITH_SANDBOX_SECRET
 PAYPAL_ENV=sandbox
 ```
@@ -286,7 +286,7 @@ Add the following to `.env.local` (see `.env.local.example`):
 ```bash
 PAYPAL_ENV=sandbox
 PAYPAL_CLIENT_ID=...
-PAYPAL_SECRET=...
+PAYPAL_CLIENT_SECRET=...
 PAYPAL_WEBHOOK_ID=...
 PAYPAL_PLAN_ID_MONTHLY=...
 
@@ -298,8 +298,8 @@ R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 
 Notes:
 
-- `PAYPAL_CLIENT_ID` / `PAYPAL_SECRET` are server-side credentials for the Studio subscription flow.
-- `NEXT_PUBLIC_PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` can remain for the existing legacy one-time PayPal order flow.
+- `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` are server-side credentials for the Studio subscription flow.
+- One-time service checkout and Studio subscription flows both use the same server-side `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET`.
 - `R2_BUCKET_NAME` must be private. Do not expose direct/public object URLs for Studio media.
 
 ### PayPal plan setup (monthly)
@@ -330,8 +330,9 @@ The app verifies webhook signatures via PayPal's `verify-webhook-signature` API 
 
 ### App routes added for Studio subscriptions
 
-- `POST /api/paypal/create-subscription` -> creates PayPal subscription approval session
-- `GET|POST /api/paypal/capture` -> syncs approved subscription status to Supabase and updates `studio_access`
+- `POST /api/paypal/subscription/create` -> creates PayPal subscription approval session
+- `GET /api/paypal/subscription/return` -> syncs approved subscription status to Supabase and updates `studio_access`
+- `POST /api/paypal/capture` -> optional authenticated subscription status sync endpoint (legacy-compatible helper)
 - `POST /api/paypal/webhook` -> verified PayPal webhook handler + idempotent event processing
 - `POST /api/r2/presign-put` -> admin-only presigned PUT URL for private R2 uploads (5 min TTL)
 - `POST /api/studio/media/register` -> admin-only `studio_media` insert after successful R2 upload

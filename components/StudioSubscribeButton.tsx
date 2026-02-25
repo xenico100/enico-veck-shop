@@ -23,7 +23,7 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
     setError(null);
 
     try {
-      const response = await fetch('/api/paypal/create-subscription', {
+      const response = await fetch('/api/paypal/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studioPostId })
@@ -64,4 +64,3 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
     </div>
   );
 }
-

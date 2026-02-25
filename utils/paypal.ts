@@ -8,6 +8,17 @@ type PayPalOAuthResponse = {
   expires_in?: number;
 };
 
+export type PayPalOrder = {
+  id?: string;
+  status?: string;
+  payer?: {
+    email_address?: string;
+    payer_id?: string;
+  };
+  purchase_units?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+};
+
 export type PayPalSubscription = {
   id?: string;
   plan_id?: string;
@@ -65,6 +76,14 @@ export type PayPalCreateSubscriptionResponse = {
   [key: string]: unknown;
 };
 
+export type PayPalCreateOrderResponse = PayPalOrder & {
+  links?: Array<{
+    href?: string;
+    rel?: string;
+    method?: string;
+  }>;
+};
+
 export type PayPalWebhookEvent = {
   id?: string;
   event_type?: string;
@@ -81,7 +100,7 @@ type VerifyWebhookResponse = {
 
 type PayPalConfig = {
   clientId: string;
-  secret: string;
+  clientSecret: string;
   webhookId: string | null;
   environment: PayPalEnv;
   baseUrl: string;
@@ -107,11 +126,8 @@ class PayPalApiError extends Error {
 
 const getPayPalConfig = (): PayPalConfig => {
   const clientId =
-    process.env.PAYPAL_CLIENT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() ||
-    '';
-  const secret =
-    process.env.PAYPAL_SECRET?.trim() || process.env.PAYPAL_CLIENT_SECRET?.trim() || '';
+    process.env.PAYPAL_CLIENT_ID?.trim() || '';
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET?.trim() || '';
   const webhookId = process.env.PAYPAL_WEBHOOK_ID?.trim() || null;
   const rawEnv = (process.env.PAYPAL_ENV || 'sandbox').trim().toLowerCase();
   const environment: PayPalEnv =
@@ -123,11 +139,11 @@ const getPayPalConfig = (): PayPalConfig => {
     throw new Error('Missing PAYPAL_CLIENT_ID');
   }
 
-  if (!secret) {
-    throw new Error('Missing PAYPAL_SECRET');
+  if (!clientSecret) {
+    throw new Error('Missing PAYPAL_CLIENT_SECRET');
   }
 
-  return { clientId, secret, webhookId, environment, baseUrl };
+  return { clientId, clientSecret, webhookId, environment, baseUrl };
 };
 
 const basicAuthHeader = (clientId: string, secret: string) =>
@@ -172,12 +188,12 @@ async function paypalFetch<T>(
 }
 
 export async function getAccessToken() {
-  const { clientId, secret, baseUrl } = getPayPalConfig();
+  const { clientId, clientSecret, baseUrl } = getPayPalConfig();
 
   const response = await fetch(`${baseUrl}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
-      Authorization: basicAuthHeader(clientId, secret),
+      Authorization: basicAuthHeader(clientId, clientSecret),
       'Content-Type': 'application/x-www-form-urlencoded'
     },
     body: 'grant_type=client_credentials',
@@ -219,6 +235,52 @@ export async function createSubscription(
     { accessToken }
   );
 }
+
+export async function createOrder(params: {
+  amount: string;
+  currency?: string;
+  customId?: string | null;
+}) {
+  const accessToken = await getAccessToken();
+  const currency = (params.currency || 'USD').trim().toUpperCase();
+  const amount = params.amount.trim();
+
+  return paypalFetch<PayPalCreateOrderResponse>(
+    '/v2/checkout/orders',
+    {
+      method: 'POST',
+      body: {
+        intent: 'CAPTURE',
+        purchase_units: [
+          {
+            ...(params.customId ? { custom_id: params.customId } : {}),
+            amount: {
+              currency_code: currency,
+              value: amount
+            }
+          }
+        ]
+      }
+    },
+    { accessToken }
+  );
+}
+
+export async function captureOrder(orderId: string) {
+  const accessToken = await getAccessToken();
+  return paypalFetch<PayPalOrder>(
+    `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
+    {
+      method: 'POST'
+    },
+    { accessToken }
+  );
+}
+
+export const getPayPalClientConfig = () => {
+  const { clientId, environment } = getPayPalConfig();
+  return { clientId, environment };
+};
 
 export async function getSubscription(subscriptionId: string) {
   const accessToken = await getAccessToken();
@@ -280,4 +342,3 @@ export const isPayPalApiError = (error: unknown): error is PayPalApiError =>
   error instanceof PayPalApiError;
 
 export const getPayPalEnvironment = () => getPayPalConfig().environment;
-
