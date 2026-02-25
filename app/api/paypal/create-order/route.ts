@@ -34,9 +34,10 @@ export async function POST(request: Request) {
       data: { user },
       error: authError
     } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return jsonError('로그인이 필요합니다. (PayPal order create)', 401);
+    if (authError) {
+      console.warn('[PayPal create-order] auth lookup warning (continuing as guest)', {
+        message: authError.message
+      });
     }
 
     const environment = getPayPalEnvironment();
@@ -49,10 +50,11 @@ export async function POST(request: Request) {
       return jsonError('Invalid PayPal amount. Expected a positive USD amount string/number.', 400);
     }
 
-    const payload = await createOrder({ amount, currency, customId: user.id });
+    const payload = await createOrder({ amount, currency, customId: user?.id ?? null });
 
     console.log('[PayPal create-order] response', {
       environment,
+      hasUser: Boolean(user),
       orderId: typeof payload?.id === 'string' ? payload.id : null,
       orderStatus: typeof payload?.status === 'string' ? payload.status : null
     });

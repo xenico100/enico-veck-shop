@@ -9,7 +9,7 @@ export type OrderItemSnapshot = {
 
 export type OrderRecord = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   status: string;
   currency: string | null;
   amount_total: number | null;
@@ -45,13 +45,13 @@ export const normalizeOrderItems = (value: unknown): OrderItemSnapshot[] => {
 export const normalizeOrderRecord = (value: unknown): OrderRecord | null => {
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
-  if (typeof row.id !== 'string' || typeof row.user_id !== 'string' || typeof row.created_at !== 'string') {
+  if (typeof row.id !== 'string' || typeof row.created_at !== 'string') {
     return null;
   }
 
   return {
     id: row.id,
-    user_id: row.user_id,
+    user_id: typeof row.user_id === 'string' ? row.user_id : null,
     status: typeof row.status === 'string' ? row.status : 'pending',
     currency: typeof row.currency === 'string' ? row.currency : null,
     amount_total: row.amount_total == null ? null : Number(row.amount_total),

@@ -31,6 +31,12 @@ type CartModalProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+type GuestCheckoutForm = {
+  email: string;
+  phone: string;
+  address: string;
+};
+
 function GlassCloseButton({
   onClick,
   label
@@ -57,6 +63,11 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [guestForm, setGuestForm] = useState<GuestCheckoutForm>({
+    email: '',
+    phone: '',
+    address: ''
+  });
 
   const hasUnpricedItems = useMemo(() => items.some((item) => item.price == null), [items]);
   const totalKRW = useMemo(() => Math.round(total), [total]);
@@ -91,6 +102,39 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
     }
   }, [items.length]);
 
+  useEffect(() => {
+    if (user?.email) {
+      setGuestForm((prev) => ({
+        ...prev,
+        email: prev.email || user.email
+      }));
+    }
+  }, [user?.email]);
+
+  const updateGuestForm = (patch: Partial<GuestCheckoutForm>) => {
+    setGuestForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const getGuestPayload = () => {
+    const email = guestForm.email.trim();
+    const phone = guestForm.phone.trim();
+    const address = guestForm.address.trim();
+
+    if (user?.id) {
+      return null;
+    }
+
+    if (!email || !phone || !address) {
+      return {
+        error: '비회원 구매에는 이메일, 연락처, 주소를 모두 입력해 주세요.'
+      } as const;
+    }
+
+    return {
+      value: { email, phone, address }
+    } as const;
+  };
+
   const handleOpenCheckout = () => {
     if (items.length === 0) return;
 
@@ -109,9 +153,13 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       setIsSavingOrder(true);
       setCheckoutError(null);
       const orderId = typeof data?.orderID === 'string' ? data.orderID : '';
+      const guestPayload = getGuestPayload();
 
       if (!orderId) {
         throw new Error('Missing PayPal order ID');
+      }
+      if (guestPayload && 'error' in guestPayload) {
+        throw new Error(guestPayload.error);
       }
 
       const captureResponse = await fetch('/api/paypal/order/capture', {
@@ -165,7 +213,8 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
           approxUsd: usdTotal,
           paypalOrderId,
           paypalCapture: captureDetails,
-          items: cartSnapshot
+          items: cartSnapshot,
+          guestCustomer: guestPayload && 'value' in guestPayload ? guestPayload.value : undefined
         })
       });
       const saveOrderPayload = await saveOrderResponse.json().catch(() => ({}));
@@ -311,6 +360,52 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                   <p className="mt-1 text-xs text-white/50">주문 항목 수: {itemCount}개</p>
                 </div>
 
+                {!authLoading && !user?.id ? (
+                  <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+                    <div className="mb-3">
+                      <h3 className="text-sm font-semibold tracking-tight text-white">
+                        비회원 주문 정보
+                      </h3>
+                      <p className="mt-1 text-xs text-white/55">
+                        주문 저장을 위해 이메일, 연락처, 주소를 입력해 주세요.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-xs text-white/60">이메일</label>
+                        <input
+                          type="email"
+                          value={guestForm.email}
+                          onChange={(event) => updateGuestForm({ email: event.target.value })}
+                          placeholder="you@example.com"
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-white/60">연락처</label>
+                        <input
+                          type="tel"
+                          value={guestForm.phone}
+                          onChange={(event) => updateGuestForm({ phone: event.target.value })}
+                          placeholder="010-0000-0000"
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-white/60">주소</label>
+                        <input
+                          type="text"
+                          value={guestForm.address}
+                          onChange={(event) => updateGuestForm({ address: event.target.value })}
+                          placeholder="배송지 주소"
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
                   <div className="mb-3">
                     <h3 className="text-sm font-semibold tracking-tight text-white">간편결제</h3>
@@ -346,9 +441,10 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           },
                           createOrder: async () => {
                             try {
-                              if (!user?.id) {
-                                window.alert('로그인 후 결제를 진행할 수 있습니다.');
-                                throw new Error('로그인 후 결제를 진행할 수 있습니다.');
+                              const guestPayload = getGuestPayload();
+                              if (guestPayload && 'error' in guestPayload) {
+                                window.alert(guestPayload.error);
+                                throw new Error(guestPayload.error);
                               }
 
                               const parsedAmount = Number(String(usdTotalLabel).replace(/,/g, ''));
@@ -413,7 +509,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                       ) : null}
                       {!authLoading && !user?.id ? (
                         <p className="mt-2 text-xs text-white/45">
-                          로그인 후 결제 승인 시 주문 저장이 가능합니다.
+                          비회원 구매 가능합니다. 위 주문 정보를 입력한 뒤 결제를 진행해 주세요.
                         </p>
                       ) : null}
                     </div>

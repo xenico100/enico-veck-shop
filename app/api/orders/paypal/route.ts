@@ -21,6 +21,11 @@ type PayPalOrderSaveRequest = {
   paypalOrderId?: string | null;
   paypalCapture?: unknown;
   items?: PayPalCartItemPayload[];
+  guestCustomer?: {
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
 };
 
 type PayPalCapturedAmount = {
@@ -33,6 +38,12 @@ type SupabaseErrorLike = {
   details?: string | null;
   code?: string | null;
   hint?: string | null;
+};
+
+type GuestCustomerContact = {
+  email: string;
+  phone: string;
+  address: string;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -73,6 +84,9 @@ const getFriendlyInsertError = (message: string) => {
   }
   if (lower.includes('column') && lower.includes('orders')) {
     return 'orders 테이블 컬럼 구성이 현재 결제 저장 코드와 다릅니다.';
+  }
+  if (lower.includes('null value') && lower.includes('user_id')) {
+    return '비회원 주문을 저장하려면 orders.user_id 컬럼의 NOT NULL 제약을 해제해야 합니다.';
   }
   return message || '주문 저장에 실패했습니다.';
 };
@@ -124,6 +138,18 @@ const parsePayPalAmountToIntegerStorage = (value: string, currency: string | nul
   return Math.round(parsed * 100);
 };
 
+const normalizeGuestCustomer = (input: unknown): GuestCustomerContact | null => {
+  if (!isRecord(input)) return null;
+
+  const email = typeof input.email === 'string' ? input.email.trim() : '';
+  const phone = typeof input.phone === 'string' ? input.phone.trim() : '';
+  const address = typeof input.address === 'string' ? input.address.trim() : '';
+
+  if (!email || !phone || !address) return null;
+
+  return { email, phone, address };
+};
+
 export async function POST(request: Request) {
   const supabase = createClient();
   const {
@@ -137,16 +163,24 @@ export async function POST(request: Request) {
     authErrorMessage: userError?.message ?? null
   });
   console.log('[orders/paypal] user:', user);
-
-  if (userError || !user) {
-    console.warn('[orders/paypal] missing auth session before order insert', {
+  const authenticatedUser = user ?? null;
+  const isGuestOrder = !authenticatedUser;
+  if (isGuestOrder) {
+    console.warn('[orders/paypal] proceeding as guest order (no authenticated user session)', {
       userErrorMessage: userError?.message ?? null
     });
-    return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
   const body = (await request.json().catch(() => ({}))) as PayPalOrderSaveRequest;
   const totalKRW = Math.round(Number(body.totalKRW ?? 0));
+  const guestCustomer = normalizeGuestCustomer(body.guestCustomer);
+
+  if (isGuestOrder && !guestCustomer) {
+    return NextResponse.json(
+      { message: '비회원 구매에는 이메일, 연락처, 주소 입력이 필요합니다.' },
+      { status: 400 }
+    );
+  }
 
   const items = normalizeCartItems(body.items);
   const capture = body.paypalCapture;
@@ -172,12 +206,19 @@ export async function POST(request: Request) {
         : null);
   const currency = capturedPayPalAmount.currency ?? 'USD';
 
-  const shippingAddressJson = payer || shipping
-    ? {
-        payer: payer ?? null,
-        shipping: shipping ?? null
-      }
-    : {};
+  const shippingAddressJson = {
+    ...(payer || shipping
+      ? {
+          payer: payer ?? null,
+          shipping: shipping ?? null
+        }
+      : {}),
+    ...(guestCustomer
+      ? {
+          guest_contact: guestCustomer
+        }
+      : {})
+  };
 
   const fallbackAmountTotal = valueStr
     ? parsePayPalAmountToIntegerStorage(valueStr, currency)
@@ -194,7 +235,8 @@ export async function POST(request: Request) {
   }
 
   console.info('[orders/paypal] amount_total resolved', {
-    userId: user.id,
+    userId: authenticatedUser?.id ?? null,
+    guestOrder: isGuestOrder,
     source:
       Number.isFinite(totalKRW) && totalKRW > 0 ? 'client_totalKRW' : 'paypal_capture_amount_fallback',
     amountTotal: resolvedAmountTotal,
@@ -205,7 +247,7 @@ export async function POST(request: Request) {
   });
 
   const orderPayload = {
-    user_id: user.id,
+    user_id: authenticatedUser?.id ?? null,
     status: 'paid',
     currency: resolvedCurrency,
     amount_total: resolvedAmountTotal,
@@ -230,24 +272,49 @@ export async function POST(request: Request) {
   let insertResult;
   const selectColumns =
     'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number';
+  const writeOrder = async (dbClient: any) =>
+    paypalOrderIdForLookup
+      ? await dbClient
+          .from('orders')
+          .upsert(orderPayload, { onConflict: 'paypal_order_id' })
+          .select(selectColumns)
+          .single()
+      : await dbClient
+          .from('orders')
+          .insert(orderPayload)
+          .select(selectColumns)
+          .single();
 
-  if (paypalOrderIdForLookup) {
-    insertResult = await (supabase as any)
-      .from('orders')
-      .upsert(orderPayload, { onConflict: 'paypal_order_id' })
-      .select(selectColumns)
-      .single();
+  if (isGuestOrder) {
+    try {
+      const { createAdminClient } = await import('@/utils/supabase/adminClient');
+      const adminClient = createAdminClient();
+      insertResult = await writeOrder(adminClient as any);
+      if (insertResult.error) {
+        logSupabaseOrderWriteError('guest_admin_client', insertResult.error, {
+          userId: null,
+          paypalOrderId: paypalOrderIdForLookup
+        });
+      }
+    } catch (adminError) {
+      console.error('[orders/paypal] guest admin insert exception', {
+        paypalOrderId: paypalOrderIdForLookup,
+        error: adminError
+      });
+      return NextResponse.json(
+        {
+          message: adminError instanceof Error ? adminError.message : '비회원 주문 저장에 실패했습니다.'
+        },
+        { status: 500 }
+      );
+    }
   } else {
-    insertResult = await (supabase as any)
-      .from('orders')
-      .insert(orderPayload)
-      .select(selectColumns)
-      .single();
+    insertResult = await writeOrder(supabase as any);
   }
 
-  if (insertResult.error) {
+  if (!isGuestOrder && insertResult.error) {
     logSupabaseOrderWriteError('user_client', insertResult.error, {
-      userId: user.id,
+      userId: authenticatedUser?.id ?? null,
       paypalOrderId: paypalOrderIdForLookup
     });
     const lower = (insertResult.error.message || '').toLowerCase();
@@ -271,13 +338,13 @@ export async function POST(request: Request) {
 
         if (insertResult.error) {
           logSupabaseOrderWriteError('admin_fallback_client', insertResult.error, {
-            userId: user.id,
+            userId: authenticatedUser?.id ?? null,
             paypalOrderId: paypalOrderIdForLookup
           });
         }
       } catch (adminError) {
         console.error('[orders/paypal] admin fallback exception', {
-          userId: user.id,
+          userId: authenticatedUser?.id ?? null,
           paypalOrderId: paypalOrderIdForLookup,
           error: adminError
         });
@@ -296,7 +363,7 @@ export async function POST(request: Request) {
 
   if (insertResult.error) {
     logSupabaseOrderWriteError('final', insertResult.error, {
-      userId: user.id,
+      userId: authenticatedUser?.id ?? null,
       paypalOrderId: paypalOrderIdForLookup
     });
     return NextResponse.json(

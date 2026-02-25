@@ -54,9 +54,10 @@ export async function POST(request: Request) {
       data: { user },
       error: authError
     } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return jsonError('로그인이 필요합니다. (PayPal order capture)', 401);
+    if (authError) {
+      console.warn('[PayPal capture-order] auth lookup warning (continuing as guest)', {
+        message: authError.message
+      });
     }
 
     environment = getPayPalEnvironment();
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
 
     console.log('[PayPal capture-order] response', {
       environment,
+      hasUser: Boolean(user),
       orderId: typeof payload?.id === 'string' ? payload.id : orderId,
       orderStatus: typeof payload?.status === 'string' ? payload.status : null,
       payerEmail:
