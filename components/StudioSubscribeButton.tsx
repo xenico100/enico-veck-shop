@@ -58,7 +58,7 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
           'inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-70'
         }
       >
-        {loading ? 'PayPal로 이동 중...' : 'Subscribe (PayPal)'}
+        {loading ? 'PayPal 결제창으로 이동 중...' : '멤버십 가입 (PayPal)'}
       </button>
       {error && <p className="text-sm text-rose-200">{error}</p>}
     </div>

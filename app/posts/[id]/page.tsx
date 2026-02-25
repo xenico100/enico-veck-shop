@@ -242,16 +242,24 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
 
               {!currentUserId && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <p className="text-sm text-neutral-200">Login to subscribe</p>
+                  <p className="text-sm font-semibold text-white">멤버십 가입이 필요합니다.</p>
                   <p className="mt-2 text-sm text-neutral-400">
                     로그인 후 PayPal 월 구독을 시작하면 전용 미디어를 볼 수 있습니다.
                   </p>
-                  <Link
-                    href="/signin"
-                    className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
-                  >
-                    로그인하러 가기
-                  </Link>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      href="/signin"
+                      className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                    >
+                      로그인
+                    </Link>
+                    <Link
+                      href="/signin"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                    >
+                      멤버십 가입하기
+                    </Link>
+                  </div>
                 </div>
               )}
 
@@ -264,7 +272,10 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
                     PayPal 월 구독을 활성화하면 이 게시글의 원본 이미지/영상이 표시됩니다.
                   </p>
                   <div className="mt-4">
-                    <StudioSubscribeButton studioPostId={post.id} />
+                    <StudioSubscribeButton
+                      studioPostId={post.id}
+                      className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                    />
                   </div>
                 </div>
               )}

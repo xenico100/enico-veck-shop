@@ -148,6 +148,11 @@ export default async function PostsPage({ searchParams }: PageProps) {
                       {post.content ?? ''}
                     </p>
                     <p className="text-xs text-neutral-500">작성자: {post.user_id}</p>
+                    <div className="pt-1">
+                      <span className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white/90">
+                        멤버십 가입 후 전용 미디어 보기
+                      </span>
+                    </div>
                   </div>
                 </Link>
               </article>
