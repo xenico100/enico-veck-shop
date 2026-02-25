@@ -68,6 +68,9 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
   const [draft, setDraft] = useState<Draft>(defaultDraft);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -173,6 +176,112 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     }
   };
 
+  const handleDirectUpload = async () => {
+    setError(null);
+    setMessage(null);
+
+    if (!draft.studio_post_id) {
+      setError('Studio 게시글을 선택해 주세요.');
+      return;
+    }
+    if (!selectedFile) {
+      setError('업로드할 파일을 선택해 주세요.');
+      return;
+    }
+
+    const contentType = (selectedFile.type || '').trim().toLowerCase();
+    if (!contentType) {
+      setError('파일 MIME 타입을 확인할 수 없습니다.');
+      return;
+    }
+    if (draft.kind === 'image' && !contentType.startsWith('image/')) {
+      setError('kind=image 인 경우 이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+    if (draft.kind === 'video' && !contentType.startsWith('video/')) {
+      setError('kind=video 인 경우 비디오 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const presignResponse = await fetch('/api/r2/presign-put', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studioPostId: draft.studio_post_id,
+          filename: selectedFile.name,
+          contentType,
+          bytes: selectedFile.size,
+          kind: draft.kind
+        })
+      });
+
+      const presignPayload = (await presignResponse.json().catch(() => ({}))) as {
+        r2_key?: string;
+        uploadUrl?: string;
+        message?: string;
+      };
+
+      if (
+        !presignResponse.ok ||
+        typeof presignPayload.r2_key !== 'string' ||
+        typeof presignPayload.uploadUrl !== 'string'
+      ) {
+        throw new Error(presignPayload.message || 'R2 업로드 URL 발급에 실패했습니다.');
+      }
+
+      const putResponse = await fetch(presignPayload.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType
+        },
+        body: selectedFile
+      });
+
+      if (!putResponse.ok) {
+        throw new Error(`R2 업로드 실패 (${putResponse.status})`);
+      }
+
+      const registerResponse = await fetch('/api/studio/media/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studioPostId: draft.studio_post_id,
+          kind: draft.kind,
+          r2_key: presignPayload.r2_key,
+          mime: contentType,
+          bytes: selectedFile.size
+        })
+      });
+
+      const registerPayload = (await registerResponse.json().catch(() => ({}))) as {
+        data?: StudioMediaRow;
+        message?: string;
+      };
+
+      if (!registerResponse.ok || !registerPayload.data) {
+        throw new Error(registerPayload.message || 'Studio 미디어 등록에 실패했습니다.');
+      }
+
+      setMediaRows((prev) => [registerPayload.data as StudioMediaRow, ...prev]);
+      setSelectedFile(null);
+      setFileInputKey((prev) => prev + 1);
+      setDraft((prev) => ({
+        ...prev,
+        r2_key: '',
+        mime: '',
+        bytes: ''
+      }));
+      setMessage('R2 업로드 및 Studio 미디어 등록이 완료되었습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'R2 업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleDelete = async (row: StudioMediaRow) => {
     if (!window.confirm(`"${row.r2_key}" 메타데이터를 삭제할까요? (R2 파일은 삭제되지 않음)`)) {
       return;
@@ -204,9 +313,9 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-lg font-semibold text-white">Studio 미디어 관리 (R2 키 연결)</h4>
+          <h4 className="text-lg font-semibold text-white">Studio 미디어 관리 (R2 업로드 + 연결)</h4>
           <p className="mt-1 text-sm text-white/60">
-            R2 업로드는 수동으로 진행하고, 여기서는 `studio_posts`와 `r2_key` 메타데이터만 연결합니다.
+            관리자만 Presigned PUT URL로 R2(비공개)에 직접 업로드하고, 업로드 후 `studio_media`에 메타데이터를 등록합니다.
           </p>
         </div>
         <ActionButton type="button" variant="secondary" size="sm" onClick={fetchMediaAdminData}>
@@ -227,8 +336,8 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
 
       <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium text-white">미디어 메타데이터 추가</p>
-          <span className="text-xs text-white/45">R2 파일 업로드는 별도 수행</span>
+          <p className="text-sm font-medium text-white">R2 직접 업로드 + 미디어 등록</p>
+          <span className="text-xs text-white/45">Presigned PUT (5분 만료)</span>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -238,7 +347,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
               className={inputClass}
               value={draft.studio_post_id}
               onChange={(e) => setDraft((prev) => ({ ...prev, studio_post_id: e.target.value }))}
-              disabled={saving}
+              disabled={saving || uploading}
             >
               <option value="" className="bg-neutral-900">
                 게시글 선택
@@ -262,7 +371,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
                   kind: e.target.value === 'video' ? 'video' : 'image'
                 }))
               }
-              disabled={saving}
+              disabled={saving || uploading}
             >
               <option value="image" className="bg-neutral-900">
                 image
@@ -274,13 +383,30 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
           </div>
 
           <div className="grid gap-2">
+            <label className={labelClass}>업로드 파일</label>
+            <input
+              key={fileInputKey}
+              type="file"
+              accept={draft.kind === 'video' ? 'video/*' : 'image/*'}
+              className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/20 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              disabled={saving || uploading}
+            />
+            <p className="text-xs text-white/45">
+              {selectedFile
+                ? `${selectedFile.name} · ${selectedFile.type || 'unknown'} · ${selectedFile.size.toLocaleString()} bytes`
+                : 'image/* 또는 video/* 파일 선택'}
+            </p>
+          </div>
+
+          <div className="grid gap-2">
             <label className={labelClass}>R2 Bucket (optional)</label>
             <input
               className={inputClass}
               value={draft.r2_bucket}
               onChange={(e) => setDraft((prev) => ({ ...prev, r2_bucket: e.target.value }))}
-              placeholder="비워두면 R2_BUCKET 사용"
-              disabled={saving}
+              placeholder="비워두면 R2_BUCKET_NAME 사용 (수동 등록용)"
+              disabled={saving || uploading}
             />
           </div>
 
@@ -291,7 +417,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
               value={draft.r2_key}
               onChange={(e) => setDraft((prev) => ({ ...prev, r2_key: e.target.value }))}
               placeholder="studio/post-uuid/media/file.mp4"
-              disabled={saving}
+              disabled={saving || uploading}
             />
           </div>
 
@@ -302,7 +428,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
               value={draft.mime}
               onChange={(e) => setDraft((prev) => ({ ...prev, mime: e.target.value }))}
               placeholder={draft.kind === 'video' ? 'video/mp4' : 'image/jpeg'}
-              disabled={saving}
+              disabled={saving || uploading}
             />
           </div>
 
@@ -314,14 +440,30 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
               value={draft.bytes}
               onChange={(e) => setDraft((prev) => ({ ...prev, bytes: e.target.value }))}
               placeholder="1048576"
-              disabled={saving}
+              disabled={saving || uploading}
             />
           </div>
         </div>
 
-        <div className="mt-4 flex justify-end">
-          <ActionButton type="button" variant="primary" size="sm" onClick={handleCreate} disabled={saving}>
-            {saving ? '저장 중…' : '미디어 메타데이터 추가'}
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <ActionButton
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={handleDirectUpload}
+            disabled={saving || uploading}
+          >
+            {uploading ? '업로드 중…' : '파일 업로드 + 등록'}
+          </ActionButton>
+          <ActionButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleCreate}
+            disabled={saving || uploading}
+            title="수동으로 이미 업로드된 R2 객체를 studio_media에만 등록"
+          >
+            {saving ? '저장 중…' : '수동 메타데이터 등록'}
           </ActionButton>
         </div>
       </div>
@@ -400,4 +542,3 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     </div>
   );
 }
-

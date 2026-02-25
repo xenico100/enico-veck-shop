@@ -63,7 +63,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
         mime: row.mime,
         bytes: row.bytes,
         url: await signR2GetUrl(row.r2_key, {
-          bucket: row.r2_bucket || undefined,
+          bucketName: row.r2_bucket || undefined,
           expiresIn: 180
         })
       }))

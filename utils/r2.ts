@@ -1,11 +1,11 @@
 import 'server-only';
 
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 type R2Config = {
   endpoint: string;
-  bucket: string;
+  bucketName: string;
   accessKeyId: string;
   secretAccessKey: string;
 };
@@ -13,12 +13,8 @@ type R2Config = {
 let r2Client: S3Client | null = null;
 
 const getR2Config = (): R2Config => {
-  const endpoint =
-    process.env.R2_ENDPOINT?.trim() ||
-    (process.env.R2_ACCOUNT_ID?.trim()
-      ? `https://${process.env.R2_ACCOUNT_ID.trim()}.r2.cloudflarestorage.com`
-      : '');
-  const bucket = process.env.R2_BUCKET?.trim() || '';
+  const endpoint = process.env.R2_ENDPOINT?.trim() || '';
+  const bucketName = process.env.R2_BUCKET_NAME?.trim() || '';
   const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim() || '';
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim() || '';
 
@@ -26,8 +22,8 @@ const getR2Config = (): R2Config => {
     throw new Error('Missing R2_ENDPOINT');
   }
 
-  if (!bucket) {
-    throw new Error('Missing R2_BUCKET');
+  if (!bucketName) {
+    throw new Error('Missing R2_BUCKET_NAME');
   }
 
   if (!accessKeyId) {
@@ -40,7 +36,7 @@ const getR2Config = (): R2Config => {
 
   return {
     endpoint,
-    bucket,
+    bucketName,
     accessKeyId,
     secretAccessKey
   };
@@ -63,15 +59,15 @@ const getR2Client = () => {
   return r2Client;
 };
 
-const clampTtl = (value?: number) => {
-  const numeric = Number(value ?? 180);
-  if (!Number.isFinite(numeric)) return 180;
-  return Math.min(300, Math.max(60, Math.floor(numeric)));
+const clampTtl = (value: number | undefined, min: number, max: number, fallback: number) => {
+  const numeric = Number(value ?? fallback);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(numeric)));
 };
 
 export async function signR2GetUrl(
   key: string,
-  options?: { expiresIn?: number; bucket?: string }
+  options?: { expiresIn?: number; bucketName?: string }
 ) {
   if (!key.trim()) {
     throw new Error('Missing R2 object key');
@@ -80,12 +76,43 @@ export async function signR2GetUrl(
   const config = getR2Config();
   const client = getR2Client();
   const command = new GetObjectCommand({
-    Bucket: options?.bucket?.trim() || config.bucket,
+    Bucket: options?.bucketName?.trim() || config.bucketName,
     Key: key
   });
 
-  return getSignedUrl(client, command, { expiresIn: clampTtl(options?.expiresIn) });
+  return getSignedUrl(client, command, {
+    expiresIn: clampTtl(options?.expiresIn, 60, 300, 180)
+  });
 }
 
-export const getDefaultR2Bucket = () => getR2Config().bucket;
+export async function signR2PutUrl(
+  key: string,
+  options: {
+    contentType: string;
+    expiresIn?: number;
+    bucketName?: string;
+  }
+) {
+  if (!key.trim()) {
+    throw new Error('Missing R2 object key');
+  }
 
+  const contentType = options.contentType?.trim();
+  if (!contentType) {
+    throw new Error('Missing contentType for R2 PUT presign');
+  }
+
+  const config = getR2Config();
+  const client = getR2Client();
+  const command = new PutObjectCommand({
+    Bucket: options.bucketName?.trim() || config.bucketName,
+    Key: key,
+    ContentType: contentType
+  });
+
+  return getSignedUrl(client, command, {
+    expiresIn: clampTtl(options.expiresIn, 60, 300, 300)
+  });
+}
+
+export const getDefaultR2BucketName = () => getR2Config().bucketName;

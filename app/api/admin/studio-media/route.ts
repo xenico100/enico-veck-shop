@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const r2Key = (body.r2_key || '').trim();
   const r2Bucket =
     (typeof body.r2_bucket === 'string' ? body.r2_bucket : '').trim() ||
-    process.env.R2_BUCKET?.trim() ||
+    process.env.R2_BUCKET_NAME?.trim() ||
     '';
   const mime = (typeof body.mime === 'string' ? body.mime : '').trim() || null;
   const bytes = normalizeBytes(body.bytes);

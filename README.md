@@ -290,10 +290,9 @@ PAYPAL_SECRET=...
 PAYPAL_WEBHOOK_ID=...
 PAYPAL_PLAN_ID_MONTHLY=...
 
-R2_ACCOUNT_ID=...
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
-R2_BUCKET=...
+R2_BUCKET_NAME=enico-videos
 R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 ```
 
@@ -301,7 +300,7 @@ Notes:
 
 - `PAYPAL_CLIENT_ID` / `PAYPAL_SECRET` are server-side credentials for the Studio subscription flow.
 - `NEXT_PUBLIC_PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` can remain for the existing legacy one-time PayPal order flow.
-- `R2_BUCKET` must be private. Do not expose direct/public object URLs for Studio media.
+- `R2_BUCKET_NAME` must be private. Do not expose direct/public object URLs for Studio media.
 
 ### PayPal plan setup (monthly)
 
@@ -334,13 +333,16 @@ The app verifies webhook signatures via PayPal's `verify-webhook-signature` API 
 - `POST /api/paypal/create-subscription` -> creates PayPal subscription approval session
 - `GET|POST /api/paypal/capture` -> syncs approved subscription status to Supabase and updates `studio_access`
 - `POST /api/paypal/webhook` -> verified PayPal webhook handler + idempotent event processing
+- `POST /api/r2/presign-put` -> admin-only presigned PUT URL for private R2 uploads (5 min TTL)
+- `POST /api/studio/media/register` -> admin-only `studio_media` insert after successful R2 upload
 - `GET /api/studio/media/[studioPostId]` -> returns short-lived signed R2 URLs after auth + entitlement check
 
 ### R2 media workflow (current admin tooling)
 
-1. Upload image/video files to your private R2 bucket manually.
 1. Open MyPage admin panel -> `Studio 미디어 (R2)`.
-1. Select a `studio_posts` row and register metadata (`kind`, `r2_key`, optional `mime`, `bytes`).
+1. Select a `studio_posts` row, choose `kind`, and pick an image/video file.
+1. The admin UI requests a presigned PUT URL (`/api/r2/presign-put`) and uploads the file directly to private R2.
+1. After upload succeeds, the UI calls `/api/studio/media/register` to insert the `studio_media` row.
 1. The client never receives `r2_key`; it only receives short-lived signed URLs from the server route.
 
 ## Going live
