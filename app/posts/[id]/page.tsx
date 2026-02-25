@@ -142,9 +142,8 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
       const activeSubscription = rows.find((row) => isActiveStatus(row.status)) ?? null;
       const latestSubscription = rows[0] ?? null;
 
-      hasActiveStudioSubscription =
-        Boolean(activeSubscription) ||
-        (rows.length === 0 && Boolean(accessData?.has_active_subscription));
+      // UI gate follows studio_access.has_active_subscription as the source of truth.
+      hasActiveStudioSubscription = Boolean(accessData?.has_active_subscription);
       studioSubscriptionStatus = activeSubscription?.status ?? latestSubscription?.status ?? null;
       studioSubscriptionId = activeSubscription?.id ?? latestSubscription?.id ?? null;
     } catch (subscriptionError) {
@@ -215,9 +214,16 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
                 <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
                   Studio Membership Media
                 </p>
-                <h2 className="text-2xl font-semibold text-white sm:text-3xl">
-                  전용 이미지 / 영상
-                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-semibold text-white sm:text-3xl">
+                    전용 이미지 / 영상
+                  </h2>
+                  {hasActiveStudioSubscription && (
+                    <span className="inline-flex items-center rounded-full border border-emerald-300/30 bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm leading-relaxed text-neutral-400">
                   Studio 전용 미디어는 PayPal 월 구독 활성 사용자에게만 제공됩니다.
                 </p>
@@ -276,8 +282,18 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
 
               {currentUserId && (
                 <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-                  <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">
-                    Subscription Status
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">
+                      Subscription Status
+                    </p>
+                    {hasActiveStudioSubscription && (
+                      <span className="inline-flex items-center rounded-full border border-emerald-300/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                        ACTIVE
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    studio_access: {hasActiveStudioSubscription ? 'ACTIVE' : 'INACTIVE'}
                   </p>
                   <p className="mt-2 text-sm text-neutral-200">
                     {studioSubscriptionStatus ? `PayPal: ${studioSubscriptionStatus}` : 'PayPal 구독 정보 없음'}
