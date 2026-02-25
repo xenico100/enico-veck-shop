@@ -271,7 +271,13 @@ export async function captureOrder(orderId: string) {
   return paypalFetch<PayPalOrder>(
     `/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`,
     {
-      method: 'POST'
+      method: 'POST',
+      headers: {
+        Prefer: 'return=representation'
+      },
+      // Some PayPal edge environments reject a body-less POST capture call with
+      // "The request payload is not supported". Send an explicit empty JSON body.
+      body: {}
     },
     { accessToken }
   );

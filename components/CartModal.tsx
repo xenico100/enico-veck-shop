@@ -132,10 +132,15 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
           typeof capturePayload?.details?.details?.[0]?.description === 'string'
             ? capturePayload.details.details[0].description
             : null;
+        const paypalDebugId =
+          typeof capturePayload?.details?.debug_id === 'string'
+            ? capturePayload.details.debug_id
+            : null;
         const detailedMessage = [
           capturePayload?.message || 'PayPal capture failed',
           paypalIssue,
-          paypalDescription
+          paypalDescription,
+          paypalDebugId ? `debug_id=${paypalDebugId}` : null
         ]
           .filter(Boolean)
           .join(' | ');

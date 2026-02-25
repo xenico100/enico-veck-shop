@@ -38,7 +38,8 @@ const buildCaptureErrorMessage = (details: unknown) => {
   const parts = [
     parsed.message || 'PayPal capture failed',
     parsed.issue || null,
-    parsed.description || null
+    parsed.description || null,
+    parsed.debugId ? `debug_id=${parsed.debugId}` : null
   ].filter(Boolean);
   return parts.join(' | ');
 };
@@ -92,27 +93,32 @@ export async function POST(request: Request) {
     if (isPayPalApiError(error)) {
       const parsed = getPayPalErrorIssue(error.details);
 
-      // PayPal may return ORDER_ALREADY_CAPTURED if the approval callback fires twice
-      // or a retry hits a completed order. Treat completed orders as success.
-      if (orderId && parsed.issue === 'ORDER_ALREADY_CAPTURED') {
+      // On duplicate retries or replayed approvals, capture can error while the order
+      // is already completed. Always verify the current order state before failing hard.
+      if (orderId) {
         try {
           const order = await getOrder(orderId);
-          console.warn('[PayPal capture-order] order already captured; returning existing order', {
-            orderId,
-            environment,
-            orderStatus: typeof order?.status === 'string' ? order.status : null
-          });
+          const orderStatus = typeof order?.status === 'string' ? order.status.toUpperCase() : null;
 
-          return NextResponse.json(
-            {
-              paypal: order,
-              debug: {
-                environment,
-                alreadyCaptured: true
-              }
-            },
-            { status: 200 }
-          );
+          if (orderStatus === 'COMPLETED') {
+            console.warn('[PayPal capture-order] capture error but order already completed', {
+              orderId,
+              environment,
+              issue: parsed.issue,
+              debugId: parsed.debugId
+            });
+
+            return NextResponse.json(
+              {
+                paypal: order,
+                debug: {
+                  environment,
+                  alreadyCaptured: true
+                }
+              },
+              { status: 200 }
+            );
+          }
         } catch (fallbackError) {
           console.error('[PayPal capture-order] fallback getOrder failed', {
             orderId,
