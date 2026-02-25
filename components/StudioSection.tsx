@@ -1,10 +1,13 @@
 'use client';
 
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ImageIcon, Pause, PencilLine, Play, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
+import StudioProtectedMedia from '@/components/StudioProtectedMedia';
+import StudioSubscribeButton from '@/components/StudioSubscribeButton';
 import { createClient } from '@/utils/supabase/client';
 import { isAdminUserLike } from '@/utils/service-posts';
 
@@ -83,6 +86,76 @@ function StudioDetailModal({
   post: StudioPost | null;
   onClose: () => void;
 }) {
+  const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [hasActiveMembership, setHasActiveMembership] = useState(false);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resetForGuest = () => {
+      setMembershipLoading(false);
+      setHasActiveMembership(false);
+      setMembershipError(null);
+    };
+
+    if (!post) {
+      resetForGuest();
+      return;
+    }
+
+    if (authLoading) {
+      setMembershipLoading(true);
+      setMembershipError(null);
+      return;
+    }
+
+    if (!user?.id) {
+      resetForGuest();
+      return;
+    }
+
+    const loadStudioAccess = async () => {
+      setMembershipLoading(true);
+      setMembershipError(null);
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from('studio_access')
+          .select('has_active_subscription')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!cancelled) {
+          setHasActiveMembership(Boolean(data?.has_active_subscription));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHasActiveMembership(false);
+          setMembershipError(
+            error instanceof Error ? error.message : '멤버십 상태를 확인하지 못했습니다.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setMembershipLoading(false);
+        }
+      }
+    };
+
+    void loadStudioAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, post?.id, supabase, user?.id]);
+
   return (
     <DialogPrimitive.Root open={Boolean(post)} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
@@ -133,6 +206,70 @@ function StudioDetailModal({
                     {post.content?.trim() || '내용이 없습니다.'}
                   </p>
                 </DialogPrimitive.Description>
+
+                <div className="h-px w-full bg-white/10" />
+
+                <section className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-lg font-semibold text-white md:text-xl">
+                        Studio 멤버십 전용 미디어
+                      </h4>
+                      {hasActiveMembership && (
+                        <span className="inline-flex items-center rounded-full border border-emerald-300/30 bg-emerald-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm leading-relaxed text-white/55">
+                      Studio 전용 이미지/영상은 멤버십 활성 사용자만 볼 수 있습니다.
+                    </p>
+                  </div>
+
+                  {membershipError && (
+                    <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100">
+                      멤버십 상태 확인 실패: {membershipError}
+                    </div>
+                  )}
+
+                  {authLoading || membershipLoading ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+                      멤버십 상태를 확인하는 중입니다...
+                    </div>
+                  ) : !user ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                      <p className="text-sm font-semibold text-white">멤버십 가입이 필요합니다.</p>
+                      <p className="mt-2 text-sm text-white/60">
+                        로그인 후 멤버십 가입을 진행하면 전용 미디어를 볼 수 있습니다.
+                      </p>
+                      <div className="mt-4">
+                        <Link
+                          href="/signin"
+                          className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                        >
+                          로그인
+                        </Link>
+                      </div>
+                    </div>
+                  ) : !hasActiveMembership ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                      <p className="text-sm font-semibold text-white">
+                        Studio 전용 미디어는 구독자 전용입니다.
+                      </p>
+                      <p className="mt-2 text-sm text-white/60">
+                        멤버십 가입 후 이 게시글의 원본 이미지/영상을 볼 수 있습니다.
+                      </p>
+                      <div className="mt-4">
+                        <StudioSubscribeButton
+                          studioPostId={post.id}
+                          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <StudioProtectedMedia studioPostId={post.id} />
+                  )}
+                </section>
               </div>
             </div>
           )}
