@@ -10,13 +10,26 @@ type StudioPostListRow = {
   created_at: string;
 };
 
+type PageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
 const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',
     timeStyle: 'short'
   }).format(new Date(value));
 
-export default async function PostsPage() {
+const readSearchParam = (
+  params: Record<string, string | string[] | undefined> | undefined,
+  key: string
+) => {
+  const value = params?.[key];
+  if (Array.isArray(value)) return value[0] ?? null;
+  return typeof value === 'string' ? value : null;
+};
+
+export default async function PostsPage({ searchParams }: PageProps) {
   const isSupabaseConfigured =
     Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
     Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -24,6 +37,7 @@ export default async function PostsPage() {
   let posts: StudioPostListRow[] = [];
   let errorMessage: string | null = null;
   let currentUserId: string | null = null;
+  const paypal = readSearchParam(searchParams, 'paypal');
 
   if (isSupabaseConfigured) {
     const supabase = createClient();
@@ -31,7 +45,7 @@ export default async function PostsPage() {
       { data: postsData, error: postsError },
       { data: authData }
     ] = await Promise.all([
-      (supabase as never)
+      (supabase as any)
         .from('studio_posts')
         .select('id,title,content,image_url,user_id,created_at')
         .order('created_at', { ascending: false }),
@@ -55,7 +69,7 @@ export default async function PostsPage() {
             <p className="text-sm uppercase tracking-[0.45em] text-neutral-400">Studio</p>
             <h1 className="text-4xl font-semibold sm:text-5xl">게시물</h1>
             <p className="mx-auto max-w-2xl text-base text-neutral-400 sm:mx-0">
-              최신 Studio 게시물을 확인하고, 로그인한 사용자는 직접 게시물을 작성할 수 있습니다.
+              Studio 게시물 목록은 공개되며, 전용 이미지/영상은 각 상세 페이지에서 PayPal 월 구독 후 시청할 수 있습니다.
             </p>
           </div>
           <div className="flex items-center justify-center gap-3 sm:justify-start">
@@ -75,6 +89,16 @@ export default async function PostsPage() {
             )}
           </div>
         </div>
+
+        {paypal && (
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-200">
+            {paypal === 'cancel'
+              ? 'PayPal 구독 절차가 취소되었습니다.'
+              : paypal === 'success'
+                ? 'PayPal 구독이 활성화되었습니다. 상세 페이지에서 전용 미디어를 확인하세요.'
+                : 'PayPal 구독 처리 상태를 확인해 주세요.'}
+          </div>
+        )}
 
         {!isSupabaseConfigured && (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-neutral-300">

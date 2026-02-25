@@ -2,9 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import StudioPostDeleteButton from '@/components/StudioPostDeleteButton';
+import StudioSubscribeButton from '@/components/StudioSubscribeButton';
+import StudioProtectedMedia from '@/components/StudioProtectedMedia';
 
 type PageProps = {
   params: { id: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
 type StudioPostRow = {
@@ -22,14 +25,66 @@ const formatDateTime = (value: string) =>
     timeStyle: 'short'
   }).format(new Date(value));
 
-export default async function PostDetailPage({ params }: PageProps) {
+const readSearchParam = (
+  params: Record<string, string | string[] | undefined> | undefined,
+  key: string
+) => {
+  const value = params?.[key];
+  if (Array.isArray(value)) return value[0] ?? null;
+  return typeof value === 'string' ? value : null;
+};
+
+const isActiveStatus = (status?: string | null) => (status || '').toUpperCase() === 'ACTIVE';
+
+const getPayPalBanner = (
+  searchParams: Record<string, string | string[] | undefined> | undefined
+) => {
+  const paypal = readSearchParam(searchParams, 'paypal');
+  const status = readSearchParam(searchParams, 'subscription_status');
+
+  if (!paypal) return null;
+
+  if (paypal === 'success') {
+    return {
+      tone: 'success' as const,
+      title: 'PayPal 구독이 활성화되었습니다.',
+      description: status ? `현재 상태: ${status}` : '전용 미디어를 확인할 수 있습니다.'
+    };
+  }
+
+  if (paypal === 'inactive') {
+    return {
+      tone: 'warn' as const,
+      title: '구독 승인 후 상태 확인 중입니다.',
+      description: status
+        ? `현재 상태: ${status}. 잠시 후 다시 새로고침해 주세요.`
+        : '잠시 후 다시 시도해 주세요.'
+    };
+  }
+
+  if (paypal === 'cancel') {
+    return {
+      tone: 'neutral' as const,
+      title: 'PayPal 구독 절차가 취소되었습니다.',
+      description: '원할 때 다시 구독을 시작할 수 있습니다.'
+    };
+  }
+
+  return {
+    tone: 'error' as const,
+    title: 'PayPal 구독 처리 중 문제가 발생했습니다.',
+    description: '잠시 후 다시 시도해 주세요.'
+  };
+};
+
+export default async function PostDetailPage({ params, searchParams }: PageProps) {
   const supabase = createClient();
 
   const [
     { data: postData, error },
     { data: authData }
   ] = await Promise.all([
-    (supabase as never)
+    (supabase as any)
       .from('studio_posts')
       .select('id,title,content,image_url,user_id,created_at')
       .eq('id', params.id)
@@ -56,6 +111,46 @@ export default async function PostDetailPage({ params }: PageProps) {
   const post = postData as StudioPostRow;
   const currentUserId = authData.user?.id ?? null;
   const isOwner = currentUserId === post.user_id;
+  const paypalBanner = getPayPalBanner(searchParams);
+
+  let hasActiveStudioSubscription = false;
+  let studioSubscriptionStatus: string | null = null;
+  let studioSubscriptionId: string | null = null;
+
+  if (currentUserId) {
+    try {
+      const [
+        { data: accessData },
+        { data: subscriptionRows }
+      ] = await Promise.all([
+        (supabase as any)
+          .from('studio_access')
+          .select('has_active_subscription')
+          .eq('user_id', currentUserId)
+          .maybeSingle(),
+        (supabase as any)
+          .from('paypal_subscriptions')
+          .select('id,status,last_event_at')
+          .eq('user_id', currentUserId)
+          .order('last_event_at', { ascending: false })
+          .limit(10)
+      ]);
+
+      const rows = Array.isArray(subscriptionRows)
+        ? (subscriptionRows as Array<{ id: string; status: string | null }>)
+        : [];
+      const activeSubscription = rows.find((row) => isActiveStatus(row.status)) ?? null;
+      const latestSubscription = rows[0] ?? null;
+
+      hasActiveStudioSubscription =
+        Boolean(activeSubscription) ||
+        (rows.length === 0 && Boolean(accessData?.has_active_subscription));
+      studioSubscriptionStatus = activeSubscription?.status ?? latestSubscription?.status ?? null;
+      studioSubscriptionId = activeSubscription?.id ?? latestSubscription?.id ?? null;
+    } catch (subscriptionError) {
+      console.error('[Studio detail] subscription gate lookup failed', subscriptionError);
+    }
+  }
 
   return (
     <section className="min-h-screen bg-black pb-24 text-white">
@@ -112,6 +207,91 @@ export default async function PostDetailPage({ params }: PageProps) {
             <div className="whitespace-pre-wrap text-base leading-relaxed text-neutral-200">
               {post.content ?? ''}
             </div>
+
+            <div className="h-px w-full bg-white/10" />
+
+            <section className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.3em] text-neutral-400">
+                  Studio Membership Media
+                </p>
+                <h2 className="text-2xl font-semibold text-white sm:text-3xl">
+                  전용 이미지 / 영상
+                </h2>
+                <p className="text-sm leading-relaxed text-neutral-400">
+                  Studio 전용 미디어는 PayPal 월 구독 활성 사용자에게만 제공됩니다.
+                </p>
+              </div>
+
+              {paypalBanner && (
+                <div
+                  className={
+                    paypalBanner.tone === 'success'
+                      ? 'rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4'
+                      : paypalBanner.tone === 'warn'
+                        ? 'rounded-2xl border border-amber-300/20 bg-amber-500/10 p-4'
+                        : paypalBanner.tone === 'error'
+                          ? 'rounded-2xl border border-rose-300/20 bg-rose-500/10 p-4'
+                          : 'rounded-2xl border border-white/10 bg-white/5 p-4'
+                  }
+                >
+                  <p className="text-sm font-semibold text-white">{paypalBanner.title}</p>
+                  <p className="mt-1 text-sm text-neutral-200">{paypalBanner.description}</p>
+                </div>
+              )}
+
+              {!currentUserId && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                  <p className="text-sm text-neutral-200">Login to subscribe</p>
+                  <p className="mt-2 text-sm text-neutral-400">
+                    로그인 후 PayPal 월 구독을 시작하면 전용 미디어를 볼 수 있습니다.
+                  </p>
+                  <Link
+                    href="/signin"
+                    className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                  >
+                    로그인하러 가기
+                  </Link>
+                </div>
+              )}
+
+              {currentUserId && !hasActiveStudioSubscription && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                  <p className="text-sm font-semibold text-white">
+                    Studio 전용 미디어는 구독자 전용입니다.
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-400">
+                    PayPal 월 구독을 활성화하면 이 게시글의 원본 이미지/영상이 표시됩니다.
+                  </p>
+                  <div className="mt-4">
+                    <StudioSubscribeButton studioPostId={post.id} />
+                  </div>
+                </div>
+              )}
+
+              {currentUserId && (
+                <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">
+                    Subscription Status
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    {studioSubscriptionStatus ? `PayPal: ${studioSubscriptionStatus}` : 'PayPal 구독 정보 없음'}
+                  </p>
+                  {studioSubscriptionId && (
+                    <p className="mt-1 break-all text-xs text-neutral-500">
+                      Subscription ID: {studioSubscriptionId}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+                    관리/취소는 PayPal 계정의 자동결제(Automatic Payments) 설정에서 진행할 수 있습니다.
+                  </p>
+                </div>
+              )}
+
+              {currentUserId && hasActiveStudioSubscription && (
+                <StudioProtectedMedia studioPostId={post.id} />
+              )}
+            </section>
           </div>
         </article>
       </div>

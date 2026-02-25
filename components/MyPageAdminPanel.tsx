@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import OrderDetailModal from '@/components/OrderDetailModal';
 import StudioPostForm from '@/components/StudioPostForm';
+import StudioMediaAdminManager from '@/components/StudioMediaAdminManager';
 import { useAuth } from '@/app/context/AuthContext';
 import ActionButton from '@/components/ui/ActionButton';
 import PillTab from '@/components/ui/PillTab';
@@ -51,7 +52,12 @@ type Props = {
   enabled: boolean;
 };
 
-type AdminTabKey = 'members' | 'studio-posts' | 'service-posts' | 'create-post';
+type AdminTabKey =
+  | 'members'
+  | 'studio-posts'
+  | 'studio-media'
+  | 'service-posts'
+  | 'create-post';
 
 type AdminServicePostDraft = {
   title: string;
@@ -605,6 +611,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           {[
             { key: 'members', label: `회원 관리 (${memberCountLabel})` },
             { key: 'studio-posts', label: `Studio 게시글 (${studioPosts.length})` },
+            { key: 'studio-media', label: 'Studio 미디어 (R2)' },
             { key: 'service-posts', label: `Service 게시글 (${servicePostCountLabel})` },
             { key: 'create-post', label: '게시물 작성' }
           ].map((tab) => (
@@ -942,6 +949,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           </div>
         </div>
       )}
+
+      {activeTab === 'studio-media' && <StudioMediaAdminManager enabled={enabled} />}
 
       {activeTab === 'service-posts' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">

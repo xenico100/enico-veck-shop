@@ -275,6 +275,74 @@ Diagnostics:
 - Browser bundle check: `/env-check`
 - Server runtime check: `/api/env-check`
 
+## Studio PayPal Subscription + R2 Setup
+
+Studio 전용 미디어 접근은 Stripe가 아니라 PayPal 정기구독 상태(`paypal_subscriptions`)를 기준으로 게이트됩니다.
+
+### Required env vars
+
+Add the following to `.env.local` (see `.env.local.example`):
+
+```bash
+PAYPAL_ENV=sandbox
+PAYPAL_CLIENT_ID=...
+PAYPAL_SECRET=...
+PAYPAL_WEBHOOK_ID=...
+PAYPAL_PLAN_ID_MONTHLY=...
+
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET=...
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+```
+
+Notes:
+
+- `PAYPAL_CLIENT_ID` / `PAYPAL_SECRET` are server-side credentials for the Studio subscription flow.
+- `NEXT_PUBLIC_PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` can remain for the existing legacy one-time PayPal order flow.
+- `R2_BUCKET` must be private. Do not expose direct/public object URLs for Studio media.
+
+### PayPal plan setup (monthly)
+
+1. Create a monthly Billing Plan in the PayPal dashboard (Sandbox first), or create it via PayPal Billing Plans API.
+1. Copy the plan ID (for example `P-...`) into `PAYPAL_PLAN_ID_MONTHLY`.
+1. Ensure the plan is active before testing checkout.
+
+### PayPal webhook setup (Studio subscriptions)
+
+Create a PayPal webhook endpoint pointing to:
+
+```text
+https://YOUR_DOMAIN/api/paypal/webhook
+```
+
+Subscribe to at least these events:
+
+- `BILLING.SUBSCRIPTION.ACTIVATED`
+- `BILLING.SUBSCRIPTION.CANCELLED`
+- `BILLING.SUBSCRIPTION.SUSPENDED`
+- `BILLING.SUBSCRIPTION.EXPIRED`
+- `PAYMENT.SALE.COMPLETED`
+
+Then copy the PayPal Webhook ID (not the URL, not the secret) into `PAYPAL_WEBHOOK_ID`.
+
+The app verifies webhook signatures via PayPal's `verify-webhook-signature` API before updating Supabase rows.
+
+### App routes added for Studio subscriptions
+
+- `POST /api/paypal/create-subscription` -> creates PayPal subscription approval session
+- `GET|POST /api/paypal/capture` -> syncs approved subscription status to Supabase and updates `studio_access`
+- `POST /api/paypal/webhook` -> verified PayPal webhook handler + idempotent event processing
+- `GET /api/studio/media/[studioPostId]` -> returns short-lived signed R2 URLs after auth + entitlement check
+
+### R2 media workflow (current admin tooling)
+
+1. Upload image/video files to your private R2 bucket manually.
+1. Open MyPage admin panel -> `Studio 미디어 (R2)`.
+1. Select a `studio_posts` row and register metadata (`kind`, `r2_key`, optional `mime`, `bytes`).
+1. The client never receives `r2_key`; it only receives short-lived signed URLs from the server route.
+
 ## Going live
 
 ### Archive testing products
