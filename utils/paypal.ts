@@ -277,6 +277,17 @@ export async function captureOrder(orderId: string) {
   );
 }
 
+export async function getOrder(orderId: string) {
+  const accessToken = await getAccessToken();
+  return paypalFetch<PayPalOrder>(
+    `/v2/checkout/orders/${encodeURIComponent(orderId)}`,
+    {
+      method: 'GET'
+    },
+    { accessToken }
+  );
+}
+
 export const getPayPalClientConfig = () => {
   const { clientId, environment } = getPayPalConfig();
   return { clientId, environment };

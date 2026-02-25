@@ -124,7 +124,22 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       const capturePayload = await captureResponse.json().catch(() => ({}));
 
       if (!captureResponse.ok) {
-        throw new Error(capturePayload?.message || 'PayPal capture failed');
+        const paypalIssue =
+          typeof capturePayload?.details?.details?.[0]?.issue === 'string'
+            ? capturePayload.details.details[0].issue
+            : null;
+        const paypalDescription =
+          typeof capturePayload?.details?.details?.[0]?.description === 'string'
+            ? capturePayload.details.details[0].description
+            : null;
+        const detailedMessage = [
+          capturePayload?.message || 'PayPal capture failed',
+          paypalIssue,
+          paypalDescription
+        ]
+          .filter(Boolean)
+          .join(' | ');
+        throw new Error(detailedMessage);
       }
 
       const captureDetails = capturePayload?.paypal ?? capturePayload;
