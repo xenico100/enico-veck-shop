@@ -24,7 +24,7 @@ export async function GET(
   const { data, error } = await (adminClient as never)
     .from('orders')
     .select(
-      'id,user_id,status,currency,amount_total,created_at,stripe_checkout_session_id,stripe_payment_intent_id,items,metadata'
+      'id,user_id,status,currency,amount_total,created_at,paypal_order_id,shipping_address,tracking_number,items'
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false });

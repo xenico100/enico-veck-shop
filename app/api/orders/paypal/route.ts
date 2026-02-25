@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 import { createClient } from '@/utils/supabase/server';
 
+export const runtime = 'nodejs';
+
 type PayPalCartItemPayload = {
   key?: string;
   id?: string;
@@ -19,6 +21,18 @@ type PayPalOrderSaveRequest = {
   paypalOrderId?: string | null;
   paypalCapture?: unknown;
   items?: PayPalCartItemPayload[];
+};
+
+type PayPalCapturedAmount = {
+  value: string | null;
+  currency: string | null;
+};
+
+type SupabaseErrorLike = {
+  message?: string;
+  details?: string | null;
+  code?: string | null;
+  hint?: string | null;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -63,6 +77,53 @@ const getFriendlyInsertError = (message: string) => {
   return message || '주문 저장에 실패했습니다.';
 };
 
+const logSupabaseOrderWriteError = (
+  stage: string,
+  error: SupabaseErrorLike | null | undefined,
+  context?: Record<string, unknown>
+) => {
+  if (!error) return;
+  console.error('[orders/paypal] orders write failed', {
+    stage,
+    message: error.message ?? null,
+    details: error.details ?? null,
+    code: error.code ?? null,
+    hint: error.hint ?? null,
+    ...(context ?? {})
+  });
+};
+
+const getCapturedPayPalAmount = (
+  firstCapture: Record<string, unknown> | null,
+  firstPurchaseUnit: Record<string, unknown> | null
+): PayPalCapturedAmount => {
+  const captureAmount = isRecord(firstCapture?.amount) ? firstCapture.amount : null;
+  const purchaseUnitAmount = isRecord(firstPurchaseUnit?.amount) ? firstPurchaseUnit.amount : null;
+  const amount = captureAmount ?? purchaseUnitAmount;
+
+  return {
+    value: typeof amount?.value === 'string' && amount.value.trim() ? amount.value.trim() : null,
+    currency:
+      typeof amount?.currency_code === 'string' && amount.currency_code.trim()
+        ? amount.currency_code.trim().toUpperCase()
+        : null
+  };
+};
+
+const parsePayPalAmountToIntegerStorage = (value: string, currency: string | null) => {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  // Integer column strategy:
+  // - KRW (zero-decimal in this app flow): store whole amount
+  // - other currencies: store minor units (e.g. cents)
+  if ((currency || '').toUpperCase() === 'KRW') {
+    return Math.round(parsed);
+  }
+
+  return Math.round(parsed * 100);
+};
+
 export async function POST(request: Request) {
   const supabase = createClient();
   const {
@@ -70,16 +131,22 @@ export async function POST(request: Request) {
     error: userError
   } = await supabase.auth.getUser();
 
+  console.info('[orders/paypal] auth check', {
+    hasUser: Boolean(user),
+    userId: user?.id ?? null,
+    authErrorMessage: userError?.message ?? null
+  });
+  console.log('[orders/paypal] user:', user);
+
   if (userError || !user) {
+    console.warn('[orders/paypal] missing auth session before order insert', {
+      userErrorMessage: userError?.message ?? null
+    });
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
   const body = (await request.json().catch(() => ({}))) as PayPalOrderSaveRequest;
   const totalKRW = Math.round(Number(body.totalKRW ?? 0));
-
-  if (!Number.isFinite(totalKRW) || totalKRW <= 0) {
-    return NextResponse.json({ message: '유효한 결제 금액이 필요합니다.' }, { status: 400 });
-  }
 
   const items = normalizeCartItems(body.items);
   const capture = body.paypalCapture;
@@ -95,6 +162,15 @@ export async function POST(request: Request) {
       ? (firstPurchaseUnit.payments.captures as unknown[])
       : [];
   const firstCapture = captures.find(isRecord) ?? null;
+  const capturedPayPalAmount = getCapturedPayPalAmount(firstCapture, firstPurchaseUnit);
+  const valueStr =
+    capturedPayPalAmount.value ??
+    (isRecord(firstCapture?.amount) && typeof firstCapture.amount.value === 'string'
+      ? firstCapture.amount.value
+      : isRecord(firstPurchaseUnit?.amount) && typeof firstPurchaseUnit.amount.value === 'string'
+        ? firstPurchaseUnit.amount.value
+        : null);
+  const currency = capturedPayPalAmount.currency ?? 'USD';
 
   const shippingAddressJson = payer || shipping
     ? {
@@ -103,62 +179,77 @@ export async function POST(request: Request) {
       }
     : {};
 
-  const metadata = {
-    provider: 'paypal',
-    paypal_order_id:
-      (typeof body.paypalOrderId === 'string' && body.paypalOrderId) ||
-      (typeof captureRecord?.id === 'string' ? captureRecord.id : null),
-    paypal_capture_id: typeof firstCapture?.id === 'string' ? firstCapture.id : null,
-    total_amount: totalKRW,
-    tracking_number: null,
-    shipping_address: shippingAddressJson,
-    approx_usd:
-      typeof body.approxUsd === 'number'
-        ? Number(body.approxUsd.toFixed(2))
-        : typeof body.approxUsd === 'string'
-          ? body.approxUsd
-          : null
-  };
+  const fallbackAmountTotal = valueStr
+    ? parsePayPalAmountToIntegerStorage(valueStr, currency)
+    : null;
+  const resolvedAmountTotal =
+    Number.isFinite(totalKRW) && totalKRW > 0 ? totalKRW : fallbackAmountTotal;
+  const resolvedCurrency =
+    Number.isFinite(totalKRW) && totalKRW > 0
+      ? 'KRW'
+      : currency;
+
+  if (!Number.isFinite(resolvedAmountTotal ?? NaN) || (resolvedAmountTotal ?? 0) <= 0) {
+    return NextResponse.json({ message: '유효한 결제 금액이 필요합니다.' }, { status: 400 });
+  }
+
+  console.info('[orders/paypal] amount_total resolved', {
+    userId: user.id,
+    source:
+      Number.isFinite(totalKRW) && totalKRW > 0 ? 'client_totalKRW' : 'paypal_capture_amount_fallback',
+    amountTotal: resolvedAmountTotal,
+    currency: resolvedCurrency,
+    clientTotalKRW: Number.isFinite(totalKRW) ? totalKRW : null,
+    paypalAmountValue: valueStr,
+    paypalAmountCurrency: currency
+  });
 
   const orderPayload = {
     user_id: user.id,
     status: 'paid',
-    currency: 'KRW',
-    amount_total: totalKRW,
-    total_amount: totalKRW,
+    currency: resolvedCurrency,
+    amount_total: resolvedAmountTotal,
     paypal_order_id:
       (typeof body.paypalOrderId === 'string' && body.paypalOrderId) ||
       (typeof captureRecord?.id === 'string' ? captureRecord.id : null),
     shipping_address: shippingAddressJson,
     tracking_number: null,
-    items,
-    metadata
+    items
   };
+
+  console.info('[orders/paypal] supabase client', {
+    source: '@/utils/supabase/server.createClient',
+    sessionAware: true,
+    implementation: '@supabase/ssr + next/headers cookies()'
+  });
+  console.info('[orders/paypal] order payload keys', Object.keys(orderPayload));
 
   const paypalOrderIdForLookup =
     (typeof orderPayload.paypal_order_id === 'string' && orderPayload.paypal_order_id) || null;
 
   let insertResult;
+  const selectColumns =
+    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number';
 
   if (paypalOrderIdForLookup) {
     insertResult = await (supabase as any)
       .from('orders')
       .upsert(orderPayload, { onConflict: 'paypal_order_id' })
-      .select(
-        'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
-      )
+      .select(selectColumns)
       .single();
   } else {
     insertResult = await (supabase as any)
       .from('orders')
       .insert(orderPayload)
-      .select(
-        'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
-      )
+      .select(selectColumns)
       .single();
   }
 
   if (insertResult.error) {
+    logSupabaseOrderWriteError('user_client', insertResult.error, {
+      userId: user.id,
+      paypalOrderId: paypalOrderIdForLookup
+    });
     const lower = (insertResult.error.message || '').toLowerCase();
     const rlsLikely = lower.includes('row-level security') || lower.includes('permission denied');
 
@@ -170,18 +261,26 @@ export async function POST(request: Request) {
           ? await (adminClient as any)
               .from('orders')
               .upsert(orderPayload, { onConflict: 'paypal_order_id' })
-              .select(
-                'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
-              )
+              .select(selectColumns)
               .single()
           : await (adminClient as any)
               .from('orders')
               .insert(orderPayload)
-              .select(
-                'id,user_id,status,currency,amount_total,total_amount,paypal_order_id,created_at,items,metadata'
-              )
+              .select(selectColumns)
               .single();
+
+        if (insertResult.error) {
+          logSupabaseOrderWriteError('admin_fallback_client', insertResult.error, {
+            userId: user.id,
+            paypalOrderId: paypalOrderIdForLookup
+          });
+        }
       } catch (adminError) {
+        console.error('[orders/paypal] admin fallback exception', {
+          userId: user.id,
+          paypalOrderId: paypalOrderIdForLookup,
+          error: adminError
+        });
         return NextResponse.json(
           {
             message:
@@ -196,6 +295,10 @@ export async function POST(request: Request) {
   }
 
   if (insertResult.error) {
+    logSupabaseOrderWriteError('final', insertResult.error, {
+      userId: user.id,
+      paypalOrderId: paypalOrderIdForLookup
+    });
     return NextResponse.json(
       { message: getFriendlyInsertError(insertResult.error.message || '') },
       { status: 500 }

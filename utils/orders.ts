@@ -28,7 +28,7 @@ export const normalizeOrderItems = (value: unknown): OrderItemSnapshot[] => {
       const row = item as Record<string, unknown>;
       const title = typeof row.title === 'string' ? row.title.trim() : '';
       if (!title) return null;
-      const qtyRaw = Number(row.qty ?? 1);
+      const qtyRaw = Number(row.qty ?? row.quantity ?? 1);
       const priceRaw = row.price == null ? null : Number(row.price);
       return {
         id: typeof row.id === 'string' ? row.id : title,
