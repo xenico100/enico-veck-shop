@@ -76,6 +76,7 @@ type Props = {
 type AdminTabKey = 'members' | 'service-posts' | 'studio-posts';
 
 type MemberOrdersTabKey = 'shipping_todo' | 'shipping_done';
+type StudioSectionTabKey = 'list' | 'create' | 'media';
 
 type AdminServicePostDraft = {
   title: string;
@@ -140,6 +141,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [memberOrdersTarget, setMemberOrdersTarget] = useState<AdminMember | null>(null);
   const [memberOrders, setMemberOrders] = useState<OrderRecord[]>([]);
   const [memberOrdersTab, setMemberOrdersTab] = useState<MemberOrdersTabKey>('shipping_todo');
+  const [studioSectionTab, setStudioSectionTab] = useState<StudioSectionTabKey>('list');
   const [selectedMemberOrder, setSelectedMemberOrder] = useState<OrderRecord | null>(null);
   const [memberOrderDetailOpen, setMemberOrderDetailOpen] = useState(false);
   const [memberOrderShippingSaving, setMemberOrderShippingSaving] = useState(false);
@@ -1180,6 +1182,30 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       )}
 
       {activeTab === 'studio-posts' && (
+        <div className="overflow-x-auto pb-1">
+          <div className={segmentedWrapClass}>
+            {[
+              { key: 'list', label: '게시글 목록/수정' },
+              { key: 'create', label: '게시글 업로드' },
+              { key: 'media', label: '추가 미디어(R2)' }
+            ].map((tab) => (
+              <PillTab
+                key={tab.key}
+                onClick={() => setStudioSectionTab(tab.key as StudioSectionTabKey)}
+                active={studioSectionTab === tab.key}
+                className="whitespace-nowrap"
+              >
+                {tab.label}
+              </PillTab>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-white/45">
+            `게시글 업로드`는 스튜디오 게시글 생성용, `추가 미디어(R2)`는 이미 만든 게시글에 영상/추가 이미지를 연결하는 고급 관리용입니다.
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'studio-posts' && studioSectionTab === 'list' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
           <div className="mb-4 flex flex-col gap-1">
             <p className="text-sm font-medium text-white">스튜디오 섹션 관리</p>
@@ -1305,7 +1331,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         </div>
       )}
 
-      {activeTab === 'studio-posts' && (
+      {activeTab === 'studio-posts' && studioSectionTab === 'create' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
           <div className="mb-1">
             <p className="text-sm font-medium text-white">Studio 게시글 업로드</p>
@@ -1317,7 +1343,12 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         </div>
       )}
 
-      {activeTab === 'studio-posts' && <StudioMediaAdminManager enabled={enabled} />}
+      {activeTab === 'studio-posts' && studioSectionTab === 'media' && (
+        <StudioMediaAdminManager
+          enabled={enabled}
+          onRequestCreatePost={() => setStudioSectionTab('create')}
+        />
+      )}
 
       {activeTab === 'service-posts' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
