@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import OrderDetailModal from '@/components/OrderDetailModal';
 import StudioPostForm from '@/components/StudioPostForm';
 import StudioMediaAdminManager from '@/components/StudioMediaAdminManager';
@@ -17,7 +17,7 @@ import {
   normalizeOrders,
   type OrderRecord
 } from '@/utils/orders';
-import type { ServicePost } from '@/utils/service-posts';
+import { SERVICE_CATEGORIES, type ServicePost } from '@/utils/service-posts';
 
 type AdminMember = {
   id: string;
@@ -73,12 +73,7 @@ type Props = {
   enabled: boolean;
 };
 
-type AdminTabKey =
-  | 'members'
-  | 'studio-posts'
-  | 'studio-media'
-  | 'service-posts'
-  | 'create-post';
+type AdminTabKey = 'members' | 'service-posts' | 'studio-posts';
 
 type MemberOrdersTabKey = 'shipping_todo' | 'shipping_done';
 
@@ -92,6 +87,22 @@ type AdminServicePostDraft = {
   is_published: boolean;
   image_urls_text: string;
 };
+
+type AdminServiceCreateDraft = AdminServicePostDraft & {
+  files: File[];
+};
+
+const emptyServiceCreateDraft = (): AdminServiceCreateDraft => ({
+  title: '',
+  category: SERVICE_CATEGORIES[0] ?? '',
+  summary: '',
+  content: '',
+  price_from: '',
+  currency: 'KRW',
+  is_published: true,
+  image_urls_text: '',
+  files: []
+});
 
 export default function MyPageAdminPanel({ enabled }: Props) {
   const { user } = useAuth();
@@ -118,6 +129,11 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [servicePostDrafts, setServicePostDrafts] = useState<
     Record<string, AdminServicePostDraft>
   >({});
+  const [serviceCreateOpen, setServiceCreateOpen] = useState(false);
+  const [serviceCreateDraft, setServiceCreateDraft] = useState<AdminServiceCreateDraft>(
+    emptyServiceCreateDraft
+  );
+  const [serviceCreateSubmitting, setServiceCreateSubmitting] = useState(false);
   const [memberOrdersModalOpen, setMemberOrdersModalOpen] = useState(false);
   const [memberOrdersLoading, setMemberOrdersLoading] = useState(false);
   const [memberOrdersError, setMemberOrdersError] = useState<string | null>(null);
@@ -675,6 +691,118 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     }));
   };
 
+  const handleServiceCreateDraftChange = (
+    key: keyof AdminServiceCreateDraft,
+    value: string | boolean | File[]
+  ) => {
+    setServiceCreateDraft((prev) => ({
+      title: prev.title,
+      category: prev.category,
+      summary: prev.summary,
+      content: prev.content,
+      price_from: prev.price_from,
+      currency: prev.currency,
+      is_published: prev.is_published,
+      image_urls_text: prev.image_urls_text,
+      files: prev.files,
+      [key]: value
+    }) as AdminServiceCreateDraft);
+  };
+
+  const resetServiceCreateDraft = () => {
+    setServiceCreateDraft(emptyServiceCreateDraft());
+  };
+
+  const handleServiceCreateFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    handleServiceCreateDraftChange('files', files);
+  };
+
+  const handleServicePostCreate = async () => {
+    if (!serviceCreateDraft.title.trim()) {
+      setError('Service 게시글 제목을 입력해 주세요.');
+      setMessage(null);
+      return;
+    }
+
+    setServiceCreateSubmitting(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      let uploadedImageUrls: string[] = [];
+      if (serviceCreateDraft.files.length > 0) {
+        const uploadForm = new FormData();
+        serviceCreateDraft.files.forEach((file) => uploadForm.append('files', file));
+
+        const uploadResponse = await fetch('/api/service-posts/upload', {
+          method: 'POST',
+          body: uploadForm
+        });
+        const uploadPayload = await uploadResponse.json().catch(() => ({}));
+        if (!uploadResponse.ok) {
+          throw new Error(uploadPayload?.message || 'Service 이미지 업로드에 실패했습니다.');
+        }
+        uploadedImageUrls = Array.isArray(uploadPayload?.data?.image_urls)
+          ? uploadPayload.data.image_urls
+          : [];
+      }
+
+      const manualImageUrls = serviceCreateDraft.image_urls_text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const response = await fetch('/api/service-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: serviceCreateDraft.title.trim(),
+          category: serviceCreateDraft.category.trim() || null,
+          summary: serviceCreateDraft.summary.trim() || null,
+          content: serviceCreateDraft.content.trim() || null,
+          price_from: serviceCreateDraft.price_from ? Number(serviceCreateDraft.price_from) : null,
+          currency: serviceCreateDraft.currency.trim() || 'KRW',
+          is_published: serviceCreateDraft.is_published,
+          image_urls: [...manualImageUrls, ...uploadedImageUrls]
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Service 게시글 생성에 실패했습니다.');
+      }
+
+      const created = payload?.data as ServicePost | undefined;
+      if (created?.id) {
+        setServicePosts((prev) => [created, ...prev.filter((row) => row.id !== created.id)]);
+        setServicePostDrafts((prev) => ({
+          ...prev,
+          [created.id]: {
+            title: created.title ?? '',
+            category: created.category ?? '',
+            summary: created.summary ?? '',
+            content: created.content ?? '',
+            price_from: created.price_from != null ? String(created.price_from) : '',
+            currency: created.currency ?? 'KRW',
+            is_published: Boolean(created.is_published),
+            image_urls_text: (created.image_urls ?? []).join('\n')
+          }
+        }));
+      } else {
+        await fetchDashboard();
+      }
+
+      setEditingServicePostId(null);
+      setServiceCreateOpen(false);
+      resetServiceCreateDraft();
+      setMessage('Service 게시글을 생성했습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Service 게시글 생성에 실패했습니다.');
+    } finally {
+      setServiceCreateSubmitting(false);
+    }
+  };
+
   const handleServicePostSave = async (post: ServicePost) => {
     const draft = servicePostDrafts[post.id];
     if (!draft) return;
@@ -770,7 +898,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         <div>
           <h3 className="text-lg font-semibold tracking-tight text-white">관리자 패널</h3>
           <p className="mt-1 text-sm text-white/60">
-            회원 관리와 Studio 게시글 관리 기능을 마이페이지 안에서 바로 사용합니다.
+            회원 관리, 서비스 섹션 관리, 스튜디오 섹션 관리 기능을 마이페이지 안에서 바로 사용합니다.
           </p>
         </div>
         <ActionButton
@@ -789,9 +917,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         <div className={segmentedWrapClass}>
           {[
             { key: 'members', label: `회원 관리 (${memberCountLabel})` },
-            { key: 'studio-posts', label: `Studio 게시글 (${studioPostCountLabel})` },
-            { key: 'service-posts', label: `Service 게시글 (${servicePostCountLabel})` },
-            { key: 'create-post', label: '게시물 작성' }
+            { key: 'service-posts', label: `서비스 섹션 관리 (${servicePostCountLabel})` },
+            { key: 'studio-posts', label: `스튜디오 섹션 관리 (${studioPostCountLabel})` }
           ].map((tab) => (
             <PillTab
               key={tab.key}
@@ -1055,9 +1182,9 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       {activeTab === 'studio-posts' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
           <div className="mb-4 flex flex-col gap-1">
-            <p className="text-sm font-medium text-white">Studio 게시글 관리</p>
+            <p className="text-sm font-medium text-white">스튜디오 섹션 관리</p>
             <p className="text-xs text-white/55">
-              Studio 섹션에 노출되는 `studio_posts` 게시글 목록입니다. 수정/삭제를 여기서 관리합니다.
+              `studio_posts` 목록 관리(수정/삭제), 게시글 생성, R2 미디어 연결을 이 섹션에서 함께 처리합니다.
             </p>
           </div>
           <div className="space-y-3">
@@ -1178,33 +1305,212 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         </div>
       )}
 
-      {(activeTab === 'studio-media' || activeTab === 'create-post') && (
-        <StudioMediaAdminManager
-          enabled={enabled}
-          onRequestCreatePost={() => setActiveTab('create-post')}
-        />
+      {activeTab === 'studio-posts' && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+          <div className="mb-1">
+            <p className="text-sm font-medium text-white">Studio 게시글 업로드</p>
+            <p className="mt-1 text-xs text-white/55">
+              스튜디오 섹션 메인 게시글(썸네일/본문/선택 동영상)을 생성합니다.
+            </p>
+          </div>
+          <StudioPostForm />
+        </div>
       )}
+
+      {activeTab === 'studio-posts' && <StudioMediaAdminManager enabled={enabled} />}
 
       {activeTab === 'service-posts' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-white">Service 게시글 관리</p>
+              <p className="text-sm font-medium text-white">서비스 섹션 관리</p>
               <p className="text-xs text-white/55">
-                Services 섹션에 노출되는 `service_posts` 목록입니다.
+                Services 섹션 게시글 업로드/수정/삭제를 이 탭에서 처리합니다.
               </p>
             </div>
-            <ActionButton
-              type="button"
-              onClick={fetchDashboard}
-              variant="secondary"
-              size="sm"
-              className={appleFontClass}
-              disabled={loading}
-            >
-              새로고침
-            </ActionButton>
+            <div className="flex flex-wrap items-center gap-2">
+              <ActionButton
+                type="button"
+                onClick={() => setServiceCreateOpen((prev) => !prev)}
+                variant="primary"
+                size="sm"
+                className={appleFontClass}
+                disabled={serviceCreateSubmitting}
+              >
+                {serviceCreateOpen ? '업로드 폼 닫기' : '새 Service 게시글'}
+              </ActionButton>
+              <ActionButton
+                type="button"
+                onClick={fetchDashboard}
+                variant="secondary"
+                size="sm"
+                className={appleFontClass}
+                disabled={loading}
+              >
+                새로고침
+              </ActionButton>
+            </div>
           </div>
+
+          {serviceCreateOpen && (
+            <div className="mb-5 rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Service 게시글 업로드</p>
+                  <p className="mt-1 text-xs text-white/50">
+                    새 Service 게시글을 생성하고 이미지 URL/업로드 파일을 함께 등록합니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">제목</label>
+                  <input
+                    className={inputClass}
+                    value={serviceCreateDraft.title}
+                    onChange={(e) => handleServiceCreateDraftChange('title', e.target.value)}
+                    placeholder="서비스 제목"
+                    disabled={serviceCreateSubmitting}
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                      카테고리
+                    </label>
+                    <select
+                      className={inputClass}
+                      value={serviceCreateDraft.category}
+                      onChange={(e) => handleServiceCreateDraftChange('category', e.target.value)}
+                      disabled={serviceCreateSubmitting}
+                    >
+                      {SERVICE_CATEGORIES.map((category) => (
+                        <option key={category} value={category} className="bg-neutral-900">
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                      가격 시작
+                    </label>
+                    <input
+                      className={inputClass}
+                      type="number"
+                      min={0}
+                      value={serviceCreateDraft.price_from}
+                      onChange={(e) => handleServiceCreateDraftChange('price_from', e.target.value)}
+                      placeholder="150000"
+                      disabled={serviceCreateSubmitting}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                    요약
+                  </label>
+                  <input
+                    className={inputClass}
+                    value={serviceCreateDraft.summary}
+                    onChange={(e) => handleServiceCreateDraftChange('summary', e.target.value)}
+                    placeholder="카드에 표시될 짧은 요약"
+                    disabled={serviceCreateSubmitting}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                    상세 내용
+                  </label>
+                  <textarea
+                    className={`${inputClass} min-h-28 resize-y`}
+                    value={serviceCreateDraft.content}
+                    onChange={(e) => handleServiceCreateDraftChange('content', e.target.value)}
+                    placeholder="상세 설명"
+                    disabled={serviceCreateSubmitting}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                    이미지 URL 목록 (한 줄에 하나)
+                  </label>
+                  <textarea
+                    className={`${inputClass} min-h-24 resize-y`}
+                    value={serviceCreateDraft.image_urls_text}
+                    onChange={(e) =>
+                      handleServiceCreateDraftChange('image_urls_text', e.target.value)
+                    }
+                    placeholder="https://..."
+                    disabled={serviceCreateSubmitting}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                    이미지 업로드
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleServiceCreateFilesChange}
+                    className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/20 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+                    disabled={serviceCreateSubmitting}
+                  />
+                  {serviceCreateDraft.files.length > 0 && (
+                    <p className="text-xs text-white/50">
+                      선택됨: {serviceCreateDraft.files.map((file) => file.name).join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-white/85">
+                  <input
+                    type="checkbox"
+                    checked={serviceCreateDraft.is_published}
+                    onChange={(e) =>
+                      handleServiceCreateDraftChange('is_published', e.target.checked)
+                    }
+                    className="h-4 w-4 rounded border-white/20 bg-white/10"
+                    disabled={serviceCreateSubmitting}
+                  />
+                  게시글 공개
+                </label>
+
+                <div className="flex flex-wrap justify-end gap-2">
+                  <ActionButton
+                    type="button"
+                    onClick={() => {
+                      setServiceCreateOpen(false);
+                      resetServiceCreateDraft();
+                    }}
+                    variant="secondary"
+                    size="sm"
+                    className={appleFontClass}
+                    disabled={serviceCreateSubmitting}
+                  >
+                    취소
+                  </ActionButton>
+                  <ActionButton
+                    type="button"
+                    onClick={() => void handleServicePostCreate()}
+                    variant="primary"
+                    size="sm"
+                    className={appleFontClass}
+                    disabled={serviceCreateSubmitting}
+                  >
+                    {serviceCreateSubmitting ? '업로드 중…' : '게시글 업로드'}
+                  </ActionButton>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             {servicePosts.length === 0 && !loading ? (
@@ -1386,15 +1692,6 @@ export default function MyPageAdminPanel({ enabled }: Props) {
               })
             )}
           </div>
-        </div>
-      )}
-
-      {activeTab === 'create-post' && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
-          <p className="mb-3 text-sm text-white/60">
-            Studio 게시물 작성 폼입니다. 이 탭에서 작성 + R2 미디어 연결을 함께 처리합니다.
-          </p>
-          <StudioPostForm />
         </div>
       )}
 

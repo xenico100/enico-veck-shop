@@ -32,7 +32,6 @@ const tabs: Array<{ key: TabKey; label: string; adminOnly?: boolean }> = [
   { key: 'orders', label: '주문 목록' },
   { key: 'membership', label: '멤버십' },
   { key: 'admin', label: '관리자 패널', adminOnly: true },
-  { key: 'posts', label: '게시글 관리', adminOnly: true },
 ];
 
 type ServicePostEditorState = {
@@ -143,10 +142,12 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   }, [open]);
 
   useEffect(() => {
-    if (activeTab === 'admin' || activeTab === 'posts') {
-      if (!isAdmin) {
-        setActiveTab('profile');
-      }
+    if (activeTab === 'posts') {
+      setActiveTab(isAdmin ? 'admin' : 'profile');
+      return;
+    }
+    if (activeTab === 'admin' && !isAdmin) {
+      setActiveTab('profile');
     }
   }, [activeTab, isAdmin]);
 

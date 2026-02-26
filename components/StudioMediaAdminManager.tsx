@@ -375,20 +375,16 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
         <div className="mb-4 rounded-2xl border border-emerald-300/15 bg-emerald-500/5 p-3 text-xs text-emerald-100/90">
           기본은 `게시글 선택 + 파일 선택 + 파일 업로드 + 등록`만 사용하면 됩니다. `R2 Key / MIME / Bytes`는 고급 수동 등록에서만 필요합니다.
         </div>
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <ActionButton
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onRequestCreatePost}
-            disabled={!onRequestCreatePost}
-          >
-            게시물 작성 탭으로 이동
-          </ActionButton>
-          <p className="text-xs text-white/45">
-            썸네일 + 본문 + (선택) 동영상 업로드는 `게시물 작성` 탭에서 한 번에 처리할 수 있습니다.
-          </p>
-        </div>
+        {onRequestCreatePost && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <ActionButton type="button" variant="secondary" size="sm" onClick={onRequestCreatePost}>
+              게시물 작성 탭으로 이동
+            </ActionButton>
+            <p className="text-xs text-white/45">
+              썸네일 + 본문 + (선택) 동영상 업로드는 `게시물 작성` 탭에서 한 번에 처리할 수 있습니다.
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="grid gap-2 md:col-span-2">
@@ -409,7 +405,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
               ))}
             </select>
             <p className="text-xs text-white/45">
-              영상/이미지는 반드시 특정 Studio 게시글에 연결됩니다. 먼저 `게시물 작성` 탭에서 게시글을 만든 뒤 선택하세요.
+              영상/이미지는 반드시 특정 Studio 게시글에 연결됩니다. 먼저 Studio 게시글을 만든 뒤 선택하세요.
             </p>
           </div>
 
@@ -596,10 +592,15 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
         <div className="space-y-4">
           {posts.length === 0 && !loading && (
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
-              Studio 게시글이 없습니다. 먼저 `게시물 작성` 탭에서 게시글을 생성한 뒤, 이 탭에서 동영상/추가 이미지를 연결하세요.
+              Studio 게시글이 없습니다. 먼저 Studio 게시글을 생성한 뒤, 이 화면에서 동영상/추가 이미지를 연결하세요.
               {onRequestCreatePost && (
                 <div className="mt-3">
-                  <ActionButton type="button" variant="secondary" size="sm" onClick={onRequestCreatePost}>
+                  <ActionButton
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={onRequestCreatePost}
+                  >
                     게시물 작성 탭으로 이동
                   </ActionButton>
                 </div>
