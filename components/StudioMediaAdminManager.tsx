@@ -75,6 +75,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showManualRegistration, setShowManualRegistration] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -126,6 +127,22 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     }
     return grouped;
   }, [mediaRows]);
+
+  const handleSelectedFileChange = (file: File | null) => {
+    setSelectedFile(file);
+    if (!file) return;
+
+    const normalizedType = (file.type || '').trim().toLowerCase();
+    const inferredKind =
+      normalizedType.startsWith('video/') ? 'video' : normalizedType.startsWith('image/') ? 'image' : null;
+
+    setDraft((prev) => ({
+      ...prev,
+      kind: inferredKind ?? prev.kind,
+      mime: normalizedType || prev.mime,
+      bytes: file.size > 0 ? String(file.size) : prev.bytes
+    }));
+  };
 
   const handleCreate = async () => {
     setError(null);
@@ -344,6 +361,9 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
           <p className="text-sm font-medium text-white">R2 직접 업로드 + 미디어 등록</p>
           <span className="text-xs text-white/45">Presigned PUT (5분 만료)</span>
         </div>
+        <div className="mb-4 rounded-2xl border border-emerald-300/15 bg-emerald-500/5 p-3 text-xs text-emerald-100/90">
+          기본은 `게시글 선택 + 파일 선택 + 파일 업로드 + 등록`만 사용하면 됩니다. `R2 Key / MIME / Bytes`는 고급 수동 등록에서만 필요합니다.
+        </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="grid gap-2 md:col-span-2">
@@ -365,42 +385,23 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
             </select>
           </div>
 
-          <div className="grid gap-2">
-            <label className={labelClass}>Kind</label>
-            <select
-              className={inputClass}
-              value={draft.kind}
-              onChange={(e) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  kind: e.target.value === 'video' ? 'video' : 'image'
-                }))
-              }
-              disabled={saving || uploading}
-            >
-              <option value="image" className="bg-neutral-900">
-                image
-              </option>
-              <option value="video" className="bg-neutral-900">
-                video
-              </option>
-            </select>
-          </div>
-
-	          <div className="grid gap-2">
+          <div className="grid gap-2 md:col-span-2">
             <label className={labelClass}>업로드 파일</label>
             <input
               key={fileInputKey}
               type="file"
-              accept={draft.kind === 'video' ? 'video/*' : 'image/*'}
+              accept="image/*,video/*"
               className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/20 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => handleSelectedFileChange(e.target.files?.[0] ?? null)}
               disabled={saving || uploading}
             />
             <p className="text-xs text-white/45">
               {selectedFile
                 ? `${selectedFile.name} · ${selectedFile.type || 'unknown'} · ${selectedFile.size.toLocaleString()} bytes`
                 : 'image/* 또는 video/* 파일 선택'}
+            </p>
+            <p className="text-xs text-white/45">
+              업로드 타입 자동 감지: <span className="text-white/75">{draft.kind}</span>
             </p>
           </div>
 
@@ -437,53 +438,88 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <label className={labelClass}>R2 Bucket (optional)</label>
-            <input
-              className={inputClass}
-              value={draft.r2_bucket}
-              onChange={(e) => setDraft((prev) => ({ ...prev, r2_bucket: e.target.value }))}
-              placeholder="비워두면 R2_BUCKET_NAME 사용 (수동 등록용)"
-              disabled={saving || uploading}
-            />
-          </div>
+          {showManualRegistration && (
+            <>
+              <div className="grid gap-2">
+                <label className={labelClass}>Kind (수동 등록용)</label>
+                <select
+                  className={inputClass}
+                  value={draft.kind}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      kind: e.target.value === 'video' ? 'video' : 'image'
+                    }))
+                  }
+                  disabled={saving || uploading}
+                >
+                  <option value="image" className="bg-neutral-900">
+                    image
+                  </option>
+                  <option value="video" className="bg-neutral-900">
+                    video
+                  </option>
+                </select>
+              </div>
 
-          <div className="grid gap-2 md:col-span-2">
-            <label className={labelClass}>R2 Key</label>
-            <input
-              className={inputClass}
-              value={draft.r2_key}
-              onChange={(e) => setDraft((prev) => ({ ...prev, r2_key: e.target.value }))}
-              placeholder="studio/post-uuid/media/file.mp4"
-              disabled={saving || uploading}
-            />
-          </div>
+              <div className="grid gap-2">
+                <label className={labelClass}>R2 Bucket (optional)</label>
+                <input
+                  className={inputClass}
+                  value={draft.r2_bucket}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, r2_bucket: e.target.value }))}
+                  placeholder="비워두면 R2_BUCKET_NAME 사용 (수동 등록용)"
+                  disabled={saving || uploading}
+                />
+              </div>
 
-          <div className="grid gap-2">
-            <label className={labelClass}>MIME (optional)</label>
-            <input
-              className={inputClass}
-              value={draft.mime}
-              onChange={(e) => setDraft((prev) => ({ ...prev, mime: e.target.value }))}
-              placeholder={draft.kind === 'video' ? 'video/mp4' : 'image/jpeg'}
-              disabled={saving || uploading}
-            />
-          </div>
+              <div className="grid gap-2 md:col-span-2">
+                <label className={labelClass}>R2 Key</label>
+                <input
+                  className={inputClass}
+                  value={draft.r2_key}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, r2_key: e.target.value }))}
+                  placeholder="studio/post-uuid/media/file.mp4"
+                  disabled={saving || uploading}
+                />
+              </div>
 
-          <div className="grid gap-2">
-            <label className={labelClass}>Bytes (optional)</label>
-            <input
-              className={inputClass}
-              inputMode="numeric"
-              value={draft.bytes}
-              onChange={(e) => setDraft((prev) => ({ ...prev, bytes: e.target.value }))}
-              placeholder="1048576"
-              disabled={saving || uploading}
-            />
-          </div>
+              <div className="grid gap-2">
+                <label className={labelClass}>MIME (optional)</label>
+                <input
+                  className={inputClass}
+                  value={draft.mime}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, mime: e.target.value }))}
+                  placeholder={draft.kind === 'video' ? 'video/mp4' : 'image/jpeg'}
+                  disabled={saving || uploading}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label className={labelClass}>Bytes (optional)</label>
+                <input
+                  className={inputClass}
+                  inputMode="numeric"
+                  value={draft.bytes}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, bytes: e.target.value }))}
+                  placeholder="1048576"
+                  disabled={saving || uploading}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <ActionButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowManualRegistration((prev) => !prev)}
+            disabled={saving || uploading}
+          >
+            {showManualRegistration ? '고급 수동 등록 접기' : '고급 수동 등록 열기'}
+          </ActionButton>
           <ActionButton
             type="button"
             variant="primary"
@@ -493,16 +529,18 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
           >
             {uploading ? '업로드 중…' : '파일 업로드 + 등록'}
           </ActionButton>
-          <ActionButton
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleCreate}
-            disabled={saving || uploading}
-            title="수동으로 이미 업로드된 R2 객체를 studio_media에만 등록"
-          >
-            {saving ? '저장 중…' : '수동 메타데이터 등록'}
-          </ActionButton>
+          {showManualRegistration && (
+            <ActionButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleCreate}
+              disabled={saving || uploading}
+              title="수동으로 이미 업로드된 R2 객체를 studio_media에만 등록"
+            >
+              {saving ? '저장 중…' : '수동 메타데이터 등록'}
+            </ActionButton>
+          )}
         </div>
       </div>
 
