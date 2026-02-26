@@ -64,6 +64,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [profilePrefillLoading, setProfilePrefillLoading] = useState(false);
   const [guestForm, setGuestForm] = useState<GuestCheckoutForm>({
     name: '',
     email: '',
@@ -121,6 +122,53 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       }));
     }
   }, [user?.name]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!open || !isCheckingOut || authLoading || !user?.id) {
+      setProfilePrefillLoading(false);
+      return;
+    }
+
+    const loadProfileForPrefill = async () => {
+      setProfilePrefillLoading(true);
+      try {
+        const response = await fetch('/api/account/profile', { cache: 'no-store' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.message || '회원정보를 불러오지 못했습니다.');
+        }
+
+        const row = (payload?.data ?? null) as
+          | { name?: string | null; email?: string | null; phone?: string | null; address?: string | null }
+          | null;
+
+        if (cancelled) return;
+
+        setGuestForm((prev) => ({
+          name: prev.name || row?.name || user.name || '',
+          email: prev.email || row?.email || user.email || '',
+          phone: prev.phone || row?.phone || '',
+          address: prev.address || row?.address || ''
+        }));
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('[CartModal] profile prefill skipped', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setProfilePrefillLoading(false);
+        }
+      }
+    };
+
+    void loadProfileForPrefill();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isCheckingOut, authLoading, user?.id, user?.name, user?.email]);
 
   const updateGuestForm = (patch: Partial<GuestCheckoutForm>) => {
     setGuestForm((prev) => ({ ...prev, ...patch }));
@@ -528,6 +576,11 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           {user?.id
                             ? '주문자/배송 정보를 확인한 뒤 결제를 진행해 주세요.'
                             : '비회원 구매 가능합니다. 위 주문 정보를 입력한 뒤 결제를 진행해 주세요.'}
+                        </p>
+                      ) : null}
+                      {!authLoading && user?.id && profilePrefillLoading ? (
+                        <p className="mt-1 text-xs text-white/40">
+                          회원정보에서 핸드폰 번호/주소를 불러오는 중...
                         </p>
                       ) : null}
                     </div>
