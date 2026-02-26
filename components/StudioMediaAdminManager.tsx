@@ -128,6 +128,11 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     return grouped;
   }, [mediaRows]);
 
+  const canUploadDirect =
+    Boolean(draft.studio_post_id.trim()) && Boolean(selectedFile) && !saving && !uploading;
+  const canManualRegister =
+    Boolean(draft.studio_post_id.trim()) && Boolean(draft.r2_key.trim()) && !saving && !uploading;
+
   const handleSelectedFileChange = (file: File | null) => {
     setSelectedFile(file);
     if (!file) return;
@@ -149,7 +154,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     setMessage(null);
 
     if (!draft.studio_post_id) {
-      setError('Studio 게시글을 선택해 주세요.');
+      setError('먼저 Studio 게시글을 작성/선택해 주세요. (업로드 파일은 게시글에 연결되어야 합니다.)');
       return;
     }
     if (!draft.r2_key.trim()) {
@@ -202,7 +207,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     setMessage(null);
 
     if (!draft.studio_post_id) {
-      setError('Studio 게시글을 선택해 주세요.');
+      setError('먼저 Studio 게시글을 작성/선택해 주세요. (업로드 파일은 게시글에 연결되어야 합니다.)');
       return;
     }
     if (!selectedFile) {
@@ -383,6 +388,9 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
                 </option>
               ))}
             </select>
+            <p className="text-xs text-white/45">
+              영상/이미지는 반드시 특정 Studio 게시글에 연결됩니다. 먼저 `게시물 작성` 탭에서 게시글을 만든 뒤 선택하세요.
+            </p>
           </div>
 
           <div className="grid gap-2 md:col-span-2">
@@ -474,7 +482,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
               </div>
 
               <div className="grid gap-2 md:col-span-2">
-                <label className={labelClass}>R2 Key</label>
+                <label className={labelClass}>R2 객체 경로 (비밀키 아님)</label>
                 <input
                   className={inputClass}
                   value={draft.r2_key}
@@ -482,6 +490,9 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
                   placeholder="studio/post-uuid/media/file.mp4"
                   disabled={saving || uploading}
                 />
+                <p className="text-xs text-white/45">
+                  여기 입력하는 `R2 Key`는 버킷 안 파일 경로입니다. `R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY` 같은 비밀키가 아닙니다.
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -525,7 +536,14 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
             variant="primary"
             size="sm"
             onClick={handleDirectUpload}
-            disabled={saving || uploading}
+            disabled={!canUploadDirect}
+            title={
+              !draft.studio_post_id.trim()
+                ? 'Studio 게시글을 먼저 선택하세요.'
+                : !selectedFile
+                  ? '업로드 파일을 먼저 선택하세요.'
+                  : undefined
+            }
           >
             {uploading ? '업로드 중…' : '파일 업로드 + 등록'}
           </ActionButton>
@@ -535,7 +553,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
               variant="secondary"
               size="sm"
               onClick={handleCreate}
-              disabled={saving || uploading}
+              disabled={!canManualRegister}
               title="수동으로 이미 업로드된 R2 객체를 studio_media에만 등록"
             >
               {saving ? '저장 중…' : '수동 메타데이터 등록'}
