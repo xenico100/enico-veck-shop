@@ -21,6 +21,12 @@ type PayPalOrderSaveRequest = {
   paypalOrderId?: string | null;
   paypalCapture?: unknown;
   items?: PayPalCartItemPayload[];
+  customerContact?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
   guestCustomer?: {
     email?: string;
     phone?: string;
@@ -41,6 +47,7 @@ type SupabaseErrorLike = {
 };
 
 type GuestCustomerContact = {
+  name: string;
   email: string;
   phone: string;
   address: string;
@@ -143,16 +150,25 @@ const parsePayPalAmountToIntegerStorage = (value: string, currency: string | nul
   return Math.round(parsed * 100);
 };
 
-const normalizeGuestCustomer = (input: unknown): GuestCustomerContact | null => {
+const normalizeCustomerContact = (
+  input: unknown,
+  options?: {
+    fallbackName?: string | null;
+    fallbackEmail?: string | null;
+  }
+): GuestCustomerContact | null => {
   if (!isRecord(input)) return null;
 
-  const email = typeof input.email === 'string' ? input.email.trim() : '';
+  const nameRaw = typeof input.name === 'string' ? input.name.trim() : '';
+  const emailRaw = typeof input.email === 'string' ? input.email.trim() : '';
   const phone = typeof input.phone === 'string' ? input.phone.trim() : '';
   const address = typeof input.address === 'string' ? input.address.trim() : '';
+  const name = nameRaw || (options?.fallbackName || '').trim();
+  const email = emailRaw || (options?.fallbackEmail || '').trim();
 
-  if (!email || !phone || !address) return null;
+  if (!name || !email || !phone || !address) return null;
 
-  return { email, phone, address };
+  return { name, email, phone, address };
 };
 
 export async function POST(request: Request) {
@@ -178,11 +194,14 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as PayPalOrderSaveRequest;
   const totalKRW = Math.round(Number(body.totalKRW ?? 0));
-  const guestCustomer = normalizeGuestCustomer(body.guestCustomer);
+  const customerContact = normalizeCustomerContact(body.customerContact ?? body.guestCustomer, {
+    fallbackName: authenticatedUser?.user_metadata?.full_name as string | undefined,
+    fallbackEmail: authenticatedUser?.email ?? null
+  });
 
-  if (isGuestOrder && !guestCustomer) {
+  if (!customerContact) {
     return NextResponse.json(
-      { message: '비회원 구매에는 이메일, 연락처, 주소 입력이 필요합니다.' },
+      { message: '주문자 정보(이름, 이메일, 연락처, 주소)를 모두 입력해 주세요.' },
       { status: 400 }
     );
   }
@@ -218,9 +237,9 @@ export async function POST(request: Request) {
           shipping: shipping ?? null
         }
       : {}),
-    ...(guestCustomer
+    ...(customerContact
       ? {
-          guest_contact: guestCustomer
+          customer_contact: customerContact
         }
       : {})
   };
@@ -259,6 +278,8 @@ export async function POST(request: Request) {
     paypal_order_id:
       (typeof body.paypalOrderId === 'string' && body.paypalOrderId) ||
       (typeof captureRecord?.id === 'string' ? captureRecord.id : null),
+    shipping_carrier: null,
+    shipping_status: 'preparing',
     shipping_address: shippingAddressJson,
     tracking_number: null,
     items
@@ -283,7 +304,7 @@ export async function POST(request: Request) {
 
   let insertResult;
   const selectColumns =
-    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number';
+    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status';
   const writeOrder = async (dbClient: any) =>
     paypalOrderIdForLookup
       ? await dbClient

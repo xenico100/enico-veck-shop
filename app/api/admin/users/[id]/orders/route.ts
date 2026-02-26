@@ -21,10 +21,10 @@ export async function GET(
     return NextResponse.json({ message: '사용자 ID가 필요합니다.' }, { status: 400 });
   }
 
-  const { data, error } = await (adminClient as never)
+  const { data, error } = await (adminClient as any)
     .from('orders')
     .select(
-      'id,user_id,status,currency,amount_total,created_at,paypal_order_id,shipping_address,tracking_number,items'
+      'id,user_id,status,currency,amount_total,created_at,paypal_order_id,shipping_address,tracking_number,shipping_carrier,shipping_status,items'
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false });

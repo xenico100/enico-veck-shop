@@ -11,7 +11,9 @@ import {
   formatOrderDate,
   formatOrderMoney,
   getOrderStatusBadgeClass,
+  getShippingStatusBadgeClass,
   mapOrderStatusLabel,
+  mapShippingStatusLabel,
   normalizeOrders,
   type OrderRecord
 } from '@/utils/orders';
@@ -102,6 +104,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [memberOrders, setMemberOrders] = useState<OrderRecord[]>([]);
   const [selectedMemberOrder, setSelectedMemberOrder] = useState<OrderRecord | null>(null);
   const [memberOrderDetailOpen, setMemberOrderDetailOpen] = useState(false);
+  const [memberOrderShippingSaving, setMemberOrderShippingSaving] = useState(false);
+  const [memberOrderShippingError, setMemberOrderShippingError] = useState<string | null>(null);
 
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -368,6 +372,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     setMemberOrdersLoading(false);
     setSelectedMemberOrder(null);
     setMemberOrderDetailOpen(false);
+    setMemberOrderShippingSaving(false);
+    setMemberOrderShippingError(null);
   };
 
   const handleOpenMemberOrders = async (member: AdminMember) => {
@@ -378,6 +384,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     setMemberOrdersLoading(true);
     setSelectedMemberOrder(null);
     setMemberOrderDetailOpen(false);
+    setMemberOrderShippingError(null);
 
     try {
       const response = await fetch(`/api/admin/users/${member.id}/orders`, { cache: 'no-store' });
@@ -392,6 +399,49 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       );
     } finally {
       setMemberOrdersLoading(false);
+    }
+  };
+
+  const handleSaveMemberOrderShipping = async (payload: {
+    orderId: string;
+    shippingCarrier: string;
+    trackingNumber: string;
+    shippingStatus: string;
+  }) => {
+    setMemberOrderShippingSaving(true);
+    setMemberOrderShippingError(null);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/admin/orders/${payload.orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipping_carrier: payload.shippingCarrier || null,
+          tracking_number: payload.trackingNumber || null,
+          shipping_status: payload.shippingStatus || null
+        })
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.message || '배송 정보 저장에 실패했습니다.');
+      }
+
+      const nextOrder = normalizeOrders(body?.data ? [body.data] : [])[0] ?? null;
+      if (!nextOrder) {
+        throw new Error('저장 후 주문 데이터를 불러오지 못했습니다.');
+      }
+
+      setMemberOrders((prev) => prev.map((row) => (row.id === nextOrder.id ? nextOrder : row)));
+      setSelectedMemberOrder((prev) => (prev?.id === nextOrder.id ? nextOrder : prev));
+      setMessage('배송 정보를 저장했습니다.');
+    } catch (err) {
+      setMemberOrderShippingError(
+        err instanceof Error ? err.message : '배송 정보 저장에 실패했습니다.'
+      );
+    } finally {
+      setMemberOrderShippingSaving(false);
     }
   };
 
@@ -1230,11 +1280,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 memberOrders.map((order) => {
                   const firstItem = order.items[0];
                   const extraCount = Math.max(0, order.items.length - 1);
+                  const contactName = order.customer_contact?.name?.trim() || null;
+                  const contactPhone = order.customer_contact?.phone?.trim() || null;
                   return (
                     <button
                       key={order.id}
                       type="button"
                       onClick={() => {
+                        setMemberOrderShippingError(null);
                         setSelectedMemberOrder(order);
                         setMemberOrderDetailOpen(true);
                       }}
@@ -1248,6 +1301,11 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             >
                               {mapOrderStatusLabel(order.status)}
                             </span>
+                            <span
+                              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getShippingStatusBadgeClass(order.shipping_status)}`}
+                            >
+                              {mapShippingStatusLabel(order.shipping_status)}
+                            </span>
                             <span className="text-xs text-white/55">
                               {formatOrderDate(order.created_at)}
                             </span>
@@ -1258,6 +1316,15 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           </p>
                           <p className="mt-1 text-xs text-white/45">
                             주문번호 {order.id.slice(0, 8)}…
+                          </p>
+                          <p className="mt-1 text-xs text-white/50">
+                            주문자 {contactName ?? '-'} {contactPhone ? `· ${contactPhone}` : ''}
+                          </p>
+                          <p className="mt-1 text-xs text-white/50">
+                            {order.shipping_carrier?.trim() ? order.shipping_carrier : '택배사 미입력'}
+                            {order.tracking_number?.trim()
+                              ? ` · 운송장 ${order.tracking_number}`
+                              : ' · 운송장 미입력'}
                           </p>
                         </div>
                         <div className="text-left md:text-right">
@@ -1284,9 +1351,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           setMemberOrderDetailOpen(next);
           if (!next) {
             setSelectedMemberOrder(null);
+            setMemberOrderShippingError(null);
           }
         }}
         order={selectedMemberOrder}
+        adminShippingEditable
+        onSaveShipping={handleSaveMemberOrderShipping}
+        shippingSavePending={memberOrderShippingSaving}
+        shippingSaveError={memberOrderShippingError}
       />
     </div>
   );
