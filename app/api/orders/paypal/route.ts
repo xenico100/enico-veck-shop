@@ -107,6 +107,11 @@ const logSupabaseOrderWriteError = (
   });
 };
 
+const isOnConflictConstraintMismatchError = (error: SupabaseErrorLike | null | undefined) =>
+  (error?.message || '')
+    .toLowerCase()
+    .includes('there is no unique or exclusion constraint matching the on conflict specification');
+
 const getCapturedPayPalAmount = (
   firstCapture: Record<string, unknown> | null,
   firstPurchaseUnit: Record<string, unknown> | null
@@ -262,7 +267,14 @@ export async function POST(request: Request) {
   console.info('[orders/paypal] supabase client', {
     source: '@/utils/supabase/server.createClient',
     sessionAware: true,
-    implementation: '@supabase/ssr + next/headers cookies()'
+    implementation: '@supabase/ssr + next/headers cookies()',
+    supabaseUrlHost: (() => {
+      try {
+        return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').host || null;
+      } catch {
+        return null;
+      }
+    })()
   });
   console.info('[orders/paypal] order payload keys', Object.keys(orderPayload));
 
@@ -285,11 +297,46 @@ export async function POST(request: Request) {
           .select(selectColumns)
           .single();
 
+  const writeOrderManualIdempotent = async (dbClient: any) => {
+    if (!paypalOrderIdForLookup) {
+      return await dbClient.from('orders').insert(orderPayload).select(selectColumns).single();
+    }
+
+    const existing = await dbClient
+      .from('orders')
+      .select(selectColumns)
+      .eq('paypal_order_id', paypalOrderIdForLookup)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing.error) {
+      return existing;
+    }
+
+    if (existing.data?.id) {
+      return await dbClient
+        .from('orders')
+        .update(orderPayload)
+        .eq('id', existing.data.id)
+        .select(selectColumns)
+        .single();
+    }
+
+    return await dbClient.from('orders').insert(orderPayload).select(selectColumns).single();
+  };
+
   if (isGuestOrder) {
     try {
       const { createAdminClient } = await import('@/utils/supabase/adminClient');
       const adminClient = createAdminClient();
       insertResult = await writeOrder(adminClient as any);
+      if (isOnConflictConstraintMismatchError(insertResult.error)) {
+        console.warn('[orders/paypal] ON CONFLICT unsupported on connected DB, retrying manual save', {
+          stage: 'guest_admin_client',
+          paypalOrderId: paypalOrderIdForLookup
+        });
+        insertResult = await writeOrderManualIdempotent(adminClient as any);
+      }
       if (insertResult.error) {
         logSupabaseOrderWriteError('guest_admin_client', insertResult.error, {
           userId: null,
@@ -310,6 +357,14 @@ export async function POST(request: Request) {
     }
   } else {
     insertResult = await writeOrder(supabase as any);
+    if (isOnConflictConstraintMismatchError(insertResult.error)) {
+      console.warn('[orders/paypal] ON CONFLICT unsupported on connected DB, retrying manual save', {
+        stage: 'user_client',
+        userId: authenticatedUser?.id ?? null,
+        paypalOrderId: paypalOrderIdForLookup
+      });
+      insertResult = await writeOrderManualIdempotent(supabase as any);
+    }
   }
 
   if (!isGuestOrder && insertResult.error) {
@@ -335,6 +390,15 @@ export async function POST(request: Request) {
               .insert(orderPayload)
               .select(selectColumns)
               .single();
+
+        if (isOnConflictConstraintMismatchError(insertResult.error)) {
+          console.warn('[orders/paypal] ON CONFLICT unsupported on connected DB, retrying manual save', {
+            stage: 'admin_fallback_client',
+            userId: authenticatedUser?.id ?? null,
+            paypalOrderId: paypalOrderIdForLookup
+          });
+          insertResult = await writeOrderManualIdempotent(adminClient as any);
+        }
 
         if (insertResult.error) {
           logSupabaseOrderWriteError('admin_fallback_client', insertResult.error, {
