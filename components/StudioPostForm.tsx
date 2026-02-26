@@ -216,7 +216,6 @@ export default function StudioPostForm() {
         </label>
         <input
           key={videoInputKey}
-          name="studioVideo"
           type="file"
           accept="video/*"
           onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)}
@@ -255,7 +254,7 @@ export default function StudioPostForm() {
             지금은 무료공개 체크만 동작합니다. 체크하지 않으면 멤버십 가입자 전용으로 등록됩니다.
           </p>
           <p className="mt-1 text-xs text-neutral-500">
-            동영상 파일은 게시물 저장 후 R2에 업로드됩니다. (현재 관리자 권한 계정 기준)
+            동영상 파일은 게시물 저장 후 브라우저에서 R2로 직접 업로드됩니다. (서버 액션 폼 제출에는 포함되지 않음)
           </p>
         </div>
       </div>
