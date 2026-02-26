@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toasts/use-toast';
@@ -9,6 +9,19 @@ import { createPost, type CreatePostState } from '@/app/posts/actions';
 
 const initialState: CreatePostState = {
   status: 'idle'
+};
+
+const buildStudioDetailUrl = (postId?: string | null) => {
+  const trimmedId = postId?.trim() || '';
+  if (!trimmedId) return '/#studio';
+  return `/?studioPost=${encodeURIComponent(trimmedId)}#studio`;
+};
+
+const getVideoUploadErrorMessage = (error: unknown) => {
+  if (error instanceof TypeError && /fetch/i.test(error.message)) {
+    return '동영상 R2 업로드 요청이 브라우저에서 차단되었습니다. 배포 도메인에 대한 R2 CORS 설정을 확인해 주세요. (게시물은 생성됨)';
+  }
+  return error instanceof Error ? error.message : 'R2 동영상 업로드에 실패했습니다.';
 };
 
 function SubmitButton({ extraPending = false }: { extraPending?: boolean }) {
@@ -32,6 +45,18 @@ export default function StudioPostForm() {
   const [videoInputKey, setVideoInputKey] = useState(0);
   const [videoFreePublic, setVideoFreePublic] = useState(false);
   const [videoUploadPending, setVideoUploadPending] = useState(false);
+
+  const navigateToStudioDetailOnMain = useCallback(
+    (postId?: string | null) => {
+      const href = buildStudioDetailUrl(postId);
+      if (typeof window !== 'undefined') {
+        window.location.assign(href);
+        return;
+      }
+      router.push(href);
+    },
+    [router]
+  );
 
   const resetClientVideoFields = () => {
     setVideoFile(null);
@@ -109,7 +134,7 @@ export default function StudioPostForm() {
         });
         formRef.current?.reset();
         resetClientVideoFields();
-        router.push(postId ? `/posts/${postId}` : '/posts');
+        navigateToStudioDetailOnMain(postId);
       };
 
       if (postId && videoFile) {
@@ -119,21 +144,19 @@ export default function StudioPostForm() {
             await uploadStudioVideo(postId, videoFile, videoFreePublic);
             finalizeSuccess(
               videoFreePublic
-                ? '스튜디오 게시물과 무료 공개 테스트 영상이 R2에 업로드되었습니다.'
+                ? '스튜디오 게시물과 일반 공개 영상이 R2에 업로드되었습니다.'
                 : '스튜디오 게시물과 멤버십 전용 영상이 R2에 업로드되었습니다.'
             );
           } catch (uploadError) {
             toast({
               title: '게시물은 생성됨 / 동영상 업로드 실패',
               description:
-                uploadError instanceof Error
-                  ? uploadError.message
-                  : 'R2 동영상 업로드에 실패했습니다. Studio 미디어(R2) 탭에서 다시 업로드해 주세요.',
+                `${getVideoUploadErrorMessage(uploadError)} 필요하면 관리자 패널 > 스튜디오 섹션 관리 > 추가 미디어(R2)에서 다시 업로드해 주세요.`,
               variant: 'destructive'
             });
             formRef.current?.reset();
             resetClientVideoFields();
-            router.push(`/posts/${postId}`);
+            navigateToStudioDetailOnMain(postId);
           } finally {
             setVideoUploadPending(false);
           }
@@ -151,7 +174,7 @@ export default function StudioPostForm() {
         description: state.message
       });
     }
-  }, [router, state, toast, videoFile, videoFreePublic]);
+  }, [navigateToStudioDetailOnMain, state, toast, videoFile, videoFreePublic]);
 
   return (
     <form
@@ -234,7 +257,7 @@ export default function StudioPostForm() {
               onChange={(event) => setVideoFreePublic(event.target.checked)}
               disabled={videoUploadPending}
             />
-            무료공개 (테스트용)
+            일반 공개 (비구독자도 시청 가능)
           </label>
           <div className="mt-3 grid gap-2 sm:grid-cols-3 text-xs text-neutral-500">
             <label className="flex items-center gap-2">
@@ -251,7 +274,7 @@ export default function StudioPostForm() {
             </label>
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            지금은 무료공개 체크만 동작합니다. 체크하지 않으면 멤버십 가입자 전용으로 등록됩니다.
+            일반 공개 체크 시 비구독자도 볼 수 있습니다. 체크하지 않으면 멤버십 가입자 전용으로 등록됩니다.
           </p>
           <p className="mt-1 text-xs text-neutral-500">
             동영상 파일은 게시물 저장 후 브라우저에서 R2로 직접 업로드됩니다. (서버 액션 폼 제출에는 포함되지 않음)

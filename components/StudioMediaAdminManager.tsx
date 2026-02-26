@@ -463,7 +463,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
                   className="h-4 w-4 rounded border-white/20 bg-white/10"
                   disabled={saving || uploading}
                 />
-                무료 공개 (테스트용)
+                일반 공개 (비구독자도 시청 가능)
               </label>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 {['월 4,900원', '월 13,900원', '월 69,000원'].map((label) => (
@@ -478,7 +478,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
                 ))}
               </div>
               <p className="mt-3 text-xs text-white/50">
-                지금은 무료 공개 체크만 동작합니다. 체크하지 않으면 멤버십 가입자 전용으로 저장됩니다.
+                일반 공개 체크 시 비구독자도 볼 수 있습니다. 체크하지 않으면 멤버십 가입자 전용으로 저장됩니다.
               </p>
             </div>
           </div>

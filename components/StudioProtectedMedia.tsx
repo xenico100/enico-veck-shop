@@ -94,7 +94,7 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-neutral-300">
         {showingPublicOnly
-          ? '무료 공개 미디어가 아직 없습니다. 멤버십 전용 미디어는 가입 후 표시됩니다.'
+          ? '일반 공개 미디어가 아직 없습니다. 멤버십 전용 미디어는 가입 후 표시됩니다.'
           : '연결된 전용 미디어가 아직 없습니다.'}
       </div>
     );
@@ -110,7 +110,7 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
           <div className="border-b border-white/10 px-4 py-3">
             <p className="text-xs uppercase tracking-[0.24em] text-neutral-400">
               {item.kind === 'video' ? 'Video' : 'Image'}
-              {item.is_free_public ? ' · Free Preview' : ''}
+              {item.is_free_public ? ' · 일반 공개' : ''}
               {item.mime ? ` · ${item.mime}` : ''}
               {formatBytes(item.bytes) ? ` · ${formatBytes(item.bytes)}` : ''}
             </p>
@@ -132,7 +132,7 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-neutral-400">
         보안 링크는 잠시 후 만료됩니다. 재생/열기 오류가 나면 다시 불러오기를 눌러주세요.
-        {showingPublicOnly ? ' 무료 공개 미디어만 표시 중입니다.' : ''}
+        {showingPublicOnly ? ' 일반 공개 미디어만 표시 중입니다.' : ''}
       </div>
     </div>
   );

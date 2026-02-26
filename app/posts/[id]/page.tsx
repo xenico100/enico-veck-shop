@@ -225,7 +225,7 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
                   )}
                 </div>
                 <p className="text-sm leading-relaxed text-neutral-400">
-                  기본은 멤버십 전용이며, 테스트용으로 체크한 무료 공개 미디어가 있으면 비구독자에게도 표시됩니다.
+                  기본은 멤버십 전용이며, 일반 공개로 체크한 미디어가 있으면 비구독자에게도 표시됩니다.
                 </p>
               </div>
 

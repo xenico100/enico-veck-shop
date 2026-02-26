@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ImageIcon, Lock, Pause, Play, X } from 'lucide-react';
 
@@ -53,7 +54,7 @@ const STUDIO_ROW_ACCESS_RULES: StudioRowAccessRule[] = [
   {
     key: 'free',
     rowLabel: '1번 줄',
-    membershipLabel: '무료 공개',
+    membershipLabel: '일반 멤버십',
     requiredLevel: 0
   },
   {
@@ -199,78 +200,11 @@ function StudioDetailModal({
   viewerMembershipTierLevel: number;
   viewerMembershipTierLoading: boolean;
 }) {
-  const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
-  const [membershipLoading, setMembershipLoading] = useState(false);
-  const [hasActiveMembership, setHasActiveMembership] = useState(false);
-  const [membershipError, setMembershipError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const resetForGuest = () => {
-      setMembershipLoading(false);
-      setHasActiveMembership(false);
-      setMembershipError(null);
-    };
-
-    if (!post) {
-      resetForGuest();
-      return;
-    }
-
-    if (authLoading) {
-      setMembershipLoading(true);
-      setMembershipError(null);
-      return;
-    }
-
-    if (!user?.id) {
-      resetForGuest();
-      return;
-    }
-
-    const loadStudioAccess = async () => {
-      setMembershipLoading(true);
-      setMembershipError(null);
-
-      try {
-        const { data, error } = await (supabase as any)
-          .from('studio_access')
-          .select('has_active_subscription')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          throw error;
-        }
-
-        if (!cancelled) {
-          setHasActiveMembership(Boolean(data?.has_active_subscription));
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setHasActiveMembership(false);
-          setMembershipError(
-            error instanceof Error ? error.message : '멤버십 상태를 확인하지 못했습니다.'
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setMembershipLoading(false);
-        }
-      }
-    };
-
-    void loadStudioAccess();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, post?.id, supabase, user?.id]);
+  const hasActiveMembership = viewerMembershipTierLevel > 0;
 
   const requiredTierLevel = post?.required_membership_level ?? 0;
-  const requiredTierLabel = post?.required_membership_label ?? '무료 공개';
+  const requiredTierLabel = post?.required_membership_label ?? '일반 멤버십';
   const isRowTierLocked =
     Boolean(post) &&
     requiredTierLevel > 0 &&
@@ -405,17 +339,11 @@ function StudioDetailModal({
                       )}
                     </div>
                     <p className="text-sm leading-relaxed text-white/55">
-                      기본은 멤버십 전용이며, 테스트용 무료 공개 체크 미디어는 비구독자도 볼 수 있습니다.
+                      기본은 멤버십 전용이며, 일반 공개 체크 미디어는 비구독자도 볼 수 있습니다.
                     </p>
                   </div>
 
-                  {membershipError && (
-                    <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-100">
-                      멤버십 상태 확인 실패: {membershipError}
-                    </div>
-                  )}
-
-                  {authLoading || membershipLoading || viewerMembershipTierLoading ? (
+                  {authLoading || viewerMembershipTierLoading ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
                       멤버십 상태를 확인하는 중입니다...
                     </div>
@@ -425,7 +353,7 @@ function StudioDetailModal({
                         {requiredTierLabel} 이상에서만 이 게시물의 전용 미디어를 볼 수 있습니다.
                       </p>
                       <p className="mt-2 text-sm text-white/70">
-                        무료 공개 체크된 미리보기 영상/이미지는 카드/상세에서 일부 보일 수 있지만, 전용 미디어 전체는 해당 등급 가입자에게만 열립니다.
+                        일반 공개 체크된 미디어는 비구독자도 볼 수 있지만, 전용 미디어 전체는 해당 등급 가입자에게만 열립니다.
                       </p>
                       <div className="mt-4">
                         {user ? (
@@ -475,7 +403,7 @@ function StudioDetailModal({
                     </div>
                   ) : null}
 
-                  {!authLoading && !membershipLoading && !viewerMembershipTierLoading && !isRowTierLocked ? (
+                  {!authLoading && !viewerMembershipTierLoading && !isRowTierLocked ? (
                     <StudioProtectedMedia studioPostId={post.id} />
                   ) : null}
                 </section>
@@ -609,6 +537,9 @@ function StudioWriteModal({
 
 export default function StudioSection() {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const isAdmin = isAdminUserLike(user);
 
@@ -630,9 +561,32 @@ export default function StudioSection() {
   });
   const [viewerMembershipTierLevel, setViewerMembershipTierLevel] = useState(0);
   const [viewerMembershipTierLoading, setViewerMembershipTierLoading] = useState(false);
-  const [viewerMembershipLabel, setViewerMembershipLabel] = useState<string>('무료 공개');
+  const [viewerMembershipLabel, setViewerMembershipLabel] = useState<string>('일반 멤버십');
 
   const rows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
+
+  const findPostWithRowMeta = useCallback(
+    (postId: string) => {
+      const normalizedId = postId.trim();
+      if (!normalizedId) return null;
+
+      for (let rowIndex = 0; rowIndex < STUDIO_ROW_ACCESS_RULES.length; rowIndex += 1) {
+        const rowRule = STUDIO_ROW_ACCESS_RULES[rowIndex];
+        const rowPosts = rows[rowIndex] ?? [];
+        const found = rowPosts.find((post) => post.id === normalizedId && !post.is_placeholder);
+        if (!found) continue;
+
+        return {
+          ...found,
+          required_membership_level: rowRule.requiredLevel,
+          required_membership_label: rowRule.membershipLabel
+        } as StudioPost;
+      }
+
+      return null;
+    },
+    [rows]
+  );
 
   const fetchStudioPosts = useCallback(async () => {
     setPostsLoading(true);
@@ -664,12 +618,22 @@ export default function StudioSection() {
   }, [fetchStudioPosts]);
 
   useEffect(() => {
+    const targetPostId = searchParams.get('studioPost')?.trim() || '';
+    if (!targetPostId || postsLoading) return;
+
+    const targetPost = findPostWithRowMeta(targetPostId);
+    if (!targetPost) return;
+
+    setSelectedPost((prev) => (prev?.id === targetPost.id ? prev : targetPost));
+  }, [findPostWithRowMeta, postsLoading, searchParams]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const resetGuestTier = () => {
       if (cancelled) return;
       setViewerMembershipTierLevel(0);
-      setViewerMembershipLabel('무료 공개');
+      setViewerMembershipLabel('일반 멤버십');
       setViewerMembershipTierLoading(false);
     };
 
@@ -699,14 +663,14 @@ export default function StudioSection() {
           setViewerMembershipLabel(
             membership?.has_active_subscription
               ? String(membership?.selected_membership || '활성 멤버십').trim() || '활성 멤버십'
-              : '무료 공개'
+              : '일반 멤버십'
           );
         }
       } catch (error) {
         console.error('[StudioSection] membership tier lookup failed', error);
         if (!cancelled) {
           setViewerMembershipTierLevel(0);
-          setViewerMembershipLabel('무료 공개');
+          setViewerMembershipLabel('일반 멤버십');
         }
       } finally {
         if (!cancelled) {
@@ -824,6 +788,18 @@ export default function StudioSection() {
   const togglePlayPause = () => {
     setIsPlaying((prev) => !prev);
   };
+
+  const handleCloseSelectedPost = useCallback(() => {
+    setSelectedPost(null);
+
+    const targetPostId = searchParams.get('studioPost');
+    if (!targetPostId) return;
+
+    const nextSearch = new URLSearchParams(searchParams.toString());
+    nextSearch.delete('studioPost');
+    const nextQuery = nextSearch.toString();
+    router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}#studio`, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   const renderRow = (rowIndex: number, rowRule: StudioRowAccessRule) => {
     const rowItems = rows[rowIndex] ?? [];
@@ -1004,7 +980,7 @@ export default function StudioSection() {
             <p className="text-xs uppercase tracking-[0.34em] text-white/45">Studio</p>
             <h2 className="text-4xl tracking-tight md:text-5xl">Studio</h2>
             <p className="max-w-2xl text-sm leading-relaxed text-white/55 md:text-base">
-              1번 줄은 무료 공개, 2~4번 줄은 멤버십 등급별 게시물입니다.
+              1번 줄은 일반 멤버십, 2~4번 줄은 멤버십 등급별 게시물입니다.
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">현재 권한</span>
@@ -1068,7 +1044,7 @@ export default function StudioSection() {
 
       <StudioDetailModal
         post={selectedPost}
-        onClose={() => setSelectedPost(null)}
+        onClose={handleCloseSelectedPost}
         viewerMembershipTierLevel={viewerMembershipTierLevel}
         viewerMembershipTierLoading={viewerMembershipTierLoading}
       />
