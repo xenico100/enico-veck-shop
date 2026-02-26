@@ -31,6 +31,7 @@ type ApiPayload = {
 
 type Props = {
   enabled: boolean;
+  onRequestCreatePost?: () => void;
 };
 
 type Draft = {
@@ -65,7 +66,7 @@ const formatDate = (value: string | null) => {
   }
 };
 
-export default function StudioMediaAdminManager({ enabled }: Props) {
+export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }: Props) {
   const [posts, setPosts] = useState<StudioPostOption[]>([]);
   const [mediaRows, setMediaRows] = useState<StudioMediaRow[]>([]);
   const [draft, setDraft] = useState<Draft>(defaultDraft);
@@ -132,6 +133,11 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     Boolean(draft.studio_post_id.trim()) && Boolean(selectedFile) && !saving && !uploading;
   const canManualRegister =
     Boolean(draft.studio_post_id.trim()) && Boolean(draft.r2_key.trim()) && !saving && !uploading;
+  const uploadBlockReason = !draft.studio_post_id.trim()
+    ? 'Studio 게시글을 먼저 만들어서 선택해야 업로드할 수 있습니다.'
+    : !selectedFile
+      ? '업로드할 파일을 선택하면 버튼이 활성화됩니다.'
+      : null;
 
   const handleSelectedFileChange = (file: File | null) => {
     setSelectedFile(file);
@@ -340,9 +346,9 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h4 className="text-lg font-semibold text-white">Studio 미디어 관리 (R2 업로드 + 연결)</h4>
+          <h4 className="text-lg font-semibold text-white">Studio 미디어 추가 (R2 업로드 + 연결)</h4>
           <p className="mt-1 text-sm text-white/60">
-            관리자만 Presigned PUT URL로 R2(비공개)에 직접 업로드하고, 업로드 후 `studio_media`에 메타데이터를 등록합니다.
+            이 탭은 새 게시글 생성 화면이 아니라, 이미 만든 Studio 게시글에 썸네일 외 추가 이미지/동영상을 연결하는 고급 도구입니다.
           </p>
         </div>
         <ActionButton type="button" variant="secondary" size="sm" onClick={fetchMediaAdminData}>
@@ -368,6 +374,20 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
         </div>
         <div className="mb-4 rounded-2xl border border-emerald-300/15 bg-emerald-500/5 p-3 text-xs text-emerald-100/90">
           기본은 `게시글 선택 + 파일 선택 + 파일 업로드 + 등록`만 사용하면 됩니다. `R2 Key / MIME / Bytes`는 고급 수동 등록에서만 필요합니다.
+        </div>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <ActionButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onRequestCreatePost}
+            disabled={!onRequestCreatePost}
+          >
+            게시물 작성 탭으로 이동
+          </ActionButton>
+          <p className="text-xs text-white/45">
+            썸네일 + 본문 + (선택) 동영상 업로드는 `게시물 작성` 탭에서 한 번에 처리할 수 있습니다.
+          </p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -560,6 +580,11 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
             </ActionButton>
           )}
         </div>
+        {!canUploadDirect && (
+          <p className="mt-3 text-xs text-white/55">
+            업로드 비활성화 사유: {uploadBlockReason}
+          </p>
+        )}
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
@@ -571,7 +596,14 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
         <div className="space-y-4">
           {posts.length === 0 && !loading && (
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
-              Studio 게시글이 없습니다. 먼저 게시글을 생성하세요.
+              Studio 게시글이 없습니다. 먼저 `게시물 작성` 탭에서 게시글을 생성한 뒤, 이 탭에서 동영상/추가 이미지를 연결하세요.
+              {onRequestCreatePost && (
+                <div className="mt-3">
+                  <ActionButton type="button" variant="secondary" size="sm" onClick={onRequestCreatePost}>
+                    게시물 작성 탭으로 이동
+                  </ActionButton>
+                </div>
+              )}
             </div>
           )}
 
