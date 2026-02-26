@@ -60,6 +60,12 @@ type DashboardResponse = {
     members?: AdminMember[];
     studio_posts?: AdminStudioPost[];
   };
+  warnings?: Partial<{
+    profiles: string;
+    subscriptions: string;
+    studio_posts: string;
+    studio_membership: string;
+  }>;
   message?: string;
 };
 
@@ -216,6 +222,12 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         throw new Error(dashboardPayload?.message || '관리자 데이터를 불러오지 못했습니다.');
       }
       hydrateFromResponse(dashboardPayload);
+      const warningMessages = Object.values(dashboardPayload?.warnings ?? {})
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean);
+      if (warningMessages.length > 0) {
+        setMessage(`일부 관리자 데이터가 제한적으로 로드되었습니다. ${warningMessages[0]}`);
+      }
 
       const servicePayload = await servicePostsResponse.json().catch(() => ({}));
       if (!servicePostsResponse.ok) {
@@ -823,7 +835,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           className={appleFontClass}
                           disabled={isBusy}
                         >
-                          주문 보기
+                          주문정보
                         </ActionButton>
                         <ActionButton
                           type="button"
@@ -1314,6 +1326,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
             )}
 
             <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+              <p className="text-xs text-white/50">주문 카드를 누르면 주문 상세가 열립니다.</p>
               {!memberOrdersLoading && memberOrders.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/60">
                   주문 내역이 없습니다.
@@ -1376,6 +1389,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           <p className="mt-1 text-xs text-white/50">
                             항목 {order.items.length || 0}개
                           </p>
+                          <p className="mt-1 text-xs font-medium text-white/70">주문상세 보기</p>
                         </div>
                       </div>
                     </button>

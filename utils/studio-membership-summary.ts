@@ -152,16 +152,16 @@ export async function getStudioMembershipSummaryMapForUsers(
   ]);
 
   if (subscriptionQuery.error) {
-    throw new Error(`Failed to load PayPal subscriptions: ${subscriptionQuery.error.message}`);
+    console.error('[studio-membership-summary] paypal_subscriptions query failed', subscriptionQuery.error);
   }
   if (accessQuery.error) {
-    throw new Error(`Failed to load studio_access rows: ${accessQuery.error.message}`);
+    console.error('[studio-membership-summary] studio_access query failed', accessQuery.error);
   }
 
-  const subscriptionRows = Array.isArray(subscriptionQuery.data)
+  const subscriptionRows = !subscriptionQuery.error && Array.isArray(subscriptionQuery.data)
     ? (subscriptionQuery.data as PayPalSubscriptionRow[])
     : [];
-  const accessRows = Array.isArray(accessQuery.data)
+  const accessRows = !accessQuery.error && Array.isArray(accessQuery.data)
     ? (accessQuery.data as StudioAccessRow[])
     : [];
 
@@ -189,9 +189,10 @@ export async function getStudioMembershipSummaryMapForUsers(
       .select('id,name,amount,currency,interval')
       .in('id', planIds);
     if (planQuery.error) {
-      throw new Error(`Failed to load PayPal plans: ${planQuery.error.message}`);
+      console.error('[studio-membership-summary] paypal_plans query failed', planQuery.error);
+    } else {
+      planRows = Array.isArray(planQuery.data) ? (planQuery.data as PayPalPlanRow[]) : [];
     }
-    planRows = Array.isArray(planQuery.data) ? (planQuery.data as PayPalPlanRow[]) : [];
   }
 
   const planMap = new Map(planRows.map((plan) => [plan.id, plan]));

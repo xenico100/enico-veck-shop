@@ -16,6 +16,51 @@ type SubscriptionRow = {
   status: string | null;
 };
 
+type DashboardWarningMap = Partial<{
+  profiles: string;
+  subscriptions: string;
+  studio_posts: string;
+  studio_membership: string;
+}>;
+
+const parsePageNumber = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.floor(value);
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
+  }
+  return null;
+};
+
+async function listAllAuthUsers(
+  adminClient: NonNullable<Awaited<ReturnType<typeof getAdminApiContext>>['adminClient']>
+) {
+  const users: any[] = [];
+  const perPage = 200;
+  let page = 1;
+
+  while (true) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      return { users: [] as any[], error };
+    }
+
+    const rows = Array.isArray((data as any)?.users) ? ((data as any).users as any[]) : [];
+    users.push(...rows);
+
+    const nextPage = parsePageNumber((data as any)?.nextPage);
+    if (nextPage && nextPage > page) {
+      page = nextPage;
+      continue;
+    }
+
+    if (rows.length < perPage) break;
+    page += 1;
+  }
+
+  return { users, error: null };
+}
+
 export async function GET() {
   const { user, isAdmin, adminClient } = await getAdminApiContext();
 
@@ -27,6 +72,7 @@ export async function GET() {
     return NextResponse.json({ message: '관리자 권한이 없습니다.' }, { status: 403 });
   }
 
+  const warnings: DashboardWarningMap = {};
   let profileData: ProfileRow[] = [];
   const profileSelect = await (adminClient as any)
     .from('users')
@@ -35,22 +81,26 @@ export async function GET() {
   if (profileSelect.error) {
     const fallback = await (adminClient as any).from('users').select('id,full_name');
     if (fallback.error) {
-      return NextResponse.json(
-        { message: '프로필 정보를 불러오지 못했습니다.', error: fallback.error },
-        { status: 500 }
-      );
+      warnings.profiles =
+        profileSelect.error.message || fallback.error.message || '프로필 정보를 불러오지 못했습니다.';
+      console.error('[admin/dashboard] profile query failed', {
+        primary: profileSelect.error,
+        fallback: fallback.error
+      });
+      profileData = [];
+    } else {
+      profileData = (fallback.data ?? []) as ProfileRow[];
     }
-    profileData = (fallback.data ?? []) as ProfileRow[];
   } else {
     profileData = (profileSelect.data ?? []) as ProfileRow[];
   }
 
   const [
-    { data: authData, error: authError },
+    authUsersResult,
     { data: subscriptionData, error: subscriptionError },
     { data: studioPostsData, error: studioPostsError }
   ] = await Promise.all([
-    adminClient.auth.admin.listUsers(),
+    listAllAuthUsers(adminClient),
     (adminClient as any).from('subscriptions').select('user_id,status'),
     (adminClient as any)
       .from('studio_posts')
@@ -58,25 +108,14 @@ export async function GET() {
       .order('created_at', { ascending: false })
   ]);
 
-  if (authError) {
-    return NextResponse.json(
-      { message: '회원 목록을 불러오지 못했습니다.', error: authError },
-      { status: 500 }
-    );
-  }
-
   if (subscriptionError) {
-    return NextResponse.json(
-      { message: '구독 정보를 불러오지 못했습니다.', error: subscriptionError },
-      { status: 500 }
-    );
+    warnings.subscriptions = subscriptionError.message || '구독 정보를 불러오지 못했습니다.';
+    console.error('[admin/dashboard] subscriptions query failed', subscriptionError);
   }
 
   if (studioPostsError) {
-    return NextResponse.json(
-      { message: '게시글 목록을 불러오지 못했습니다.', error: studioPostsError },
-      { status: 500 }
-    );
+    warnings.studio_posts = studioPostsError.message || '게시글 목록을 불러오지 못했습니다.';
+    console.error('[admin/dashboard] studio_posts query failed', studioPostsError);
   }
 
   const profileMap = new Map(profileData.map((profile) => [profile.id, profile]));
@@ -86,7 +125,14 @@ export async function GET() {
       subscription.status
     ])
   );
-  const authUsers = authData?.users ?? [];
+  const authError = authUsersResult.error;
+  if (authError) {
+    return NextResponse.json(
+      { message: '회원 목록을 불러오지 못했습니다.', error: authError },
+      { status: 500 }
+    );
+  }
+  const authUsers = authUsersResult.users ?? [];
   let studioMembershipMap = new Map<string, StudioMembershipSummary>();
   try {
     studioMembershipMap = await getStudioMembershipSummaryMapForUsers(
@@ -94,10 +140,11 @@ export async function GET() {
       adminClient
     );
   } catch (membershipError) {
-    return NextResponse.json(
-      { message: 'Studio 멤버십 정보를 불러오지 못했습니다.', error: membershipError },
-      { status: 500 }
-    );
+    warnings.studio_membership =
+      membershipError instanceof Error
+        ? membershipError.message
+        : 'Studio 멤버십 정보를 불러오지 못했습니다.';
+    console.error('[admin/dashboard] studio membership summary failed', membershipError);
   }
 
   const members = authUsers.map((member) => {
@@ -129,6 +176,7 @@ export async function GET() {
     data: {
       members,
       studio_posts: studioPostsData ?? []
-    }
+    },
+    warnings
   });
 }
