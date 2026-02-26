@@ -225,7 +225,7 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
                   )}
                 </div>
                 <p className="text-sm leading-relaxed text-neutral-400">
-                  Studio 전용 미디어는 PayPal 월 구독 활성 사용자에게만 제공됩니다.
+                  기본은 멤버십 전용이며, 테스트용으로 체크한 무료 공개 미디어가 있으면 비구독자에게도 표시됩니다.
                 </p>
               </div>
 
@@ -309,9 +309,7 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
                 </div>
               )}
 
-              {currentUserId && hasActiveStudioSubscription && (
-                <StudioProtectedMedia studioPostId={post.id} />
-              )}
+              <StudioProtectedMedia studioPostId={post.id} />
             </section>
           </div>
         </article>

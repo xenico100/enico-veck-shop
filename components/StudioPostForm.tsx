@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toasts/use-toast';
@@ -11,12 +11,13 @@ const initialState: CreatePostState = {
   status: 'idle'
 };
 
-function SubmitButton() {
+function SubmitButton({ extraPending = false }: { extraPending?: boolean }) {
   const { pending } = useFormStatus();
+  const disabled = pending || extraPending;
 
   return (
-    <ActionButton type="submit" variant="primary" size="md" disabled={pending}>
-      {pending ? '작성 중...' : '게시물 작성'}
+    <ActionButton type="submit" variant="primary" size="md" disabled={disabled}>
+      {pending ? '게시물 작성 중...' : extraPending ? '동영상 업로드 중...' : '게시물 작성'}
     </ActionButton>
   );
 }
@@ -25,25 +26,132 @@ export default function StudioPostForm() {
   const router = useRouter();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const handledSuccessPostIdRef = useRef<string | null>(null);
   const [state, formAction] = useFormState(createPost, initialState);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoInputKey, setVideoInputKey] = useState(0);
+  const [videoFreePublic, setVideoFreePublic] = useState(false);
+  const [videoUploadPending, setVideoUploadPending] = useState(false);
+
+  const resetClientVideoFields = () => {
+    setVideoFile(null);
+    setVideoFreePublic(false);
+    setVideoInputKey((prev) => prev + 1);
+  };
+
+  const uploadStudioVideo = async (postId: string, file: File, isFreePublic: boolean) => {
+    const contentType = (file.type || '').trim().toLowerCase();
+    if (!contentType.startsWith('video/')) {
+      throw new Error('동영상 파일만 업로드할 수 있습니다.');
+    }
+
+    const presignResponse = await fetch('/api/r2/presign-put', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studioPostId: postId,
+        filename: file.name,
+        contentType,
+        bytes: file.size,
+        kind: 'video'
+      })
+    });
+    const presignPayload = await presignResponse.json().catch(() => ({}));
+    if (
+      !presignResponse.ok ||
+      typeof presignPayload?.r2_key !== 'string' ||
+      typeof presignPayload?.uploadUrl !== 'string'
+    ) {
+      throw new Error(presignPayload?.message || 'R2 업로드 URL 발급에 실패했습니다.');
+    }
+
+    const putResponse = await fetch(presignPayload.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file
+    });
+    if (!putResponse.ok) {
+      throw new Error(`R2 업로드 실패 (${putResponse.status})`);
+    }
+
+    const registerResponse = await fetch('/api/studio/media/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studioPostId: postId,
+        kind: 'video',
+        r2_key: presignPayload.r2_key,
+        mime: contentType,
+        bytes: file.size,
+        is_free_public: isFreePublic
+      })
+    });
+    const registerPayload = await registerResponse.json().catch(() => ({}));
+    if (!registerResponse.ok) {
+      throw new Error(registerPayload?.message || '동영상 메타데이터 등록에 실패했습니다.');
+    }
+  };
 
   useEffect(() => {
     if (state.status === 'success') {
-      toast({
-        title: '작성 완료',
-        description: '스튜디오 게시물이 등록되었습니다.'
-      });
-      formRef.current?.reset();
-      router.push(state.postId ? `/posts/${state.postId}` : '/posts');
+      const postId = state.postId?.trim() || '';
+      if (postId && handledSuccessPostIdRef.current === postId) {
+        return;
+      }
+      if (postId) {
+        handledSuccessPostIdRef.current = postId;
+      }
+
+      const finalizeSuccess = (description: string) => {
+        toast({
+          title: '작성 완료',
+          description
+        });
+        formRef.current?.reset();
+        resetClientVideoFields();
+        router.push(postId ? `/posts/${postId}` : '/posts');
+      };
+
+      if (postId && videoFile) {
+        setVideoUploadPending(true);
+        void (async () => {
+          try {
+            await uploadStudioVideo(postId, videoFile, videoFreePublic);
+            finalizeSuccess(
+              videoFreePublic
+                ? '스튜디오 게시물과 무료 공개 테스트 영상이 R2에 업로드되었습니다.'
+                : '스튜디오 게시물과 멤버십 전용 영상이 R2에 업로드되었습니다.'
+            );
+          } catch (uploadError) {
+            toast({
+              title: '게시물은 생성됨 / 동영상 업로드 실패',
+              description:
+                uploadError instanceof Error
+                  ? uploadError.message
+                  : 'R2 동영상 업로드에 실패했습니다. Studio 미디어(R2) 탭에서 다시 업로드해 주세요.',
+              variant: 'destructive'
+            });
+            formRef.current?.reset();
+            resetClientVideoFields();
+            router.push(`/posts/${postId}`);
+          } finally {
+            setVideoUploadPending(false);
+          }
+        })();
+        return;
+      }
+
+      finalizeSuccess('스튜디오 게시물이 등록되었습니다.');
     }
 
     if (state.status === 'error' && state.message) {
+      handledSuccessPostIdRef.current = null;
       toast({
         title: '작성 실패',
         description: state.message
       });
     }
-  }, [router, state, toast]);
+  }, [router, state, toast, videoFile, videoFreePublic]);
 
   return (
     <form
@@ -102,8 +210,57 @@ export default function StudioPostForm() {
           최대 5MB, JPG/PNG 등 이미지 파일만 업로드 가능합니다.
         </p>
       </div>
+      <div className="space-y-2">
+        <label className="text-sm font-semibold uppercase tracking-[0.3em] text-neutral-400">
+          동영상 업로드 (R2)
+        </label>
+        <input
+          key={videoInputKey}
+          name="studioVideo"
+          type="file"
+          accept="video/*"
+          onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)}
+          disabled={videoUploadPending}
+        />
+        <p className="text-sm text-neutral-500">
+          {videoFile
+            ? `${videoFile.name} · ${videoFile.type || 'unknown'} · ${videoFile.size.toLocaleString()} bytes`
+            : '선택하면 게시물 생성 직후 R2에 업로드됩니다.'}
+        </p>
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-neutral-200">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={videoFreePublic}
+              onChange={(event) => setVideoFreePublic(event.target.checked)}
+              disabled={videoUploadPending}
+            />
+            무료공개 (테스트용)
+          </label>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3 text-xs text-neutral-500">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" disabled />
+              월 4,900원 전용 (준비중)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" disabled />
+              월 13,900원 전용 (준비중)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" disabled />
+              월 69,000원 전용 (준비중)
+            </label>
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">
+            지금은 무료공개 체크만 동작합니다. 체크하지 않으면 멤버십 가입자 전용으로 등록됩니다.
+          </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            동영상 파일은 게시물 저장 후 R2에 업로드됩니다. (현재 관리자 권한 계정 기준)
+          </p>
+        </div>
+      </div>
       <div className="flex items-center justify-end">
-        <SubmitButton />
+        <SubmitButton extraPending={videoUploadPending} />
       </div>
     </form>
   );

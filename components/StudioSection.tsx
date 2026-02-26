@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ImageIcon, Pause, PencilLine, Play, X } from 'lucide-react';
+import { ImageIcon, Lock, Pause, PencilLine, Play, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import StudioProtectedMedia from '@/components/StudioProtectedMedia';
@@ -17,6 +17,9 @@ type StudioPost = {
   content: string | null;
   image_url: string | null;
   created_at: string | null;
+  is_placeholder?: boolean;
+  required_membership_level?: number;
+  required_membership_label?: string;
 };
 
 type StudioWriteForm = {
@@ -25,8 +28,53 @@ type StudioWriteForm = {
   imageUrl: string;
 };
 
+type StudioMembershipApiData = {
+  has_active_subscription?: boolean;
+  selected_membership?: string | null;
+  plan_amount?: number | string | null;
+};
+
+type StudioMembershipApiResponse = {
+  data?: StudioMembershipApiData;
+  message?: string;
+};
+
+type StudioRowAccessRule = {
+  key: 'free' | 'tier_4900' | 'tier_13900' | 'tier_79000';
+  rowLabel: string;
+  membershipLabel: string;
+  requiredLevel: number;
+};
+
 const STUDIO_COLUMNS_PER_ROW = 3;
 const MARQUEE_GAP_REM = 1; // gap-4 == 1rem
+const PREMIUM_ROW_PRICE_DISPLAY = 79000;
+const STUDIO_ROW_ACCESS_RULES: StudioRowAccessRule[] = [
+  {
+    key: 'free',
+    rowLabel: '1번 줄',
+    membershipLabel: '무료 공개',
+    requiredLevel: 0
+  },
+  {
+    key: 'tier_4900',
+    rowLabel: '2번 줄',
+    membershipLabel: '멤버십 월 4,900원',
+    requiredLevel: 1
+  },
+  {
+    key: 'tier_13900',
+    rowLabel: '3번 줄',
+    membershipLabel: '멤버십 월 13,900원',
+    requiredLevel: 2
+  },
+  {
+    key: 'tier_79000',
+    rowLabel: '4번 줄',
+    membershipLabel: `멤버십 월 ${PREMIUM_ROW_PRICE_DISPLAY.toLocaleString('ko-KR')}원`,
+    requiredLevel: 3
+  }
+];
 
 const dialogOverlayClass =
   'fixed inset-0 z-40 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 duration-300';
@@ -38,6 +86,67 @@ const fieldLabelClass = 'text-[11px] uppercase tracking-[0.24em] text-white/55';
 const inputClass =
   'w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-white/20 focus:bg-white/[0.06] focus:ring-2 focus:ring-white/20';
 const textareaClass = `${inputClass} min-h-[140px] resize-y`;
+
+const parsePlanAmount = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
+const resolveStudioMembershipTierLevel = (membership: StudioMembershipApiData | null) => {
+  if (!membership?.has_active_subscription) return 0;
+
+  const planAmount = parsePlanAmount(membership.plan_amount);
+  const label = (membership.selected_membership || '').toLowerCase();
+
+  // Accept legacy 69,000 premium plan as the top tier until pricing is fully migrated.
+  if ((planAmount != null && planAmount >= 69000) || label.includes('프리미엄')) return 3;
+  if ((planAmount != null && planAmount >= 13900) || label.includes('플러스')) return 2;
+  if ((planAmount != null && planAmount >= 4900) || label.includes('베이직')) return 1;
+  return 1;
+};
+
+const buildPlaceholderPost = (rowRule: StudioRowAccessRule, slotIndex: number): StudioPost => ({
+  id: `__studio-placeholder-${rowRule.key}-${slotIndex}`,
+  title: `${rowRule.membershipLabel} 게시물 준비중`,
+  content: '게시물이 부족한 구간입니다. 관리자에서 Studio 게시물을 추가하면 여기에 표시됩니다.',
+  image_url: null,
+  created_at: null,
+  is_placeholder: true,
+  required_membership_level: rowRule.requiredLevel,
+  required_membership_label: rowRule.membershipLabel
+});
+
+const buildTierRows = (posts: StudioPost[]) => {
+  const rows = STUDIO_ROW_ACCESS_RULES.map(() => [] as StudioPost[]);
+  const chunks = chunkPosts(posts, STUDIO_COLUMNS_PER_ROW);
+
+  chunks.forEach((chunk, chunkIndex) => {
+    const rowIndex = chunkIndex % STUDIO_ROW_ACCESS_RULES.length;
+    const rowRule = STUDIO_ROW_ACCESS_RULES[rowIndex];
+    rows[rowIndex].push(
+      ...chunk.map((post) => ({
+        ...post,
+        required_membership_level: rowRule.requiredLevel,
+        required_membership_label: rowRule.membershipLabel
+      }))
+    );
+  });
+
+  return rows.map((row, rowIndex) => {
+    const rowRule = STUDIO_ROW_ACCESS_RULES[rowIndex];
+    if (row.length >= STUDIO_COLUMNS_PER_ROW) return row;
+
+    const filled = [...row];
+    while (filled.length < STUDIO_COLUMNS_PER_ROW) {
+      filled.push(buildPlaceholderPost(rowRule, filled.length));
+    }
+    return filled;
+  });
+};
 
 const chunkPosts = <T,>(items: T[], size: number) => {
   if (size <= 0) return [items];
@@ -81,10 +190,14 @@ const getExcerpt = (value: string | null, maxLength = 72) => {
 
 function StudioDetailModal({
   post,
-  onClose
+  onClose,
+  viewerMembershipTierLevel,
+  viewerMembershipTierLoading
 }: {
   post: StudioPost | null;
   onClose: () => void;
+  viewerMembershipTierLevel: number;
+  viewerMembershipTierLoading: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
@@ -156,6 +269,14 @@ function StudioDetailModal({
     };
   }, [authLoading, post?.id, supabase, user?.id]);
 
+  const requiredTierLevel = post?.required_membership_level ?? 0;
+  const requiredTierLabel = post?.required_membership_label ?? '무료 공개';
+  const isRowTierLocked =
+    Boolean(post) &&
+    requiredTierLevel > 0 &&
+    !viewerMembershipTierLoading &&
+    viewerMembershipTierLevel < requiredTierLevel;
+
   return (
     <DialogPrimitive.Root open={Boolean(post)} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
@@ -187,6 +308,24 @@ function StudioDetailModal({
                   </div>
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                {isRowTierLocked && (
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute inset-0 bg-black/45" />
+                    <div
+                      className="absolute inset-0 opacity-35"
+                      style={{
+                        backgroundImage:
+                          'repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 2px, transparent 2px 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.12) 0 2px, transparent 2px 14px)'
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                        <Lock className="h-3.5 w-3.5" />
+                        Locked · {requiredTierLabel}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-5 p-6 md:p-8">
@@ -194,6 +333,22 @@ function StudioDetailModal({
                   <p className="text-xs uppercase tracking-[0.24em] text-white/55">
                     {formatStudioDate(post.created_at)}
                   </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                        requiredTierLevel === 0
+                          ? 'border-sky-300/30 bg-sky-500/10 text-sky-100'
+                          : 'border-white/15 bg-white/5 text-white/70'
+                      }`}
+                    >
+                      {requiredTierLabel}
+                    </span>
+                    {isRowTierLocked ? (
+                      <span className="inline-flex items-center rounded-full border border-amber-300/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                        잠금
+                      </span>
+                    ) : null}
+                  </div>
                   <DialogPrimitive.Title className="text-2xl font-semibold tracking-tight text-white md:text-4xl">
                     {post.title?.trim() || 'Untitled Post'}
                   </DialogPrimitive.Title>
@@ -201,11 +356,39 @@ function StudioDetailModal({
 
                 <div className="h-px w-full bg-white/10" />
 
-                <DialogPrimitive.Description asChild>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-white/80 md:text-base">
-                    {post.content?.trim() || '내용이 없습니다.'}
-                  </p>
-                </DialogPrimitive.Description>
+                {isRowTierLocked ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <p className="text-sm font-semibold text-white">
+                      이 게시물은 {requiredTierLabel} 전용으로 잠겨 있습니다.
+                    </p>
+                    <p className="mt-2 text-sm text-white/60">
+                      {user
+                        ? '현재 멤버십 등급으로는 게시물 본문을 볼 수 없습니다. 상위 멤버십으로 가입/변경해 주세요.'
+                        : '로그인 후 해당 멤버십에 가입하면 게시물 본문을 볼 수 있습니다.'}
+                    </p>
+                    <div className="mt-4">
+                      {user ? (
+                        <StudioSubscribeButton
+                          studioPostId={post.id}
+                          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                        />
+                      ) : (
+                        <Link
+                          href="/signin"
+                          className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                        >
+                          로그인
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <DialogPrimitive.Description asChild>
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-white/80 md:text-base">
+                      {post.content?.trim() || '내용이 없습니다.'}
+                    </p>
+                  </DialogPrimitive.Description>
+                )}
 
                 <div className="h-px w-full bg-white/10" />
 
@@ -222,7 +405,7 @@ function StudioDetailModal({
                       )}
                     </div>
                     <p className="text-sm leading-relaxed text-white/55">
-                      Studio 전용 이미지/영상은 멤버십 활성 사용자만 볼 수 있습니다.
+                      기본은 멤버십 전용이며, 테스트용 무료 공개 체크 미디어는 비구독자도 볼 수 있습니다.
                     </p>
                   </div>
 
@@ -232,9 +415,33 @@ function StudioDetailModal({
                     </div>
                   )}
 
-                  {authLoading || membershipLoading ? (
+                  {authLoading || membershipLoading || viewerMembershipTierLoading ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
                       멤버십 상태를 확인하는 중입니다...
+                    </div>
+                  ) : isRowTierLocked ? (
+                    <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-5">
+                      <p className="text-sm font-semibold text-white">
+                        {requiredTierLabel} 이상에서만 이 게시물의 전용 미디어를 볼 수 있습니다.
+                      </p>
+                      <p className="mt-2 text-sm text-white/70">
+                        무료 공개 체크된 미리보기 영상/이미지는 카드/상세에서 일부 보일 수 있지만, 전용 미디어 전체는 해당 등급 가입자에게만 열립니다.
+                      </p>
+                      <div className="mt-4">
+                        {user ? (
+                          <StudioSubscribeButton
+                            studioPostId={post.id}
+                            className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                          />
+                        ) : (
+                          <Link
+                            href="/signin"
+                            className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-neutral-200"
+                          >
+                            로그인
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   ) : !user ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -266,9 +473,11 @@ function StudioDetailModal({
                         />
                       </div>
                     </div>
-                  ) : (
+                  ) : null}
+
+                  {!authLoading && !membershipLoading && !viewerMembershipTierLoading && !isRowTierLocked ? (
                     <StudioProtectedMedia studioPostId={post.id} />
-                  )}
+                  ) : null}
                 </section>
               </div>
             </div>
@@ -419,8 +628,11 @@ export default function StudioSection() {
     content: '',
     imageUrl: ''
   });
+  const [viewerMembershipTierLevel, setViewerMembershipTierLevel] = useState(0);
+  const [viewerMembershipTierLoading, setViewerMembershipTierLoading] = useState(false);
+  const [viewerMembershipLabel, setViewerMembershipLabel] = useState<string>('무료 공개');
 
-  const rows = useMemo(() => chunkPosts(studioPosts, STUDIO_COLUMNS_PER_ROW), [studioPosts]);
+  const rows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
 
   const fetchStudioPosts = useCallback(async () => {
     setPostsLoading(true);
@@ -450,6 +662,65 @@ export default function StudioSection() {
   useEffect(() => {
     void fetchStudioPosts();
   }, [fetchStudioPosts]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resetGuestTier = () => {
+      if (cancelled) return;
+      setViewerMembershipTierLevel(0);
+      setViewerMembershipLabel('무료 공개');
+      setViewerMembershipTierLoading(false);
+    };
+
+    if (authLoading) {
+      setViewerMembershipTierLoading(true);
+      return;
+    }
+
+    if (!user?.id) {
+      resetGuestTier();
+      return;
+    }
+
+    const loadMembershipTier = async () => {
+      setViewerMembershipTierLoading(true);
+      try {
+        const response = await fetch('/api/account/membership', { cache: 'no-store' });
+        const payload = (await response.json().catch(() => ({}))) as StudioMembershipApiResponse;
+        if (!response.ok) {
+          throw new Error(payload.message || '멤버십 정보를 불러오지 못했습니다.');
+        }
+
+        const membership = payload.data ?? null;
+        const nextTierLevel = resolveStudioMembershipTierLevel(membership);
+        if (!cancelled) {
+          setViewerMembershipTierLevel(nextTierLevel);
+          setViewerMembershipLabel(
+            membership?.has_active_subscription
+              ? String(membership?.selected_membership || '활성 멤버십').trim() || '활성 멤버십'
+              : '무료 공개'
+          );
+        }
+      } catch (error) {
+        console.error('[StudioSection] membership tier lookup failed', error);
+        if (!cancelled) {
+          setViewerMembershipTierLevel(0);
+          setViewerMembershipLabel('무료 공개');
+        }
+      } finally {
+        if (!cancelled) {
+          setViewerMembershipTierLoading(false);
+        }
+      }
+    };
+
+    void loadMembershipTier();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user?.id]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -554,79 +825,158 @@ export default function StudioSection() {
     setIsPlaying((prev) => !prev);
   };
 
-  const renderRow = (rowIndex: number) => {
+  const renderRow = (rowIndex: number, rowRule: StudioRowAccessRule) => {
     const rowItems = rows[rowIndex] ?? [];
     if (rowItems.length === 0) return null;
 
     const loopSeed = buildLoopSeed(rowItems);
     const duplicatedItems = [...loopSeed, ...loopSeed];
     const isRowPaused = !isPlaying || hoveredRowIndex === rowIndex;
+    const isRowLocked =
+      rowRule.requiredLevel > 0 &&
+      !viewerMembershipTierLoading &&
+      viewerMembershipTierLevel < rowRule.requiredLevel;
 
     return (
-      <div
-        key={`studio-row-${rowIndex}`}
-        className="overflow-hidden"
-        onMouseEnter={() => setHoveredRowIndex(rowIndex)}
-        onMouseLeave={() => setHoveredRowIndex((prev) => (prev === rowIndex ? null : prev))}
-      >
+      <div key={`studio-row-${rowRule.key}`} className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2 px-1">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-white/40">{rowRule.rowLabel}</span>
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] ${
+              rowRule.requiredLevel === 0
+                ? 'border-sky-300/25 bg-sky-500/10 text-sky-100'
+                : isRowLocked
+                  ? 'border-amber-300/25 bg-amber-500/10 text-amber-100'
+                  : 'border-emerald-300/25 bg-emerald-500/10 text-emerald-100'
+            }`}
+          >
+            {rowRule.membershipLabel}
+          </span>
+          {viewerMembershipTierLoading ? (
+            <span className="text-[11px] text-white/45">권한 확인중...</span>
+          ) : rowRule.requiredLevel > 0 ? (
+            <span className="text-[11px] text-white/45">{isRowLocked ? '잠금' : '열림'}</span>
+          ) : (
+            <span className="text-[11px] text-white/45">모두 공개</span>
+          )}
+        </div>
+
         <div
-          className="flex gap-4"
-          style={{
-            width: 'fit-content',
-            animationName: 'studio-marquee-rtl',
-            animationDuration: `${getRowDuration(rowIndex)}s`,
-            animationTimingFunction: 'linear',
-            animationIterationCount: 'infinite',
-            animationPlayState: isRowPaused ? 'paused' : 'running',
-            willChange: 'transform'
-          }}
+          className="overflow-hidden"
+          onMouseEnter={() => setHoveredRowIndex(rowIndex)}
+          onMouseLeave={() => setHoveredRowIndex((prev) => (prev === rowIndex ? null : prev))}
         >
-          {duplicatedItems.map((post, index) => {
-            const excerpt = getExcerpt(post.content);
-            return (
-              <button
-                key={`${post.id}-${rowIndex}-${index}`}
-                type="button"
-                onClick={() => setSelectedPost(post)}
-                className="group relative h-[130px] w-[220px] flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] text-left shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:shadow-[0_20px_42px_rgba(0,0,0,0.36)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:h-[240px] md:w-[400px] md:rounded-2xl"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-white/[0.02] to-transparent" />
-                {post.image_url ? (
-                  <img
-                    src={post.image_url}
-                    alt={post.title?.trim() || 'Studio post image'}
-                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.02]">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/35 md:h-14 md:w-14">
-                      <ImageIcon className="h-4 w-4 md:h-5 md:w-5" />
+          <div
+            className="flex gap-4"
+            style={{
+              width: 'fit-content',
+              animationName: 'studio-marquee-rtl',
+              animationDuration: `${getRowDuration(rowIndex)}s`,
+              animationTimingFunction: 'linear',
+              animationIterationCount: 'infinite',
+              animationPlayState: isRowPaused ? 'paused' : 'running',
+              willChange: 'transform'
+            }}
+          >
+            {duplicatedItems.map((post, index) => {
+              const excerpt = getExcerpt(post.content);
+              const isPlaceholder = Boolean(post.is_placeholder);
+              const canOpen = !isPlaceholder;
+
+              const handleCardClick = () => {
+                if (isPlaceholder) {
+                  if (isAdmin) handleOpenWrite();
+                  return;
+                }
+                setSelectedPost({
+                  ...post,
+                  required_membership_level: rowRule.requiredLevel,
+                  required_membership_label: rowRule.membershipLabel
+                });
+              };
+
+              return (
+                <button
+                  key={`${post.id}-${rowIndex}-${index}`}
+                  type="button"
+                  onClick={handleCardClick}
+                  className={`group relative h-[130px] w-[220px] flex-shrink-0 overflow-hidden rounded-xl border bg-white/[0.03] text-left shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:h-[240px] md:w-[400px] md:rounded-2xl ${
+                    isPlaceholder
+                      ? 'border-dashed border-white/15'
+                      : isRowLocked
+                        ? 'border-white/10 hover:border-white/15'
+                        : 'border-white/10 hover:-translate-y-0.5 hover:border-white/15 hover:shadow-[0_20px_42px_rgba(0,0,0,0.36)]'
+                  }`}
+                  aria-label={
+                    canOpen
+                      ? `${post.title?.trim() || 'Studio post'} ${isRowLocked ? '잠금됨' : '상세보기'}`
+                      : '빈 슬롯'
+                  }
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] via-white/[0.02] to-transparent" />
+                  {post.image_url && !isPlaceholder ? (
+                    <img
+                      src={post.image_url}
+                      alt={post.title?.trim() || 'Studio post image'}
+                      className={`h-full w-full object-cover transition-transform duration-700 ease-out ${
+                        isRowLocked ? '' : 'group-hover:scale-[1.03]'
+                      }`}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.02]">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/35 md:h-14 md:w-14">
+                        <ImageIcon className="h-4 w-4 md:h-5 md:w-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/5 transition-opacity duration-300 group-hover:from-black/70" />
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                    <div className="absolute inset-0 bg-white/[0.03]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.14),transparent_42%)]" />
+                  </div>
+
+                  {isRowLocked && !viewerMembershipTierLoading && (
+                    <div className="pointer-events-none absolute inset-0 z-[1]">
+                      <div className="absolute inset-0 bg-black/35" />
+                      <div
+                        className="absolute inset-0 opacity-35"
+                        style={{
+                          backgroundImage:
+                            'repeating-linear-gradient(45deg, rgba(255,255,255,0.22) 0 2px, transparent 2px 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.14) 0 2px, transparent 2px 14px)'
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white md:text-xs">
+                          <Lock className="h-3.5 w-3.5" />
+                          {rowRule.membershipLabel}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 p-3 md:p-5">
+                    <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 backdrop-blur-sm md:rounded-xl md:px-4 md:py-3">
+                      <p className="text-[9px] uppercase tracking-[0.2em] text-white/60 md:text-[11px]">
+                        {formatStudioDate(post.created_at)}
+                      </p>
+                      <h3 className="truncate text-sm font-semibold tracking-tight text-white md:text-xl">
+                        {post.title?.trim() || (isPlaceholder ? '게시물 준비중' : 'Untitled Post')}
+                      </h3>
+                      {excerpt ? (
+                        <p className="hidden text-xs leading-relaxed text-white/70 md:block">{excerpt}</p>
+                      ) : null}
+                      {isPlaceholder ? (
+                        <p className="hidden text-[11px] text-white/45 md:block">
+                          {isAdmin ? 'Write 버튼으로 바로 추가할 수 있습니다.' : '곧 업데이트됩니다.'}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                )}
-
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/5 transition-opacity duration-300 group-hover:from-black/70" />
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-                  <div className="absolute inset-0 bg-white/[0.03]" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_18%,rgba(255,255,255,0.14),transparent_42%)]" />
-                </div>
-
-                <div className="absolute inset-x-0 bottom-0 p-3 md:p-5">
-                  <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 backdrop-blur-sm md:rounded-xl md:px-4 md:py-3">
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-white/60 md:text-[11px]">
-                      {formatStudioDate(post.created_at)}
-                    </p>
-                    <h3 className="truncate text-sm font-semibold tracking-tight text-white md:text-xl">
-                      {post.title?.trim() || 'Untitled Post'}
-                    </h3>
-                    {excerpt ? (
-                      <p className="hidden text-xs leading-relaxed text-white/70 md:block">{excerpt}</p>
-                    ) : null}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -654,8 +1004,14 @@ export default function StudioSection() {
             <p className="text-xs uppercase tracking-[0.34em] text-white/45">Studio</p>
             <h2 className="text-4xl tracking-tight md:text-5xl">Studio</h2>
             <p className="max-w-2xl text-sm leading-relaxed text-white/55 md:text-base">
-              최근 작업 기록과 스튜디오 게시물을 둘러보세요.
+              1번 줄은 무료 공개, 2~4번 줄은 멤버십 등급별 게시물입니다.
             </p>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">현재 권한</span>
+              <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
+                {viewerMembershipTierLoading ? '확인중...' : viewerMembershipLabel}
+              </span>
+            </div>
           </div>
 
           {!authLoading && isAdmin ? (
@@ -672,7 +1028,7 @@ export default function StudioSection() {
 
         <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
           {postsLoading ? (
-            Array.from({ length: 2 }).map((_, rowIndex) => (
+            Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map((_, rowIndex) => (
               <div key={`studio-skeleton-row-${rowIndex}`} className="overflow-hidden">
                 <div className="flex gap-4" style={{ width: 'fit-content' }}>
                   {Array.from({ length: 3 }).map((__, cardIndex) => (
@@ -686,13 +1042,20 @@ export default function StudioSection() {
                 </div>
               </div>
             ))
-          ) : rows.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-white/80">
-              No studio posts yet.
-              {postsError ? <p className="mt-2 text-xs text-red-300/90">{postsError}</p> : null}
-            </div>
           ) : (
-            rows.map((_, rowIndex) => renderRow(rowIndex))
+            <>
+              {studioPosts.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/75">
+                  실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로 채워져 있습니다.
+                  {postsError ? <p className="mt-2 text-xs text-red-300/90">{postsError}</p> : null}
+                </div>
+              ) : postsError ? (
+                <div className="rounded-2xl border border-red-300/20 bg-red-500/10 px-5 py-4 text-sm text-red-100">
+                  {postsError}
+                </div>
+              ) : null}
+              {STUDIO_ROW_ACCESS_RULES.map((rowRule, rowIndex) => renderRow(rowIndex, rowRule))}
+            </>
           )}
         </div>
 
@@ -702,7 +1065,7 @@ export default function StudioSection() {
             onClick={togglePlayPause}
             className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={isPlaying ? '일시정지' : '재생'}
-            disabled={rows.length === 0}
+            disabled={rows.every((row) => row.every((post) => post.is_placeholder))}
           >
             {isPlaying ? (
               <Pause className="h-5 w-5 text-white" fill="white" />
@@ -713,7 +1076,12 @@ export default function StudioSection() {
         </div>
       </section>
 
-      <StudioDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      <StudioDetailModal
+        post={selectedPost}
+        onClose={() => setSelectedPost(null)}
+        viewerMembershipTierLevel={viewerMembershipTierLevel}
+        viewerMembershipTierLoading={viewerMembershipTierLoading}
+      />
 
       <StudioWriteModal
         open={isWriteModalOpen}

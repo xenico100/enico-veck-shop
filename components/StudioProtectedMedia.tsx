@@ -119,6 +119,7 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
           {item.kind === 'video' ? (
             <video
               controls
+              playsInline
               preload="metadata"
               src={item.url}
               className="h-auto w-full bg-black"

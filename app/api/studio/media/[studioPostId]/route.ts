@@ -42,8 +42,12 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const adminClient = createAdminClient();
     let hasActiveSubscription = false;
     if (user?.id) {
-      const entitlement = await getStudioEntitlement(user.id, adminClient);
-      hasActiveSubscription = entitlement.hasActiveSubscription;
+      try {
+        const entitlement = await getStudioEntitlement(user.id, adminClient);
+        hasActiveSubscription = entitlement.hasActiveSubscription;
+      } catch (entitlementError) {
+        console.error('[Studio media] entitlement lookup failed, falling back to public-only', entitlementError);
+      }
     }
 
     const { data, error } = await (adminClient as any)

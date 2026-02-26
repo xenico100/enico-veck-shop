@@ -49,8 +49,7 @@ const defaultDraft: Draft = {
   r2_bucket: '',
   r2_key: '',
   mime: '',
-  bytes: ''
-  ,
+  bytes: '',
   is_free_public: false
 };
 
@@ -152,8 +151,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
           r2_bucket: draft.r2_bucket.trim() || null,
           r2_key: draft.r2_key.trim(),
           mime: draft.mime.trim() || null,
-          bytes: draft.bytes.trim() || null
-          ,
+          bytes: draft.bytes.trim() || null,
           is_free_public: draft.is_free_public
         })
       });
@@ -389,7 +387,7 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
             </select>
           </div>
 
-          <div className="grid gap-2">
+	          <div className="grid gap-2">
             <label className={labelClass}>업로드 파일</label>
             <input
               key={fileInputKey}
@@ -404,6 +402,39 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
                 ? `${selectedFile.name} · ${selectedFile.type || 'unknown'} · ${selectedFile.size.toLocaleString()} bytes`
                 : 'image/* 또는 video/* 파일 선택'}
             </p>
+          </div>
+
+          <div className="grid gap-2 md:col-span-2">
+            <label className={labelClass}>동영상 공개 체크리스트</label>
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <label className="flex items-center gap-2 text-sm text-white/90">
+                <input
+                  type="checkbox"
+                  checked={draft.is_free_public}
+                  onChange={(e) =>
+                    setDraft((prev) => ({ ...prev, is_free_public: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-white/20 bg-white/10"
+                  disabled={saving || uploading}
+                />
+                무료 공개 (테스트용)
+              </label>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {['월 4,900원', '월 13,900원', '월 69,000원'].map((label) => (
+                  <label key={label} className="flex items-center gap-2 text-xs text-white/45">
+                    <input
+                      type="checkbox"
+                      disabled
+                      className="h-4 w-4 rounded border-white/10 bg-white/5"
+                    />
+                    {label} 전용 (준비중)
+                  </label>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-white/50">
+                지금은 무료 공개 체크만 동작합니다. 체크하지 않으면 멤버십 가입자 전용으로 저장됩니다.
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -517,9 +548,20 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
-                            <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                              {row.kind} · {row.r2_bucket}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                                {row.kind} · {row.r2_bucket}
+                              </p>
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                  row.is_free_public
+                                    ? 'border-sky-300/30 bg-sky-500/10 text-sky-100'
+                                    : 'border-white/15 bg-white/5 text-white/70'
+                                }`}
+                              >
+                                {row.is_free_public ? 'FREE PUBLIC' : 'MEMBERS'}
+                              </span>
+                            </div>
                             <p className="mt-1 break-all text-sm text-white">{row.r2_key}</p>
                             <p className="mt-1 text-xs text-white/45">
                               {row.mime || 'mime 없음'}
