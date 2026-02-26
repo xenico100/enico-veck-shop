@@ -11,6 +11,7 @@ type MemberPatchBody = {
   name?: string | null;
   phone?: string | null;
   address?: string | null;
+  studio_membership_active?: boolean | null;
 };
 
 async function parseBody(request: Request) {
@@ -40,8 +41,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     Object.prototype.hasOwnProperty.call(body, 'name') ||
     Object.prototype.hasOwnProperty.call(body, 'phone') ||
     Object.prototype.hasOwnProperty.call(body, 'address');
+  const shouldUpdateStudioMembership = typeof body.studio_membership_active === 'boolean';
 
-  if (!shouldUpdateRole && !shouldUpdateProfile) {
+  if (!shouldUpdateRole && !shouldUpdateProfile && !shouldUpdateStudioMembership) {
     return NextResponse.json({ message: '변경할 값이 없습니다.' }, { status: 400 });
   }
 
@@ -134,13 +136,34 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
   }
 
+  if (shouldUpdateStudioMembership) {
+    const { error: accessError } = await (adminClient as never)
+      .from('studio_access')
+      .upsert(
+        {
+          user_id: targetUserId,
+          has_active_subscription: Boolean(body.studio_membership_active),
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (accessError) {
+      return NextResponse.json(
+        { message: accessError.message || 'Studio 멤버십 상태 변경에 실패했습니다.' },
+        { status: 500 }
+      );
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     data: {
       role: shouldUpdateRole ? nextRole : undefined,
       name: shouldUpdateProfile ? (body.name ?? null) : undefined,
       phone: shouldUpdateProfile ? (body.phone ?? null) : undefined,
-      address: shouldUpdateProfile ? (body.address ?? null) : undefined
+      address: shouldUpdateProfile ? (body.address ?? null) : undefined,
+      studio_membership_active: shouldUpdateStudioMembership ? Boolean(body.studio_membership_active) : undefined
     }
   });
 }

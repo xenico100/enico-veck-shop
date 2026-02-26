@@ -16,6 +16,16 @@ type StudioMediaBody = {
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
 
+const hasMissingFreePublicColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('is_free_public') && combined.includes('studio_media');
+};
+
 const normalizeBytes = (value: unknown) => {
   if (value == null || value === '') return null;
   const numeric = typeof value === 'number' ? value : Number(String(value).trim());
@@ -44,7 +54,7 @@ export async function GET() {
   if (!user) return jsonError('로그인이 필요합니다.', 401);
   if (!isAdmin || !adminClient) return jsonError('관리자 권한이 없습니다.', 403);
 
-  const [{ data: posts, error: postsError }, { data: media, error: mediaError }] =
+  const [{ data: posts, error: postsError }, mediaQueryResult] =
     await Promise.all([
       (adminClient as any)
         .from('studio_posts')
@@ -57,6 +67,23 @@ export async function GET() {
     ]);
 
   if (postsError) return jsonError('Studio 게시글을 불러오지 못했습니다.', 500, postsError);
+
+  let media = mediaQueryResult.data ?? null;
+  let mediaError = mediaQueryResult.error ?? null;
+
+  if (mediaError && hasMissingFreePublicColumnError(mediaError)) {
+    console.warn('[admin/studio-media] studio_media.is_free_public column missing, falling back', mediaError);
+    const fallbackQuery = await (adminClient as any)
+      .from('studio_media')
+      .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,created_at')
+      .order('created_at', { ascending: false });
+
+    media = Array.isArray(fallbackQuery.data)
+      ? fallbackQuery.data.map((row) => ({ ...row, is_free_public: false }))
+      : [];
+    mediaError = fallbackQuery.error ?? null;
+  }
+
   if (mediaError) return jsonError('Studio 미디어를 불러오지 못했습니다.', 500, mediaError);
 
   return NextResponse.json({
@@ -90,7 +117,7 @@ export async function POST(request: Request) {
   if (!r2Bucket) return jsonError('R2 버킷 이름이 필요합니다.', 400);
   if (!r2Key) return jsonError('R2 key가 필요합니다.', 400);
 
-  const { data, error } = await (adminClient as any)
+  let insertResult = await (adminClient as any)
     .from('studio_media')
     .insert({
       studio_post_id: studioPostId,
@@ -104,7 +131,32 @@ export async function POST(request: Request) {
     .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
     .single();
 
-  if (error) return jsonError('Studio 미디어 등록에 실패했습니다.', 500, error);
+  if (insertResult.error && hasMissingFreePublicColumnError(insertResult.error)) {
+    console.warn(
+      '[admin/studio-media] studio_media.is_free_public column missing during insert, retrying without column',
+      insertResult.error
+    );
+    insertResult = await (adminClient as any)
+      .from('studio_media')
+      .insert({
+        studio_post_id: studioPostId,
+        kind,
+        r2_bucket: r2Bucket,
+        r2_key: r2Key,
+        mime,
+        bytes
+      })
+      .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,created_at')
+      .single();
+    if (!insertResult.error && insertResult.data) {
+      insertResult = {
+        ...insertResult,
+        data: { ...(insertResult.data as Record<string, unknown>), is_free_public: false }
+      };
+    }
+  }
 
-  return NextResponse.json({ data });
+  if (insertResult.error) return jsonError('Studio 미디어 등록에 실패했습니다.', 500, insertResult.error);
+
+  return NextResponse.json({ data: insertResult.data });
 }

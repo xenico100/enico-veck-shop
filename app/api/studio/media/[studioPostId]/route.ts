@@ -23,6 +23,16 @@ type StudioMediaRow = {
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
 
+const hasMissingFreePublicColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('is_free_public') && combined.includes('studio_media');
+};
+
 export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const supabase = createClient();
@@ -50,17 +60,32 @@ export async function GET(_request: Request, { params }: RouteContext) {
       }
     }
 
-    const { data, error } = await (adminClient as any)
+    let mediaQuery = await (adminClient as any)
       .from('studio_media')
       .select('id,kind,r2_bucket,r2_key,mime,bytes,is_free_public')
       .eq('studio_post_id', studioPostId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      return jsonError('Studio 미디어를 불러오지 못했습니다.', 500, error);
+    if (mediaQuery.error && hasMissingFreePublicColumnError(mediaQuery.error)) {
+      console.warn('[Studio media] studio_media.is_free_public column missing, using members-only fallback', mediaQuery.error);
+      const fallbackQuery = await (adminClient as any)
+        .from('studio_media')
+        .select('id,kind,r2_bucket,r2_key,mime,bytes')
+        .eq('studio_post_id', studioPostId)
+        .order('created_at', { ascending: true });
+      mediaQuery = {
+        ...fallbackQuery,
+        data: Array.isArray(fallbackQuery.data)
+          ? fallbackQuery.data.map((row) => ({ ...row, is_free_public: false }))
+          : fallbackQuery.data
+      };
     }
 
-    const rows = Array.isArray(data) ? (data as StudioMediaRow[]) : [];
+    if (mediaQuery.error) {
+      return jsonError('Studio 미디어를 불러오지 못했습니다.', 500, mediaQuery.error);
+    }
+
+    const rows = Array.isArray(mediaQuery.data) ? (mediaQuery.data as StudioMediaRow[]) : [];
     const visibleRows = hasActiveSubscription ? rows : rows.filter((row) => Boolean(row.is_free_public));
     const signed = await Promise.all(
       visibleRows.map(async (row) => ({

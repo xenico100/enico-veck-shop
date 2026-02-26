@@ -24,6 +24,16 @@ type RegisterMediaBody = {
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
 
+const hasMissingFreePublicColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('is_free_public') && combined.includes('studio_media');
+};
+
 const normalizeBoolean = (value: unknown) => {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return value === 1;
@@ -94,7 +104,7 @@ export async function POST(request: Request) {
 
   try {
     const r2BucketName = getDefaultR2BucketName();
-    const { data, error } = await (adminClient as any)
+    let result = await (adminClient as any)
       .from('studio_media')
       .insert({
         studio_post_id: studioPostId,
@@ -108,11 +118,36 @@ export async function POST(request: Request) {
       .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
       .single();
 
-    if (error) {
-      return jsonError('Studio 미디어 등록에 실패했습니다.', 500, error);
+    if (result.error && hasMissingFreePublicColumnError(result.error)) {
+      console.warn(
+        '[Studio media register] studio_media.is_free_public column missing, retrying without column',
+        result.error
+      );
+      result = await (adminClient as any)
+        .from('studio_media')
+        .insert({
+          studio_post_id: studioPostId,
+          kind,
+          r2_bucket: r2BucketName,
+          r2_key: r2Key,
+          mime,
+          bytes
+        })
+        .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,created_at')
+        .single();
+      if (!result.error && result.data) {
+        result = {
+          ...result,
+          data: { ...(result.data as Record<string, unknown>), is_free_public: false }
+        };
+      }
     }
 
-    return NextResponse.json({ data });
+    if (result.error) {
+      return jsonError('Studio 미디어 등록에 실패했습니다.', 500, result.error);
+    }
+
+    return NextResponse.json({ data: result.data });
   } catch (error) {
     console.error('[Studio media register] unexpected error', error);
     return jsonError(error instanceof Error ? error.message : '미디어 등록 실패', 500);

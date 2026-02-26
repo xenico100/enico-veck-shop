@@ -210,13 +210,13 @@ export async function getStudioMembershipSummaryMapForUsers(
     const selectedMembership =
       getPlanLabelByIdFromEnv(latest?.plan_id ?? null) ??
       formatPlanFallbackLabel(plan) ??
-      null;
+      (hasActiveSubscription && !latest ? '관리자 수동 부여' : null);
 
     result.set(userId, {
       user_id: userId,
       has_active_subscription: hasActiveSubscription,
       subscription_id: latest?.id ?? null,
-      subscription_status: latest?.status ?? null,
+      subscription_status: latest?.status ?? (hasActiveSubscription && !latest ? 'MANUAL_GRANT' : null),
       selected_membership: selectedMembership,
       subscribed_at: getRawSubscriptionCreateTime(latest?.raw) ?? normalizeIso(latest?.created_at) ?? null,
       next_billing_at: normalizeIso(latest?.current_period_end) ?? null,

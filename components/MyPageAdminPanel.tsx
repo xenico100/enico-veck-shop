@@ -80,6 +80,8 @@ type AdminTabKey =
   | 'service-posts'
   | 'create-post';
 
+type MemberOrdersTabKey = 'shipping_todo' | 'shipping_done';
+
 type AdminServicePostDraft = {
   title: string;
   category: string;
@@ -121,6 +123,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [memberOrdersError, setMemberOrdersError] = useState<string | null>(null);
   const [memberOrdersTarget, setMemberOrdersTarget] = useState<AdminMember | null>(null);
   const [memberOrders, setMemberOrders] = useState<OrderRecord[]>([]);
+  const [memberOrdersTab, setMemberOrdersTab] = useState<MemberOrdersTabKey>('shipping_todo');
   const [selectedMemberOrder, setSelectedMemberOrder] = useState<OrderRecord | null>(null);
   const [memberOrderDetailOpen, setMemberOrderDetailOpen] = useState(false);
   const [memberOrderShippingSaving, setMemberOrderShippingSaving] = useState(false);
@@ -143,6 +146,33 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       return value;
     }
   };
+
+  const isShippingDoneBucket = useCallback((order: OrderRecord) => {
+    const status = String(order.shipping_status || '')
+      .trim()
+      .toLowerCase();
+    return status === 'delivered' || status === 'canceled' || status === 'returned';
+  }, []);
+
+  const memberOrdersGrouped = useMemo(() => {
+    const shippingTodo: OrderRecord[] = [];
+    const shippingDone: OrderRecord[] = [];
+
+    for (const order of memberOrders) {
+      if (isShippingDoneBucket(order)) {
+        shippingDone.push(order);
+      } else {
+        shippingTodo.push(order);
+      }
+    }
+
+    return { shippingTodo, shippingDone };
+  }, [isShippingDoneBucket, memberOrders]);
+
+  const activeMemberOrders =
+    memberOrdersTab === 'shipping_done'
+      ? memberOrdersGrouped.shippingDone
+      : memberOrdersGrouped.shippingTodo;
 
   const hydrateFromResponse = useCallback((payload: DashboardResponse) => {
     const nextMembers = Array.isArray(payload?.data?.members) ? payload.data.members : [];
@@ -389,10 +419,75 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     }
   };
 
+  const handleStudioMembershipManage = async (member: AdminMember) => {
+    const currentActive = Boolean(member.studio_membership?.has_active_subscription);
+    const nextActive = !currentActive;
+    const confirmMessage = nextActive
+      ? `"${member.email ?? member.id}" 회원에게 Studio 멤버십 접근을 부여할까요?`
+      : `"${member.email ?? member.id}" 회원의 Studio 멤버십 접근을 해제할까요?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    setBusyMemberId(member.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/members/${member.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studio_membership_active: nextActive
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Studio 멤버십 상태 변경에 실패했습니다.');
+      }
+
+      const nowIso = new Date().toISOString();
+      setMembers((prev) =>
+        prev.map((row) => {
+          if (row.id !== member.id) return row;
+          const prevMembership = row.studio_membership;
+          return {
+            ...row,
+            studio_membership: {
+              user_id: row.id,
+              has_active_subscription: nextActive,
+              subscription_id: prevMembership?.subscription_id ?? null,
+              subscription_status:
+                prevMembership?.subscription_status ??
+                (nextActive ? 'MANUAL_GRANT' : null),
+              selected_membership:
+                prevMembership?.selected_membership ??
+                (nextActive ? '관리자 수동 부여' : null),
+              subscribed_at:
+                nextActive
+                  ? (prevMembership?.subscribed_at ?? nowIso)
+                  : (prevMembership?.subscribed_at ?? null),
+              next_billing_at: prevMembership?.next_billing_at ?? null,
+              plan_id: prevMembership?.plan_id ?? null,
+              plan_amount: prevMembership?.plan_amount ?? null,
+              plan_currency: prevMembership?.plan_currency ?? null,
+              plan_interval: prevMembership?.plan_interval ?? null
+            }
+          };
+        })
+      );
+      setMessage(nextActive ? 'Studio 멤버십 접근을 부여했습니다.' : 'Studio 멤버십 접근을 해제했습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Studio 멤버십 상태 변경에 실패했습니다.');
+    } finally {
+      setBusyMemberId(null);
+    }
+  };
+
   const closeMemberOrdersModal = () => {
     setMemberOrdersModalOpen(false);
     setMemberOrdersTarget(null);
     setMemberOrders([]);
+    setMemberOrdersTab('shipping_todo');
     setMemberOrdersError(null);
     setMemberOrdersLoading(false);
     setSelectedMemberOrder(null);
@@ -407,6 +502,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     setMemberOrdersError(null);
     setMemberOrdersModalOpen(true);
     setMemberOrdersLoading(true);
+    setMemberOrdersTab('shipping_todo');
     setSelectedMemberOrder(null);
     setMemberOrderDetailOpen(false);
     setMemberOrderShippingError(null);
@@ -417,7 +513,11 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       if (!response.ok) {
         throw new Error(payload?.message || '회원 주문 내역을 불러오지 못했습니다.');
       }
-      setMemberOrders(normalizeOrders(payload?.data));
+      const normalizedOrders = normalizeOrders(payload?.data);
+      setMemberOrders(normalizedOrders);
+      setMemberOrdersTab(
+        normalizedOrders.some((order) => !isShippingDoneBucket(order)) ? 'shipping_todo' : 'shipping_done'
+      );
     } catch (err) {
       setMemberOrdersError(
         err instanceof Error ? err.message : '회원 주문 내역을 불러오지 못했습니다.'
@@ -826,6 +926,21 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           disabled={isBusy}
                         >
                           {isEditingProfile ? '닫기' : '회원정보 수정'}
+                        </ActionButton>
+                        <ActionButton
+                          type="button"
+                          onClick={() => void handleStudioMembershipManage(member)}
+                          variant="secondary"
+                          size="sm"
+                          className={appleFontClass}
+                          disabled={isBusy}
+                          title={
+                            studioMembership?.has_active_subscription
+                              ? '현재 활성화됨 (클릭하면 해제)'
+                              : '현재 비활성 (클릭하면 부여)'
+                          }
+                        >
+                          멤버십 관리
                         </ActionButton>
                         <ActionButton
                           type="button"
@@ -1319,20 +1434,44 @@ export default function MyPageAdminPanel({ enabled }: Props) {
               </div>
             </div>
 
-            {memberOrdersError && (
+	            {memberOrdersError && (
               <div className="mb-4 rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
                 {memberOrdersError}
               </div>
-            )}
+	            )}
 
-            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
-              <p className="text-xs text-white/50">주문 카드를 누르면 주문 상세가 열립니다.</p>
-              {!memberOrdersLoading && memberOrders.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/60">
-                  주문 내역이 없습니다.
-                </div>
-              ) : (
-                memberOrders.map((order) => {
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <PillTab
+                  onClick={() => setMemberOrdersTab('shipping_todo')}
+                  active={memberOrdersTab === 'shipping_todo'}
+                  className="whitespace-nowrap"
+                >
+                  배송해야될거 ({memberOrdersGrouped.shippingTodo.length})
+                </PillTab>
+                <PillTab
+                  onClick={() => setMemberOrdersTab('shipping_done')}
+                  active={memberOrdersTab === 'shipping_done'}
+                  className="whitespace-nowrap"
+                >
+                  배송완료/종료 ({memberOrdersGrouped.shippingDone.length})
+                </PillTab>
+              </div>
+
+	            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+	              <p className="text-xs text-white/50">주문 카드를 누르면 주문 상세가 열립니다.</p>
+                  {memberOrdersTab === 'shipping_done' && (
+                    <p className="text-xs text-white/40">배송완료 탭에는 반송/취소 주문도 함께 표시됩니다.</p>
+                  )}
+	              {!memberOrdersLoading && activeMemberOrders.length === 0 ? (
+	                <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/60">
+                      {memberOrders.length === 0
+                        ? '주문 내역이 없습니다.'
+                        : memberOrdersTab === 'shipping_todo'
+                          ? '배송해야될 주문이 없습니다.'
+                          : '배송완료/종료 주문이 없습니다.'}
+	                </div>
+	              ) : (
+	                activeMemberOrders.map((order) => {
                   const firstItem = order.items[0];
                   const extraCount = Math.max(0, order.items.length - 1);
                   const contactName = order.customer_contact?.name?.trim() || null;
