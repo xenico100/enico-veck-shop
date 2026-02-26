@@ -31,6 +31,10 @@ type ServiceCardItem = {
   image: string;
   colors: string[];
   images: string[];
+  isPaidFile: boolean;
+  filePriceAmount: number | null;
+  downloadFileObjectKey: string | null;
+  hasPurchasedPaidFile: boolean;
 };
 
 type ServiceCreateFormState = {
@@ -42,6 +46,9 @@ type ServiceCreateFormState = {
   currency: string;
   image_urls_text: string;
   files: File[];
+  is_paid_file: boolean;
+  file_price: string;
+  paid_download_file: File | null;
   is_published: boolean;
 };
 
@@ -110,8 +117,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     currency: 'KRW',
     image_urls_text: '',
     files: [],
+    is_paid_file: false,
+    file_price: '',
+    paid_download_file: null,
     is_published: true
   });
+  const [paidFileDownloadPendingServiceId, setPaidFileDownloadPendingServiceId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -133,7 +144,22 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const getSwatchClass = (color: string) =>
     serviceSwatchBgClasses[color] ?? 'bg-white/30';
 
-  const mapPostToCardItem = (post: Partial<ServicePost> & { id: string }): ServiceCardItem => {
+  const formatMoneyExact = (value: number | null | undefined, currency = 'KRW') => {
+    if (value == null || Number.isNaN(value)) return null;
+    try {
+      return new Intl.NumberFormat(currency === 'KRW' ? 'ko-KR' : 'en-US', {
+        style: 'currency',
+        currency
+      }).format(value);
+    } catch {
+      return `${value}`;
+    }
+  };
+
+  const mapPostToCardItem = (
+    post: Partial<ServicePost> & { id: string },
+    options?: { hasPurchasedPaidFile?: boolean }
+  ): ServiceCardItem => {
     const images =
       Array.isArray(post.image_urls) && post.image_urls.length > 0
         ? post.image_urls.filter(Boolean)
@@ -141,6 +167,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     const category = (post.category?.trim() || '녹음') as string;
     const summary = post.summary?.trim() || category;
     const content = post.content?.trim() || post.summary?.trim() || '서비스 설명이 준비 중입니다.';
+    const parsedFilePrice =
+      typeof post.file_price === 'number'
+        ? post.file_price
+        : typeof post.file_price === 'string' && post.file_price.trim()
+          ? Number(post.file_price)
+          : null;
 
     return {
       id: post.id,
@@ -153,7 +185,14 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       category,
       image: images[0],
       images,
-      colors: categoryColorPresets[category] ?? ['#1a1a1a', '#4a4a4a', '#8a8a8a']
+      colors: categoryColorPresets[category] ?? ['#1a1a1a', '#4a4a4a', '#8a8a8a'],
+      isPaidFile: Boolean(post.is_paid_file),
+      filePriceAmount: Number.isFinite(parsedFilePrice ?? NaN) ? parsedFilePrice : null,
+      downloadFileObjectKey:
+        typeof post.download_file_url === 'string' && post.download_file_url.trim()
+          ? post.download_file_url.trim()
+          : null,
+      hasPurchasedPaidFile: Boolean(options?.hasPurchasedPaidFile)
     };
   };
 
@@ -162,11 +201,19 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     type: 'service',
     title: service.title,
     image: service.image,
-    price: service.priceAmount,
+    price: service.isPaidFile ? service.filePriceAmount ?? service.priceAmount : service.priceAmount,
     currency: service.currency || 'KRW'
   });
 
   const handleAddToCart = (service: ServiceCardItem) => {
+    if (service.isPaidFile && !user) {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '유료 3D 파일은 로그인 후 결제해야 다운로드 권한을 저장할 수 있습니다.'
+      });
+      return;
+    }
+
     addItem(toCartItem(service));
     toast({
       title: '장바구니에 담았습니다',
@@ -196,7 +243,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       }
 
       const rows = Array.isArray(payload?.data) ? (payload.data as ServicePost[]) : [];
-      setServiceItems(rows.length > 0 ? rows.map(mapPostToCardItem) : []);
+      setServiceItems(rows.length > 0 ? rows.map((row) => mapPostToCardItem(row)) : []);
     } catch (error) {
       setServicesError(error instanceof Error ? error.message : '서비스 목록을 불러오지 못했습니다.');
       setServiceItems([]);
@@ -219,13 +266,16 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       currency: 'KRW',
       image_urls_text: '',
       files: [],
+      is_paid_file: false,
+      file_price: '',
+      paid_download_file: null,
       is_published: true
     });
   };
 
   const handleCreateFormFieldChange = (
     key: keyof ServiceCreateFormState,
-    value: string | boolean | File[]
+    value: string | boolean | File[] | File | null
   ) => {
     setCreateForm((prev) => ({ ...prev, [key]: value } as ServiceCreateFormState));
   };
@@ -235,6 +285,47 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     setCreateForm((prev) => ({ ...prev, files }));
   };
 
+  const handlePaidDownloadFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setCreateForm((prev) => ({ ...prev, paid_download_file: file }));
+  };
+
+  const uploadServicePaidFileToR2 = async (servicePostId: string, file: File) => {
+    const contentType = (file.type || '').trim().toLowerCase() || 'application/octet-stream';
+    const presignResponse = await fetch('/api/r2/presign-put', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        servicePostId,
+        filename: file.name,
+        contentType,
+        bytes: file.size,
+        kind: 'file'
+      })
+    });
+
+    const presignPayload = await presignResponse.json().catch(() => ({}));
+    if (
+      !presignResponse.ok ||
+      typeof presignPayload?.r2_key !== 'string' ||
+      typeof presignPayload?.uploadUrl !== 'string'
+    ) {
+      throw new Error(presignPayload?.message || '3D 파일 업로드 URL 발급에 실패했습니다.');
+    }
+
+    const putResponse = await fetch(presignPayload.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file
+    });
+
+    if (!putResponse.ok) {
+      throw new Error(`3D 파일 업로드 실패 (${putResponse.status})`);
+    }
+
+    return String(presignPayload.r2_key);
+  };
+
   const handleSubmitCreatePost = async () => {
     if (!isAdmin) return;
     if (!createForm.title.trim()) {
@@ -242,12 +333,26 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       setCreateMessage(null);
       return;
     }
+    if (createForm.is_paid_file) {
+      const filePrice = Number(createForm.file_price);
+      if (!Number.isFinite(filePrice) || filePrice <= 0) {
+        setCreateError('유료 3D 파일 가격을 입력해 주세요.');
+        setCreateMessage(null);
+        return;
+      }
+      if (!createForm.paid_download_file) {
+        setCreateError('유료 3D 파일을 업로드해 주세요.');
+        setCreateMessage(null);
+        return;
+      }
+    }
 
     setCreateSubmitting(true);
     setCreateError(null);
     setCreateMessage(null);
 
     try {
+      let createdServicePostId: string | null = null;
       let uploadedImageUrls: string[] = [];
       if (createForm.files.length > 0) {
         const uploadForm = new FormData();
@@ -280,6 +385,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           content: createForm.content.trim() || null,
           price_from: createForm.price_from ? Number(createForm.price_from) : null,
           currency: createForm.currency || 'KRW',
+          is_paid_file: createForm.is_paid_file,
+          file_price: createForm.is_paid_file ? Number(createForm.file_price) : null,
+          download_file_url: null,
           is_published: createForm.is_published,
           image_urls: [...manualUrls, ...uploadedImageUrls]
         })
@@ -289,8 +397,36 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       if (!response.ok) {
         throw new Error(payload?.message || '게시글 생성에 실패했습니다.');
       }
+      createdServicePostId =
+        payload?.data && typeof payload.data.id === 'string' ? payload.data.id : null;
 
-      setCreateMessage('서비스 게시글을 생성했습니다.');
+      if (createForm.is_paid_file && createForm.paid_download_file && createdServicePostId) {
+        const r2ObjectKey = await uploadServicePaidFileToR2(
+          createdServicePostId,
+          createForm.paid_download_file
+        );
+        const patchResponse = await fetch(`/api/service-posts/${createdServicePostId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            is_paid_file: true,
+            file_price: Number(createForm.file_price),
+            download_file_url: r2ObjectKey
+          })
+        });
+        const patchPayload = await patchResponse.json().catch(() => ({}));
+        if (!patchResponse.ok) {
+          throw new Error(
+            patchPayload?.message || '게시글은 생성되었지만 다운로드 파일 연결에 실패했습니다.'
+          );
+        }
+      }
+
+      setCreateMessage(
+        createForm.is_paid_file
+          ? '서비스 게시글과 유료 3D 다운로드 파일을 생성했습니다.'
+          : '서비스 게시글을 생성했습니다.'
+      );
       resetCreateForm();
       setIsCreateModalOpen(false);
       await fetchServices();
@@ -298,6 +434,65 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       setCreateError(error instanceof Error ? error.message : '게시글 생성에 실패했습니다.');
     } finally {
       setCreateSubmitting(false);
+    }
+  };
+
+  const handleCheckoutPaidFile = (service: ServiceCardItem) => {
+    if (!user) {
+      toast({
+        title: '로그인이 필요합니다',
+        description: '유료 3D 파일 구매 후 다운로드를 위해 로그인한 상태에서 결제해 주세요.'
+      });
+      return;
+    }
+
+    addItem(toCartItem(service));
+    toast({
+      title: '결제 대기',
+      description: `${service.title} 3D 파일을 장바구니에 담았습니다.`,
+      action: onOpenCart ? (
+        <ToastAction
+          altText="장바구니 보기"
+          onClick={() => {
+            onOpenCart();
+          }}
+          className="rounded-full"
+        >
+          View cart
+        </ToastAction>
+      ) : undefined
+    });
+    onOpenCart?.();
+  };
+
+  const handleDownloadPaidFile = async (service: ServiceCardItem) => {
+    if (!service.id) return;
+    setPaidFileDownloadPendingServiceId(service.id);
+
+    try {
+      const response = await fetch(`/api/service-posts/${service.id}/download`, {
+        cache: 'no-store'
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || '다운로드 링크를 발급하지 못했습니다.');
+      }
+      const url = typeof payload?.data?.url === 'string' ? payload.data.url : null;
+      if (!url) {
+        throw new Error('다운로드 URL이 비어 있습니다.');
+      }
+
+      if (typeof window !== 'undefined') {
+        window.location.href = url;
+      }
+    } catch (error) {
+      toast({
+        title: '다운로드 실패',
+        description: error instanceof Error ? error.message : '다운로드 링크 발급에 실패했습니다.',
+        variant: 'destructive'
+      });
+    } finally {
+      setPaidFileDownloadPendingServiceId(null);
     }
   };
 
@@ -325,8 +520,13 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         throw new Error(payload?.message || '서비스 상세를 불러오지 못했습니다.');
       }
       const detail = payload?.data as ServicePost | undefined;
+      const viewerHasPaidFileAccess = Boolean(payload?.meta?.viewer_has_paid_file_access);
       if (detail?.id) {
-        setSelectedService(mapPostToCardItem(detail));
+        setSelectedService(
+          mapPostToCardItem(detail, {
+            hasPurchasedPaidFile: viewerHasPaidFileAccess
+          })
+        );
       }
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : '서비스 상세를 불러오지 못했습니다.');
@@ -777,6 +977,67 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 )}
               </div>
 
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <label className="flex items-center gap-2 text-sm text-white/80">
+                  <input
+                    type="checkbox"
+                    checked={createForm.is_paid_file}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        is_paid_file: checked,
+                        ...(checked
+                          ? {}
+                          : {
+                              file_price: '',
+                              paid_download_file: null
+                            })
+                      }));
+                    }}
+                    className="h-4 w-4 rounded border-white/20 bg-white/10"
+                    disabled={createSubmitting}
+                  />
+                  유료 3D 파일 포함
+                </label>
+                <p className="mt-2 text-xs text-white/50">
+                  체크 시 결제 완료 사용자에게만 3D 파일 다운로드 버튼이 노출됩니다.
+                </p>
+
+                {createForm.is_paid_file && (
+                  <div className="mt-4 grid gap-4">
+                    <div className="grid gap-2 md:max-w-sm">
+                      <label className={createLabelClass}>파일 가격 ({createForm.currency || 'KRW'})</label>
+                      <input
+                        className={createInputClass}
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={createForm.file_price}
+                        onChange={(e) => handleCreateFormFieldChange('file_price', e.target.value)}
+                        placeholder={createForm.currency === 'USD' ? '19.99' : '4900'}
+                        disabled={createSubmitting}
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <label className={createLabelClass}>파일 업로드 (R2 / 3D 파일)</label>
+                      <input
+                        type="file"
+                        onChange={handlePaidDownloadFileChange}
+                        disabled={createSubmitting}
+                        className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/15 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white/85 hover:file:bg-white/20"
+                      />
+                      <p className="text-xs text-white/50">
+                        {createForm.paid_download_file
+                          ? `선택됨: ${createForm.paid_download_file.name} · ${createForm.paid_download_file.type || 'unknown'} · ${createForm.paid_download_file.size.toLocaleString()} bytes`
+                          : '게시글 생성 후 Presigned PUT으로 R2에 업로드되고 object key가 저장됩니다.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <label className="flex items-center gap-2 text-sm text-white/80">
                 <input
                   type="checkbox"
@@ -829,6 +1090,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         isLoading={detailLoading}
         error={detailError}
         onAddToCart={handleAddToCart}
+        onPaidFileCheckout={handleCheckoutPaidFile}
+        onPaidFileDownload={handleDownloadPaidFile}
+        paidFileDownloadPending={
+          Boolean(selectedService?.id) && paidFileDownloadPendingServiceId === selectedService?.id
+        }
+        formatMoneyExact={formatMoneyExact}
       />
     </section>
   );

@@ -57,7 +57,7 @@ export async function GET(request: Request) {
   let query = (supabase as never)
     .from(SERVICE_POSTS_TABLE)
     .select(
-      'id,title,slug,category,summary,content,price_from,currency,image_urls,is_published,created_at,updated_at,created_by'
+      'id,title,slug,category,summary,content,price_from,currency,is_paid_file,file_price,download_file_url,image_urls,is_published,created_at,updated_at,created_by'
     )
     .eq('is_published', true)
     .order('updated_at', { ascending: false });
@@ -88,6 +88,14 @@ export async function POST(request: Request) {
   if (!title) {
     return NextResponse.json({ message: '제목은 필수입니다.' }, { status: 400 });
   }
+  if (body.is_paid_file === true) {
+    if (!(typeof body.file_price === 'number' && Number.isFinite(body.file_price) && body.file_price > 0)) {
+      return NextResponse.json(
+        { message: '유료 3D 파일 게시글은 file_price(양수)가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+  }
 
   const supabase = createClient();
   const {
@@ -100,6 +108,7 @@ export async function POST(request: Request) {
   }
 
   const payload = {
+    ...(body.is_paid_file !== undefined ? { is_paid_file: Boolean(body.is_paid_file) } : {}),
     title,
     slug: body.slug?.trim() || slugifyServicePost(title) || null,
     category: body.category?.trim() || null,
@@ -107,10 +116,20 @@ export async function POST(request: Request) {
     content: body.content?.trim() || null,
     price_from: typeof body.price_from === 'number' ? body.price_from : null,
     currency: body.currency?.trim() || 'KRW',
+    file_price:
+      typeof body.file_price === 'number' && Number.isFinite(body.file_price)
+        ? body.file_price
+        : null,
+    download_file_url: body.download_file_url?.trim() || null,
     image_urls: normalizeImageUrls(body.image_urls),
     is_published: Boolean(body.is_published ?? true),
     created_by: user.id
   };
+
+  if (!payload.is_paid_file) {
+    payload.file_price = null;
+    payload.download_file_url = null;
+  }
 
   const { data, error } = await (supabase as never)
     .from(SERVICE_POSTS_TABLE)

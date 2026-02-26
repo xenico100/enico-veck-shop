@@ -7,6 +7,9 @@ export type ServicePost = {
   content: string | null;
   price_from: number | null;
   currency: string | null;
+  is_paid_file: boolean | null;
+  file_price: number | string | null;
+  download_file_url: string | null;
   image_urls: string[];
   is_published: boolean;
   created_at: string;
@@ -22,6 +25,9 @@ export type ServicePostPayload = {
   content?: string | null;
   price_from?: number | null;
   currency?: string | null;
+  is_paid_file?: boolean | null;
+  file_price?: number | null;
+  download_file_url?: string | null;
   image_urls?: string[];
   is_published?: boolean;
 };

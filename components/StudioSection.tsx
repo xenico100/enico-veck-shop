@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ImageIcon, Lock, Pause, PencilLine, Play, X } from 'lucide-react';
+import { ImageIcon, Lock, Pause, Play, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import StudioProtectedMedia from '@/components/StudioProtectedMedia';
@@ -968,7 +968,7 @@ export default function StudioSection() {
                       ) : null}
                       {isPlaceholder ? (
                         <p className="hidden text-[11px] text-white/45 md:block">
-                          {isAdmin ? 'Write 버튼으로 바로 추가할 수 있습니다.' : '곧 업데이트됩니다.'}
+                          {isAdmin ? '관리자 패널에서 게시물을 추가할 수 있습니다.' : '곧 업데이트됩니다.'}
                         </p>
                       ) : null}
                     </div>
@@ -1014,16 +1014,6 @@ export default function StudioSection() {
             </div>
           </div>
 
-          {!authLoading && isAdmin ? (
-            <button
-              type="button"
-              onClick={handleOpenWrite}
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 text-sm font-medium text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            >
-              <PencilLine className="h-4 w-4" />
-              Write
-            </button>
-          ) : null}
         </div>
 
         <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">

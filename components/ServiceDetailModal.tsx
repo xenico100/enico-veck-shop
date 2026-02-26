@@ -7,21 +7,29 @@ interface ServiceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   service: {
-    id?: string;
+    id: string;
     title: string;
     subtitle: string;
     description: string;
     price: string;
     priceAmount: number | null;
     currency: string;
-    category?: string;
+    category: string;
     image: string;
-    colors?: string[];
-    images?: string[]; // 여러 이미지를 위한 배열
+    colors: string[];
+    images: string[]; // 여러 이미지를 위한 배열
+    isPaidFile: boolean;
+    filePriceAmount: number | null;
+    downloadFileObjectKey: string | null;
+    hasPurchasedPaidFile: boolean;
   } | null;
   isLoading?: boolean;
   error?: string | null;
   onAddToCart?: (service: NonNullable<ServiceDetailModalProps['service']>) => void;
+  onPaidFileCheckout?: (service: NonNullable<ServiceDetailModalProps['service']>) => void;
+  onPaidFileDownload?: (service: NonNullable<ServiceDetailModalProps['service']>) => void;
+  paidFileDownloadPending?: boolean;
+  formatMoneyExact?: (value: number | null | undefined, currency?: string) => string | null;
 }
 
 export function ServiceDetailModal({
@@ -30,7 +38,11 @@ export function ServiceDetailModal({
   service,
   isLoading = false,
   error = null,
-  onAddToCart
+  onAddToCart,
+  onPaidFileCheckout,
+  onPaidFileDownload,
+  paidFileDownloadPending = false,
+  formatMoneyExact
 }: ServiceDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
@@ -78,6 +90,11 @@ export function ServiceDetailModal({
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
+
+  const paidFilePriceText =
+    service?.isPaidFile
+      ? formatMoneyExact?.(service.filePriceAmount, service.currency) ?? service?.price ?? null
+      : null;
 
   return (
     <>
@@ -217,13 +234,34 @@ export function ServiceDetailModal({
             </div>
 
             {/* CTA Button */}
-            <button
-              type="button"
-              onClick={() => service && onAddToCart?.(service)}
-              className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            >
-              장바구니에 담기
-            </button>
+            {service.isPaidFile ? (
+              service.hasPurchasedPaidFile ? (
+                <button
+                  type="button"
+                  onClick={() => service && onPaidFileDownload?.(service)}
+                  disabled={paidFileDownloadPending || !service.downloadFileObjectKey}
+                  className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {paidFileDownloadPending ? '다운로드 링크 준비 중…' : '3D 파일 다운로드'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => service && onPaidFileCheckout?.(service)}
+                  className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  {`결제하고 다운로드하기 (${paidFilePriceText ?? service.price})`}
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => service && onAddToCart?.(service)}
+                className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              >
+                장바구니에 담기
+              </button>
+            )}
           </div>
             </>
           )}

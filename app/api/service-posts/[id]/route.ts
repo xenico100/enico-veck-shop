@@ -50,13 +50,53 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ message: '게시글을 찾을 수 없습니다.' }, { status: 404 });
   }
 
-  return NextResponse.json({ data });
+  let viewerHasPaidFileAccess = false;
+  if (Boolean((data as any)?.is_paid_file) && (isAdmin || (data as any)?.created_by === user?.id)) {
+    viewerHasPaidFileAccess = true;
+  }
+
+  if (!viewerHasPaidFileAccess && user?.id && Boolean((data as any)?.is_paid_file)) {
+    const { data: purchaseRow, error: purchaseError } = await (supabase as never)
+      .from('service_purchases')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('service_post_id', id)
+      .eq('status', 'completed')
+      .maybeSingle();
+
+    if (purchaseError) {
+      console.warn('[service-posts/:id] purchase status lookup failed', {
+        servicePostId: id,
+        userId: user.id,
+        message: purchaseError.message
+      });
+    } else {
+      viewerHasPaidFileAccess = Boolean(purchaseRow?.id);
+    }
+  }
+
+  return NextResponse.json({
+    data,
+    meta: {
+      viewer_has_paid_file_access: viewerHasPaidFileAccess
+    }
+  });
 }
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const body = await parseJsonBody<ServicePostPayload>(request);
   if (!body) {
     return NextResponse.json({ message: '잘못된 요청입니다.' }, { status: 400 });
+  }
+  if (
+    body.is_paid_file === true &&
+    body.file_price !== undefined &&
+    !(typeof body.file_price === 'number' && Number.isFinite(body.file_price) && body.file_price > 0)
+  ) {
+    return NextResponse.json(
+      { message: '유료 3D 파일 게시글은 file_price(양수)가 필요합니다.' },
+      { status: 400 }
+    );
   }
 
   const supabase = createClient();
@@ -100,9 +140,28 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       ? { price_from: typeof body.price_from === 'number' ? body.price_from : null }
       : {}),
     ...(body.currency !== undefined ? { currency: body.currency?.trim() || 'KRW' } : {}),
+    ...(body.is_paid_file !== undefined ? { is_paid_file: Boolean(body.is_paid_file) } : {}),
+    ...(body.file_price !== undefined
+      ? {
+          file_price:
+            typeof body.file_price === 'number' && Number.isFinite(body.file_price)
+              ? body.file_price
+              : null
+        }
+      : {}),
+    ...(body.download_file_url !== undefined
+      ? { download_file_url: body.download_file_url?.trim() || null }
+      : {}),
     ...(body.image_urls !== undefined ? { image_urls: normalizeImageUrls(body.image_urls) } : {}),
     ...(body.is_published !== undefined ? { is_published: Boolean(body.is_published) } : {})
   };
+
+  if (body.is_paid_file === false) {
+    Object.assign(updatePayload, {
+      file_price: null,
+      download_file_url: null
+    });
+  }
 
   const { data, error } = await (client as never)
     .from(SERVICE_POSTS_TABLE)

@@ -53,6 +53,11 @@ type GuestCustomerContact = {
   address: string;
 };
 
+type ServicePurchaseRecordResult = {
+  inserted: number;
+  skipped: string | null;
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
@@ -169,6 +174,129 @@ const normalizeCustomerContact = (
   if (!name || !email || !phone || !address) return null;
 
   return { name, email, phone, address };
+};
+
+const normalizeServicePurchaseCandidates = (items: Array<Record<string, unknown>>) => {
+  const byId = new Map<
+    string,
+    { servicePostId: string; amountPaid: number | null; currency: string | null }
+  >();
+
+  for (const item of items) {
+    const type = typeof item.type === 'string' ? item.type.trim().toLowerCase() : '';
+    const id = typeof item.id === 'string' ? item.id.trim() : '';
+    if (type !== 'service' || !id) continue;
+
+    const lineTotal =
+      typeof item.line_total === 'number' && Number.isFinite(item.line_total)
+        ? item.line_total
+        : null;
+    const price =
+      typeof item.price === 'number' && Number.isFinite(item.price) ? item.price : null;
+    const currency =
+      typeof item.currency === 'string' && item.currency.trim()
+        ? item.currency.trim().toUpperCase()
+        : null;
+
+    if (!byId.has(id)) {
+      byId.set(id, {
+        servicePostId: id,
+        amountPaid: lineTotal ?? price,
+        currency
+      });
+    }
+  }
+
+  return Array.from(byId.values());
+};
+
+const recordServiceFilePurchases = async (params: {
+  userId: string | null;
+  orderId: string | null;
+  paypalOrderId: string | null;
+  items: Array<Record<string, unknown>>;
+}) : Promise<ServicePurchaseRecordResult> => {
+  if (!params.userId) {
+    return { inserted: 0, skipped: 'guest_user' };
+  }
+
+  const candidates = normalizeServicePurchaseCandidates(params.items);
+  if (candidates.length === 0) {
+    return { inserted: 0, skipped: 'no_service_items' };
+  }
+
+  try {
+    const { createAdminClient } = await import('@/utils/supabase/adminClient');
+    const admin = createAdminClient();
+    const serviceIds = candidates.map((item) => item.servicePostId);
+    const { data: postRows, error: postsError } = await (admin as any)
+      .from('service_posts')
+      .select('id,is_paid_file,file_price,currency')
+      .in('id', serviceIds);
+
+    if (postsError) {
+      throw new Error(postsError.message || 'service_posts lookup failed');
+    }
+
+    const paidFilePosts = new Map<
+      string,
+      { id: string; file_price: number | string | null; currency: string | null }
+    >();
+
+    for (const row of Array.isArray(postRows) ? (postRows as any[]) : []) {
+      if (!row?.id || row?.is_paid_file !== true) continue;
+      paidFilePosts.set(String(row.id), {
+        id: String(row.id),
+        file_price: row.file_price ?? null,
+        currency: typeof row.currency === 'string' ? row.currency : null
+      });
+    }
+
+    const purchaseRows = candidates
+      .map((candidate) => {
+        const paid = paidFilePosts.get(candidate.servicePostId);
+        if (!paid) return null;
+        const filePrice =
+          typeof paid.file_price === 'number'
+            ? paid.file_price
+            : typeof paid.file_price === 'string' && paid.file_price.trim()
+              ? Number(paid.file_price)
+              : null;
+        const amountPaid = candidate.amountPaid ?? (Number.isFinite(filePrice ?? NaN) ? filePrice : null);
+        return {
+          user_id: params.userId,
+          service_post_id: candidate.servicePostId,
+          order_id: params.orderId,
+          paypal_order_id: params.paypalOrderId,
+          amount_paid: amountPaid,
+          currency: candidate.currency ?? paid.currency ?? 'KRW',
+          status: 'completed'
+        };
+      })
+      .filter(Boolean);
+
+    if (purchaseRows.length === 0) {
+      return { inserted: 0, skipped: 'no_paid_file_items' };
+    }
+
+    const { error: purchaseError } = await (admin as any)
+      .from('service_purchases')
+      .upsert(purchaseRows, { onConflict: 'user_id,service_post_id' });
+
+    if (purchaseError) {
+      throw new Error(purchaseError.message || 'service_purchases upsert failed');
+    }
+
+    return { inserted: purchaseRows.length, skipped: null };
+  } catch (error) {
+    console.error('[orders/paypal] service file purchase record failed', {
+      userId: params.userId,
+      orderId: params.orderId,
+      paypalOrderId: params.paypalOrderId,
+      error
+    });
+    return { inserted: 0, skipped: 'record_failed' };
+  }
 };
 
 export async function POST(request: Request) {
@@ -457,5 +585,20 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ data: insertResult.data, message: '주문이 저장되었습니다.' });
+  const savedOrderId =
+    insertResult.data && typeof insertResult.data.id === 'string' ? insertResult.data.id : null;
+  const servicePurchaseResult = await recordServiceFilePurchases({
+    userId: authenticatedUser?.id ?? null,
+    orderId: savedOrderId,
+    paypalOrderId: paypalOrderIdForLookup,
+    items
+  });
+
+  return NextResponse.json({
+    data: insertResult.data,
+    message: '주문이 저장되었습니다.',
+    meta: {
+      service_file_purchase_records: servicePurchaseResult
+    }
+  });
 }
