@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ActionButton from '@/components/ui/ActionButton';
+import PillTab from '@/components/ui/PillTab';
 
 type StudioPostOption = {
   id: string;
@@ -44,6 +45,8 @@ type Draft = {
   is_free_public: boolean;
 };
 
+type MediaManagerTabKey = 'upload' | 'list';
+
 const defaultDraft: Draft = {
   studio_post_id: '',
   kind: 'image',
@@ -70,6 +73,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
   const [posts, setPosts] = useState<StudioPostOption[]>([]);
   const [mediaRows, setMediaRows] = useState<StudioMediaRow[]>([]);
   const [draft, setDraft] = useState<Draft>(defaultDraft);
+  const [activeTab, setActiveTab] = useState<MediaManagerTabKey>('upload');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -83,6 +87,8 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
   const inputClass =
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/25';
   const labelClass = 'text-xs uppercase tracking-[0.18em] text-white/50';
+  const segmentedWrapClass =
+    'flex min-w-max flex-wrap items-center gap-2 [font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
 
   const fetchMediaAdminData = useCallback(async () => {
     if (!enabled) return;
@@ -367,7 +373,22 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
         </div>
       )}
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+      <div className="overflow-x-auto pb-1">
+        <div className={segmentedWrapClass}>
+          <PillTab onClick={() => setActiveTab('upload')} active={activeTab === 'upload'}>
+            업로드
+          </PillTab>
+          <PillTab onClick={() => setActiveTab('list')} active={activeTab === 'list'}>
+            연결 목록 ({mediaRows.length})
+          </PillTab>
+        </div>
+        <p className="mt-2 text-xs text-white/45">
+          `업로드`는 R2 업로드/연결 작업, `연결 목록`은 이미 연결된 미디어 확인/삭제용입니다.
+        </p>
+      </div>
+
+      {activeTab === 'upload' && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium text-white">R2 직접 업로드 + 미디어 등록</p>
           <span className="text-xs text-white/45">Presigned PUT (5분 만료)</span>
@@ -581,9 +602,11 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
             업로드 비활성화 사유: {uploadBlockReason}
           </p>
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+      {activeTab === 'list' && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium text-white">연결된 Studio 미디어</p>
           <span className="text-xs text-white/45">{mediaRows.length}개</span>
@@ -676,7 +699,8 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
             );
           })}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
