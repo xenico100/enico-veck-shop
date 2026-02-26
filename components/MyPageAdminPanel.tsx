@@ -30,6 +30,19 @@ type AdminMember = {
   phone: string | null;
   address: string | null;
   subscription_status: string | null;
+  studio_membership: {
+    user_id: string;
+    has_active_subscription: boolean;
+    subscription_id: string | null;
+    subscription_status: string | null;
+    selected_membership: string | null;
+    subscribed_at: string | null;
+    next_billing_at: string | null;
+    plan_id: string | null;
+    plan_amount: number | null;
+    plan_currency: string | null;
+    plan_interval: string | null;
+  } | null;
   is_protected_admin: boolean;
 };
 
@@ -701,6 +714,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 const isBusy = busyMemberId === member.id;
                 const protectedAdmin = member.is_protected_admin;
                 const isEditingProfile = editingMemberProfileId === member.id;
+                const studioMembership = member.studio_membership;
                 const memberProfileDraft = memberProfileDrafts[member.id] ?? {
                   name: member.name ?? member.full_name ?? '',
                   phone: member.phone ?? '',
@@ -717,7 +731,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           {member.email ?? member.id}
                         </p>
                         <p className="mt-1 text-xs text-white/55">
-                          이름: {member.name ?? member.full_name ?? '-'} · 구독:{' '}
+                          이름: {member.name ?? member.full_name ?? '-'} · Stripe구독:{' '}
                           {member.subscription_status ?? 'none'}
                         </p>
                         <p className="mt-1 text-xs text-white/45">
@@ -730,6 +744,34 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             {member.address ? `· 주소: ${member.address}` : ''}
                           </p>
                         )}
+                        <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                              Studio Membership
+                            </p>
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                studioMembership?.has_active_subscription
+                                  ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100'
+                                  : 'border-white/15 bg-white/5 text-white/70'
+                              }`}
+                            >
+                              {studioMembership?.has_active_subscription ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                            {studioMembership?.subscription_status && (
+                              <span className="text-[11px] text-white/60">
+                                PayPal: {studioMembership.subscription_status}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-2 text-xs text-white/75">
+                            선택 멤버십: {studioMembership?.selected_membership ?? '미가입'}
+                          </p>
+                          <p className="mt-1 text-xs text-white/55">
+                            구독 날짜: {formatDate(studioMembership?.subscribed_at ?? null)} · 결제예정일:{' '}
+                            {formatDate(studioMembership?.next_billing_at ?? null)}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-end gap-2 flex-wrap">

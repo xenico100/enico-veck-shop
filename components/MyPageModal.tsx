@@ -54,6 +54,20 @@ type UserProfileFormState = {
   address: string;
 };
 
+type MembershipSummary = {
+  user_id: string;
+  has_active_subscription: boolean;
+  subscription_id: string | null;
+  subscription_status: string | null;
+  selected_membership: string | null;
+  subscribed_at: string | null;
+  next_billing_at: string | null;
+  plan_id: string | null;
+  plan_amount: number | null;
+  plan_currency: string | null;
+  plan_interval: string | null;
+};
+
 const emptyPostEditor = (): ServicePostEditorState => ({
   id: null,
   title: '',
@@ -92,6 +106,9 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [orderDetailOpen, setOrderDetailOpen] = useState(false);
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
+  const [membershipSummary, setMembershipSummary] = useState<MembershipSummary | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -228,6 +245,38 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     if (!open || activeTab !== 'orders') return;
     void fetchOrders();
   }, [open, activeTab, fetchOrders]);
+
+  const fetchMembership = useMemo(
+    () => async () => {
+      if (!user?.id) {
+        setMembershipSummary(null);
+        return;
+      }
+
+      setMembershipLoading(true);
+      setMembershipError(null);
+      try {
+        const response = await fetch('/api/account/membership', { cache: 'no-store' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.message || '멤버십 정보를 불러오지 못했습니다.');
+        }
+        setMembershipSummary((payload?.data ?? null) as MembershipSummary | null);
+      } catch (error) {
+        setMembershipError(
+          error instanceof Error ? error.message : '멤버십 정보를 불러오지 못했습니다.'
+        );
+      } finally {
+        setMembershipLoading(false);
+      }
+    },
+    [user?.id]
+  );
+
+  useEffect(() => {
+    if (!open || activeTab !== 'membership') return;
+    void fetchMembership();
+  }, [open, activeTab, fetchMembership]);
 
   const fetchProfile = useMemo(
     () => async () => {
@@ -741,6 +790,84 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
+            {activeTab === 'membership' && (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-tight text-white">멤버십</h3>
+                    <p className="mt-1 text-sm text-white/60">
+                      선택한 Studio 멤버십과 구독/결제 일정을 확인하세요.
+                    </p>
+                  </div>
+                  <ActionButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void fetchMembership()}
+                    className={appleFontClass}
+                    disabled={membershipLoading}
+                  >
+                    {membershipLoading ? '불러오는 중…' : '새로고침'}
+                  </ActionButton>
+                </div>
+
+                {membershipError && (
+                  <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+                    {membershipError}
+                  </div>
+                )}
+
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs uppercase tracking-[0.16em] text-white/55">
+                      Studio Membership
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${
+                        membershipSummary?.has_active_subscription
+                          ? 'border-emerald-300/30 bg-emerald-500/15 text-emerald-100'
+                          : 'border-white/15 bg-white/5 text-white/70'
+                      }`}
+                    >
+                      {membershipSummary?.has_active_subscription ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                    {membershipSummary?.subscription_status && (
+                      <span className="text-xs text-white/60">
+                        PayPal: {membershipSummary.subscription_status}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <p className="text-xs text-white/50">선택 멤버십</p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {membershipSummary?.selected_membership ?? '가입된 멤버십 없음'}
+                      </p>
+                      {membershipSummary?.subscription_id && (
+                        <p className="mt-2 break-all text-xs text-white/45">
+                          Subscription ID: {membershipSummary.subscription_id}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <p className="text-xs text-white/50">구독 일정</p>
+                      <p className="mt-2 text-sm text-white/85">
+                        구독 날짜: {membershipSummary?.subscribed_at ? formatOrderDate(membershipSummary.subscribed_at) : '-'}
+                      </p>
+                      <p className="mt-1 text-sm text-white/85">
+                        결제예정일: {membershipSummary?.next_billing_at ? formatOrderDate(membershipSummary.next_billing_at) : '-'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-xs leading-relaxed text-white/50">
+                    구독 관리/취소는 PayPal 자동결제(Automatic Payments)에서 진행할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'admin' && isAdmin && <MyPageAdminPanel enabled={open && isAdmin} />}
 
             {activeTab === 'posts' && isAdmin && (
@@ -972,6 +1099,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
 
             {activeTab !== 'profile' &&
               activeTab !== 'orders' &&
+              activeTab !== 'membership' &&
               activeTab !== 'admin' &&
               activeTab !== 'posts' && (
               <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">

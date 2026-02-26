@@ -2,11 +2,38 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createSubscription, getPayPalApprovalUrl, isPayPalApiError } from '@/utils/paypal';
 import { getURL } from '@/utils/helpers';
+import type { StudioMembershipPlanKey } from '@/utils/studio-membership-plans';
 
 export const runtime = 'nodejs';
 
 type CreateSubscriptionBody = {
   studioPostId?: string;
+  planKey?: StudioMembershipPlanKey;
+};
+
+const PLAN_ENV_KEY_BY_PLAN_KEY: Record<StudioMembershipPlanKey, string> = {
+  monthly_4900: 'PAYPAL_PLAN_ID_MONTHLY_4900',
+  monthly_13900: 'PAYPAL_PLAN_ID_MONTHLY_13900',
+  monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000'
+};
+
+const SUPPORTED_PLAN_KEYS = new Set(Object.keys(PLAN_ENV_KEY_BY_PLAN_KEY));
+
+const resolvePayPalPlanId = (planKey: StudioMembershipPlanKey) => {
+  const envKey = PLAN_ENV_KEY_BY_PLAN_KEY[planKey];
+  const direct = process.env[envKey]?.trim();
+  if (direct) {
+    return { planId: direct, envKey };
+  }
+
+  if (planKey === 'monthly_4900') {
+    const legacy = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
+    if (legacy) {
+      return { planId: legacy, envKey: 'PAYPAL_PLAN_ID_MONTHLY' };
+    }
+  }
+
+  return { planId: '', envKey };
 };
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
@@ -26,10 +53,15 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => ({}))) as CreateSubscriptionBody;
     const studioPostId = (body.studioPostId || '').trim();
-    const planId = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
+    const requestedPlanKey = typeof body.planKey === 'string' ? body.planKey : 'monthly_4900';
+    if (!SUPPORTED_PLAN_KEYS.has(requestedPlanKey)) {
+      return jsonError('Invalid membership plan key', 400, { planKey: requestedPlanKey });
+    }
+    const planKey = requestedPlanKey as StudioMembershipPlanKey;
+    const { planId, envKey } = resolvePayPalPlanId(planKey);
 
     if (!planId) {
-      return jsonError('Missing PAYPAL_PLAN_ID_MONTHLY', 500);
+      return jsonError(`Missing PayPal plan env for ${planKey} (${envKey})`, 500);
     }
 
     const returnUrl = new URL(getURL('/api/paypal/subscription/return'));
@@ -56,6 +88,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         approvalUrl,
+        planKey,
         subscriptionId: typeof response.id === 'string' ? response.id : null,
         status: typeof response.status === 'string' ? response.status : null
       },

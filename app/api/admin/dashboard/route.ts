@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminApiContext } from '@/utils/admin-api';
 import { FORCED_ADMIN_EMAIL } from '@/utils/service-posts';
+import { getStudioMembershipSummaryMapForUsers, type StudioMembershipSummary } from '@/utils/studio-membership-summary';
 
 type ProfileRow = {
   id: string;
@@ -27,12 +28,12 @@ export async function GET() {
   }
 
   let profileData: ProfileRow[] = [];
-  const profileSelect = await (adminClient as never)
+  const profileSelect = await (adminClient as any)
     .from('users')
     .select('id,full_name,name,phone,address');
 
   if (profileSelect.error) {
-    const fallback = await (adminClient as never).from('users').select('id,full_name');
+    const fallback = await (adminClient as any).from('users').select('id,full_name');
     if (fallback.error) {
       return NextResponse.json(
         { message: '프로필 정보를 불러오지 못했습니다.', error: fallback.error },
@@ -50,8 +51,8 @@ export async function GET() {
     { data: studioPostsData, error: studioPostsError }
   ] = await Promise.all([
     adminClient.auth.admin.listUsers(),
-    (adminClient as never).from('subscriptions').select('user_id,status'),
-    (adminClient as never)
+    (adminClient as any).from('subscriptions').select('user_id,status'),
+    (adminClient as any)
       .from('studio_posts')
       .select('id,title,content,image_url,user_id,created_at')
       .order('created_at', { ascending: false })
@@ -85,9 +86,23 @@ export async function GET() {
       subscription.status
     ])
   );
+  const authUsers = authData?.users ?? [];
+  let studioMembershipMap = new Map<string, StudioMembershipSummary>();
+  try {
+    studioMembershipMap = await getStudioMembershipSummaryMapForUsers(
+      authUsers.map((member) => member.id),
+      adminClient
+    );
+  } catch (membershipError) {
+    return NextResponse.json(
+      { message: 'Studio 멤버십 정보를 불러오지 못했습니다.', error: membershipError },
+      { status: 500 }
+    );
+  }
 
-  const members = (authData?.users ?? []).map((member) => {
+  const members = authUsers.map((member) => {
     const profile = profileMap.get(member.id);
+    const studioMembership = studioMembershipMap.get(member.id) ?? null;
     const email = (member.email ?? '').trim().toLowerCase();
     const role =
       (member.app_metadata && typeof member.app_metadata === 'object'
@@ -105,6 +120,7 @@ export async function GET() {
       phone: profile?.phone ?? null,
       address: profile?.address ?? null,
       subscription_status: subscriptionMap.get(member.id) ?? null,
+      studio_membership: studioMembership,
       is_protected_admin: email === FORCED_ADMIN_EMAIL
     };
   });
