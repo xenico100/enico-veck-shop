@@ -282,6 +282,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const currentUserId = user?.id ?? null;
 
   const memberCountLabel = useMemo(() => `${members.length}명`, [members.length]);
+  const studioPostCountLabel = useMemo(
+    () => `${studioPosts.length}개`,
+    [studioPosts.length]
+  );
   const servicePostCountLabel = useMemo(
     () => `${servicePosts.length}개`,
     [servicePosts.length]
@@ -785,6 +789,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         <div className={segmentedWrapClass}>
           {[
             { key: 'members', label: `회원 관리 (${memberCountLabel})` },
+            { key: 'studio-posts', label: `Studio 게시글 (${studioPostCountLabel})` },
             { key: 'service-posts', label: `Service 게시글 (${servicePostCountLabel})` },
             { key: 'create-post', label: '게시물 작성' }
           ].map((tab) => (
@@ -1047,12 +1052,12 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         </div>
       )}
 
-      {(activeTab === 'studio-posts' || activeTab === 'create-post') && (
+      {activeTab === 'studio-posts' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
           <div className="mb-4 flex flex-col gap-1">
             <p className="text-sm font-medium text-white">Studio 게시글 관리</p>
             <p className="text-xs text-white/55">
-              게시물 작성 탭 안에서 Studio 게시글 수정/삭제와 미디어 연결을 함께 관리합니다.
+              Studio 섹션에 노출되는 `studio_posts` 게시글 목록입니다. 수정/삭제를 여기서 관리합니다.
             </p>
           </div>
           <div className="space-y-3">
@@ -1387,7 +1392,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       {activeTab === 'create-post' && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
           <p className="mb-3 text-sm text-white/60">
-            Studio 게시물 작성 폼입니다. 이 탭에서 작성 + 기존 Studio 게시글 관리 + R2 미디어 연결을 함께 처리합니다.
+            Studio 게시물 작성 폼입니다. 이 탭에서 작성 + R2 미디어 연결을 함께 처리합니다.
           </p>
           <StudioPostForm />
         </div>

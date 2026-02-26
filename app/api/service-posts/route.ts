@@ -8,6 +8,10 @@ import {
 } from '@/utils/service-posts';
 
 const SERVICE_POSTS_TABLE = 'service_posts';
+const PUBLIC_SERVICE_POST_SELECT =
+  'id,title,slug,category,summary,content,price_from,currency,is_paid_file,file_price,download_file_url,image_urls,is_published,created_at,updated_at,created_by';
+const PUBLIC_SERVICE_POST_SELECT_FALLBACK =
+  'id,title,slug,category,summary,content,price_from,currency,image_urls,is_published,created_at,updated_at,created_by';
 
 const parseJsonBody = async <T,>(request: Request) => {
   try {
@@ -16,6 +20,29 @@ const parseJsonBody = async <T,>(request: Request) => {
     return null;
   }
 };
+
+const hasMissingPaidFileColumnsError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return (
+    combined.includes('service_posts') &&
+    (combined.includes('is_paid_file') ||
+      combined.includes('file_price') ||
+      combined.includes('download_file_url'))
+  );
+};
+
+const withPaidFileDefaults = (rows: unknown[]) =>
+  rows.map((row) => ({
+    ...(row && typeof row === 'object' ? (row as Record<string, unknown>) : {}),
+    is_paid_file: false,
+    file_price: null,
+    download_file_url: null
+  }));
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -56,9 +83,7 @@ export async function GET(request: Request) {
 
   let query = (supabase as never)
     .from(SERVICE_POSTS_TABLE)
-    .select(
-      'id,title,slug,category,summary,content,price_from,currency,is_paid_file,file_price,download_file_url,image_urls,is_published,created_at,updated_at,created_by'
-    )
+    .select(PUBLIC_SERVICE_POST_SELECT)
     .eq('is_published', true)
     .order('updated_at', { ascending: false });
 
@@ -66,7 +91,28 @@ export async function GET(request: Request) {
     query = query.eq('category', category);
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+
+  if (error && hasMissingPaidFileColumnsError(error)) {
+    console.warn(
+      '[service-posts] paid-file columns missing on service_posts, falling back to legacy select',
+      error
+    );
+
+    let fallbackQuery = (supabase as never)
+      .from(SERVICE_POSTS_TABLE)
+      .select(PUBLIC_SERVICE_POST_SELECT_FALLBACK)
+      .eq('is_published', true)
+      .order('updated_at', { ascending: false });
+
+    if (category && category !== '모든 제품') {
+      fallbackQuery = fallbackQuery.eq('category', category);
+    }
+
+    const fallbackResult = await fallbackQuery;
+    data = Array.isArray(fallbackResult.data) ? withPaidFileDefaults(fallbackResult.data) : [];
+    error = fallbackResult.error;
+  }
 
   if (error) {
     return NextResponse.json(
