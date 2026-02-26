@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import { signR2GetUrl } from '@/utils/r2';
-import {
-  requireActiveStudioSubscription,
-  StudioSubscriptionRequiredError
-} from '@/utils/studio-subscription';
+import { getStudioEntitlement } from '@/utils/studio-subscription';
 
 export const runtime = 'nodejs';
 
@@ -20,6 +17,7 @@ type StudioMediaRow = {
   r2_key: string;
   mime: string | null;
   bytes: number | null;
+  is_free_public: boolean | null;
 };
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
@@ -32,9 +30,8 @@ export async function GET(_request: Request, { params }: RouteContext) {
       data: { user },
       error: authError
     } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return jsonError('로그인이 필요합니다.', 401);
+    if (authError) {
+      console.warn('[Studio media] auth.getUser failed, continuing as guest', authError);
     }
 
     const studioPostId = (params.studioPostId || '').trim();
@@ -43,11 +40,15 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     const adminClient = createAdminClient();
-    await requireActiveStudioSubscription(user.id, adminClient);
+    let hasActiveSubscription = false;
+    if (user?.id) {
+      const entitlement = await getStudioEntitlement(user.id, adminClient);
+      hasActiveSubscription = entitlement.hasActiveSubscription;
+    }
 
     const { data, error } = await (adminClient as any)
       .from('studio_media')
-      .select('id,kind,r2_bucket,r2_key,mime,bytes')
+      .select('id,kind,r2_bucket,r2_key,mime,bytes,is_free_public')
       .eq('studio_post_id', studioPostId)
       .order('created_at', { ascending: true });
 
@@ -56,12 +57,14 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     const rows = Array.isArray(data) ? (data as StudioMediaRow[]) : [];
+    const visibleRows = hasActiveSubscription ? rows : rows.filter((row) => Boolean(row.is_free_public));
     const signed = await Promise.all(
-      rows.map(async (row) => ({
+      visibleRows.map(async (row) => ({
         id: row.id,
         kind: row.kind,
         mime: row.mime,
         bytes: row.bytes,
+        is_free_public: Boolean(row.is_free_public),
         url: await signR2GetUrl(row.r2_key, {
           bucketName: row.r2_bucket || undefined,
           expiresIn: 180
@@ -69,11 +72,14 @@ export async function GET(_request: Request, { params }: RouteContext) {
       }))
     );
 
-    return NextResponse.json({ data: signed });
+    return NextResponse.json({
+      data: signed,
+      meta: {
+        has_active_subscription: hasActiveSubscription,
+        showing_public_only: !hasActiveSubscription
+      }
+    });
   } catch (error) {
-    if (error instanceof StudioSubscriptionRequiredError) {
-      return jsonError('Studio 구독이 필요합니다.', 403);
-    }
     console.error('[Studio media] unexpected error', error);
     return jsonError(
       error instanceof Error ? error.message : 'Unexpected studio media error',

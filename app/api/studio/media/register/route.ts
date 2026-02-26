@@ -18,10 +18,26 @@ type RegisterMediaBody = {
   r2_key?: string;
   mime?: string;
   bytes?: number | string;
+  is_free_public?: boolean | string | number | null;
 };
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
+
+const normalizeBoolean = (value: unknown) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+      return false;
+    }
+  }
+  return false;
+};
 
 export async function POST(request: Request) {
   const { user, isAdmin, adminClient } = await getAdminApiContext();
@@ -34,6 +50,7 @@ export async function POST(request: Request) {
   const r2Key = String(body.r2_key || '').trim();
   const mime = String(body.mime || '').trim().toLowerCase();
   const bytes = normalizeBytes(body.bytes);
+  const isFreePublic = normalizeBoolean(body.is_free_public);
 
   if (!isValidStudioPostId(studioPostId)) {
     return jsonError('유효한 studioPostId가 필요합니다.', 400);
@@ -85,9 +102,10 @@ export async function POST(request: Request) {
         r2_bucket: r2BucketName,
         r2_key: r2Key,
         mime,
-        bytes
+        bytes,
+        is_free_public: isFreePublic
       })
-      .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,created_at')
+      .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
       .single();
 
     if (error) {

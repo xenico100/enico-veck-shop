@@ -17,6 +17,7 @@ type StudioMediaRow = {
   r2_key: string;
   mime: string | null;
   bytes: number | null;
+  is_free_public?: boolean | null;
   created_at: string | null;
 };
 
@@ -39,6 +40,7 @@ type Draft = {
   r2_key: string;
   mime: string;
   bytes: string;
+  is_free_public: boolean;
 };
 
 const defaultDraft: Draft = {
@@ -48,6 +50,8 @@ const defaultDraft: Draft = {
   r2_key: '',
   mime: '',
   bytes: ''
+  ,
+  is_free_public: false
 };
 
 const formatDate = (value: string | null) => {
@@ -149,6 +153,8 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
           r2_key: draft.r2_key.trim(),
           mime: draft.mime.trim() || null,
           bytes: draft.bytes.trim() || null
+          ,
+          is_free_public: draft.is_free_public
         })
       });
 
@@ -252,7 +258,8 @@ export default function StudioMediaAdminManager({ enabled }: Props) {
           kind: draft.kind,
           r2_key: presignPayload.r2_key,
           mime: contentType,
-          bytes: selectedFile.size
+          bytes: selectedFile.size,
+          is_free_public: draft.is_free_public
         })
       });
 

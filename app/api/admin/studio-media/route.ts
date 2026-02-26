@@ -10,6 +10,7 @@ type StudioMediaBody = {
   r2_key?: string;
   mime?: string | null;
   bytes?: number | string | null;
+  is_free_public?: boolean | string | number | null;
 };
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
@@ -20,6 +21,21 @@ const normalizeBytes = (value: unknown) => {
   const numeric = typeof value === 'number' ? value : Number(String(value).trim());
   if (!Number.isFinite(numeric) || numeric < 0) return null;
   return Math.floor(numeric);
+};
+
+const normalizeBoolean = (value: unknown) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+      return false;
+    }
+  }
+  return false;
 };
 
 export async function GET() {
@@ -36,7 +52,7 @@ export async function GET() {
         .order('created_at', { ascending: false }),
       (adminClient as any)
         .from('studio_media')
-        .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,created_at')
+        .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
         .order('created_at', { ascending: false })
     ]);
 
@@ -67,6 +83,7 @@ export async function POST(request: Request) {
     '';
   const mime = (typeof body.mime === 'string' ? body.mime : '').trim() || null;
   const bytes = normalizeBytes(body.bytes);
+  const isFreePublic = normalizeBoolean(body.is_free_public);
 
   if (!studioPostId) return jsonError('studio_post_id가 필요합니다.', 400);
   if (kind !== 'image' && kind !== 'video') return jsonError('kind는 image 또는 video여야 합니다.', 400);
@@ -81,9 +98,10 @@ export async function POST(request: Request) {
       r2_bucket: r2Bucket,
       r2_key: r2Key,
       mime,
-      bytes
+      bytes,
+      is_free_public: isFreePublic
     })
-    .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,created_at')
+    .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
     .single();
 
   if (error) return jsonError('Studio 미디어 등록에 실패했습니다.', 500, error);
