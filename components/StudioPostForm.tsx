@@ -42,9 +42,21 @@ const buildStudioDetailUrl = (postId?: string | null) => {
 
 const getVideoUploadErrorMessage = (error: unknown) => {
   if (error instanceof TypeError && /fetch/i.test(error.message)) {
-    return '동영상 R2 업로드 요청이 브라우저에서 차단되었습니다. 배포 도메인에 대한 R2 CORS 설정을 확인해 주세요. (게시물은 생성됨)';
+    return '동영상 R2 업로드 요청이 브라우저에서 차단되었습니다. 배포 도메인에 대한 R2 CORS 설정을 확인해 주세요.';
   }
   return error instanceof Error ? error.message : 'R2 동영상 업로드에 실패했습니다.';
+};
+
+const rollbackCreatedPost = async (postId: string) => {
+  const response = await fetch(`/api/posts/${encodeURIComponent(postId)}`, {
+    method: 'DELETE'
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(
+      payload?.message || `게시글 롤백에 실패했습니다. (HTTP ${response.status})`
+    );
+  }
 };
 
 function SubmitButton({ extraPending = false }: { extraPending?: boolean }) {
@@ -173,15 +185,24 @@ export default function StudioPostForm() {
                 : '스튜디오 게시물과 멤버십 전용 영상이 R2에 업로드되었습니다.'
             );
           } catch (uploadError) {
+            let rollbackErrorMessage: string | null = null;
+            try {
+              await rollbackCreatedPost(postId);
+              handledSuccessPostIdRef.current = null;
+            } catch (rollbackError) {
+              rollbackErrorMessage =
+                rollbackError instanceof Error
+                  ? rollbackError.message
+                  : '게시글 롤백(삭제)에 실패했습니다.';
+            }
+
             toast({
-              title: '게시물은 생성됨 / 동영상 업로드 실패',
-              description:
-                `${getVideoUploadErrorMessage(uploadError)} 필요하면 관리자 패널 > 스튜디오 섹션 관리 > 추가 미디어(R2)에서 다시 업로드해 주세요.`,
+              title: rollbackErrorMessage ? '동영상 업로드 실패 (롤백 실패)' : '동영상 업로드 실패',
+              description: rollbackErrorMessage
+                ? `${getVideoUploadErrorMessage(uploadError)} ${rollbackErrorMessage}`
+                : `${getVideoUploadErrorMessage(uploadError)} 게시글 생성은 자동 취소되었습니다.`,
               variant: 'destructive'
             });
-            formRef.current?.reset();
-            resetClientVideoFields();
-            navigateToStudioDetailOnMain(postId);
           } finally {
             setVideoUploadPending(false);
           }
