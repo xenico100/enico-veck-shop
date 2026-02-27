@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getAdminApiContext } from '@/utils/admin-api';
 import { FORCED_ADMIN_EMAIL } from '@/utils/service-posts';
+import {
+  type StudioMembershipTierLevel,
+  STUDIO_MEMBERSHIP_MANUAL_PLAN_BY_LEVEL,
+  getStudioMembershipTierLabel,
+  normalizeRequiredMembershipLevel
+} from '@/utils/studio-membership-tier';
 
 type RouteContext = {
   params: { id: string };
@@ -12,6 +18,7 @@ type MemberPatchBody = {
   phone?: string | null;
   address?: string | null;
   studio_membership_active?: boolean | null;
+  studio_membership_level?: number | string | null;
 };
 
 async function parseBody(request: Request) {
@@ -41,7 +48,20 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     Object.prototype.hasOwnProperty.call(body, 'name') ||
     Object.prototype.hasOwnProperty.call(body, 'phone') ||
     Object.prototype.hasOwnProperty.call(body, 'address');
-  const shouldUpdateStudioMembership = typeof body.studio_membership_active === 'boolean';
+  const hasStudioMembershipLevelField = Object.prototype.hasOwnProperty.call(
+    body,
+    'studio_membership_level'
+  );
+  const nextStudioMembershipLevel = (
+    hasStudioMembershipLevelField
+      ? normalizeRequiredMembershipLevel(body.studio_membership_level)
+      : body.studio_membership_active === true
+        ? 1
+        : body.studio_membership_active === false
+          ? 0
+          : null
+  ) as StudioMembershipTierLevel | null;
+  const shouldUpdateStudioMembership = nextStudioMembershipLevel != null;
 
   if (!shouldUpdateRole && !shouldUpdateProfile && !shouldUpdateStudioMembership) {
     return NextResponse.json({ message: '변경할 값이 없습니다.' }, { status: 400 });
@@ -137,13 +157,17 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   if (shouldUpdateStudioMembership) {
+    const nowIso = new Date().toISOString();
+    const membershipLevel = nextStudioMembershipLevel as StudioMembershipTierLevel;
+    const hasActiveStudioMembership = membershipLevel > 0;
+
     const { error: accessError } = await (adminClient as never)
       .from('studio_access')
       .upsert(
         {
           user_id: targetUserId,
-          has_active_subscription: Boolean(body.studio_membership_active),
-          updated_at: new Date().toISOString()
+          has_active_subscription: hasActiveStudioMembership,
+          updated_at: nowIso
         },
         { onConflict: 'user_id' }
       );
@@ -154,6 +178,75 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         { status: 500 }
       );
     }
+
+    const manualSubscriptionId = `manual:${targetUserId}`;
+    if (!hasActiveStudioMembership) {
+      const { error: removeManualSubscriptionError } = await (adminClient as never)
+        .from('paypal_subscriptions')
+        .delete()
+        .eq('id', manualSubscriptionId);
+
+      if (removeManualSubscriptionError) {
+        return NextResponse.json(
+          {
+            message:
+              removeManualSubscriptionError.message ||
+              '수동 멤버십 구독 레코드를 정리하지 못했습니다.'
+          },
+          { status: 500 }
+        );
+      }
+    } else {
+      const manualPlan = STUDIO_MEMBERSHIP_MANUAL_PLAN_BY_LEVEL[membershipLevel as 1 | 2 | 3];
+      const { error: manualPlanError } = await (adminClient as never)
+        .from('paypal_plans')
+        .upsert({
+          id: manualPlan.planId,
+          name: manualPlan.name,
+          status: 'ACTIVE',
+          interval: manualPlan.interval,
+          amount: manualPlan.amountKrw,
+          currency: manualPlan.currency
+        });
+
+      if (manualPlanError) {
+        return NextResponse.json(
+          {
+            message: manualPlanError.message || '수동 멤버십 플랜을 저장하지 못했습니다.'
+          },
+          { status: 500 }
+        );
+      }
+
+      const { error: manualSubscriptionError } = await (adminClient as never)
+        .from('paypal_subscriptions')
+        .upsert({
+          id: manualSubscriptionId,
+          user_id: targetUserId,
+          plan_id: manualPlan.planId,
+          status: 'ACTIVE',
+          current_period_end: null,
+          last_event_at: nowIso,
+          raw: {
+            source: 'admin_manual_grant',
+            membership_level: membershipLevel,
+            plan_id: manualPlan.planId,
+            amount_krw: manualPlan.amountKrw,
+            updated_at: nowIso,
+            updated_by: user.id
+          }
+        });
+
+      if (manualSubscriptionError) {
+        return NextResponse.json(
+          {
+            message:
+              manualSubscriptionError.message || '수동 멤버십 구독 정보를 저장하지 못했습니다.'
+          },
+          { status: 500 }
+        );
+      }
+    }
   }
 
   return NextResponse.json({
@@ -163,7 +256,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       name: shouldUpdateProfile ? (body.name ?? null) : undefined,
       phone: shouldUpdateProfile ? (body.phone ?? null) : undefined,
       address: shouldUpdateProfile ? (body.address ?? null) : undefined,
-      studio_membership_active: shouldUpdateStudioMembership ? Boolean(body.studio_membership_active) : undefined
+      studio_membership_active:
+        shouldUpdateStudioMembership ? (nextStudioMembershipLevel as number) > 0 : undefined,
+      studio_membership_level:
+        shouldUpdateStudioMembership ? nextStudioMembershipLevel : undefined,
+      studio_membership_label:
+        shouldUpdateStudioMembership
+          ? getStudioMembershipTierLabel(nextStudioMembershipLevel)
+          : undefined
     }
   });
 }

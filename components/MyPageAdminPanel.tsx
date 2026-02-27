@@ -18,6 +18,12 @@ import {
   type OrderRecord
 } from '@/utils/orders';
 import { SERVICE_CATEGORIES, type ServicePost } from '@/utils/service-posts';
+import {
+  type StudioMembershipTierLevel,
+  STUDIO_MEMBERSHIP_TIER_OPTIONS,
+  getStudioMembershipTierLabel,
+  resolveStudioMembershipTierLevel
+} from '@/utils/studio-membership-tier';
 
 type AdminMember = {
   id: string;
@@ -116,6 +122,9 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, 'user' | 'admin'>>({});
+  const [membershipTierDrafts, setMembershipTierDrafts] = useState<
+    Record<string, StudioMembershipTierLevel>
+  >({});
   const [memberProfileDrafts, setMemberProfileDrafts] = useState<
     Record<string, { name: string; phone: string; address: string }>
   >({});
@@ -192,6 +201,15 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     return '일반 공개';
   };
 
+  const resolveMemberTierLevel = (member: AdminMember): StudioMembershipTierLevel => {
+    const level = resolveStudioMembershipTierLevel({
+      has_active_subscription: member.studio_membership?.has_active_subscription ?? false,
+      selected_membership: member.studio_membership?.selected_membership ?? null,
+      plan_amount: member.studio_membership?.plan_amount ?? null
+    });
+    return normalizeRequiredMembershipLevel(level) as StudioMembershipTierLevel;
+  };
+
   const isShippingDoneBucket = useCallback((order: OrderRecord) => {
     const status = String(order.shipping_status || '')
       .trim()
@@ -232,6 +250,18 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         string,
         'user' | 'admin'
       >
+    );
+    setMembershipTierDrafts(
+      Object.fromEntries(
+        nextMembers.map((member) => [
+          member.id,
+          resolveStudioMembershipTierLevel({
+            has_active_subscription: member.studio_membership?.has_active_subscription ?? false,
+            selected_membership: member.studio_membership?.selected_membership ?? null,
+            plan_amount: member.studio_membership?.plan_amount ?? null
+          }) as StudioMembershipTierLevel
+        ])
+      ) as Record<string, StudioMembershipTierLevel>
     );
     setMemberProfileDrafts(
       Object.fromEntries(
@@ -472,11 +502,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   };
 
   const handleStudioMembershipManage = async (member: AdminMember) => {
-    const currentActive = Boolean(member.studio_membership?.has_active_subscription);
-    const nextActive = !currentActive;
-    const confirmMessage = nextActive
-      ? `"${member.email ?? member.id}" 회원에게 Studio 멤버십 접근을 부여할까요?`
-      : `"${member.email ?? member.id}" 회원의 Studio 멤버십 접근을 해제할까요?`;
+    const nextLevel = normalizeRequiredMembershipLevel(
+      membershipTierDrafts[member.id] ?? resolveMemberTierLevel(member)
+    ) as StudioMembershipTierLevel;
+    const nextLabel = getStudioMembershipTierLabel(nextLevel);
+    const confirmMessage =
+      nextLevel > 0
+        ? `"${member.email ?? member.id}" 회원의 Studio 멤버십을 ${nextLabel}(으)로 설정할까요?`
+        : `"${member.email ?? member.id}" 회원의 Studio 멤버십을 해제할까요?`;
 
     if (!window.confirm(confirmMessage)) return;
 
@@ -489,47 +522,47 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          studio_membership_active: nextActive
+          studio_membership_level: nextLevel
         })
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.message || 'Studio 멤버십 상태 변경에 실패했습니다.');
+        throw new Error(payload?.message || 'Studio 멤버십 등급 변경에 실패했습니다.');
       }
 
       const nowIso = new Date().toISOString();
       setMembers((prev) =>
         prev.map((row) => {
           if (row.id !== member.id) return row;
-          const prevMembership = row.studio_membership;
+          const tierOption =
+            STUDIO_MEMBERSHIP_TIER_OPTIONS.find((option) => option.level === nextLevel) ??
+            STUDIO_MEMBERSHIP_TIER_OPTIONS[0];
+          const nextAmount = tierOption.priceKrw;
           return {
             ...row,
             studio_membership: {
               user_id: row.id,
-              has_active_subscription: nextActive,
-              subscription_id: prevMembership?.subscription_id ?? null,
-              subscription_status:
-                prevMembership?.subscription_status ??
-                (nextActive ? 'MANUAL_GRANT' : null),
-              selected_membership:
-                prevMembership?.selected_membership ??
-                (nextActive ? '관리자 수동 부여' : null),
-              subscribed_at:
-                nextActive
-                  ? (prevMembership?.subscribed_at ?? nowIso)
-                  : (prevMembership?.subscribed_at ?? null),
-              next_billing_at: prevMembership?.next_billing_at ?? null,
-              plan_id: prevMembership?.plan_id ?? null,
-              plan_amount: prevMembership?.plan_amount ?? null,
-              plan_currency: prevMembership?.plan_currency ?? null,
-              plan_interval: prevMembership?.plan_interval ?? null
+              has_active_subscription: nextLevel > 0,
+              subscription_id: nextLevel > 0 ? `manual:${row.id}` : null,
+              subscription_status: nextLevel > 0 ? 'ACTIVE' : null,
+              selected_membership: nextLevel > 0 ? getStudioMembershipTierLabel(nextLevel) : null,
+              subscribed_at: nextLevel > 0 ? nowIso : null,
+              next_billing_at: null,
+              plan_id: nextLevel > 0 ? `manual_monthly_${nextAmount}` : null,
+              plan_amount: nextAmount,
+              plan_currency: nextLevel > 0 ? 'KRW' : null,
+              plan_interval: nextLevel > 0 ? 'month' : null
             }
           };
         })
       );
-      setMessage(nextActive ? 'Studio 멤버십 접근을 부여했습니다.' : 'Studio 멤버십 접근을 해제했습니다.');
+      setMessage(
+        nextLevel > 0
+          ? `Studio 멤버십 등급을 ${nextLabel}(으)로 설정했습니다.`
+          : 'Studio 멤버십을 해제했습니다.'
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Studio 멤버십 상태 변경에 실패했습니다.');
+      setError(err instanceof Error ? err.message : 'Studio 멤버십 등급 변경에 실패했습니다.');
     } finally {
       setBusyMemberId(null);
     }
@@ -999,6 +1032,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 const protectedAdmin = member.is_protected_admin;
                 const isEditingProfile = editingMemberProfileId === member.id;
                 const studioMembership = member.studio_membership;
+                const currentStudioTier = resolveMemberTierLevel(member);
+                const draftStudioTier = (membershipTierDrafts[member.id] ??
+                  currentStudioTier) as StudioMembershipTierLevel;
+                const membershipTierChanged = draftStudioTier !== currentStudioTier;
                 const memberProfileDraft = memberProfileDrafts[member.id] ?? {
                   name: member.name ?? member.full_name ?? '',
                   phone: member.phone ?? '',
@@ -1049,6 +1086,9 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             )}
                           </div>
                           <p className="mt-2 text-xs text-white/75">
+                            현재 등급: {getStudioMembershipTierLabel(currentStudioTier)}
+                          </p>
+                          <p className="mt-1 text-xs text-white/70">
                             선택 멤버십: {studioMembership?.selected_membership ?? '미가입'}
                           </p>
                           <p className="mt-1 text-xs text-white/55">
@@ -1099,20 +1139,40 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         >
                           {isEditingProfile ? '닫기' : '회원정보 수정'}
                         </ActionButton>
+                        <select
+                          value={String(draftStudioTier)}
+                          onChange={(e) =>
+                            setMembershipTierDrafts((prev) => ({
+                              ...prev,
+                              [member.id]: normalizeRequiredMembershipLevel(
+                                e.target.value
+                              ) as StudioMembershipTierLevel
+                            }))
+                          }
+                          className="h-9 rounded-full border border-white/20 bg-white/10 px-3 pr-8 text-sm font-medium text-white shadow-sm backdrop-blur-sm outline-none focus:ring-2 focus:ring-white/40"
+                          disabled={isBusy}
+                        >
+                          {STUDIO_MEMBERSHIP_TIER_OPTIONS.map((option) => (
+                            <option
+                              key={`member-tier-${member.id}-${option.level}`}
+                              value={String(option.level)}
+                              className="bg-neutral-900"
+                            >
+                              {option.level === 0
+                                ? option.title
+                                : `${option.title} (${option.description})`}
+                            </option>
+                          ))}
+                        </select>
                         <ActionButton
                           type="button"
                           onClick={() => void handleStudioMembershipManage(member)}
                           variant="secondary"
                           size="sm"
                           className={appleFontClass}
-                          disabled={isBusy}
-                          title={
-                            studioMembership?.has_active_subscription
-                              ? '현재 활성화됨 (클릭하면 해제)'
-                              : '현재 비활성 (클릭하면 부여)'
-                          }
+                          disabled={isBusy || !membershipTierChanged}
                         >
-                          멤버십 관리
+                          {membershipTierChanged ? '멤버십 저장' : '멤버십 유지'}
                         </ActionButton>
                         <ActionButton
                           type="button"

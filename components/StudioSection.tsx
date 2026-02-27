@@ -12,6 +12,10 @@ import StudioSubscribeButton from '@/components/StudioSubscribeButton';
 import { useToast } from '@/components/ui/Toasts/use-toast';
 import { createClient } from '@/utils/supabase/client';
 import { isAdminUserLike } from '@/utils/service-posts';
+import {
+  normalizeRequiredMembershipLevel,
+  resolveStudioMembershipTierLevel
+} from '@/utils/studio-membership-tier';
 
 type StudioPost = {
   id: string;
@@ -101,17 +105,6 @@ const inputClass =
   'w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-white/20 focus:bg-white/[0.06] focus:ring-2 focus:ring-white/20';
 const textareaClass = `${inputClass} min-h-[140px] resize-y`;
 
-const normalizeRequiredMembershipLevel = (value: unknown) => {
-  const numeric =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string' && value.trim()
-        ? Number(value)
-        : 0;
-  if (!Number.isFinite(numeric)) return 0;
-  return Math.min(3, Math.max(0, Math.floor(numeric)));
-};
-
 const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
   if (!error || typeof error !== 'object') return false;
   const row = error as Record<string, unknown>;
@@ -120,28 +113,6 @@ const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
   const hint = typeof row.hint === 'string' ? row.hint : '';
   const combined = `${message} ${details} ${hint}`.toLowerCase();
   return combined.includes('required_membership_level') && combined.includes('studio_posts');
-};
-
-const parsePlanAmount = (value: unknown) => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string' && value.trim()) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return null;
-};
-
-const resolveStudioMembershipTierLevel = (membership: StudioMembershipApiData | null) => {
-  if (!membership?.has_active_subscription) return 0;
-
-  const planAmount = parsePlanAmount(membership.plan_amount);
-  const label = (membership.selected_membership || '').toLowerCase();
-
-  // Accept legacy 69,000 premium plan as the top tier until pricing is fully migrated.
-  if ((planAmount != null && planAmount >= 69000) || label.includes('프리미엄')) return 3;
-  if ((planAmount != null && planAmount >= 13900) || label.includes('플러스')) return 2;
-  if ((planAmount != null && planAmount >= 4900) || label.includes('베이직')) return 1;
-  return 1;
 };
 
 const buildPlaceholderPost = (
@@ -306,13 +277,23 @@ function StudioDetailModal({
                 <X className="h-4 w-4 md:h-5 md:w-5" />
               </button>
 
-              <div className="relative aspect-[16/9] w-full overflow-hidden bg-gradient-to-br from-white/[0.07] to-white/[0.02]">
+              <div className="relative min-h-[220px] w-full overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#111111] via-[#0a0a0a] to-black md:min-h-[320px]">
                 {post.image_url ? (
-                  <img
-                    src={post.image_url}
-                    alt={post.title ?? 'Studio post image'}
-                    className="h-full w-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={post.image_url}
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl"
+                    />
+                    <div className="relative flex min-h-[220px] items-center justify-center p-3 md:min-h-[320px] md:p-6">
+                      <img
+                        src={post.image_url}
+                        alt={post.title ?? 'Studio post image'}
+                        className="max-h-[58vh] w-auto max-w-full rounded-xl object-contain shadow-[0_22px_50px_rgba(0,0,0,0.45)] md:rounded-2xl"
+                      />
+                    </div>
+                  </>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/45">

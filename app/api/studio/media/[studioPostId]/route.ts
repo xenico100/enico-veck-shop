@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import { signR2GetUrl } from '@/utils/r2';
-import { getStudioEntitlement } from '@/utils/studio-subscription';
+import { getStudioMembershipSummaryForUser } from '@/utils/studio-membership-summary';
+import {
+  hasStudioMembershipTierAccess,
+  normalizeRequiredMembershipLevel,
+  resolveStudioMembershipTierLevel
+} from '@/utils/studio-membership-tier';
 
 export const runtime = 'nodejs';
 
@@ -43,6 +48,16 @@ const hasMissingStudioMediaTableError = (error: unknown) => {
   return combined.includes('studio_media') && combined.includes('does not exist');
 };
 
+const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('required_membership_level') && combined.includes('studio_posts');
+};
+
 export async function GET(_request: Request, { params }: RouteContext) {
   try {
     const supabase = createClient();
@@ -60,15 +75,54 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     const adminClient = createAdminClient();
-    let hasActiveSubscription = false;
+    let viewerMembershipTierLevel = 0;
     if (user?.id) {
       try {
-        const entitlement = await getStudioEntitlement(user.id, adminClient);
-        hasActiveSubscription = entitlement.hasActiveSubscription;
-      } catch (entitlementError) {
-        console.error('[Studio media] entitlement lookup failed, falling back to public-only', entitlementError);
+        const membership = await getStudioMembershipSummaryForUser(user.id, adminClient);
+        viewerMembershipTierLevel = resolveStudioMembershipTierLevel(membership);
+      } catch (membershipError) {
+        console.error(
+          '[Studio media] membership tier lookup failed, falling back to public-only',
+          membershipError
+        );
       }
     }
+    const hasActiveSubscription = viewerMembershipTierLevel > 0;
+
+    let requiredMembershipLevel = 0;
+    let postQuery = await (adminClient as any)
+      .from('studio_posts')
+      .select('required_membership_level')
+      .eq('id', studioPostId)
+      .maybeSingle();
+
+    if (postQuery.error && hasMissingRequiredMembershipLevelColumnError(postQuery.error)) {
+      const fallbackPostQuery = await (adminClient as any)
+        .from('studio_posts')
+        .select('id')
+        .eq('id', studioPostId)
+        .maybeSingle();
+      postQuery = {
+        ...fallbackPostQuery,
+        data: fallbackPostQuery.data
+          ? { ...(fallbackPostQuery.data as Record<string, unknown>), required_membership_level: 0 }
+          : fallbackPostQuery.data
+      };
+    }
+
+    if (postQuery.error) {
+      return jsonError('Studio 게시글 권한 정보를 확인하지 못했습니다.', 500, postQuery.error);
+    }
+
+    requiredMembershipLevel = normalizeRequiredMembershipLevel(
+      postQuery.data && typeof postQuery.data === 'object'
+        ? (postQuery.data as Record<string, unknown>).required_membership_level
+        : 0
+    );
+    const canViewMembersOnlyMedia = hasStudioMembershipTierAccess(
+      viewerMembershipTierLevel,
+      requiredMembershipLevel
+    );
 
     let mediaQuery = await (adminClient as any)
       .from('studio_media')
@@ -103,7 +157,9 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     const rows = Array.isArray(mediaQuery.data) ? (mediaQuery.data as StudioMediaRow[]) : [];
-    const visibleRows = hasActiveSubscription ? rows : rows.filter((row) => Boolean(row.is_free_public));
+    const visibleRows = canViewMembersOnlyMedia
+      ? rows
+      : rows.filter((row) => Boolean(row.is_free_public));
     const signed = await Promise.all(
       visibleRows.map(async (row) => ({
         id: row.id,
@@ -122,7 +178,9 @@ export async function GET(_request: Request, { params }: RouteContext) {
       data: signed,
       meta: {
         has_active_subscription: hasActiveSubscription,
-        showing_public_only: !hasActiveSubscription
+        viewer_membership_tier_level: viewerMembershipTierLevel,
+        required_membership_level: requiredMembershipLevel,
+        showing_public_only: !canViewMembersOnlyMedia
       }
     });
   } catch (error) {
