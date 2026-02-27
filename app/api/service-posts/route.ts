@@ -36,6 +36,20 @@ const hasMissingPaidFileColumnsError = (error: unknown) => {
   );
 };
 
+const hasDuplicateSlugKeyError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const code = typeof row.code === 'string' ? row.code : '';
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const combined = `${code} ${message} ${details}`.toLowerCase();
+  return (
+    combined.includes('service_posts_slug_key') ||
+    (combined.includes('23505') && combined.includes('slug')) ||
+    (combined.includes('duplicate key') && combined.includes('slug'))
+  );
+};
+
 const withPaidFileDefaults = (rows: unknown[]) =>
   rows.map((row) => ({
     ...(row && typeof row === 'object' ? (row as Record<string, unknown>) : {}),
@@ -154,9 +168,10 @@ export async function POST(request: Request) {
   }
 
   const isPaidFilePost = body.is_paid_file === true;
+  const requestedSlug = body.slug?.trim();
+  const baseSlug = requestedSlug || slugifyServicePost(title) || null;
   const basePayload = {
     title,
-    slug: body.slug?.trim() || slugifyServicePost(title) || null,
     category: body.category?.trim() || null,
     summary: body.summary?.trim() || null,
     content: body.content?.trim() || null,
@@ -166,25 +181,58 @@ export async function POST(request: Request) {
     is_published: Boolean(body.is_published ?? true),
     created_by: user.id
   };
-  const payload = {
-    ...basePayload,
-    ...(isPaidFilePost
-      ? {
-          is_paid_file: true,
-          file_price:
-            typeof body.file_price === 'number' && Number.isFinite(body.file_price)
-              ? body.file_price
-              : null,
-          download_file_url: body.download_file_url?.trim() || null
-        }
-      : {})
+
+  const paidFilePayload = isPaidFilePost
+    ? {
+        is_paid_file: true,
+        file_price:
+          typeof body.file_price === 'number' && Number.isFinite(body.file_price)
+            ? body.file_price
+            : null,
+        download_file_url: body.download_file_url?.trim() || null
+      }
+    : {};
+
+  const insertWithSlugRetry = async (includePaidFileColumns: boolean) => {
+    const maxAttempts = baseSlug ? 10 : 1;
+    let lastData: unknown = null;
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const slugCandidate =
+        baseSlug == null
+          ? null
+          : attempt === 0
+            ? baseSlug
+            : `${baseSlug}-${attempt + 1}`;
+      const payload = {
+        ...basePayload,
+        slug: slugCandidate,
+        ...(includePaidFileColumns ? paidFilePayload : {})
+      };
+
+      const { data, error } = await (supabase as never)
+        .from(SERVICE_POSTS_TABLE)
+        .insert(payload)
+        .select('*')
+        .single();
+
+      if (!error) {
+        return { data, error: null };
+      }
+
+      lastData = data;
+      lastError = error;
+
+      if (!hasDuplicateSlugKeyError(error)) {
+        break;
+      }
+    }
+
+    return { data: lastData, error: lastError };
   };
 
-  let { data, error } = await (supabase as never)
-    .from(SERVICE_POSTS_TABLE)
-    .insert(payload)
-    .select('*')
-    .single();
+  let { data, error } = await insertWithSlugRetry(isPaidFilePost);
 
   if (error && hasMissingPaidFileColumnsError(error)) {
     if (isPaidFilePost) {
@@ -198,11 +246,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const fallbackResult = await (supabase as never)
-      .from(SERVICE_POSTS_TABLE)
-      .insert(basePayload)
-      .select('*')
-      .single();
+    const fallbackResult = await insertWithSlugRetry(false);
     data = fallbackResult.data;
     error = fallbackResult.error;
   }
