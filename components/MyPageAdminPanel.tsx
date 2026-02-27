@@ -53,6 +53,7 @@ type AdminStudioPost = {
   image_url: string | null;
   user_id: string;
   created_at: string;
+  required_membership_level: number | null;
 };
 
 type DashboardResponse = {
@@ -125,7 +126,15 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [editingServicePostId, setEditingServicePostId] = useState<string | null>(null);
   const [editingMemberProfileId, setEditingMemberProfileId] = useState<string | null>(null);
   const [postDrafts, setPostDrafts] = useState<
-    Record<string, { title: string; content: string; image_url: string }>
+    Record<
+      string,
+      {
+        title: string;
+        content: string;
+        image_url: string;
+        required_membership_level: number;
+      }
+    >
   >({});
   const [servicePostDrafts, setServicePostDrafts] = useState<
     Record<string, AdminServicePostDraft>
@@ -163,6 +172,24 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     } catch {
       return value;
     }
+  };
+
+  const normalizeRequiredMembershipLevel = (value: unknown) => {
+    const numeric =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string' && value.trim()
+          ? Number(value)
+          : 0;
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.min(3, Math.max(0, Math.floor(numeric)));
+  };
+
+  const getStudioPostMembershipLabel = (level: number) => {
+    if (level >= 3) return '프리미엄 멤버십';
+    if (level >= 2) return '플러스 멤버십';
+    if (level >= 1) return '베이직 멤버십';
+    return '일반 공개';
   };
 
   const isShippingDoneBucket = useCallback((order: OrderRecord) => {
@@ -225,7 +252,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           {
             title: post.title ?? '',
             content: post.content ?? '',
-            image_url: post.image_url ?? ''
+            image_url: post.image_url ?? '',
+            required_membership_level: normalizeRequiredMembershipLevel(
+              post.required_membership_level
+            )
           }
         ])
       )
@@ -594,8 +624,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
 
   const handlePostDraftChange = (
     postId: string,
-    key: 'title' | 'content' | 'image_url',
-    value: string
+    key: 'title' | 'content' | 'image_url' | 'required_membership_level',
+    value: string | number
   ) => {
     setPostDrafts((prev) => ({
       ...prev,
@@ -603,7 +633,13 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         title: prev[postId]?.title ?? '',
         content: prev[postId]?.content ?? '',
         image_url: prev[postId]?.image_url ?? '',
-        [key]: value
+        required_membership_level: normalizeRequiredMembershipLevel(
+          prev[postId]?.required_membership_level
+        ),
+        [key]:
+          key === 'required_membership_level'
+            ? normalizeRequiredMembershipLevel(value)
+            : value
       }
     }));
   };
@@ -612,7 +648,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     const draft = postDrafts[post.id] ?? {
       title: post.title,
       content: post.content,
-      image_url: post.image_url ?? ''
+      image_url: post.image_url ?? '',
+      required_membership_level: normalizeRequiredMembershipLevel(post.required_membership_level)
     };
 
     setBusyPostId(post.id);
@@ -638,7 +675,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           [updated.id]: {
             title: updated.title,
             content: updated.content,
-            image_url: updated.image_url ?? ''
+            image_url: updated.image_url ?? '',
+            required_membership_level: normalizeRequiredMembershipLevel(
+              updated.required_membership_level
+            )
           }
         }));
       }
@@ -1224,8 +1264,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 const draft = postDrafts[post.id] ?? {
                   title: post.title,
                   content: post.content,
-                  image_url: post.image_url ?? ''
+                  image_url: post.image_url ?? '',
+                  required_membership_level: normalizeRequiredMembershipLevel(
+                    post.required_membership_level
+                  )
                 };
+                const currentMembershipLevel = normalizeRequiredMembershipLevel(
+                  post.required_membership_level
+                );
 
                 return (
                   <div
@@ -1240,6 +1286,9 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                         </p>
                         <p className="mt-1 text-xs text-white/45">
                           생성일: {formatDate(post.created_at)}
+                        </p>
+                        <p className="mt-1 text-xs text-white/45">
+                          접근 권한: {getStudioPostMembershipLabel(currentMembershipLevel)}
                         </p>
                       </div>
                       <div className="flex items-center justify-end gap-2 flex-wrap">
@@ -1281,6 +1330,28 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             }
                             disabled={isBusy}
                           />
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            접근 권한
+                          </label>
+                          <select
+                            className={inputClass}
+                            value={String(draft.required_membership_level)}
+                            onChange={(e) =>
+                              handlePostDraftChange(
+                                post.id,
+                                'required_membership_level',
+                                e.target.value
+                              )
+                            }
+                            disabled={isBusy}
+                          >
+                            <option value="0">일반 공개</option>
+                            <option value="1">베이직 멤버십 (월 4,900원 이상)</option>
+                            <option value="2">플러스 멤버십 (월 13,900원 이상)</option>
+                            <option value="3">프리미엄 멤버십 (월 69,000원)</option>
+                          </select>
                         </div>
                         <div className="grid gap-2">
                           <label className="text-xs uppercase tracking-[0.18em] text-white/50">

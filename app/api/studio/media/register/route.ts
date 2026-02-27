@@ -34,6 +34,16 @@ const hasMissingFreePublicColumnError = (error: unknown) => {
   return combined.includes('is_free_public') && combined.includes('studio_media');
 };
 
+const hasMissingStudioMediaTableError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('studio_media') && combined.includes('does not exist');
+};
+
 const normalizeBoolean = (value: unknown) => {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return value === 1;
@@ -144,6 +154,13 @@ export async function POST(request: Request) {
     }
 
     if (result.error) {
+      if (hasMissingStudioMediaTableError(result.error)) {
+        return jsonError(
+          'studio_media 테이블이 없습니다. Supabase 마이그레이션을 먼저 적용해 주세요.',
+          500,
+          result.error
+        );
+      }
       return jsonError('Studio 미디어 등록에 실패했습니다.', 500, result.error);
     }
 

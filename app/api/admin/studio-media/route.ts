@@ -26,6 +26,16 @@ const hasMissingFreePublicColumnError = (error: unknown) => {
   return combined.includes('is_free_public') && combined.includes('studio_media');
 };
 
+const hasMissingStudioMediaTableError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('studio_media') && combined.includes('does not exist');
+};
+
 const normalizeBytes = (value: unknown) => {
   if (value == null || value === '') return null;
   const numeric = typeof value === 'number' ? value : Number(String(value).trim());
@@ -84,7 +94,16 @@ export async function GET() {
     mediaError = fallbackQuery.error ?? null;
   }
 
-  if (mediaError) return jsonError('Studio 미디어를 불러오지 못했습니다.', 500, mediaError);
+  if (mediaError) {
+    if (hasMissingStudioMediaTableError(mediaError)) {
+      return jsonError(
+        'studio_media 테이블이 없습니다. Supabase 마이그레이션을 먼저 적용해 주세요.',
+        500,
+        mediaError
+      );
+    }
+    return jsonError('Studio 미디어를 불러오지 못했습니다.', 500, mediaError);
+  }
 
   return NextResponse.json({
     data: {
@@ -156,7 +175,16 @@ export async function POST(request: Request) {
     }
   }
 
-  if (insertResult.error) return jsonError('Studio 미디어 등록에 실패했습니다.', 500, insertResult.error);
+  if (insertResult.error) {
+    if (hasMissingStudioMediaTableError(insertResult.error)) {
+      return jsonError(
+        'studio_media 테이블이 없습니다. Supabase 마이그레이션을 먼저 적용해 주세요.',
+        500,
+        insertResult.error
+      );
+    }
+    return jsonError('Studio 미디어 등록에 실패했습니다.', 500, insertResult.error);
+  }
 
   return NextResponse.json({ data: insertResult.data });
 }

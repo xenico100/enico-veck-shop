@@ -28,6 +28,7 @@ type ApiPayload = {
     studio_media?: StudioMediaRow[];
   };
   message?: string;
+  details?: unknown;
 };
 
 type Props = {
@@ -69,6 +70,23 @@ const formatDate = (value: string | null) => {
   }
 };
 
+const extractApiDetailMessage = (details: unknown): string | null => {
+  if (!details || typeof details !== 'object') return null;
+  const row = details as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message.trim() : '';
+  const detail = typeof row.details === 'string' ? row.details.trim() : '';
+  const hint = typeof row.hint === 'string' ? row.hint.trim() : '';
+  const first = [message, detail, hint].find((value) => Boolean(value));
+  return first ? first.slice(0, 180) : null;
+};
+
+const getR2UploadErrorMessage = (error: unknown) => {
+  if (error instanceof TypeError && /fetch/i.test(error.message)) {
+    return 'R2 업로드 요청이 브라우저에서 차단되었습니다. Cloudflare R2 CORS와 배포 도메인 설정을 확인해 주세요.';
+  }
+  return error instanceof Error ? error.message : 'R2 업로드에 실패했습니다.';
+};
+
 export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }: Props) {
   const [posts, setPosts] = useState<StudioPostOption[]>([]);
   const [mediaRows, setMediaRows] = useState<StudioMediaRow[]>([]);
@@ -101,7 +119,12 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
       const response = await fetch('/api/admin/studio-media', { cache: 'no-store' });
       const payload = (await response.json().catch(() => ({}))) as ApiPayload;
       if (!response.ok) {
-        throw new Error(payload.message || 'Studio 미디어 데이터를 불러오지 못했습니다.');
+        const detail = extractApiDetailMessage(payload.details);
+        throw new Error(
+          detail
+            ? `${payload.message || 'Studio 미디어 데이터를 불러오지 못했습니다.'} (${detail})`
+            : payload.message || 'Studio 미디어 데이터를 불러오지 못했습니다.'
+        );
       }
 
       const nextPosts = Array.isArray(payload.data?.studio_posts) ? payload.data!.studio_posts! : [];
@@ -315,7 +338,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
       }));
       setMessage('R2 업로드 및 Studio 미디어 등록이 완료되었습니다.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'R2 업로드에 실패했습니다.');
+      setError(getR2UploadErrorMessage(err));
     } finally {
       setUploading(false);
     }

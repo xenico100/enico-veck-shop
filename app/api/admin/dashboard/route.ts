@@ -23,6 +23,16 @@ type DashboardWarningMap = Partial<{
   studio_membership: string;
 }>;
 
+const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('required_membership_level') && combined.includes('studio_posts');
+};
+
 const parsePageNumber = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.floor(value);
   if (typeof value === 'string' && value.trim()) {
@@ -95,18 +105,41 @@ export async function GET() {
     profileData = (profileSelect.data ?? []) as ProfileRow[];
   }
 
-  const [
-    authUsersResult,
-    { data: subscriptionData, error: subscriptionError },
-    { data: studioPostsData, error: studioPostsError }
-  ] = await Promise.all([
+  const [authUsersResult, { data: subscriptionData, error: subscriptionError }] =
+    await Promise.all([
     listAllAuthUsers(adminClient),
-    (adminClient as any).from('subscriptions').select('user_id,status'),
-    (adminClient as any)
+    (adminClient as any).from('subscriptions').select('user_id,status')
+  ]);
+
+  let studioPostsData: Record<string, unknown>[] = [];
+  let studioPostsError: unknown = null;
+
+  let studioPostsQuery = await (adminClient as any)
+    .from('studio_posts')
+    .select('id,title,content,image_url,user_id,created_at,required_membership_level')
+    .order('created_at', { ascending: false });
+
+  if (
+    studioPostsQuery.error &&
+    hasMissingRequiredMembershipLevelColumnError(studioPostsQuery.error)
+  ) {
+    const fallbackQuery = await (adminClient as any)
       .from('studio_posts')
       .select('id,title,content,image_url,user_id,created_at')
-      .order('created_at', { ascending: false })
-  ]);
+      .order('created_at', { ascending: false });
+
+    studioPostsQuery = {
+      ...fallbackQuery,
+      data: Array.isArray(fallbackQuery.data)
+        ? fallbackQuery.data.map((row) => ({ ...row, required_membership_level: 0 }))
+        : fallbackQuery.data
+    };
+  }
+
+  studioPostsData = Array.isArray(studioPostsQuery.data)
+    ? (studioPostsQuery.data as Record<string, unknown>[])
+    : [];
+  studioPostsError = studioPostsQuery.error;
 
   if (subscriptionError) {
     warnings.subscriptions = subscriptionError.message || '구독 정보를 불러오지 못했습니다.';
@@ -114,7 +147,14 @@ export async function GET() {
   }
 
   if (studioPostsError) {
-    warnings.studio_posts = studioPostsError.message || '게시글 목록을 불러오지 못했습니다.';
+    const studioPostsErrorMessage =
+      typeof studioPostsError === 'object' &&
+      studioPostsError &&
+      'message' in studioPostsError &&
+      typeof (studioPostsError as { message?: unknown }).message === 'string'
+        ? (studioPostsError as { message: string }).message
+        : '게시글 목록을 불러오지 못했습니다.';
+    warnings.studio_posts = studioPostsErrorMessage;
     console.error('[admin/dashboard] studio_posts query failed', studioPostsError);
   }
 

@@ -18,6 +18,18 @@ type ApiResponse = {
     showing_public_only?: boolean;
   };
   message?: string;
+  details?: unknown;
+};
+
+const extractApiDetailMessage = (details: unknown): string | null => {
+  if (!details || typeof details !== 'object') return null;
+  const row = details as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message.trim() : '';
+  const detail = typeof row.details === 'string' ? row.details.trim() : '';
+  const hint = typeof row.hint === 'string' ? row.hint.trim() : '';
+
+  const first = [message, detail, hint].find((value) => Boolean(value));
+  return first ? first.slice(0, 180) : null;
 };
 
 type Props = {
@@ -49,7 +61,11 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
       const payload = (await response.json().catch(() => ({}))) as ApiResponse;
 
       if (!response.ok) {
-        throw new Error(payload.message || '미디어를 불러오지 못했습니다.');
+        const detailMessage = extractApiDetailMessage(payload.details);
+        const baseMessage = payload.message || '미디어를 불러오지 못했습니다.';
+        throw new Error(
+          detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage
+        );
       }
 
       setItems(Array.isArray(payload.data) ? payload.data : []);

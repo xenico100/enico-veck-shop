@@ -11,6 +11,29 @@ const initialState: CreatePostState = {
   status: 'idle'
 };
 
+const STUDIO_POST_ACCESS_OPTIONS = [
+  {
+    value: 0,
+    title: '일반 공개',
+    description: '로그인/구독 여부와 관계없이 본문 열람 가능'
+  },
+  {
+    value: 1,
+    title: '베이직 멤버십',
+    description: '월 4,900원 이상 멤버십에서 열람 가능'
+  },
+  {
+    value: 2,
+    title: '플러스 멤버십',
+    description: '월 13,900원 이상 멤버십에서 열람 가능'
+  },
+  {
+    value: 3,
+    title: '프리미엄 멤버십',
+    description: '월 69,000원 멤버십에서만 열람 가능'
+  }
+] as const;
+
 const buildStudioDetailUrl = (postId?: string | null) => {
   const trimmedId = postId?.trim() || '';
   if (!trimmedId) return '/#studio';
@@ -44,6 +67,7 @@ export default function StudioPostForm() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoInputKey, setVideoInputKey] = useState(0);
   const [videoFreePublic, setVideoFreePublic] = useState(false);
+  const [requiredMembershipLevel, setRequiredMembershipLevel] = useState(0);
   const [videoUploadPending, setVideoUploadPending] = useState(false);
 
   const navigateToStudioDetailOnMain = useCallback(
@@ -61,6 +85,7 @@ export default function StudioPostForm() {
   const resetClientVideoFields = () => {
     setVideoFile(null);
     setVideoFreePublic(false);
+    setRequiredMembershipLevel(0);
     setVideoInputKey((prev) => prev + 1);
   };
 
@@ -183,6 +208,12 @@ export default function StudioPostForm() {
       encType="multipart/form-data"
       className="mt-6 space-y-5 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)]"
     >
+      <input
+        type="hidden"
+        name="required_membership_level"
+        value={String(requiredMembershipLevel)}
+      />
+
       {state.status === 'error' && state.message && (
         <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {state.message}
@@ -217,6 +248,43 @@ export default function StudioPostForm() {
           <p className="text-sm text-red-200">{state.fieldErrors.content}</p>
         )}
       </div>
+      <div className="space-y-2">
+        <label className="text-sm font-semibold uppercase tracking-[0.3em] text-neutral-400">
+          게시글 공개 범위
+        </label>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {STUDIO_POST_ACCESS_OPTIONS.map((option) => {
+            const checked = requiredMembershipLevel === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex cursor-pointer flex-col rounded-2xl border px-4 py-3 transition ${
+                  checked
+                    ? 'border-white/40 bg-white/15 text-white'
+                    : 'border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10'
+                }`}
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <input
+                    type="radio"
+                    name="required_membership_level_selector"
+                    value={option.value}
+                    checked={checked}
+                    onChange={() => setRequiredMembershipLevel(option.value)}
+                    disabled={videoUploadPending}
+                  />
+                  {option.title}
+                </span>
+                <span className="mt-1 text-xs text-white/60">{option.description}</span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-xs text-neutral-500">
+          멤버십 전용으로 설정한 게시글은 클릭 시 멤버십 안내 팝업이 표시됩니다.
+        </p>
+      </div>
+
       <div className="space-y-2">
         <label className="text-sm font-semibold uppercase tracking-[0.3em] text-neutral-400">
           이미지 업로드
@@ -259,20 +327,6 @@ export default function StudioPostForm() {
             />
             일반 공개 (비구독자도 시청 가능)
           </label>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3 text-xs text-neutral-500">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" disabled />
-              월 4,900원 전용 (준비중)
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" disabled />
-              월 13,900원 전용 (준비중)
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" disabled />
-              월 69,000원 전용 (준비중)
-            </label>
-          </div>
           <p className="mt-2 text-xs text-neutral-500">
             일반 공개 체크 시 비구독자도 볼 수 있습니다. 체크하지 않으면 멤버십 가입자 전용으로 등록됩니다.
           </p>

@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
+import { isAdminEmailValue, isAdminRoleValue } from '@/utils/service-posts';
 
 const STUDIO_POSTS_TABLE = 'studio_posts';
 const STUDIO_BUCKET = 'studio';
@@ -57,6 +58,37 @@ type ActionResult = {
 };
 
 const isImageFile = (file: File) => file.type.startsWith('image/');
+
+const normalizeRequiredMembershipLevel = (
+  value: FormDataEntryValue | null | undefined
+) => {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(3, Math.max(0, Math.floor(parsed)));
+};
+
+const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('required_membership_level') && combined.includes('studio_posts');
+};
+
+const isAdminLikeUser = (user: {
+  email?: string | null;
+  app_metadata?: Record<string, unknown> | null;
+  user_metadata?: Record<string, unknown> | null;
+}) => {
+  const role =
+    (user.app_metadata?.role as string | undefined) ??
+    (user.user_metadata?.role as string | undefined) ??
+    null;
+  return isAdminEmailValue(user.email) || isAdminRoleValue(role);
+};
 
 const validateImageFile = (file: File | null) => {
   if (!file || file.size <= 0) return null;
@@ -213,6 +245,9 @@ const revalidateStudioPostPaths = (postId?: string) => {
 async function createStudioPostInternal(formData: FormData): Promise<ActionResult> {
   const title = String(formData.get('title') ?? '').trim();
   const content = String(formData.get('content') ?? '').trim();
+  const requiredMembershipLevel = normalizeRequiredMembershipLevel(
+    formData.get('required_membership_level')
+  );
   const fileValue = formData.get('image');
   const file = fileValue instanceof File && fileValue.size > 0 ? fileValue : null;
 
@@ -231,6 +266,9 @@ async function createStudioPostInternal(formData: FormData): Promise<ActionResul
   if (!user) {
     return { ok: false, message: error ?? '로그인이 필요합니다.' };
   }
+  const safeRequiredMembershipLevel = isAdminLikeUser(user)
+    ? requiredMembershipLevel
+    : 0;
 
   let imageUrl: string | null = null;
   if (file) {
@@ -241,22 +279,39 @@ async function createStudioPostInternal(formData: FormData): Promise<ActionResul
     imageUrl = upload.url;
   }
 
-  const { data, error: insertError } = await (supabase as never)
+  let insertResult = await (supabase as never)
     .from(STUDIO_POSTS_TABLE)
     .insert({
       title,
       content,
       image_url: imageUrl,
-      user_id: user.id
+      user_id: user.id,
+      required_membership_level: safeRequiredMembershipLevel
     })
     .select('id')
     .single();
 
-  if (insertError || !data?.id) {
+  if (
+    insertResult.error &&
+    hasMissingRequiredMembershipLevelColumnError(insertResult.error)
+  ) {
+    insertResult = await (supabase as never)
+      .from(STUDIO_POSTS_TABLE)
+      .insert({
+        title,
+        content,
+        image_url: imageUrl,
+        user_id: user.id
+      })
+      .select('id')
+      .single();
+  }
+
+  if (insertResult.error || !insertResult.data?.id) {
     return { ok: false, message: '게시물 저장에 실패했습니다.' };
   }
 
-  const postId = data.id as string;
+  const postId = insertResult.data.id as string;
   revalidateStudioPostPaths(postId);
   return { ok: true, postId };
 }
@@ -265,6 +320,11 @@ async function updateStudioPostInternal(formData: FormData): Promise<ActionResul
   const postId = String(formData.get('postId') ?? '').trim();
   const title = String(formData.get('title') ?? '').trim();
   const content = String(formData.get('content') ?? '').trim();
+  const requiredMembershipLevelEntry = formData.get('required_membership_level');
+  const requiredMembershipLevel =
+    requiredMembershipLevelEntry == null
+      ? null
+      : normalizeRequiredMembershipLevel(requiredMembershipLevelEntry);
   const explicitImageUrl = String(formData.get('imageUrl') ?? '').trim();
   const existingImageUrl = String(formData.get('existingImageUrl') ?? '').trim();
   const removeImage = String(formData.get('removeImage') ?? '') === 'on';
@@ -288,6 +348,12 @@ async function updateStudioPostInternal(formData: FormData): Promise<ActionResul
   if (!user) {
     return { ok: false, message: error ?? '로그인이 필요합니다.' };
   }
+  const safeRequiredMembershipLevel =
+    requiredMembershipLevel == null
+      ? null
+      : isAdminLikeUser(user)
+        ? requiredMembershipLevel
+        : 0;
 
   const { post, message } = await getOwnedPost(postId, user.id);
   if (!post) {
@@ -308,17 +374,36 @@ async function updateStudioPostInternal(formData: FormData): Promise<ActionResul
     nextImageUrl = upload.url;
   }
 
-  const { error: updateError } = await (supabase as never)
+  let updateResult = await (supabase as never)
     .from(STUDIO_POSTS_TABLE)
     .update({
       title,
       content,
-      image_url: nextImageUrl
+      image_url: nextImageUrl,
+      ...(safeRequiredMembershipLevel != null
+        ? { required_membership_level: safeRequiredMembershipLevel }
+        : {})
     })
     .eq('id', postId)
     .eq('user_id', user.id);
 
-  if (updateError) {
+  if (
+    updateResult.error &&
+    safeRequiredMembershipLevel != null &&
+    hasMissingRequiredMembershipLevelColumnError(updateResult.error)
+  ) {
+    updateResult = await (supabase as never)
+      .from(STUDIO_POSTS_TABLE)
+      .update({
+        title,
+        content,
+        image_url: nextImageUrl
+      })
+      .eq('id', postId)
+      .eq('user_id', user.id);
+  }
+
+  if (updateResult.error) {
     return { ok: false, message: '게시물 수정에 실패했습니다.' };
   }
 

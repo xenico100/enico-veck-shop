@@ -9,6 +9,7 @@ import { ImageIcon, Lock, Pause, Play, X } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import StudioProtectedMedia from '@/components/StudioProtectedMedia';
 import StudioSubscribeButton from '@/components/StudioSubscribeButton';
+import { useToast } from '@/components/ui/Toasts/use-toast';
 import { createClient } from '@/utils/supabase/client';
 import { isAdminUserLike } from '@/utils/service-posts';
 
@@ -19,7 +20,7 @@ type StudioPost = {
   image_url: string | null;
   created_at: string | null;
   is_placeholder?: boolean;
-  required_membership_level?: number;
+  required_membership_level?: number | null;
   required_membership_label?: string;
 };
 
@@ -93,6 +94,27 @@ const inputClass =
   'w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-white/20 focus:bg-white/[0.06] focus:ring-2 focus:ring-white/20';
 const textareaClass = `${inputClass} min-h-[140px] resize-y`;
 
+const normalizeRequiredMembershipLevel = (value: unknown) => {
+  const numeric =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : 0;
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.min(3, Math.max(0, Math.floor(numeric)));
+};
+
+const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('required_membership_level') && combined.includes('studio_posts');
+};
+
 const parsePlanAmount = (value: unknown) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim()) {
@@ -128,18 +150,19 @@ const buildPlaceholderPost = (rowRule: StudioRowAccessRule, slotIndex: number): 
 
 const buildTierRows = (posts: StudioPost[]) => {
   const rows = STUDIO_ROW_ACCESS_RULES.map(() => [] as StudioPost[]);
-  const chunks = chunkPosts(posts, STUDIO_COLUMNS_PER_ROW);
 
-  chunks.forEach((chunk, chunkIndex) => {
-    const rowIndex = chunkIndex % STUDIO_ROW_ACCESS_RULES.length;
-    const rowRule = STUDIO_ROW_ACCESS_RULES[rowIndex];
-    rows[rowIndex].push(
-      ...chunk.map((post) => ({
-        ...post,
-        required_membership_level: rowRule.requiredLevel,
-        required_membership_label: rowRule.membershipLabel
-      }))
+  posts.forEach((post) => {
+    const requiredLevel = normalizeRequiredMembershipLevel(post.required_membership_level);
+    const rowIndex = STUDIO_ROW_ACCESS_RULES.findIndex(
+      (rule) => rule.requiredLevel === requiredLevel
     );
+    const targetRowIndex = rowIndex >= 0 ? rowIndex : 0;
+    const rowRule = STUDIO_ROW_ACCESS_RULES[targetRowIndex];
+    rows[targetRowIndex].push({
+      ...post,
+      required_membership_level: rowRule.requiredLevel,
+      required_membership_label: rowRule.membershipLabel
+    });
   });
 
   return rows.map((row, rowIndex) => {
@@ -152,16 +175,6 @@ const buildTierRows = (posts: StudioPost[]) => {
     }
     return filled;
   });
-};
-
-const chunkPosts = <T,>(items: T[], size: number) => {
-  if (size <= 0) return [items];
-
-  const rows: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    rows.push(items.slice(index, index + size));
-  }
-  return rows;
 };
 
 const buildLoopSeed = (rowItems: StudioPost[]) => {
@@ -545,6 +558,7 @@ export default function StudioSection({
   queryString
 }: StudioSectionProps) {
   const supabase = useMemo(() => createClient(), []);
+  const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
@@ -600,16 +614,44 @@ export default function StudioSection({
     setPostsError(null);
 
     try {
-      const { data, error } = await (supabase as never)
+      let queryResult = await (supabase as never)
         .from('studio_posts')
-        .select('id,title,content,image_url,created_at')
+        .select('id,title,content,image_url,created_at,required_membership_level')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
+      if (
+        queryResult.error &&
+        hasMissingRequiredMembershipLevelColumnError(queryResult.error)
+      ) {
+        const fallbackQuery = await (supabase as never)
+          .from('studio_posts')
+          .select('id,title,content,image_url,created_at')
+          .order('created_at', { ascending: false });
+
+        queryResult = {
+          ...fallbackQuery,
+          data: Array.isArray(fallbackQuery.data)
+            ? fallbackQuery.data.map((row) => ({
+                ...row,
+                required_membership_level: 0
+              }))
+            : fallbackQuery.data
+        };
       }
 
-      setStudioPosts(Array.isArray(data) ? (data as StudioPost[]) : []);
+      if (queryResult.error) {
+        throw queryResult.error;
+      }
+
+      const rows = Array.isArray(queryResult.data)
+        ? (queryResult.data as StudioPost[]).map((row) => ({
+            ...row,
+            required_membership_level: normalizeRequiredMembershipLevel(
+              row.required_membership_level
+            )
+          }))
+        : [];
+      setStudioPosts(rows);
     } catch (error) {
       setStudioPosts([]);
       setPostsError(
@@ -760,26 +802,62 @@ export default function StudioSection({
     setWriteError(null);
 
     try {
-      const { data, error } = await (supabase as never)
+      let insertResult = await (supabase as never)
         .from('studio_posts')
         .insert({
           title,
           content,
           image_url: imageUrl || '',
-          user_id: user.id
+          user_id: user.id,
+          required_membership_level: 0
         })
-        .select('id,title,content,image_url,created_at')
+        .select('id,title,content,image_url,created_at,required_membership_level')
         .single();
 
-      if (error) {
-        throw error;
+      if (
+        insertResult.error &&
+        hasMissingRequiredMembershipLevelColumnError(insertResult.error)
+      ) {
+        insertResult = await (supabase as never)
+          .from('studio_posts')
+          .insert({
+            title,
+            content,
+            image_url: imageUrl || '',
+            user_id: user.id
+          })
+          .select('id,title,content,image_url,created_at')
+          .single();
+
+        if (!insertResult.error && insertResult.data) {
+          insertResult = {
+            ...insertResult,
+            data: {
+              ...(insertResult.data as Record<string, unknown>),
+              required_membership_level: 0
+            }
+          };
+        }
       }
 
-      const insertedPost = (data ?? null) as StudioPost | null;
+      if (insertResult.error) {
+        throw insertResult.error;
+      }
+
+      const insertedPost = (insertResult.data ?? null) as StudioPost | null;
       if (!insertedPost) {
         await fetchStudioPosts();
       } else {
-        setStudioPosts((prev) => [insertedPost, ...prev.filter((post) => post.id !== insertedPost.id)]);
+        const normalizedPost = {
+          ...insertedPost,
+          required_membership_level: normalizeRequiredMembershipLevel(
+            insertedPost.required_membership_level
+          )
+        };
+        setStudioPosts((prev) => [
+          normalizedPost,
+          ...prev.filter((post) => post.id !== insertedPost.id)
+        ]);
       }
 
       resetWriteForm();
@@ -867,6 +945,12 @@ export default function StudioSection({
                 if (isPlaceholder) {
                   if (isAdmin) handleOpenWrite();
                   return;
+                }
+                if (isRowLocked) {
+                  toast({
+                    title: '멤버십 전용 게시물',
+                    description: `${rowRule.membershipLabel} 이상에서 열람할 수 있습니다.`
+                  });
                 }
                 setSelectedPost({
                   ...post,
