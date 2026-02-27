@@ -7,7 +7,7 @@ import SideMenu from '../components/SideMenu';
 import MainContent from '../components/MainContent';
 import AboutSection from '../components/AboutSection';
 import ServicesSection from '../components/ServicesSection';
-import StudioSection from '../components/StudioSection';
+import StudioSectionWithSearchParams from '../components/StudioSectionWithSearchParams';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
 import MyPageModal from '../components/MyPageModal';
@@ -49,8 +49,8 @@ export default function LandingPage() {
       <div id="about"><AboutSection /></div>
       <div id="services"><ServicesSection onOpenCart={openCart} /></div>
       <div id="studio">
-        <Suspense fallback={null}>
-          <StudioSection />
+        <Suspense fallback={<div>Loading...</div>}>
+          <StudioSectionWithSearchParams />
         </Suspense>
       </div>
 

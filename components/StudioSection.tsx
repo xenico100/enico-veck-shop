@@ -2,7 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { ImageIcon, Lock, Pause, Play, X } from 'lucide-react';
 
@@ -38,6 +38,11 @@ type StudioMembershipApiData = {
 type StudioMembershipApiResponse = {
   data?: StudioMembershipApiData;
   message?: string;
+};
+
+type StudioSectionProps = {
+  studioPostIdFromQuery: string | null;
+  queryString: string;
 };
 
 type StudioRowAccessRule = {
@@ -535,11 +540,13 @@ function StudioWriteModal({
   );
 }
 
-export default function StudioSection() {
+export default function StudioSection({
+  studioPostIdFromQuery,
+  queryString
+}: StudioSectionProps) {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const isAdmin = isAdminUserLike(user);
 
@@ -618,14 +625,13 @@ export default function StudioSection() {
   }, [fetchStudioPosts]);
 
   useEffect(() => {
-    const targetPostId = searchParams.get('studioPost')?.trim() || '';
-    if (!targetPostId || postsLoading) return;
+    if (!studioPostIdFromQuery || postsLoading) return;
 
-    const targetPost = findPostWithRowMeta(targetPostId);
+    const targetPost = findPostWithRowMeta(studioPostIdFromQuery);
     if (!targetPost) return;
 
     setSelectedPost((prev) => (prev?.id === targetPost.id ? prev : targetPost));
-  }, [findPostWithRowMeta, postsLoading, searchParams]);
+  }, [findPostWithRowMeta, postsLoading, studioPostIdFromQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -792,14 +798,12 @@ export default function StudioSection() {
   const handleCloseSelectedPost = useCallback(() => {
     setSelectedPost(null);
 
-    const targetPostId = searchParams.get('studioPost');
-    if (!targetPostId) return;
-
-    const nextSearch = new URLSearchParams(searchParams.toString());
+    const nextSearch = new URLSearchParams(queryString);
+    if (!nextSearch.has('studioPost')) return;
     nextSearch.delete('studioPost');
     const nextQuery = nextSearch.toString();
     router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}#studio`, { scroll: false });
-  }, [pathname, router, searchParams]);
+  }, [pathname, queryString, router]);
 
   const renderRow = (rowIndex: number, rowRule: StudioRowAccessRule) => {
     const rowItems = rows[rowIndex] ?? [];
