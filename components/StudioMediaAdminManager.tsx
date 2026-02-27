@@ -8,6 +8,7 @@ type StudioPostOption = {
   id: string;
   title: string | null;
   created_at: string | null;
+  required_membership_level?: number | null;
 };
 
 type StudioMediaRow = {
@@ -43,7 +44,6 @@ type Draft = {
   r2_key: string;
   mime: string;
   bytes: string;
-  is_free_public: boolean;
 };
 
 type MediaManagerTabKey = 'upload' | 'list';
@@ -54,8 +54,7 @@ const defaultDraft: Draft = {
   r2_bucket: '',
   r2_key: '',
   mime: '',
-  bytes: '',
-  is_free_public: false
+  bytes: ''
 };
 
 const formatDate = (value: string | null) => {
@@ -85,6 +84,17 @@ const getR2UploadErrorMessage = (error: unknown) => {
     return 'R2 업로드 요청이 브라우저에서 차단되었습니다. Cloudflare R2 CORS와 배포 도메인 설정을 확인해 주세요.';
   }
   return error instanceof Error ? error.message : 'R2 업로드에 실패했습니다.';
+};
+
+const normalizeRequiredMembershipLevel = (value: unknown) => {
+  const numeric =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : 0;
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.min(3, Math.max(0, Math.floor(numeric)));
 };
 
 export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }: Props) {
@@ -158,6 +168,15 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
     return grouped;
   }, [mediaRows]);
 
+  const selectedPost = useMemo(
+    () => posts.find((post) => post.id === draft.studio_post_id) ?? null,
+    [draft.studio_post_id, posts]
+  );
+  const selectedPostRequiredMembershipLevel = normalizeRequiredMembershipLevel(
+    selectedPost?.required_membership_level
+  );
+  const autoIsFreePublic = selectedPostRequiredMembershipLevel === 0;
+
   const canUploadDirect =
     Boolean(draft.studio_post_id.trim()) && Boolean(selectedFile) && !saving && !uploading;
   const canManualRegister =
@@ -209,7 +228,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
           r2_key: draft.r2_key.trim(),
           mime: draft.mime.trim() || null,
           bytes: draft.bytes.trim() || null,
-          is_free_public: draft.is_free_public
+          is_free_public: autoIsFreePublic
         })
       });
 
@@ -314,7 +333,7 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
           r2_key: presignPayload.r2_key,
           mime: contentType,
           bytes: selectedFile.size,
-          is_free_public: draft.is_free_public
+          is_free_public: autoIsFreePublic
         })
       });
 
@@ -474,34 +493,17 @@ export default function StudioMediaAdminManager({ enabled, onRequestCreatePost }
           </div>
 
           <div className="grid gap-2 md:col-span-2">
-            <label className={labelClass}>동영상 공개 체크리스트</label>
+            <label className={labelClass}>공개 범위 (자동 적용)</label>
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <label className="flex items-center gap-2 text-sm text-white/90">
-                <input
-                  type="checkbox"
-                  checked={draft.is_free_public}
-                  onChange={(e) =>
-                    setDraft((prev) => ({ ...prev, is_free_public: e.target.checked }))
-                  }
-                  className="h-4 w-4 rounded border-white/20 bg-white/10"
-                  disabled={saving || uploading}
-                />
-                일반 공개 (비구독자도 시청 가능)
-              </label>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {['월 4,900원', '월 13,900원', '월 69,000원'].map((label) => (
-                  <label key={label} className="flex items-center gap-2 text-xs text-white/45">
-                    <input
-                      type="checkbox"
-                      disabled
-                      className="h-4 w-4 rounded border-white/10 bg-white/5"
-                    />
-                    {label} 전용 (준비중)
-                  </label>
-                ))}
-              </div>
-              <p className="mt-3 text-xs text-white/50">
-                일반 공개 체크 시 비구독자도 볼 수 있습니다. 체크하지 않으면 멤버십 가입자 전용으로 저장됩니다.
+              <p className="text-sm text-white/90">
+                선택한 게시글의 공개 범위를 그대로 따릅니다:
+                {' '}
+                <span className="font-semibold">
+                  {autoIsFreePublic ? '일반 공개' : '멤버십 전용'}
+                </span>
+              </p>
+              <p className="mt-2 text-xs text-white/50">
+                공개 범위는 게시글 작성/수정 화면에서만 설정합니다. 이 화면에서는 중복 체크리스트를 표시하지 않습니다.
               </p>
             </div>
           </div>

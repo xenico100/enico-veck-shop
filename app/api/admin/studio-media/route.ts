@@ -36,6 +36,16 @@ const hasMissingStudioMediaTableError = (error: unknown) => {
   return combined.includes('studio_media') && combined.includes('does not exist');
 };
 
+const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes('required_membership_level') && combined.includes('studio_posts');
+};
+
 const normalizeBytes = (value: unknown) => {
   if (value == null || value === '') return null;
   const numeric = typeof value === 'number' ? value : Number(String(value).trim());
@@ -64,17 +74,30 @@ export async function GET() {
   if (!user) return jsonError('로그인이 필요합니다.', 401);
   if (!isAdmin || !adminClient) return jsonError('관리자 권한이 없습니다.', 403);
 
-  const [{ data: posts, error: postsError }, mediaQueryResult] =
-    await Promise.all([
-      (adminClient as any)
-        .from('studio_posts')
-        .select('id,title,created_at')
-        .order('created_at', { ascending: false }),
-      (adminClient as any)
-        .from('studio_media')
-        .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
-        .order('created_at', { ascending: false })
-    ]);
+  const [postsQueryResult, mediaQueryResult] = await Promise.all([
+    (adminClient as any)
+      .from('studio_posts')
+      .select('id,title,created_at,required_membership_level')
+      .order('created_at', { ascending: false }),
+    (adminClient as any)
+      .from('studio_media')
+      .select('id,studio_post_id,kind,r2_bucket,r2_key,mime,bytes,is_free_public,created_at')
+      .order('created_at', { ascending: false })
+  ]);
+
+  let posts = postsQueryResult.data ?? [];
+  let postsError = postsQueryResult.error ?? null;
+  if (postsError && hasMissingRequiredMembershipLevelColumnError(postsError)) {
+    const fallbackPosts = await (adminClient as any)
+      .from('studio_posts')
+      .select('id,title,created_at')
+      .order('created_at', { ascending: false });
+
+    posts = Array.isArray(fallbackPosts.data)
+      ? fallbackPosts.data.map((row) => ({ ...row, required_membership_level: 0 }))
+      : [];
+    postsError = fallbackPosts.error ?? null;
+  }
 
   if (postsError) return jsonError('Studio 게시글을 불러오지 못했습니다.', 500, postsError);
 

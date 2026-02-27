@@ -78,7 +78,6 @@ export default function StudioPostForm() {
   const [state, formAction] = useFormState(createPost, initialState);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoInputKey, setVideoInputKey] = useState(0);
-  const [videoFreePublic, setVideoFreePublic] = useState(false);
   const [requiredMembershipLevel, setRequiredMembershipLevel] = useState(0);
   const [videoUploadPending, setVideoUploadPending] = useState(false);
 
@@ -96,7 +95,6 @@ export default function StudioPostForm() {
 
   const resetClientVideoFields = () => {
     setVideoFile(null);
-    setVideoFreePublic(false);
     setRequiredMembershipLevel(0);
     setVideoInputKey((prev) => prev + 1);
   };
@@ -178,9 +176,10 @@ export default function StudioPostForm() {
         setVideoUploadPending(true);
         void (async () => {
           try {
-            await uploadStudioVideo(postId, videoFile, videoFreePublic);
+            const shouldVideoBePublic = requiredMembershipLevel === 0;
+            await uploadStudioVideo(postId, videoFile, shouldVideoBePublic);
             finalizeSuccess(
-              videoFreePublic
+              shouldVideoBePublic
                 ? '스튜디오 게시물과 일반 공개 영상이 R2에 업로드되었습니다.'
                 : '스튜디오 게시물과 멤버십 전용 영상이 R2에 업로드되었습니다.'
             );
@@ -220,7 +219,7 @@ export default function StudioPostForm() {
         description: state.message
       });
     }
-  }, [navigateToStudioDetailOnMain, state, toast, videoFile, videoFreePublic]);
+  }, [navigateToStudioDetailOnMain, requiredMembershipLevel, state, toast, videoFile]);
 
   return (
     <form
@@ -339,17 +338,8 @@ export default function StudioPostForm() {
             : '선택하면 게시물 생성 직후 R2에 업로드됩니다.'}
         </p>
         <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-neutral-200">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={videoFreePublic}
-              onChange={(event) => setVideoFreePublic(event.target.checked)}
-              disabled={videoUploadPending}
-            />
-            일반 공개 (비구독자도 시청 가능)
-          </label>
           <p className="mt-2 text-xs text-neutral-500">
-            일반 공개 체크 시 비구독자도 볼 수 있습니다. 체크하지 않으면 멤버십 가입자 전용으로 등록됩니다.
+            동영상 공개 범위는 위의 `게시글 공개 범위` 설정과 동일하게 자동 적용됩니다.
           </p>
           <p className="mt-1 text-xs text-neutral-500">
             동영상 파일은 게시물 저장 후 브라우저에서 R2로 직접 업로드됩니다. (서버 액션 폼 제출에는 포함되지 않음)

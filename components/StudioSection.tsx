@@ -53,6 +53,13 @@ type StudioRowAccessRule = {
   requiredLevel: number;
 };
 
+type StudioDisplayRow = {
+  rowId: string;
+  rowLabel: string;
+  rowRule: StudioRowAccessRule;
+  posts: StudioPost[];
+};
+
 const STUDIO_COLUMNS_PER_ROW = 3;
 const MARQUEE_GAP_REM = 1; // gap-4 == 1rem
 const PREMIUM_ROW_PRICE_DISPLAY = 79000;
@@ -137,8 +144,12 @@ const resolveStudioMembershipTierLevel = (membership: StudioMembershipApiData | 
   return 1;
 };
 
-const buildPlaceholderPost = (rowRule: StudioRowAccessRule, slotIndex: number): StudioPost => ({
-  id: `__studio-placeholder-${rowRule.key}-${slotIndex}`,
+const buildPlaceholderPost = (
+  rowRule: StudioRowAccessRule,
+  rowId: string,
+  slotIndex: number
+): StudioPost => ({
+  id: `__studio-placeholder-${rowId}-${slotIndex}`,
   title: `${rowRule.membershipLabel} 게시물 준비중`,
   content: '게시물이 부족한 구간입니다. 관리자에서 Studio 게시물을 추가하면 여기에 표시됩니다.',
   image_url: null,
@@ -148,33 +159,83 @@ const buildPlaceholderPost = (rowRule: StudioRowAccessRule, slotIndex: number): 
   required_membership_label: rowRule.membershipLabel
 });
 
-const buildTierRows = (posts: StudioPost[]) => {
-  const rows = STUDIO_ROW_ACCESS_RULES.map(() => [] as StudioPost[]);
+const chunkRowPosts = (items: StudioPost[], size: number) => {
+  if (size <= 0) return [items];
+
+  const rows: StudioPost[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
+};
+
+const buildDisplayRow = (
+  rowRule: StudioRowAccessRule,
+  rowId: string,
+  rowLabel: string,
+  rowItems: StudioPost[]
+): StudioDisplayRow => {
+  if (rowItems.length >= STUDIO_COLUMNS_PER_ROW) {
+    return {
+      rowId,
+      rowLabel,
+      rowRule,
+      posts: rowItems
+    };
+  }
+
+  const filled = [...rowItems];
+  while (filled.length < STUDIO_COLUMNS_PER_ROW) {
+    filled.push(buildPlaceholderPost(rowRule, rowId, filled.length));
+  }
+
+  return {
+    rowId,
+    rowLabel,
+    rowRule,
+    posts: filled
+  };
+};
+
+const buildTierRows = (posts: StudioPost[]): StudioDisplayRow[] => {
+  const postsByLevel = new Map<number, StudioPost[]>();
 
   posts.forEach((post) => {
     const requiredLevel = normalizeRequiredMembershipLevel(post.required_membership_level);
-    const rowIndex = STUDIO_ROW_ACCESS_RULES.findIndex(
-      (rule) => rule.requiredLevel === requiredLevel
-    );
-    const targetRowIndex = rowIndex >= 0 ? rowIndex : 0;
-    const rowRule = STUDIO_ROW_ACCESS_RULES[targetRowIndex];
-    rows[targetRowIndex].push({
+    const rowRule =
+      STUDIO_ROW_ACCESS_RULES.find((rule) => rule.requiredLevel === requiredLevel) ??
+      STUDIO_ROW_ACCESS_RULES[0];
+    const current = postsByLevel.get(rowRule.requiredLevel) ?? [];
+    current.push({
       ...post,
       required_membership_level: rowRule.requiredLevel,
       required_membership_label: rowRule.membershipLabel
     });
+    postsByLevel.set(rowRule.requiredLevel, current);
   });
 
-  return rows.map((row, rowIndex) => {
-    const rowRule = STUDIO_ROW_ACCESS_RULES[rowIndex];
-    if (row.length >= STUDIO_COLUMNS_PER_ROW) return row;
+  const displayRows: StudioDisplayRow[] = [];
+  const freeRule = STUDIO_ROW_ACCESS_RULES[0];
+  const freePosts = postsByLevel.get(freeRule.requiredLevel) ?? [];
+  const freeChunks = chunkRowPosts(freePosts, STUDIO_COLUMNS_PER_ROW);
 
-    const filled = [...row];
-    while (filled.length < STUDIO_COLUMNS_PER_ROW) {
-      filled.push(buildPlaceholderPost(rowRule, filled.length));
-    }
-    return filled;
+  if (freeChunks.length === 0) {
+    freeChunks.push([]);
+  }
+
+  freeChunks.forEach((chunk, index) => {
+    const rowId = `${freeRule.key}-${index + 1}`;
+    const rowLabel =
+      index === 0 ? freeRule.rowLabel : `${freeRule.rowLabel} +${index}`;
+    displayRows.push(buildDisplayRow(freeRule, rowId, rowLabel, chunk));
   });
+
+  STUDIO_ROW_ACCESS_RULES.slice(1).forEach((rule) => {
+    const rowItems = postsByLevel.get(rule.requiredLevel) ?? [];
+    displayRows.push(buildDisplayRow(rule, `${rule.key}-1`, rule.rowLabel, rowItems));
+  });
+
+  return displayRows;
 };
 
 const buildLoopSeed = (rowItems: StudioPost[]) => {
@@ -570,7 +631,7 @@ export default function StudioSection({
   const [selectedPost, setSelectedPost] = useState<StudioPost | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
 
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [writeSubmitting, setWriteSubmitting] = useState(false);
@@ -584,16 +645,16 @@ export default function StudioSection({
   const [viewerMembershipTierLoading, setViewerMembershipTierLoading] = useState(false);
   const [viewerMembershipLabel, setViewerMembershipLabel] = useState<string>('일반 멤버십');
 
-  const rows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
+  const displayRows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
 
   const findPostWithRowMeta = useCallback(
     (postId: string) => {
       const normalizedId = postId.trim();
       if (!normalizedId) return null;
 
-      for (let rowIndex = 0; rowIndex < STUDIO_ROW_ACCESS_RULES.length; rowIndex += 1) {
-        const rowRule = STUDIO_ROW_ACCESS_RULES[rowIndex];
-        const rowPosts = rows[rowIndex] ?? [];
+      for (const row of displayRows) {
+        const rowRule = row.rowRule;
+        const rowPosts = row.posts ?? [];
         const found = rowPosts.find((post) => post.id === normalizedId && !post.is_placeholder);
         if (!found) continue;
 
@@ -606,7 +667,7 @@ export default function StudioSection({
 
       return null;
     },
-    [rows]
+    [displayRows]
   );
 
   const fetchStudioPosts = useCallback(async () => {
@@ -746,10 +807,14 @@ export default function StudioSection({
   }, []);
 
   const getRowDuration = useCallback(
-    (rowIndex: number) => {
+    (rowIndex: number, rowItemCount: number) => {
       const durations = [28, 22, 25, 20, 24, 18, 26];
       const base = durations[rowIndex % durations.length];
-      return isMobile ? base * 1.45 : base;
+      const countMultiplier = Math.max(
+        1,
+        rowItemCount / STUDIO_COLUMNS_PER_ROW
+      );
+      return isMobile ? base * countMultiplier * 1.45 : base * countMultiplier;
     },
     [isMobile]
   );
@@ -883,22 +948,25 @@ export default function StudioSection({
     router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}#studio`, { scroll: false });
   }, [pathname, queryString, router]);
 
-  const renderRow = (rowIndex: number, rowRule: StudioRowAccessRule) => {
-    const rowItems = rows[rowIndex] ?? [];
+  const renderRow = (row: StudioDisplayRow, rowIndex: number) => {
+    const rowItems = row.posts ?? [];
     if (rowItems.length === 0) return null;
 
+    const rowRule = row.rowRule;
     const loopSeed = buildLoopSeed(rowItems);
     const duplicatedItems = [...loopSeed, ...loopSeed];
-    const isRowPaused = !isPlaying || hoveredRowIndex === rowIndex;
+    const isRowPaused = !isPlaying || hoveredRowId === row.rowId;
     const isRowLocked =
       rowRule.requiredLevel > 0 &&
       !viewerMembershipTierLoading &&
       viewerMembershipTierLevel < rowRule.requiredLevel;
 
     return (
-      <div key={`studio-row-${rowRule.key}`} className="space-y-2">
+      <div key={`studio-row-${row.rowId}`} className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 px-1">
-          <span className="text-[10px] uppercase tracking-[0.22em] text-white/40">{rowRule.rowLabel}</span>
+          <span className="text-[10px] uppercase tracking-[0.22em] text-white/40">
+            {row.rowLabel}
+          </span>
           <span
             className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] ${
               rowRule.requiredLevel === 0
@@ -921,15 +989,17 @@ export default function StudioSection({
 
         <div
           className="overflow-hidden"
-          onMouseEnter={() => setHoveredRowIndex(rowIndex)}
-          onMouseLeave={() => setHoveredRowIndex((prev) => (prev === rowIndex ? null : prev))}
+          onMouseEnter={() => setHoveredRowId(row.rowId)}
+          onMouseLeave={() =>
+            setHoveredRowId((prev) => (prev === row.rowId ? null : prev))
+          }
         >
           <div
             className="flex gap-4"
             style={{
               width: 'fit-content',
               animationName: 'studio-marquee-rtl',
-              animationDuration: `${getRowDuration(rowIndex)}s`,
+              animationDuration: `${getRowDuration(rowIndex, rowItems.length)}s`,
               animationTimingFunction: 'linear',
               animationIterationCount: 'infinite',
               animationPlayState: isRowPaused ? 'paused' : 'running',
@@ -1080,7 +1150,7 @@ export default function StudioSection({
 
         </div>
 
-        <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
+      <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
           {postsLoading ? (
             Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map((_, rowIndex) => (
               <div key={`studio-skeleton-row-${rowIndex}`} className="overflow-hidden">
@@ -1108,7 +1178,7 @@ export default function StudioSection({
                   {postsError}
                 </div>
               ) : null}
-              {STUDIO_ROW_ACCESS_RULES.map((rowRule, rowIndex) => renderRow(rowIndex, rowRule))}
+              {displayRows.map((row, rowIndex) => renderRow(row, rowIndex))}
             </>
           )}
         </div>
@@ -1119,7 +1189,7 @@ export default function StudioSection({
             onClick={togglePlayPause}
             className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={isPlaying ? '일시정지' : '재생'}
-            disabled={rows.every((row) => row.every((post) => post.is_placeholder))}
+            disabled={displayRows.every((row) => row.posts.every((post) => post.is_placeholder))}
           >
             {isPlaying ? (
               <Pause className="h-5 w-5 text-white" fill="white" />

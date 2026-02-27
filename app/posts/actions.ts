@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
 import { isAdminEmailValue, isAdminRoleValue } from '@/utils/service-posts';
+import { cleanupStudioPostMediaFromR2 } from '@/utils/studio-media-cleanup';
 
 const STUDIO_POSTS_TABLE = 'studio_posts';
 const STUDIO_BUCKET = 'studio';
@@ -117,6 +118,19 @@ const extractStudioStoragePath = (url: string | null | undefined) => {
 };
 
 const getAdminStorageClient = async () => {
+  const hasServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  if (!hasServiceRole || !hasUrl) return null;
+
+  try {
+    const { createAdminClient } = await import('@/utils/supabase/adminClient');
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+};
+
+const getAdminDbClient = async () => {
   const hasServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
   if (!hasServiceRole || !hasUrl) return null;
@@ -423,7 +437,7 @@ async function deleteStudioPostInternal(formData: FormData): Promise<ActionResul
     return { ok: false, message: '게시물을 찾을 수 없습니다.' };
   }
 
-  const { supabase, user, error } = await getAuthenticatedUser();
+  const { user, error } = await getAuthenticatedUser();
   if (!user) {
     return { ok: false, message: error ?? '로그인이 필요합니다.' };
   }
@@ -433,7 +447,20 @@ async function deleteStudioPostInternal(formData: FormData): Promise<ActionResul
     return { ok: false, message: message ?? '게시물을 찾을 수 없습니다.' };
   }
 
-  const { error: deleteError } = await (supabase as never)
+  const adminDbClient = await getAdminDbClient();
+  if (!adminDbClient) {
+    return {
+      ok: false,
+      message: '관리자 DB 설정이 없어 R2 미디어 정리를 진행할 수 없습니다.'
+    };
+  }
+
+  const cleanupResult = await cleanupStudioPostMediaFromR2(adminDbClient, postId);
+  if (!cleanupResult.ok) {
+    return { ok: false, message: cleanupResult.message ?? 'R2 미디어 정리에 실패했습니다.' };
+  }
+
+  const { error: deleteError } = await (adminDbClient as never)
     .from(STUDIO_POSTS_TABLE)
     .delete()
     .eq('id', postId)

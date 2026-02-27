@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 type R2Config = {
@@ -113,6 +118,58 @@ export async function signR2PutUrl(
   return getSignedUrl(client, command, {
     expiresIn: clampTtl(options.expiresIn, 60, 300, 300)
   });
+}
+
+export async function deleteR2Object(
+  key: string,
+  options?: { bucketName?: string }
+) {
+  const normalizedKey = key.trim();
+  if (!normalizedKey) {
+    throw new Error('Missing R2 object key');
+  }
+
+  const config = getR2Config();
+  const client = getR2Client();
+  const command = new DeleteObjectCommand({
+    Bucket: options?.bucketName?.trim() || config.bucketName,
+    Key: normalizedKey
+  });
+
+  await client.send(command);
+}
+
+export async function deleteR2Objects(
+  objects: Array<{ key: string; bucketName?: string | null }>
+) {
+  const deleted: Array<{ key: string; bucketName: string }> = [];
+  const failed: Array<{
+    key: string;
+    bucketName: string | null;
+    reason: string;
+  }> = [];
+
+  for (const object of objects) {
+    const key = object.key.trim();
+    const bucketName = object.bucketName?.trim() || null;
+    if (!key) continue;
+
+    try {
+      await deleteR2Object(key, { bucketName: bucketName || undefined });
+      deleted.push({ key, bucketName: bucketName || getR2Config().bucketName });
+    } catch (error) {
+      failed.push({
+        key,
+        bucketName,
+        reason: error instanceof Error ? error.message : 'Unknown R2 delete error'
+      });
+    }
+  }
+
+  return {
+    deleted,
+    failed
+  };
 }
 
 export const getDefaultR2BucketName = () => getR2Config().bucketName;

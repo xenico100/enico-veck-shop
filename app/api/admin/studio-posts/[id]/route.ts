@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminApiContext } from '@/utils/admin-api';
+import { cleanupStudioPostMediaFromR2 } from '@/utils/studio-media-cleanup';
 
 type RouteContext = {
   params: { id: string };
@@ -131,6 +132,18 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ message: '잘못된 게시글 ID입니다.' }, { status: 400 });
   }
 
+  const cleanupResult = await cleanupStudioPostMediaFromR2(adminClient, postId);
+  if (!cleanupResult.ok) {
+    return NextResponse.json(
+      {
+        message: cleanupResult.message ?? 'R2 미디어 정리에 실패했습니다.',
+        deleted_r2_objects: cleanupResult.deletedCount,
+        failed_r2_objects: cleanupResult.failed
+      },
+      { status: 500 }
+    );
+  }
+
   const { error } = await (adminClient as never).from('studio_posts').delete().eq('id', postId);
   if (error) {
     return NextResponse.json(
@@ -139,5 +152,5 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, deleted_r2_objects: cleanupResult.deletedCount });
 }
