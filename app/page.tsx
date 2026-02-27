@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 
 import Header from '../components/Header';
 import SideMenu from '../components/SideMenu';
@@ -48,7 +48,11 @@ export default function LandingPage() {
       <div id="home"><MainContent /></div>
       <div id="about"><AboutSection /></div>
       <div id="services"><ServicesSection onOpenCart={openCart} /></div>
-      <div id="studio"><StudioSection /></div>
+      <div id="studio">
+        <Suspense fallback={null}>
+          <StudioSection />
+        </Suspense>
+      </div>
 
       <Footer />
 
