@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, type DragEvent } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PillTab from '@/components/ui/PillTab';
@@ -16,6 +16,7 @@ import {
   isAdminUserLike,
   type ServicePost
 } from '@/utils/service-posts';
+import { extractServiceContentText } from '@/utils/service-content';
 
 const categories = ['모든 제품', '녹음', '믹스/마스터', '더빙/성우'];
 
@@ -106,6 +107,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createContentUploading, setCreateContentUploading] = useState(false);
+  const [createContentDragOver, setCreateContentDragOver] = useState(false);
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<ServiceCreateFormState>({
@@ -271,6 +274,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       paid_download_file: null,
       is_published: true
     });
+    setCreateContentDragOver(false);
+    setCreateContentUploading(false);
   };
 
   const handleCreateFormFieldChange = (
@@ -288,6 +293,72 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const handlePaidDownloadFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setCreateForm((prev) => ({ ...prev, paid_download_file: file }));
+  };
+
+  const appendServiceContentImageUrls = (current: string, imageUrls: string[]) => {
+    const normalizedUrls = imageUrls.map((url) => url.trim()).filter(Boolean);
+    if (normalizedUrls.length === 0) return current;
+    const suffix = normalizedUrls.join('\n');
+    const trimmed = current.trimEnd();
+    return trimmed ? `${trimmed}\n\n${suffix}` : suffix;
+  };
+
+  const uploadServiceContentImages = async (files: File[]) => {
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      throw new Error('이미지 파일만 드래그해서 업로드할 수 있습니다.');
+    }
+
+    const uploadForm = new FormData();
+    imageFiles.forEach((file) => uploadForm.append('files', file));
+
+    const uploadResponse = await fetch('/api/service-posts/upload', {
+      method: 'POST',
+      body: uploadForm
+    });
+    const uploadPayload = await uploadResponse.json().catch(() => ({}));
+    if (!uploadResponse.ok) {
+      throw new Error(uploadPayload?.message || '상세 내용 이미지 업로드에 실패했습니다.');
+    }
+
+    const uploadedImageUrls = Array.isArray(uploadPayload?.data?.image_urls)
+      ? (uploadPayload.data.image_urls as string[]).map((url) => String(url || '').trim()).filter(Boolean)
+      : [];
+
+    if (uploadedImageUrls.length === 0) {
+      throw new Error('업로드된 이미지 URL을 확인하지 못했습니다.');
+    }
+
+    return uploadedImageUrls;
+  };
+
+  const handleCreateContentDrop = async (event: DragEvent<HTMLTextAreaElement>) => {
+    event.preventDefault();
+    setCreateContentDragOver(false);
+
+    if (createSubmitting || createContentUploading) return;
+
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length === 0) return;
+
+    setCreateContentUploading(true);
+    setCreateError(null);
+    setCreateMessage(null);
+
+    try {
+      const uploadedImageUrls = await uploadServiceContentImages(files);
+      setCreateForm((prev) => ({
+        ...prev,
+        content: appendServiceContentImageUrls(prev.content, uploadedImageUrls)
+      }));
+      setCreateMessage(
+        `상세 내용에 이미지 ${uploadedImageUrls.length}개를 추가했습니다. (한 줄 이미지 URL 형식)`
+      );
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : '상세 내용 이미지 업로드에 실패했습니다.');
+    } finally {
+      setCreateContentUploading(false);
+    }
   };
 
   const uploadServicePaidFileToR2 = async (servicePostId: string, file: File) => {
@@ -330,6 +401,11 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     if (!isAdmin) return;
     if (!createForm.title.trim()) {
       setCreateError('제목을 입력해 주세요.');
+      setCreateMessage(null);
+      return;
+    }
+    if (createContentUploading) {
+      setCreateError('상세 내용 이미지 업로드가 끝난 뒤 게시글을 생성해 주세요.');
       setCreateMessage(null);
       return;
     }
@@ -395,7 +471,14 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.message || '게시글 생성에 실패했습니다.');
+        const serverMessage =
+          typeof payload?.error?.message === 'string' ? payload.error.message : null;
+        const serverDetails =
+          typeof payload?.error?.details === 'string' ? payload.error.details : null;
+        const mergedMessage = [payload?.message, serverMessage, serverDetails]
+          .filter((value) => typeof value === 'string' && value.trim().length > 0)
+          .join(' | ');
+        throw new Error(mergedMessage || '게시글 생성에 실패했습니다.');
       }
       createdServicePostId =
         payload?.data && typeof payload.data.id === 'string' ? payload.data.id : null;
@@ -711,7 +794,10 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
-              {!servicesLoading && filteredServices.map((service, index) => (
+              {!servicesLoading && filteredServices.map((service, index) => {
+                const previewDescription =
+                  extractServiceContentText(service.description) || '상세 설명이 준비 중입니다.';
+                return (
                 <div 
                   key={index} 
                   className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-white/10 transition-all duration-300 ${
@@ -743,7 +829,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                     <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
                     <p className="text-xs text-gray-500 mb-3">{service.subtitle}</p>
                     <p className="text-xs text-gray-400 leading-relaxed mb-4 whitespace-pre-line flex-1">
-                      {service.description}
+                      {previewDescription}
                     </p>
                     <p className="text-sm text-white mb-4">{service.price}</p>
                     
@@ -767,7 +853,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             
             {/* Right Arrow */}
@@ -791,7 +878,10 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
-              {!servicesLoading && filteredServices.map((service, index) => (
+              {!servicesLoading && filteredServices.map((service, index) => {
+                const previewDescription =
+                  extractServiceContentText(service.description) || '상세 설명이 준비 중입니다.';
+                return (
                 <div 
                   key={index} 
                   className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden transition-all duration-300 ${
@@ -822,7 +912,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                     <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
                     <p className="text-xs text-gray-500 mb-3">{service.subtitle}</p>
                     <p className="text-xs text-gray-400 leading-relaxed mb-4 whitespace-pre-line">
-                      {service.description}
+                      {previewDescription}
                     </p>
                     <p className="text-sm text-white mb-4">{service.price}</p>
                     
@@ -846,7 +936,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -855,7 +946,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         <div
           className="fixed inset-0 z-[72] flex items-center justify-center bg-black/70 p-4"
           onClick={() => {
-            if (createSubmitting) return;
+            if (createSubmitting || createContentUploading) return;
             setIsCreateModalOpen(false);
           }}
         >
@@ -876,7 +967,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
               <button
                 type="button"
                 className={adminCloseButtonClass}
-                onClick={() => !createSubmitting && setIsCreateModalOpen(false)}
+                onClick={() =>
+                  !(createSubmitting || createContentUploading) && setIsCreateModalOpen(false)
+                }
                 aria-label="작성 모달 닫기"
               >
                 <X className="h-4 w-4" />
@@ -939,12 +1032,29 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
               <div className="grid gap-2">
                 <label className={createLabelClass}>상세 내용</label>
                 <textarea
-                  className={`${createInputClass} min-h-32 resize-y`}
+                  className={`${createInputClass} min-h-32 resize-y ${
+                    createContentDragOver
+                      ? 'border-sky-300/50 bg-sky-500/10 ring-2 ring-sky-300/40'
+                      : ''
+                  }`}
                   value={createForm.content}
                   onChange={(e) => handleCreateFormFieldChange('content', e.target.value)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    if (!createContentDragOver) {
+                      setCreateContentDragOver(true);
+                    }
+                  }}
+                  onDragLeave={() => setCreateContentDragOver(false)}
+                  onDrop={(event) => void handleCreateContentDrop(event)}
                   placeholder="상세 설명"
-                  disabled={createSubmitting}
+                  disabled={createSubmitting || createContentUploading}
                 />
+                <p className="text-xs text-white/50">
+                  {createContentUploading
+                    ? '이미지 업로드 중... 완료되면 상세 내용에 URL이 자동 추가됩니다.'
+                    : '이미지를 이 칸으로 드래그하면 자동 업로드 후 상세 내용에 삽입됩니다.'}
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -1065,7 +1175,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
                   className={serviceSecondaryButtonClass}
-                  disabled={createSubmitting}
+                  disabled={createSubmitting || createContentUploading}
                 >
                   취소
                 </button>
@@ -1073,7 +1183,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   type="button"
                   onClick={handleSubmitCreatePost}
                   className={servicePrimaryButtonClass}
-                  disabled={createSubmitting}
+                  disabled={createSubmitting || createContentUploading}
                 >
                   {createSubmitting ? '저장 중…' : '게시글 생성'}
                 </button>

@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type DragEvent
+} from 'react';
 import OrderDetailModal from '@/components/OrderDetailModal';
 import StudioPostForm from '@/components/StudioPostForm';
 import StudioMediaAdminManager from '@/components/StudioMediaAdminManager';
@@ -153,6 +160,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     emptyServiceCreateDraft
   );
   const [serviceCreateSubmitting, setServiceCreateSubmitting] = useState(false);
+  const [serviceCreateContentUploading, setServiceCreateContentUploading] = useState(false);
+  const [serviceCreateContentDragOver, setServiceCreateContentDragOver] = useState(false);
+  const [serviceEditContentUploadingById, setServiceEditContentUploadingById] = useState<
+    Record<string, boolean>
+  >({});
+  const [serviceEditContentDragOverById, setServiceEditContentDragOverById] = useState<
+    Record<string, boolean>
+  >({});
   const [memberOrdersModalOpen, setMemberOrdersModalOpen] = useState(false);
   const [memberOrdersLoading, setMemberOrdersLoading] = useState(false);
   const [memberOrdersError, setMemberOrdersError] = useState<string | null>(null);
@@ -786,6 +801,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
 
   const resetServiceCreateDraft = () => {
     setServiceCreateDraft(emptyServiceCreateDraft());
+    setServiceCreateContentDragOver(false);
+    setServiceCreateContentUploading(false);
   };
 
   const handleServiceCreateFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -793,9 +810,121 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     handleServiceCreateDraftChange('files', files);
   };
 
+  const appendServiceContentImageUrls = (current: string, imageUrls: string[]) => {
+    const normalizedUrls = imageUrls.map((url) => url.trim()).filter(Boolean);
+    if (normalizedUrls.length === 0) return current;
+    const suffix = normalizedUrls.join('\n');
+    const trimmed = current.trimEnd();
+    return trimmed ? `${trimmed}\n\n${suffix}` : suffix;
+  };
+
+  const uploadServiceContentImages = async (files: File[]) => {
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      throw new Error('이미지 파일만 드래그해서 업로드할 수 있습니다.');
+    }
+
+    const uploadForm = new FormData();
+    imageFiles.forEach((file) => uploadForm.append('files', file));
+
+    const uploadResponse = await fetch('/api/service-posts/upload', {
+      method: 'POST',
+      body: uploadForm
+    });
+    const uploadPayload = await uploadResponse.json().catch(() => ({}));
+    if (!uploadResponse.ok) {
+      throw new Error(uploadPayload?.message || 'Service 상세 이미지 업로드에 실패했습니다.');
+    }
+
+    const uploadedImageUrls = Array.isArray(uploadPayload?.data?.image_urls)
+      ? (uploadPayload.data.image_urls as string[]).map((url) => String(url || '').trim()).filter(Boolean)
+      : [];
+
+    if (uploadedImageUrls.length === 0) {
+      throw new Error('업로드된 이미지 URL을 확인하지 못했습니다.');
+    }
+
+    return uploadedImageUrls;
+  };
+
+  const handleServiceCreateContentDrop = async (event: DragEvent<HTMLTextAreaElement>) => {
+    event.preventDefault();
+    setServiceCreateContentDragOver(false);
+
+    if (serviceCreateSubmitting || serviceCreateContentUploading) return;
+
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length === 0) return;
+
+    setServiceCreateContentUploading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const uploadedImageUrls = await uploadServiceContentImages(files);
+      setServiceCreateDraft((prev) => ({
+        ...prev,
+        content: appendServiceContentImageUrls(prev.content, uploadedImageUrls)
+      }));
+      setMessage(
+        `상세 내용에 이미지 ${uploadedImageUrls.length}개를 추가했습니다. (한 줄 이미지 URL 형식)`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '상세 내용 이미지 업로드에 실패했습니다.');
+    } finally {
+      setServiceCreateContentUploading(false);
+    }
+  };
+
+  const handleServiceEditContentDrop = async (
+    postId: string,
+    event: DragEvent<HTMLTextAreaElement>
+  ) => {
+    event.preventDefault();
+    setServiceEditContentDragOverById((prev) => ({ ...prev, [postId]: false }));
+
+    if (busyServicePostId === postId || serviceEditContentUploadingById[postId]) return;
+
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length === 0) return;
+
+    setServiceEditContentUploadingById((prev) => ({ ...prev, [postId]: true }));
+    setError(null);
+    setMessage(null);
+
+    try {
+      const uploadedImageUrls = await uploadServiceContentImages(files);
+      setServicePostDrafts((prev) => ({
+        ...prev,
+        [postId]: {
+          title: prev[postId]?.title ?? '',
+          category: prev[postId]?.category ?? '',
+          summary: prev[postId]?.summary ?? '',
+          content: appendServiceContentImageUrls(prev[postId]?.content ?? '', uploadedImageUrls),
+          price_from: prev[postId]?.price_from ?? '',
+          currency: prev[postId]?.currency ?? 'KRW',
+          is_published: prev[postId]?.is_published ?? true,
+          image_urls_text: prev[postId]?.image_urls_text ?? ''
+        }
+      }));
+      setMessage(
+        `상세 내용에 이미지 ${uploadedImageUrls.length}개를 추가했습니다. (한 줄 이미지 URL 형식)`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '상세 내용 이미지 업로드에 실패했습니다.');
+    } finally {
+      setServiceEditContentUploadingById((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
   const handleServicePostCreate = async () => {
     if (!serviceCreateDraft.title.trim()) {
       setError('Service 게시글 제목을 입력해 주세요.');
+      setMessage(null);
+      return;
+    }
+    if (serviceCreateContentUploading) {
+      setError('상세 내용 이미지 업로드가 끝난 뒤 게시글을 업로드해 주세요.');
       setMessage(null);
       return;
     }
@@ -844,7 +973,14 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.message || 'Service 게시글 생성에 실패했습니다.');
+        const serverMessage =
+          typeof payload?.error?.message === 'string' ? payload.error.message : null;
+        const serverDetails =
+          typeof payload?.error?.details === 'string' ? payload.error.details : null;
+        const mergedMessage = [payload?.message, serverMessage, serverDetails]
+          .filter((value) => typeof value === 'string' && value.trim().length > 0)
+          .join(' | ');
+        throw new Error(mergedMessage || 'Service 게시글 생성에 실패했습니다.');
       }
 
       const created = payload?.data as ServicePost | undefined;
@@ -881,6 +1017,11 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const handleServicePostSave = async (post: ServicePost) => {
     const draft = servicePostDrafts[post.id];
     if (!draft) return;
+    if (serviceEditContentUploadingById[post.id]) {
+      setError('상세 내용 이미지 업로드가 끝난 뒤 저장해 주세요.');
+      setMessage(null);
+      return;
+    }
 
     setBusyServicePostId(post.id);
     setError(null);
@@ -1497,7 +1638,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 variant="primary"
                 size="sm"
                 className={appleFontClass}
-                disabled={serviceCreateSubmitting}
+                disabled={serviceCreateSubmitting || serviceCreateContentUploading}
               >
                 {serviceCreateOpen ? '업로드 폼 닫기' : '새 Service 게시글'}
               </ActionButton>
@@ -1590,12 +1731,29 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                     상세 내용
                   </label>
                   <textarea
-                    className={`${inputClass} min-h-28 resize-y`}
+                    className={`${inputClass} min-h-28 resize-y ${
+                      serviceCreateContentDragOver
+                        ? 'border-sky-300/50 bg-sky-500/10 ring-2 ring-sky-300/40'
+                        : ''
+                    }`}
                     value={serviceCreateDraft.content}
                     onChange={(e) => handleServiceCreateDraftChange('content', e.target.value)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      if (!serviceCreateContentDragOver) {
+                        setServiceCreateContentDragOver(true);
+                      }
+                    }}
+                    onDragLeave={() => setServiceCreateContentDragOver(false)}
+                    onDrop={(event) => void handleServiceCreateContentDrop(event)}
                     placeholder="상세 설명"
-                    disabled={serviceCreateSubmitting}
+                    disabled={serviceCreateSubmitting || serviceCreateContentUploading}
                   />
+                  <p className="text-xs text-white/45">
+                    {serviceCreateContentUploading
+                      ? '이미지 업로드 중... 완료되면 상세 내용에 URL이 자동 추가됩니다.'
+                      : '이미지를 이 칸으로 드래그하면 자동 업로드 후 상세 내용에 삽입됩니다.'}
+                  </p>
                 </div>
 
                 <div className="grid gap-2">
@@ -1655,7 +1813,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                     variant="secondary"
                     size="sm"
                     className={appleFontClass}
-                    disabled={serviceCreateSubmitting}
+                    disabled={serviceCreateSubmitting || serviceCreateContentUploading}
                   >
                     취소
                   </ActionButton>
@@ -1665,7 +1823,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                     variant="primary"
                     size="sm"
                     className={appleFontClass}
-                    disabled={serviceCreateSubmitting}
+                    disabled={serviceCreateSubmitting || serviceCreateContentUploading}
                   >
                     {serviceCreateSubmitting ? '업로드 중…' : '게시글 업로드'}
                   </ActionButton>
@@ -1683,6 +1841,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
               servicePosts.map((post) => {
                 const isBusy = busyServicePostId === post.id;
                 const isEditing = editingServicePostId === post.id;
+                const isContentUploading = Boolean(serviceEditContentUploadingById[post.id]);
+                const isContentDragOver = Boolean(serviceEditContentDragOverById[post.id]);
                 const draft = servicePostDrafts[post.id] ?? {
                   title: post.title ?? '',
                   category: post.category ?? '',
@@ -1799,13 +1959,38 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             상세 내용
                           </label>
                           <textarea
-                            className={`${inputClass} min-h-28 resize-y`}
+                            className={`${inputClass} min-h-28 resize-y ${
+                              isContentDragOver
+                                ? 'border-sky-300/50 bg-sky-500/10 ring-2 ring-sky-300/40'
+                                : ''
+                            }`}
                             value={draft.content}
                             onChange={(e) =>
                               handleServicePostDraftChange(post.id, 'content', e.target.value)
                             }
-                            disabled={isBusy}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              if (!isContentDragOver) {
+                                setServiceEditContentDragOverById((prev) => ({
+                                  ...prev,
+                                  [post.id]: true
+                                }));
+                              }
+                            }}
+                            onDragLeave={() =>
+                              setServiceEditContentDragOverById((prev) => ({
+                                ...prev,
+                                [post.id]: false
+                              }))
+                            }
+                            onDrop={(event) => void handleServiceEditContentDrop(post.id, event)}
+                            disabled={isBusy || isContentUploading}
                           />
+                          <p className="text-xs text-white/45">
+                            {isContentUploading
+                              ? '이미지 업로드 중... 완료되면 상세 내용에 URL이 자동 추가됩니다.'
+                              : '이미지를 이 칸으로 드래그하면 자동 업로드 후 상세 내용에 삽입됩니다.'}
+                          </p>
                         </div>
 
                         <div className="grid gap-2">
@@ -1842,7 +2027,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             variant="primary"
                             size="sm"
                             className={appleFontClass}
-                            disabled={isBusy}
+                            disabled={isBusy || isContentUploading}
                           >
                             {isBusy ? '저장 중…' : '저장'}
                           </ActionButton>

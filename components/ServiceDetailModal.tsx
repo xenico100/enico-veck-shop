@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { parseServiceContentBlocks } from '@/utils/service-content';
 
 interface ServiceDetailModalProps {
   isOpen: boolean;
@@ -95,6 +96,7 @@ export function ServiceDetailModal({
     service?.isPaidFile
       ? formatMoneyExact?.(service.filePriceAmount, service.currency) ?? service?.price ?? null
       : null;
+  const contentBlocks = parseServiceContentBlocks(service?.description ?? '');
 
   return (
     <>
@@ -205,9 +207,36 @@ export function ServiceDetailModal({
 
             {/* Description */}
             <div className="mb-6">
-              <p className="whitespace-pre-line text-sm leading-relaxed text-gray-300">
-                {service.description}
-              </p>
+              <div className="space-y-4">
+                {contentBlocks.length === 0 ? (
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-gray-300">
+                    상세 설명이 준비 중입니다.
+                  </p>
+                ) : (
+                  contentBlocks.map((block, index) =>
+                    block.type === 'image' ? (
+                      <figure
+                        key={`service-content-image-${index}`}
+                        className="overflow-hidden rounded-xl border border-white/10 bg-black/30"
+                      >
+                        <img
+                          src={block.value}
+                          alt={`${service.title} 상세 이미지 ${index + 1}`}
+                          loading="lazy"
+                          className="h-auto max-h-[520px] w-full object-contain"
+                        />
+                      </figure>
+                    ) : (
+                      <p
+                        key={`service-content-text-${index}`}
+                        className="whitespace-pre-line text-sm leading-relaxed text-gray-300"
+                      >
+                        {block.value}
+                      </p>
+                    )
+                  )
+                )}
+              </div>
               {service.subtitle ? (
                 <p className="mt-3 text-xs text-gray-500">
                   {service.subtitle}

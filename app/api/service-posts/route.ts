@@ -153,8 +153,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
-  const payload = {
-    ...(body.is_paid_file !== undefined ? { is_paid_file: Boolean(body.is_paid_file) } : {}),
+  const isPaidFilePost = body.is_paid_file === true;
+  const basePayload = {
     title,
     slug: body.slug?.trim() || slugifyServicePost(title) || null,
     category: body.category?.trim() || null,
@@ -162,26 +162,50 @@ export async function POST(request: Request) {
     content: body.content?.trim() || null,
     price_from: typeof body.price_from === 'number' ? body.price_from : null,
     currency: body.currency?.trim() || 'KRW',
-    file_price:
-      typeof body.file_price === 'number' && Number.isFinite(body.file_price)
-        ? body.file_price
-        : null,
-    download_file_url: body.download_file_url?.trim() || null,
     image_urls: normalizeImageUrls(body.image_urls),
     is_published: Boolean(body.is_published ?? true),
     created_by: user.id
   };
+  const payload = {
+    ...basePayload,
+    ...(isPaidFilePost
+      ? {
+          is_paid_file: true,
+          file_price:
+            typeof body.file_price === 'number' && Number.isFinite(body.file_price)
+              ? body.file_price
+              : null,
+          download_file_url: body.download_file_url?.trim() || null
+        }
+      : {})
+  };
 
-  if (!payload.is_paid_file) {
-    payload.file_price = null;
-    payload.download_file_url = null;
-  }
-
-  const { data, error } = await (supabase as never)
+  let { data, error } = await (supabase as never)
     .from(SERVICE_POSTS_TABLE)
     .insert(payload)
     .select('*')
     .single();
+
+  if (error && hasMissingPaidFileColumnsError(error)) {
+    if (isPaidFilePost) {
+      return NextResponse.json(
+        {
+          message:
+            '현재 DB에 유료 파일 컬럼이 없어 유료 서비스 게시글 생성이 불가능합니다. 최신 SQL 마이그레이션을 적용해 주세요.',
+          error
+        },
+        { status: 500 }
+      );
+    }
+
+    const fallbackResult = await (supabase as never)
+      .from(SERVICE_POSTS_TABLE)
+      .insert(basePayload)
+      .select('*')
+      .single();
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) {
     return NextResponse.json(
