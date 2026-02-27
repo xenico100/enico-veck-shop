@@ -22,6 +22,19 @@ const SHIPPING_STATUSES = new Set([
   'canceled'
 ]);
 
+const hasMissingOrdersMetadataColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return (
+    combined.includes('orders.metadata') ||
+    (combined.includes('metadata') && combined.includes('orders'))
+  );
+};
+
 async function parseBody(request: Request): Promise<OrderShippingPatchBody | null> {
   try {
     return (await request.json()) as OrderShippingPatchBody;
@@ -84,25 +97,43 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     updates.shipping_status = trackingNumber ? 'shipped' : 'preparing';
   }
 
-  const selectColumns =
+  const selectColumnsWithMetadata =
     'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status,metadata';
+  const selectColumnsWithoutMetadata =
+    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status';
 
-  const { data, error } = await (adminClient as any)
-    .from('orders')
-    .update(updates)
-    .eq('id', orderId)
-    .select(selectColumns)
-    .single();
+  const updateOrder = async (selectColumns: string) =>
+    await (adminClient as any)
+      .from('orders')
+      .update(updates)
+      .eq('id', orderId)
+      .select(selectColumns)
+      .single();
 
-  if (error) {
+  let updateResult = await updateOrder(selectColumnsWithMetadata);
+  if (
+    updateResult.error &&
+    hasMissingOrdersMetadataColumnError(updateResult.error)
+  ) {
+    const fallbackResult = await updateOrder(selectColumnsWithoutMetadata);
+    updateResult = {
+      ...fallbackResult,
+      data:
+        fallbackResult.data && typeof fallbackResult.data === 'object'
+          ? { ...(fallbackResult.data as Record<string, unknown>), metadata: null }
+          : fallbackResult.data
+    };
+  }
+
+  if (updateResult.error) {
     return NextResponse.json(
-      { message: error.message || '배송 정보 저장에 실패했습니다.' },
+      { message: updateResult.error.message || '배송 정보 저장에 실패했습니다.' },
       { status: 500 }
     );
   }
 
   return NextResponse.json({
     ok: true,
-    data: normalizeOrderRecord(data)
+    data: normalizeOrderRecord(updateResult.data)
   });
 }
