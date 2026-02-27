@@ -10,6 +10,7 @@ import {
   getOrderStatusBadgeClass,
   getShippingStatusBadgeClass,
   mapOrderStatusLabel,
+  mapPaymentMethodLabel,
   mapShippingStatusLabel,
   type OrderRecord
 } from '@/utils/orders';
@@ -186,6 +187,26 @@ export default function OrderDetailModal({
                   <span className="text-lg font-semibold text-white">
                     {formatOrderMoney(order.amount_total, order.currency || 'KRW')}
                   </span>
+                </div>
+                <div className="mt-2">
+                  <InfoRow label="결제수단" value={mapPaymentMethodLabel(order.payment_method)} />
+                  {order.payment_method === 'bank_transfer' ? (
+                    <>
+                      <InfoRow
+                        label="입금 상태"
+                        value={order.bank_transfer?.transfer_status || 'awaiting'}
+                      />
+                      <InfoRow
+                        label="입금 계좌"
+                        value={
+                          order.bank_transfer?.bank_name && order.bank_transfer?.account_number
+                            ? `${order.bank_transfer.bank_name} ${order.bank_transfer.account_number}`
+                            : null
+                        }
+                      />
+                      <InfoRow label="예금주" value={order.bank_transfer?.account_holder || null} />
+                    </>
+                  ) : null}
                 </div>
               </div>
 

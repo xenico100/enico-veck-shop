@@ -14,6 +14,17 @@ export type OrderCustomerContact = {
   address: string;
 };
 
+export type OrderPaymentMethod = 'paypal' | 'bank_transfer' | 'stripe' | 'unknown';
+
+export type OrderBankTransferInfo = {
+  bank_name: string | null;
+  account_number: string | null;
+  account_holder: string | null;
+  notice: string | null;
+  transfer_status: string | null;
+  requested_at: string | null;
+};
+
 export type OrderRecord = {
   id: string;
   user_id: string | null;
@@ -29,6 +40,8 @@ export type OrderRecord = {
   customer_contact: OrderCustomerContact | null;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
+  payment_method: OrderPaymentMethod;
+  bank_transfer: OrderBankTransferInfo | null;
   items: OrderItemSnapshot[];
   metadata: Record<string, unknown> | null;
 };
@@ -71,6 +84,64 @@ const normalizeCustomerContact = (value: unknown): OrderCustomerContact | null =
   };
 };
 
+const normalizeBankTransferInfo = (
+  shippingAddress: Record<string, unknown> | null,
+  metadata: Record<string, unknown> | null
+): OrderBankTransferInfo | null => {
+  const fromShipping =
+    shippingAddress?.bank_transfer &&
+    typeof shippingAddress.bank_transfer === 'object' &&
+    !Array.isArray(shippingAddress.bank_transfer)
+      ? (shippingAddress.bank_transfer as Record<string, unknown>)
+      : null;
+  const fromMetadata =
+    metadata?.bank_transfer &&
+    typeof metadata.bank_transfer === 'object' &&
+    !Array.isArray(metadata.bank_transfer)
+      ? (metadata.bank_transfer as Record<string, unknown>)
+      : null;
+  const row = fromShipping ?? fromMetadata;
+  if (!row) return null;
+
+  const asTextOrNull = (value: unknown) =>
+    typeof value === 'string' && value.trim() ? value.trim() : null;
+
+  return {
+    bank_name: asTextOrNull(row.bank_name),
+    account_number: asTextOrNull(row.account_number),
+    account_holder: asTextOrNull(row.account_holder),
+    notice: asTextOrNull(row.notice),
+    transfer_status: asTextOrNull(row.transfer_status),
+    requested_at: asTextOrNull(row.requested_at)
+  };
+};
+
+const resolvePaymentMethod = (row: Record<string, unknown>, metadata: Record<string, unknown> | null) => {
+  const raw =
+    typeof metadata?.payment_method === 'string' ? metadata.payment_method.trim().toLowerCase() : '';
+
+  if (raw === 'bank_transfer') return 'bank_transfer' satisfies OrderPaymentMethod;
+  if (raw === 'paypal') return 'paypal' satisfies OrderPaymentMethod;
+  if (raw === 'stripe') return 'stripe' satisfies OrderPaymentMethod;
+
+  if (typeof row.paypal_order_id === 'string' && row.paypal_order_id.trim()) {
+    return 'paypal' satisfies OrderPaymentMethod;
+  }
+  if (typeof row.stripe_checkout_session_id === 'string' && row.stripe_checkout_session_id.trim()) {
+    return 'stripe' satisfies OrderPaymentMethod;
+  }
+  if (normalizeBankTransferInfo(
+    row.shipping_address && typeof row.shipping_address === 'object' && !Array.isArray(row.shipping_address)
+      ? (row.shipping_address as Record<string, unknown>)
+      : null,
+    metadata
+  )) {
+    return 'bank_transfer' satisfies OrderPaymentMethod;
+  }
+
+  return 'unknown' satisfies OrderPaymentMethod;
+};
+
 export const normalizeOrderRecord = (value: unknown): OrderRecord | null => {
   if (!value || typeof value !== 'object') return null;
   const row = value as Record<string, unknown>;
@@ -82,9 +153,15 @@ export const normalizeOrderRecord = (value: unknown): OrderRecord | null => {
     row.shipping_address && typeof row.shipping_address === 'object' && !Array.isArray(row.shipping_address)
       ? (row.shipping_address as Record<string, unknown>)
       : null;
+  const metadata =
+    row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : null;
   const customerContact = normalizeCustomerContact(
     shippingAddress?.customer_contact ?? shippingAddress?.guest_contact ?? null
   );
+  const bankTransfer = normalizeBankTransferInfo(shippingAddress, metadata);
+  const paymentMethod = resolvePaymentMethod(row, metadata);
 
   return {
     id: row.id,
@@ -103,10 +180,10 @@ export const normalizeOrderRecord = (value: unknown): OrderRecord | null => {
       typeof row.stripe_checkout_session_id === 'string' ? row.stripe_checkout_session_id : null,
     stripe_payment_intent_id:
       typeof row.stripe_payment_intent_id === 'string' ? row.stripe_payment_intent_id : null,
+    payment_method: paymentMethod,
+    bank_transfer: bankTransfer,
     items: normalizeOrderItems(row.items),
-    metadata: row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-      ? (row.metadata as Record<string, unknown>)
-      : null
+    metadata
   };
 };
 
@@ -142,6 +219,14 @@ export const mapOrderStatusLabel = (status?: string | null) => {
   if (normalized === 'canceled') return '취소됨';
   if (normalized === 'refunded') return '환불됨';
   return status || '상태 미상';
+};
+
+export const mapPaymentMethodLabel = (method?: OrderPaymentMethod | string | null) => {
+  const normalized = (method ?? '').toLowerCase();
+  if (normalized === 'paypal') return 'PayPal';
+  if (normalized === 'bank_transfer') return '계좌이체';
+  if (normalized === 'stripe') return 'Stripe';
+  return '결제수단 미상';
 };
 
 export const getOrderStatusBadgeClass = (status?: string | null) => {

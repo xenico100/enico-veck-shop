@@ -10,6 +10,7 @@ import QuantityStepper from '@/components/ui/QuantityStepper';
 import { useToast } from '@/components/ui/Toasts/use-toast';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
+import { getBankTransferInfo } from '@/utils/bank-transfer';
 
 const appleFontClass =
   '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -38,6 +39,22 @@ type GuestCheckoutForm = {
   address: string;
 };
 
+type BankTransferOrderResponse = {
+  message?: string;
+  data?: {
+    id?: string;
+  };
+  bankTransfer?: {
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
+    notice?: string;
+    orderRef?: string | null;
+    accountConfigured?: boolean;
+    depositorName?: string;
+  };
+};
+
 function GlassCloseButton({
   onClick,
   label
@@ -62,6 +79,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer'>('paypal');
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [profilePrefillLoading, setProfilePrefillLoading] = useState(false);
@@ -76,6 +94,16 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const totalKRW = useMemo(() => Math.round(total), [total]);
   const usdTotal = useMemo(() => Number((totalKRW / USD_EXCHANGE_RATE).toFixed(2)), [totalKRW]);
   const usdTotalLabel = useMemo(() => usdTotal.toFixed(2), [usdTotal]);
+  const bankTransferInfo = useMemo(() => getBankTransferInfo(), []);
+  const hasConfiguredBankAccount = useMemo(
+    () =>
+      Boolean(
+        bankTransferInfo.bankName &&
+          bankTransferInfo.accountNumber &&
+          bankTransferInfo.accountHolder
+      ),
+    [bankTransferInfo]
+  );
   const cartSnapshot = useMemo(
     () =>
       items.map((item) => ({
@@ -94,6 +122,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   useEffect(() => {
     if (!open) {
       setIsCheckingOut(false);
+      setPaymentMethod('paypal');
       setCheckoutError(null);
       setIsSavingOrder(false);
     }
@@ -195,6 +224,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
     if (items.length === 0) return;
 
     setCheckoutError(null);
+    setPaymentMethod('paypal');
     setIsCheckingOut(true);
   };
 
@@ -297,6 +327,61 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       window.alert(`결제 처리 실패: ${message}`);
       toast({
         title: '결제 처리 실패',
+        description: message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  const handleBankTransferCheckout = async () => {
+    try {
+      setIsSavingOrder(true);
+      setCheckoutError(null);
+
+      const customerPayload = getCustomerPayload();
+      if ('error' in customerPayload) {
+        throw new Error(customerPayload.error);
+      }
+
+      const response = await fetch('/api/orders/bank-transfer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          totalKRW,
+          items: cartSnapshot,
+          customerContact: customerPayload.value
+        })
+      });
+      const payload = (await response.json().catch(() => ({}))) as BankTransferOrderResponse;
+      if (!response.ok) {
+        throw new Error(payload?.message || '계좌이체 주문 저장에 실패했습니다.');
+      }
+
+      clear();
+      setIsCheckingOut(false);
+      setCheckoutError(null);
+      onOpenChange(false);
+
+      const orderRef = payload?.bankTransfer?.orderRef;
+      toast({
+        title: '계좌이체 주문이 접수되었습니다',
+        description: orderRef
+          ? `주문 참조번호 ${orderRef} 로 입금 후 관리자 확인을 기다려 주세요.`
+          : '입금 후 관리자 확인을 기다려 주세요.'
+      });
+    } catch (error) {
+      console.error('[BankTransfer] checkout failed', error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : '계좌이체 주문 처리 중 오류가 발생했습니다.';
+      setCheckoutError(message);
+      toast({
+        title: '계좌이체 주문 실패',
         description: message,
         variant: 'destructive'
       });
@@ -472,19 +557,44 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
 
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
                   <div className="mb-3">
-                    <h3 className="text-sm font-semibold tracking-tight text-white">간편결제</h3>
-                    <p className="mt-1 text-xs text-white/55">PayPal (USD 결제)부터 지원합니다.</p>
+                    <h3 className="text-sm font-semibold tracking-tight text-white">결제수단 선택</h3>
+                    <p className="mt-1 text-xs text-white/55">PayPal 또는 계좌이체를 선택할 수 있습니다.</p>
+                  </div>
+
+                  <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('paypal')}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        paymentMethod === 'paypal'
+                          ? 'border-white/35 bg-white/15 text-white'
+                          : 'border-white/15 bg-black/20 text-white/70 hover:border-white/25'
+                      }`}
+                    >
+                      PayPal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('bank_transfer')}
+                      className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                        paymentMethod === 'bank_transfer'
+                          ? 'border-emerald-300/40 bg-emerald-300/15 text-emerald-100'
+                          : 'border-white/15 bg-black/20 text-white/70 hover:border-white/25'
+                      }`}
+                    >
+                      계좌이체
+                    </button>
                   </div>
 
                   {hasUnpricedItems ? (
                     <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
-                      가격 정보가 없는 항목이 있어 PayPal 결제를 진행할 수 없습니다.
+                      가격 정보가 없는 항목이 있어 결제를 진행할 수 없습니다.
                     </div>
                   ) : totalKRW <= 0 ? (
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-white/70">
                       결제 가능한 금액이 없습니다.
                     </div>
-                  ) : (
+                  ) : paymentMethod === 'paypal' ? (
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                       <PaypalButton
                         buttonProps={{
@@ -583,6 +693,41 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           회원정보에서 핸드폰 번호/주소를 불러오는 중...
                         </p>
                       ) : null}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 p-3">
+                      <p className="text-sm font-semibold text-emerald-100">계좌이체 안내</p>
+                      {hasConfiguredBankAccount ? (
+                        <>
+                          <p className="mt-2 text-sm text-emerald-50">
+                            은행: {bankTransferInfo.bankName}
+                          </p>
+                          <p className="mt-1 text-sm text-emerald-50">
+                            계좌번호: {bankTransferInfo.accountNumber}
+                          </p>
+                          <p className="mt-1 text-sm text-emerald-50">
+                            예금주: {bankTransferInfo.accountHolder}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-2 text-sm text-amber-100">
+                          계좌 정보가 아직 설정되지 않았습니다. 관리자에게 문의해 주세요.
+                        </p>
+                      )}
+                      <p className="mt-2 text-xs text-emerald-50/90">
+                        {bankTransferInfo.notice}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void handleBankTransferCheckout()}
+                        disabled={isSavingOrder}
+                        className="mt-3 w-full rounded-xl border border-emerald-200/40 bg-emerald-300/20 px-3 py-2.5 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-300/30 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSavingOrder ? '주문 접수 중...' : '계좌이체 주문 접수'}
+                      </button>
+                      <p className="mt-2 text-xs text-emerald-50/80">
+                        입금 확인 전까지 주문 상태는 결제 대기로 표시됩니다.
+                      </p>
                     </div>
                   )}
                 </div>

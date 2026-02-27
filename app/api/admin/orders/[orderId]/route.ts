@@ -85,7 +85,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   const selectColumns =
-    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status';
+    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status,metadata';
 
   const { data, error } = await (adminClient as any)
     .from('orders')

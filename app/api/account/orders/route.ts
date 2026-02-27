@@ -16,7 +16,7 @@ export async function GET() {
   const { data, error } = await (supabase as any)
     .from('orders')
     .select(
-      'id,user_id,status,currency,amount_total,created_at,paypal_order_id,shipping_address,tracking_number,shipping_carrier,shipping_status,items'
+      'id,user_id,status,currency,amount_total,created_at,paypal_order_id,shipping_address,tracking_number,shipping_carrier,shipping_status,items,metadata'
     )
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { createClient } from '@/utils/supabase/server';
+import { sendAdminSalesNotification } from '@/utils/admin-sales-notifier';
 
 export const runtime = 'nodejs';
 
@@ -410,7 +411,11 @@ export async function POST(request: Request) {
     shipping_status: 'preparing',
     shipping_address: shippingAddressJson,
     tracking_number: null,
-    items
+    items,
+    metadata: {
+      payment_method: 'paypal',
+      paid_at: new Date().toISOString()
+    }
   };
 
   console.info('[orders/paypal] supabase client', {
@@ -432,7 +437,7 @@ export async function POST(request: Request) {
 
   let insertResult;
   const selectColumns =
-    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status';
+    'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status,metadata';
   const writeOrder = async (dbClient: any) =>
     paypalOrderIdForLookup
       ? await dbClient
@@ -592,6 +597,32 @@ export async function POST(request: Request) {
     orderId: savedOrderId,
     paypalOrderId: paypalOrderIdForLookup,
     items
+  });
+
+  const notificationItems = items.map((item) => ({
+    title: typeof item.title === 'string' ? item.title : '상품명 미상',
+    quantity: Number(item.quantity ?? 1),
+    price:
+      typeof item.price === 'number' && Number.isFinite(item.price)
+        ? item.price
+        : null,
+    currency:
+      typeof item.currency === 'string' ? item.currency : resolvedCurrency
+  }));
+  await sendAdminSalesNotification({
+    eventLabel: '새 상품 주문 접수',
+    paymentMethod: 'PayPal',
+    orderId: savedOrderId,
+    items: notificationItems,
+    customer: {
+      name: customerContact.name,
+      email: customerContact.email,
+      phone: customerContact.phone,
+      address: customerContact.address
+    },
+    amountTotal: resolvedAmountTotal,
+    currency: resolvedCurrency,
+    note: isGuestOrder ? '비회원 주문' : '회원 주문'
   });
 
   return NextResponse.json({

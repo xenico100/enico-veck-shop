@@ -3,6 +3,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import type { PayPalSubscription } from '@/utils/paypal';
+import { sendAdminSalesNotification } from '@/utils/admin-sales-notifier';
 
 type AdminClient = SupabaseClient;
 
@@ -47,6 +48,54 @@ const asIsoOrNull = (value: unknown) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString();
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const getText = (record: Record<string, unknown> | null, key: string) => {
+  const value = record?.[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+};
+
+const getSubscriberName = (subscription: PayPalSubscription) => {
+  const givenName = subscription.subscriber?.name?.given_name?.trim() || '';
+  const surname = subscription.subscriber?.name?.surname?.trim() || '';
+  const fullName = `${givenName} ${surname}`.trim();
+  return fullName || null;
+};
+
+const getSubscriberPhone = (subscription: PayPalSubscription) => {
+  const subscriber = asRecord(subscription.subscriber);
+  const direct = getText(subscriber, 'phone');
+  if (direct) return direct;
+
+  const phone = asRecord(subscriber?.phone);
+  const phoneNumber = asRecord(phone?.phone_number);
+  const countryCode = getText(phoneNumber, 'country_code');
+  const nationalNumber = getText(phoneNumber, 'national_number');
+  const joined = [countryCode, nationalNumber].filter(Boolean).join(' ');
+  return joined || null;
+};
+
+const getSubscriberAddress = (subscription: PayPalSubscription) => {
+  const subscriptionRecord = asRecord(subscription);
+  const subscriber = asRecord(subscriptionRecord?.subscriber);
+  const shippingAddress = asRecord(subscriber?.shipping_address);
+  const address = asRecord(shippingAddress?.address);
+
+  const parts = [
+    getText(address, 'address_line_1'),
+    getText(address, 'address_line_2'),
+    getText(address, 'admin_area_2'),
+    getText(address, 'admin_area_1'),
+    getText(address, 'postal_code'),
+    getText(address, 'country_code')
+  ].filter(Boolean) as string[];
+
+  return parts.length > 0 ? parts.join(', ') : null;
 };
 
 const extractCurrentPeriodEnd = (subscription: PayPalSubscription) =>
@@ -242,6 +291,7 @@ export async function upsertPayPalSubscriptionSnapshot(
   }
 
   const existing = (existingRow ?? null) as PayPalSubscriptionRow | null;
+  const wasActiveSubscription = isActiveStudioSubscriptionStatus(existing?.status);
   const userId = customUserId ?? existing?.user_id ?? null;
   const planId = planSnapshot.id ?? existing?.plan_id ?? null;
   const status = incomingStatus ?? existing?.status ?? null;
@@ -296,6 +346,69 @@ export async function upsertPayPalSubscriptionSnapshot(
   const hasActiveSubscription = isActiveStudioSubscriptionStatus(status);
   if (userId) {
     await upsertStudioAccess(userId, hasActiveSubscription, admin);
+  }
+
+  if (hasActiveSubscription && !wasActiveSubscription) {
+    let profileName: string | null = null;
+    let profilePhone: string | null = null;
+    let profileAddress: string | null = null;
+    let profileEmail: string | null = null;
+
+    if (userId) {
+      try {
+        const { data: profile } = await (admin as any)
+          .from('users')
+          .select('name,full_name,phone,address')
+          .eq('id', userId)
+          .maybeSingle();
+
+        profileName =
+          (typeof profile?.name === 'string' && profile.name.trim()) ||
+          (typeof profile?.full_name === 'string' && profile.full_name.trim()) ||
+          null;
+        profilePhone =
+          typeof profile?.phone === 'string' && profile.phone.trim()
+            ? profile.phone.trim()
+            : null;
+        profileAddress =
+          typeof profile?.address === 'string' && profile.address.trim()
+            ? profile.address.trim()
+            : null;
+      } catch (profileError) {
+        console.warn('[studio-subscription] profile lookup for sales email failed', profileError);
+      }
+
+      try {
+        const { data: authUserResult } = await (admin as any).auth.admin.getUserById(userId);
+        profileEmail = authUserResult?.user?.email?.trim() || null;
+      } catch (authUserError) {
+        console.warn('[studio-subscription] auth user lookup for sales email failed', authUserError);
+      }
+    }
+
+    await sendAdminSalesNotification({
+      eventLabel: '멤버십 가입 완료 (PayPal)',
+      paymentMethod: 'PayPal 정기결제',
+      subscriptionId,
+      items: [
+        {
+          title: planSnapshot.name || 'Studio 멤버십',
+          quantity: 1,
+          price: planSnapshot.amount,
+          currency: planSnapshot.currency || null
+        }
+      ],
+      customer: {
+        name: getSubscriberName(subscription) || profileName || null,
+        email: subscription.subscriber?.email_address || profileEmail || null,
+        phone: getSubscriberPhone(subscription) || profilePhone || null,
+        address: getSubscriberAddress(subscription) || profileAddress || null
+      },
+      amountTotal: planSnapshot.amount,
+      currency: planSnapshot.currency || null,
+      note: planId ? `plan_id=${planId}` : null,
+      occurredAt: eventAt
+    });
   }
 
   return {

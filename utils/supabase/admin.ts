@@ -2,6 +2,7 @@ import 'server-only';
 
 import { toDateTime } from '@/utils/helpers';
 import { stripe } from '@/utils/stripe/config';
+import { sendAdminSalesNotification } from '@/utils/admin-sales-notifier';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import type { Database, Tables, TablesInsert } from 'types_db';
@@ -407,6 +408,13 @@ const upsertOrderRecordFromCheckoutSession = async (
   const fallbackItems = buildFallbackOrderItemsFromSessionMetadata(session);
   const items = stripeItems.length > 0 ? stripeItems : fallbackItems;
 
+  const { data: existingOrder } = await (supabaseAdmin as never)
+    .from('orders')
+    .select('id')
+    .eq('stripe_checkout_session_id', session.id)
+    .maybeSingle();
+  const isNewOrder = !existingOrder?.id;
+
   const orderPayload = {
     user_id: userId,
     status: session.payment_status === 'paid' ? 'paid' : 'pending',
@@ -425,6 +433,75 @@ const upsertOrderRecordFromCheckoutSession = async (
 
   if (error) {
     throw new Error(`Order insert/update failed: ${error.message}`);
+  }
+
+  if (isNewOrder) {
+    let insertedOrderId: string | null = null;
+    let profileName: string | null = null;
+    let profilePhone: string | null = null;
+    let profileAddress: string | null = null;
+    let profileEmail: string | null = null;
+
+    try {
+      const { data: orderRow } = await (supabaseAdmin as never)
+        .from('orders')
+        .select('id')
+        .eq('stripe_checkout_session_id', session.id)
+        .maybeSingle();
+      insertedOrderId =
+        orderRow && typeof orderRow.id === 'string' ? orderRow.id : null;
+    } catch (orderLookupError) {
+      console.warn('[stripe-order] inserted order lookup for sales email failed', orderLookupError);
+    }
+
+    try {
+      const { data: profile } = await (supabaseAdmin as never)
+        .from('users')
+        .select('name,full_name,phone,address')
+        .eq('id', userId)
+        .maybeSingle();
+      profileName =
+        (typeof profile?.name === 'string' && profile.name.trim()) ||
+        (typeof profile?.full_name === 'string' && profile.full_name.trim()) ||
+        null;
+      profilePhone =
+        typeof profile?.phone === 'string' && profile.phone.trim()
+          ? profile.phone.trim()
+          : null;
+      profileAddress =
+        typeof profile?.address === 'string' && profile.address.trim()
+          ? profile.address.trim()
+          : null;
+    } catch (profileError) {
+      console.warn('[stripe-order] profile lookup for sales email failed', profileError);
+    }
+
+    try {
+      const { data: authUserResult } = await supabaseAdmin.auth.admin.getUserById(userId);
+      profileEmail = authUserResult?.user?.email?.trim() || null;
+    } catch (authUserError) {
+      console.warn('[stripe-order] auth user lookup for sales email failed', authUserError);
+    }
+
+    await sendAdminSalesNotification({
+      eventLabel: '새 상품 주문 접수 (Stripe)',
+      paymentMethod: 'Stripe',
+      orderId: insertedOrderId,
+      items: items.map((item) => ({
+        title: item.title,
+        quantity: item.qty,
+        price: item.price,
+        currency: orderPayload.currency
+      })),
+      customer: {
+        name: profileName,
+        email: profileEmail,
+        phone: profilePhone,
+        address: profileAddress
+      },
+      amountTotal: orderPayload.amount_total,
+      currency: orderPayload.currency
+    });
   }
 
   console.log(`Order inserted/updated from checkout session: ${session.id}`);
