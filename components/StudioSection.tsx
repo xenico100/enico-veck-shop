@@ -718,6 +718,7 @@ function StudioShortsModal({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const slideRefs = useRef<Array<HTMLElement | null>>([]);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+  const wheelLockedRef = useRef(false);
 
   useEffect(() => {
     mediaByPostIdRef.current = mediaByPostId;
@@ -906,6 +907,37 @@ function StudioShortsModal({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeIndex, open, scrollToIndex]);
+
+  useEffect(() => {
+    if (!open) return;
+    const root = scrollContainerRef.current;
+    if (!root) return;
+
+    const onWheel = (event: WheelEvent) => {
+      const delta = event.deltaY;
+      if (Math.abs(delta) < 20) return;
+
+      event.preventDefault();
+      if (wheelLockedRef.current) return;
+
+      wheelLockedRef.current = true;
+      if (delta > 0) {
+        scrollToIndex(activeIndex + 1);
+      } else {
+        scrollToIndex(activeIndex - 1);
+      }
+
+      window.setTimeout(() => {
+        wheelLockedRef.current = false;
+      }, 420);
+    };
+
+    root.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      root.removeEventListener('wheel', onWheel);
+      wheelLockedRef.current = false;
+    };
   }, [activeIndex, open, scrollToIndex]);
 
   return (
