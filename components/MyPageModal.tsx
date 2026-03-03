@@ -65,6 +65,53 @@ type CommunityPostItem = {
   comment_count: number;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const parseMembershipAmount = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
+const getMembershipRemainingDays = (nextBillingAt: string | null | undefined) => {
+  if (!nextBillingAt) return null;
+  const parsed = Date.parse(nextBillingAt);
+  if (!Number.isFinite(parsed)) return null;
+  const diff = parsed - Date.now();
+  if (diff <= 0) return 0;
+  return Math.ceil(diff / DAY_MS);
+};
+
+const formatMembershipPayment = (
+  amountRaw: number | string | null | undefined,
+  currencyRaw: string | null | undefined
+) => {
+  const amount = parseMembershipAmount(amountRaw);
+  const currency = (currencyRaw || '').trim().toUpperCase();
+  if (amount == null || !currency) return null;
+
+  try {
+    return new Intl.NumberFormat(currency === 'KRW' ? 'ko-KR' : 'en-US', {
+      style: 'currency',
+      currency
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString('ko-KR')} ${currency}`;
+  }
+};
+
+const formatMembershipInterval = (interval: string | null | undefined) => {
+  const value = (interval || '').trim().toLowerCase();
+  if (value === 'month' || value === 'monthly') return '월';
+  if (value === 'year' || value === 'yearly') return '년';
+  if (value === 'week' || value === 'weekly') return '주';
+  if (value === 'day' || value === 'daily') return '일';
+  return null;
+};
+
 const toCommunityExcerpt = (content: string) => {
   const normalized = content.replace(/\s+/g, ' ').trim();
   if (!normalized) return '';
@@ -119,6 +166,23 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/25';
   const labelClass =
     `text-xs uppercase tracking-[0.16em] text-white/50 ${appleFontClass}`;
+  const membershipRemainingDays = useMemo(
+    () => getMembershipRemainingDays(membershipSummary?.next_billing_at),
+    [membershipSummary?.next_billing_at]
+  );
+  const membershipPaymentLabel = useMemo(
+    () => formatMembershipPayment(membershipSummary?.plan_amount, membershipSummary?.plan_currency),
+    [membershipSummary?.plan_amount, membershipSummary?.plan_currency]
+  );
+  const membershipIntervalLabel = useMemo(
+    () => formatMembershipInterval(membershipSummary?.plan_interval),
+    [membershipSummary?.plan_interval]
+  );
+  const membershipBillingLabel = useMemo(() => {
+    if (!membershipPaymentLabel) return null;
+    if (!membershipIntervalLabel) return membershipPaymentLabel;
+    return `${membershipPaymentLabel} / ${membershipIntervalLabel}`;
+  }, [membershipPaymentLabel, membershipIntervalLabel]);
 
   useEffect(() => {
     if (!open) return;
@@ -732,6 +796,15 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                       </p>
                       <p className="mt-1 text-sm text-white/85">
                         결제예정일: {membershipSummary?.next_billing_at ? formatOrderDate(membershipSummary.next_billing_at) : '-'}
+                      </p>
+                      <p className="mt-1 text-sm text-white/85">
+                        남은 기간:{' '}
+                        {membershipSummary?.has_active_subscription && typeof membershipRemainingDays === 'number'
+                          ? `${membershipRemainingDays}일`
+                          : '-'}
+                      </p>
+                      <p className="mt-1 text-sm text-white/85">
+                        다음 결제 금액: {membershipBillingLabel ?? '-'}
                       </p>
                     </div>
                   </div>
