@@ -8,6 +8,7 @@ import {
   normalizeRequiredMembershipLevel,
   resolveStudioMembershipTierLevel
 } from '@/utils/studio-membership-tier';
+import { isAdminUserLike } from '@/utils/service-posts';
 
 export const runtime = 'nodejs';
 
@@ -152,6 +153,17 @@ export async function GET(request: Request, { params }: RouteContext) {
     }
 
     const adminClient = createAdminClient();
+    const isAdminViewer = isAdminUserLike({
+      email: user?.email ?? null,
+      app_metadata:
+        user?.app_metadata && typeof user.app_metadata === 'object'
+          ? (user.app_metadata as Record<string, unknown>)
+          : null,
+      user_metadata:
+        user?.user_metadata && typeof user.user_metadata === 'object'
+          ? (user.user_metadata as Record<string, unknown>)
+          : null
+    });
     let viewerMembershipTierLevel = 0;
     if (user?.id) {
       const cachedTier = getCachedMembershipTierLevel(user.id);
@@ -221,10 +233,12 @@ export async function GET(request: Request, { params }: RouteContext) {
       );
       setCachedPostRequiredLevel(studioPostId, requiredMembershipLevel);
     }
-    const canViewMembersOnlyMedia = hasStudioMembershipTierAccess(
-      viewerMembershipTierLevel,
-      requiredMembershipLevel
-    );
+    const canViewMembersOnlyMedia =
+      isAdminViewer ||
+      hasStudioMembershipTierAccess(
+        viewerMembershipTierLevel,
+        requiredMembershipLevel
+      );
 
     let mediaQuery = await (adminClient as any)
       .from('studio_media')
@@ -245,7 +259,10 @@ export async function GET(request: Request, { params }: RouteContext) {
       mediaQuery = {
         ...fallbackQuery,
         data: Array.isArray(fallbackQuery.data)
-          ? fallbackQuery.data.map((row) => ({ ...row, is_free_public: false }))
+          ? fallbackQuery.data.map((row: Record<string, unknown>) => ({
+              ...row,
+              is_free_public: false
+            }))
           : fallbackQuery.data
       };
     }
@@ -294,6 +311,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         has_active_subscription: hasActiveSubscription,
         viewer_membership_tier_level: viewerMembershipTierLevel,
         required_membership_level: requiredMembershipLevel,
+        is_admin_viewer: isAdminViewer,
         showing_public_only: !canViewMembersOnlyMedia,
         preview_mode: previewMode
       }

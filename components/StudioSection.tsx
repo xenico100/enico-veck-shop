@@ -731,6 +731,7 @@ function StudioShortsModal({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const slideRefs = useRef<Array<HTMLElement | null>>([]);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+  const discoveringVideoRef = useRef(false);
   const wheelLockedRef = useRef(false);
   const previousNonZeroVolumeRef = useRef(SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME);
 
@@ -747,8 +748,10 @@ function StudioShortsModal({
     (video: HTMLVideoElement | null) => {
       if (!video) return;
       const clampedVolume = clampShortsVolume(volume);
+      const shouldMute = muted || clampedVolume <= 0;
+      video.defaultMuted = shouldMute;
       video.volume = clampedVolume;
-      video.muted = muted || clampedVolume <= 0;
+      video.muted = shouldMute;
     },
     [muted, volume]
   );
@@ -763,6 +766,7 @@ function StudioShortsModal({
         setAutoplayMutedFallback(false);
         return true;
       } catch {
+        video.defaultMuted = true;
         video.muted = true;
         setMuted(true);
         setAutoplayMutedFallback(true);
@@ -807,14 +811,14 @@ function StudioShortsModal({
 
   const loadPostMedia = useCallback(async (postId: string) => {
     const normalizedPostId = postId.trim();
-    if (!normalizedPostId) return;
+    if (!normalizedPostId) return false;
 
     const current = mediaByPostIdRef.current[normalizedPostId];
     const retryCount = current?.retryCount ?? 0;
-    if (current?.loading) return;
-    if (current?.videoUrl) return;
-    if (current?.loaded && !current.error) return;
-    if (retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY) return;
+    if (current?.loading) return false;
+    if (current?.videoUrl) return true;
+    if (current?.loaded && !current.error) return false;
+    if (retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY) return false;
 
     setMediaByPostId((prev) => ({
       ...prev,
@@ -873,6 +877,7 @@ function StudioShortsModal({
           retryCount: firstVideo ? retryCount : retryCount + 1
         }
       }));
+      return Boolean(firstVideo);
     } catch (error) {
       setMediaByPostId((prev) => ({
         ...prev,
@@ -888,16 +893,18 @@ function StudioShortsModal({
           retryCount: retryCount + 1
         }
       }));
+      return false;
     }
   }, []);
 
   const scrollToIndex = useCallback(
-    (nextIndex: number) => {
+    (nextIndex: number, behavior: ScrollBehavior = 'smooth') => {
       if (shortsPosts.length === 0) return;
       const clamped = Math.max(0, Math.min(shortsPosts.length - 1, nextIndex));
       const target = slideRefs.current[clamped];
       if (!target) return;
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveIndex((prev) => (prev === clamped ? prev : clamped));
+      target.scrollIntoView({ behavior, block: 'start' });
     },
     [shortsPosts.length]
   );
@@ -991,6 +998,59 @@ function StudioShortsModal({
 
     return () => window.clearTimeout(retryTimer);
   }, [activeIndex, loadPostMedia, mediaByPostId, open, shortsPosts]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+    const activePost = shortsPosts[activeIndex];
+    if (!activePost) return;
+
+    const activeMediaState = mediaByPostId[activePost.id];
+    if (activeMediaState?.videoUrl) return;
+
+    const cachedVideoIndex = shortsPosts.findIndex((post) =>
+      Boolean(mediaByPostIdRef.current[post.id]?.videoUrl)
+    );
+    if (cachedVideoIndex >= 0 && cachedVideoIndex !== activeIndex) {
+      scrollToIndex(cachedVideoIndex, 'auto');
+      return;
+    }
+
+    if (discoveringVideoRef.current) return;
+    let cancelled = false;
+
+    const discoverFirstPlayableVideo = async () => {
+      discoveringVideoRef.current = true;
+      try {
+        for (let index = 0; index < shortsPosts.length; index += 1) {
+          if (cancelled) return;
+
+          const postId = shortsPosts[index].id;
+          if (mediaByPostIdRef.current[postId]?.videoUrl) {
+            if (index !== activeIndex) {
+              scrollToIndex(index, 'auto');
+            }
+            return;
+          }
+
+          const hasVideo = await loadPostMedia(postId);
+          if (cancelled) return;
+          if (hasVideo) {
+            if (index !== activeIndex) {
+              scrollToIndex(index, 'auto');
+            }
+            return;
+          }
+        }
+      } finally {
+        discoveringVideoRef.current = false;
+      }
+    };
+
+    void discoverFirstPlayableVideo();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeIndex, loadPostMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
