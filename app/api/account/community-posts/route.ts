@@ -10,7 +10,13 @@ const hasMissingTableError = (error: unknown, tableName: string) => {
   const details = typeof row.details === 'string' ? row.details : '';
   const hint = typeof row.hint === 'string' ? row.hint : '';
   const combined = `${message} ${details} ${hint}`.toLowerCase();
-  return combined.includes('does not exist') && combined.includes(tableName.toLowerCase());
+  const includesTable =
+    combined.includes(tableName.toLowerCase()) || combined.includes(`public.${tableName.toLowerCase()}`);
+  const isMissingTableError =
+    combined.includes('does not exist') ||
+    combined.includes('schema cache') ||
+    combined.includes('could not find the table');
+  return includesTable && isMissingTableError;
 };
 
 type CommunityPostRow = {

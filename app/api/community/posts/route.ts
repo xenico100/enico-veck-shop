@@ -31,7 +31,18 @@ const parseDbErrorMessage = (error: unknown) => {
   const hint = typeof row.hint === 'string' ? row.hint : '';
   const combined = `${message} ${details} ${hint}`.toLowerCase();
 
-  if (combined.includes('community_posts') && combined.includes('does not exist')) {
+  const missingCommunityPostsTable =
+    (combined.includes('community_posts') || combined.includes('public.community_posts')) &&
+    (combined.includes('does not exist') ||
+      combined.includes('schema cache') ||
+      combined.includes('could not find the table'));
+  const missingCommunityCommentsTable =
+    (combined.includes('community_comments') || combined.includes('public.community_comments')) &&
+    (combined.includes('does not exist') ||
+      combined.includes('schema cache') ||
+      combined.includes('could not find the table'));
+
+  if (missingCommunityPostsTable || missingCommunityCommentsTable) {
     return '커뮤니티 DB가 아직 적용되지 않았습니다. 관리자에게 community_board 마이그레이션 적용을 요청해 주세요.';
   }
   if (combined.includes('row-level security') || combined.includes('permission denied')) {
@@ -87,7 +98,7 @@ export async function GET() {
       .limit(200);
 
     if (postsError) {
-      return jsonError('게시글을 불러오지 못했습니다.', 500, postsError);
+      return jsonError(parseDbErrorMessage(postsError) || '게시글을 불러오지 못했습니다.', 500, postsError);
     }
 
     const posts = Array.isArray(postsData)
@@ -121,7 +132,7 @@ export async function GET() {
         .limit(2000);
 
       if (commentsError) {
-        return jsonError('댓글을 불러오지 못했습니다.', 500, commentsError);
+        return jsonError(parseDbErrorMessage(commentsError) || '댓글을 불러오지 못했습니다.', 500, commentsError);
       }
 
       comments = Array.isArray(commentsData)
