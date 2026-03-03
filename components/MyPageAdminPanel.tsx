@@ -76,6 +76,30 @@ type AdminStudioPost = {
   required_membership_level: number | null;
 };
 
+type AdminCommunityComment = {
+  id: string;
+  userId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type AdminCommunityPost = {
+  id: string;
+  userId: string;
+  authorName: string;
+  title: string;
+  content: string;
+  isNotice: boolean;
+  likeCount: number;
+  dislikeCount: number;
+  dailyLikeCount: number;
+  createdAt: string;
+  updatedAt: string;
+  comments: AdminCommunityComment[];
+};
+
 type DashboardResponse = {
   data?: {
     members?: AdminMember[];
@@ -92,6 +116,25 @@ type DashboardResponse = {
   message?: string;
 };
 
+type CommunityPostsResponse = {
+  message?: string;
+  setupRequired?: boolean;
+  data?: AdminCommunityPost[];
+};
+
+type CommunityPostMutationResponse = {
+  message?: string;
+  data?: {
+    id?: string;
+    userId?: string;
+    title?: string;
+    content?: string;
+    isNotice?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+};
+
 type DailyMetricsSummary = {
   date: string;
   timezone: string;
@@ -106,7 +149,12 @@ type Props = {
   enabled: boolean;
 };
 
-type AdminTabKey = 'members' | 'service-posts' | 'studio-posts' | 'daily-metrics';
+type AdminTabKey =
+  | 'members'
+  | 'service-posts'
+  | 'studio-posts'
+  | 'community-posts'
+  | 'daily-metrics';
 
 type MemberOrdersTabKey = 'shipping_todo' | 'shipping_done';
 type StudioSectionTabKey = 'list' | 'create' | 'media';
@@ -233,6 +281,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [studioPosts, setStudioPosts] = useState<AdminStudioPost[]>([]);
   const [servicePosts, setServicePosts] = useState<ServicePost[]>([]);
+  const [communityPosts, setCommunityPosts] = useState<AdminCommunityPost[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetricsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -246,8 +295,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   >({});
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
+  const [busyCommunityPostId, setBusyCommunityPostId] = useState<string | null>(null);
   const [busyServicePostId, setBusyServicePostId] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingCommunityPostId, setEditingCommunityPostId] = useState<string | null>(null);
   const [editingServicePostId, setEditingServicePostId] = useState<string | null>(null);
   const [editingMemberProfileId, setEditingMemberProfileId] = useState<string | null>(null);
   const [postDrafts, setPostDrafts] = useState<
@@ -263,6 +314,16 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   >({});
   const [servicePostDrafts, setServicePostDrafts] = useState<
     Record<string, AdminServicePostDraft>
+  >({});
+  const [communityPostDrafts, setCommunityPostDrafts] = useState<
+    Record<
+      string,
+      {
+        title: string;
+        content: string;
+        isNotice: boolean;
+      }
+    >
   >({});
   const [serviceCreateOpen, setServiceCreateOpen] = useState(false);
   const [serviceCreateDraft, setServiceCreateDraft] = useState<AdminServiceCreateDraft>(
@@ -439,6 +500,30 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     );
   }, []);
 
+  const hydrateCommunityPosts = useCallback((rows: AdminCommunityPost[]) => {
+    const normalizedRows = rows.map((row) => ({
+      ...row,
+      likeCount: Number.isFinite(row.likeCount) ? row.likeCount : 0,
+      dislikeCount: Number.isFinite(row.dislikeCount) ? row.dislikeCount : 0,
+      dailyLikeCount: Number.isFinite(row.dailyLikeCount) ? row.dailyLikeCount : 0,
+      comments: Array.isArray(row.comments) ? row.comments : []
+    }));
+
+    setCommunityPosts(normalizedRows);
+    setCommunityPostDrafts(
+      Object.fromEntries(
+        normalizedRows.map((post) => [
+          post.id,
+          {
+            title: post.title ?? '',
+            content: post.content ?? '',
+            isNotice: Boolean(post.isNotice)
+          }
+        ])
+      )
+    );
+  }, []);
+
   const fetchDashboard = useCallback(async () => {
     if (!enabled) return;
     setLoading(true);
@@ -446,9 +531,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     setMessage(null);
 
     try {
-      const [dashboardResponse, servicePostsResponse] = await Promise.all([
+      const [dashboardResponse, servicePostsResponse, communityPostsResponse] = await Promise.all([
         fetch('/api/admin/dashboard', { cache: 'no-store' }),
-        fetch('/api/service-posts?all=true', { cache: 'no-store' })
+        fetch('/api/service-posts?all=true', { cache: 'no-store' }),
+        fetch('/api/community/posts', { cache: 'no-store' })
       ]);
 
       const dashboardPayload = (await dashboardResponse.json()) as DashboardResponse;
@@ -459,9 +545,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       const warningMessages = Object.values(dashboardPayload?.warnings ?? {})
         .map((value) => (typeof value === 'string' ? value.trim() : ''))
         .filter(Boolean);
-      if (warningMessages.length > 0) {
-        setMessage(`일부 관리자 데이터가 제한적으로 로드되었습니다. ${warningMessages[0]}`);
-      }
+      const nonFatalWarnings = [...warningMessages];
 
       const servicePayload = await servicePostsResponse.json().catch(() => ({}));
       if (!servicePostsResponse.ok) {
@@ -471,12 +555,38 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         ? (servicePayload.data as ServicePost[])
         : [];
       hydrateServicePosts(serviceRows);
+
+      const communityPayload = (await communityPostsResponse.json().catch(() => ({}))) as CommunityPostsResponse;
+      if (!communityPostsResponse.ok) {
+        const communityError =
+          typeof communityPayload?.message === 'string' && communityPayload.message.trim()
+            ? communityPayload.message.trim()
+            : '커뮤니티 게시글을 불러오지 못했습니다.';
+        nonFatalWarnings.push(communityError);
+        hydrateCommunityPosts([]);
+      } else {
+        const communityRows = Array.isArray(communityPayload?.data)
+          ? (communityPayload.data as AdminCommunityPost[])
+          : [];
+        hydrateCommunityPosts(communityRows);
+        if (
+          communityPayload.setupRequired &&
+          typeof communityPayload.message === 'string' &&
+          communityPayload.message.trim()
+        ) {
+          nonFatalWarnings.push(communityPayload.message.trim());
+        }
+      }
+
+      if (nonFatalWarnings.length > 0) {
+        setMessage(`일부 관리자 데이터가 제한적으로 로드되었습니다. ${nonFatalWarnings[0]}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '관리자 데이터를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
-  }, [enabled, hydrateFromResponse, hydrateServicePosts]);
+  }, [enabled, hydrateCommunityPosts, hydrateFromResponse, hydrateServicePosts]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -493,6 +603,10 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const servicePostCountLabel = useMemo(
     () => `${servicePosts.length}개`,
     [servicePosts.length]
+  );
+  const communityPostCountLabel = useMemo(
+    () => `${communityPosts.length}개`,
+    [communityPosts.length]
   );
   const dailyMetricsPostingRateLabel = useMemo(() => {
     if (!dailyMetrics) return '0.0%';
@@ -878,6 +992,122 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     }
   };
 
+  const handleCommunityPostDraftChange = (
+    postId: string,
+    key: 'title' | 'content' | 'isNotice',
+    value: string | boolean
+  ) => {
+    setCommunityPostDrafts((prev) => ({
+      ...prev,
+      [postId]: {
+        title: prev[postId]?.title ?? '',
+        content: prev[postId]?.content ?? '',
+        isNotice: Boolean(prev[postId]?.isNotice),
+        [key]: value
+      } as { title: string; content: string; isNotice: boolean }
+    }));
+  };
+
+  const handleCommunityPostSave = async (post: AdminCommunityPost) => {
+    const draft = communityPostDrafts[post.id] ?? {
+      title: post.title,
+      content: post.content,
+      isNotice: Boolean(post.isNotice)
+    };
+
+    if (!draft.title.trim() || !draft.content.trim()) {
+      setError('제목과 내용을 입력해 주세요.');
+      setMessage(null);
+      return;
+    }
+
+    setBusyCommunityPostId(post.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/community/posts/${encodeURIComponent(post.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: draft.title.trim(),
+          content: draft.content.trim(),
+          isNotice: Boolean(draft.isNotice)
+        })
+      });
+      const payload = (await response.json().catch(() => ({}))) as CommunityPostMutationResponse;
+      if (!response.ok) {
+        throw new Error(payload?.message || '커뮤니티 게시글 수정에 실패했습니다.');
+      }
+
+      const updated = payload?.data;
+      setCommunityPosts((prev) =>
+        prev.map((row) =>
+          row.id === post.id
+            ? {
+                ...row,
+                title: typeof updated?.title === 'string' ? updated.title : draft.title.trim(),
+                content: typeof updated?.content === 'string' ? updated.content : draft.content.trim(),
+                isNotice:
+                  typeof updated?.isNotice === 'boolean'
+                    ? updated.isNotice
+                    : Boolean(draft.isNotice),
+                updatedAt:
+                  typeof updated?.updatedAt === 'string' && updated.updatedAt
+                    ? updated.updatedAt
+                    : row.updatedAt
+              }
+            : row
+        )
+      );
+      setCommunityPostDrafts((prev) => ({
+        ...prev,
+        [post.id]: {
+          title: typeof updated?.title === 'string' ? updated.title : draft.title.trim(),
+          content: typeof updated?.content === 'string' ? updated.content : draft.content.trim(),
+          isNotice:
+            typeof updated?.isNotice === 'boolean' ? updated.isNotice : Boolean(draft.isNotice)
+        }
+      }));
+      setEditingCommunityPostId(null);
+      setMessage('커뮤니티 게시글을 수정했습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '커뮤니티 게시글 수정에 실패했습니다.');
+    } finally {
+      setBusyCommunityPostId(null);
+    }
+  };
+
+  const handleCommunityPostDelete = async (post: AdminCommunityPost) => {
+    if (!window.confirm(`"${post.title}" 커뮤니티 게시글을 삭제할까요?`)) return;
+
+    setBusyCommunityPostId(post.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/community/posts/${encodeURIComponent(post.id)}`, {
+        method: 'DELETE'
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || '커뮤니티 게시글 삭제에 실패했습니다.');
+      }
+
+      setCommunityPosts((prev) => prev.filter((row) => row.id !== post.id));
+      setCommunityPostDrafts((prev) => {
+        const next = { ...prev };
+        delete next[post.id];
+        return next;
+      });
+      setMessage('커뮤니티 게시글을 삭제했습니다.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '커뮤니티 게시글 삭제에 실패했습니다.');
+    } finally {
+      setBusyCommunityPostId(null);
+    }
+  };
+
   const handleServicePostDraftChange = (
     postId: string,
     key: keyof AdminServicePostDraft,
@@ -1253,6 +1483,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
             { key: 'members', label: `회원 관리 (${memberCountLabel})` },
             { key: 'service-posts', label: `서비스 섹션 관리 (${servicePostCountLabel})` },
             { key: 'studio-posts', label: `스튜디오 섹션 관리 (${studioPostCountLabel})` },
+            { key: 'community-posts', label: `커뮤니티 게시글 관리 (${communityPostCountLabel})` },
             { key: 'daily-metrics', label: '일일데이터' }
           ].map((tab) => (
             <PillTab
@@ -1804,6 +2035,154 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           enabled={enabled}
           onRequestCreatePost={() => setStudioSectionTab('create')}
         />
+      )}
+
+      {activeTab === 'community-posts' && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">커뮤니티 게시글 관리</p>
+              <p className="text-xs text-white/55">
+                공지/일반글 내용을 수정하거나 불필요한 게시글을 삭제할 수 있습니다.
+              </p>
+            </div>
+            <ActionButton
+              type="button"
+              onClick={fetchDashboard}
+              variant="secondary"
+              size="sm"
+              className={appleFontClass}
+              disabled={loading}
+            >
+              새로고침
+            </ActionButton>
+          </div>
+
+          <div className="space-y-3">
+            {communityPosts.length === 0 && !loading ? (
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+                등록된 커뮤니티 게시글이 없습니다.
+              </div>
+            ) : (
+              communityPosts.map((post) => {
+                const isBusy = busyCommunityPostId === post.id;
+                const isEditing = editingCommunityPostId === post.id;
+                const draft = communityPostDrafts[post.id] ?? {
+                  title: post.title,
+                  content: post.content,
+                  isNotice: Boolean(post.isNotice)
+                };
+
+                return (
+                  <div key={post.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {post.isNotice && (
+                            <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-400/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                              Notice
+                            </span>
+                          )}
+                          <p className="truncate text-sm font-medium text-white">{post.title}</p>
+                        </div>
+                        <p className="mt-1 text-xs text-white/55">
+                          작성자: {post.authorName} · 작성일 {formatDate(post.createdAt)}
+                        </p>
+                        <p className="mt-1 text-xs text-white/45">
+                          좋아요 {post.likeCount} · 싫어요 {post.dislikeCount} · 댓글 {post.comments.length}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs text-white/45">{post.content}</p>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <ActionButton
+                          type="button"
+                          onClick={() =>
+                            setEditingCommunityPostId((prev) => (prev === post.id ? null : post.id))
+                          }
+                          variant="secondary"
+                          size="sm"
+                          className={appleFontClass}
+                          disabled={isBusy}
+                        >
+                          {isEditing ? '닫기' : '수정'}
+                        </ActionButton>
+                        <ActionButton
+                          type="button"
+                          onClick={() => void handleCommunityPostDelete(post)}
+                          variant="destructive"
+                          size="sm"
+                          className={appleFontClass}
+                          disabled={isBusy}
+                        >
+                          삭제
+                        </ActionButton>
+                      </div>
+                    </div>
+
+                    {isEditing && (
+                      <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            제목
+                          </label>
+                          <input
+                            className={inputClass}
+                            value={draft.title}
+                            onChange={(e) =>
+                              handleCommunityPostDraftChange(post.id, 'title', e.target.value)
+                            }
+                            disabled={isBusy}
+                          />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                            내용
+                          </label>
+                          <textarea
+                            className={`${inputClass} min-h-28 resize-y`}
+                            value={draft.content}
+                            onChange={(e) =>
+                              handleCommunityPostDraftChange(post.id, 'content', e.target.value)
+                            }
+                            disabled={isBusy}
+                          />
+                        </div>
+
+                        <label className="inline-flex items-center gap-2 text-sm text-amber-100">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(draft.isNotice)}
+                            onChange={(e) =>
+                              handleCommunityPostDraftChange(post.id, 'isNotice', e.target.checked)
+                            }
+                            className="h-4 w-4"
+                            disabled={isBusy}
+                          />
+                          공지로 설정
+                        </label>
+
+                        <div className="flex justify-end">
+                          <ActionButton
+                            type="button"
+                            onClick={() => void handleCommunityPostSave(post)}
+                            variant="primary"
+                            size="sm"
+                            className={appleFontClass}
+                            disabled={isBusy}
+                          >
+                            {isBusy ? '저장 중…' : '저장'}
+                          </ActionButton>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       )}
 
       {activeTab === 'service-posts' && (
