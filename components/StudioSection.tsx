@@ -746,8 +746,7 @@ function StudioShortsModal({
 
     try {
       const response = await fetch(
-        `/api/studio/media/${encodeURIComponent(normalizedPostId)}`,
-        { cache: 'no-store' }
+        `/api/studio/media/${encodeURIComponent(normalizedPostId)}?preview=1`
       );
       const payload = (await response
         .json()
