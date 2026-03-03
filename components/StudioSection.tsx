@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  type ChangeEvent,
   type FormEvent,
   useCallback,
   useEffect,
@@ -299,6 +300,10 @@ const buildInitialShortsMediaState = (): StudioShortsMediaState => ({
   fallbackImageUrl: null,
   error: null
 });
+
+const SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME = 0.35;
+const clampShortsVolume = (value: number) =>
+  Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
 function StudioDetailModal({
   post,
@@ -710,7 +715,9 @@ function StudioShortsModal({
     [posts]
   );
   const [activeIndex, setActiveIndex] = useState(0);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME);
+  const [autoplayMutedFallback, setAutoplayMutedFallback] = useState(false);
   const [mediaByPostId, setMediaByPostId] = useState<
     Record<string, StudioShortsMediaState>
   >({});
@@ -719,6 +726,7 @@ function StudioShortsModal({
   const slideRefs = useRef<Array<HTMLElement | null>>([]);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const wheelLockedRef = useRef(false);
+  const previousNonZeroVolumeRef = useRef(SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME);
 
   useEffect(() => {
     mediaByPostIdRef.current = mediaByPostId;
@@ -728,6 +736,44 @@ function StudioShortsModal({
     slideRefs.current = slideRefs.current.slice(0, shortsPosts.length);
     videoRefs.current = videoRefs.current.slice(0, shortsPosts.length);
   }, [shortsPosts.length]);
+
+  const applyShortsAudioState = useCallback(
+    (video: HTMLVideoElement | null) => {
+      if (!video) return;
+      const clampedVolume = clampShortsVolume(volume);
+      video.volume = clampedVolume;
+      video.muted = muted || clampedVolume <= 0;
+    },
+    [muted, volume]
+  );
+
+  const handleToggleMuted = useCallback(() => {
+    setMuted((prev) => {
+      if (prev) {
+        if (volume <= 0) {
+          setVolume(previousNonZeroVolumeRef.current);
+        }
+        return false;
+      }
+
+      if (volume > 0) {
+        previousNonZeroVolumeRef.current = clampShortsVolume(volume);
+      }
+      return true;
+    });
+  }, [volume]);
+
+  const handleVolumeChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const nextVolume = clampShortsVolume(Number(event.target.value) / 100);
+      setVolume(nextVolume);
+      if (nextVolume > 0) {
+        previousNonZeroVolumeRef.current = nextVolume;
+      }
+      setMuted(nextVolume <= 0);
+    },
+    []
+  );
 
   const loadPostMedia = useCallback(async (postId: string) => {
     const normalizedPostId = postId.trim();
@@ -817,6 +863,17 @@ function StudioShortsModal({
   }, [open, initialPostId, shortsPosts]);
 
   useEffect(() => {
+    if (!open) return;
+    setAutoplayMutedFallback(false);
+    setMuted(false);
+    setVolume((prev) =>
+      clampShortsVolume(prev) > 0
+        ? clampShortsVolume(prev)
+        : SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME
+    );
+  }, [open]);
+
+  useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
 
     const nearIndexes = [
@@ -873,19 +930,48 @@ function StudioShortsModal({
 
   useEffect(() => {
     if (!open) return;
+    videoRefs.current.forEach((video) => applyShortsAudioState(video));
+  }, [applyShortsAudioState, mediaByPostId, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
-      if (index === activeIndex) {
-        video.muted = muted;
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => undefined);
-        }
-      } else {
+      if (index !== activeIndex) {
         video.pause();
       }
     });
-  }, [activeIndex, mediaByPostId, muted, open]);
+
+    const activeVideo = videoRefs.current[activeIndex];
+    if (!activeVideo) return;
+
+    const run = async () => {
+      applyShortsAudioState(activeVideo);
+      try {
+        await activeVideo.play();
+        if (!cancelled) {
+          setAutoplayMutedFallback(false);
+        }
+      } catch {
+        if (cancelled) return;
+        activeVideo.muted = true;
+        setMuted(true);
+        setAutoplayMutedFallback(true);
+        try {
+          await activeVideo.play();
+        } catch {
+          // no-op: final fallback is manual play with controls
+        }
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeIndex, applyShortsAudioState, mediaByPostId, open]);
 
   useEffect(() => {
     if (!open) {
@@ -996,7 +1082,7 @@ function StudioShortsModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMuted((prev) => !prev)}
+                  onClick={handleToggleMuted}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white/90 backdrop-blur transition hover:bg-white/20"
                   aria-label={muted ? '음소거 해제' : '음소거'}
                 >
@@ -1006,6 +1092,27 @@ function StudioShortsModal({
                     <Volume2 className="h-4 w-4" />
                   )}
                 </button>
+                <div className="w-36 rounded-2xl border border-white/15 bg-black/55 px-3 py-2 text-white/90 backdrop-blur">
+                  <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-[0.14em] text-white/65">
+                    <span>Volume</span>
+                    <span>{Math.round((muted ? 0 : volume) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(volume * 100)}
+                    onChange={handleVolumeChange}
+                    className="mt-2 h-1.5 w-full cursor-pointer accent-white"
+                    aria-label="숏폼 볼륨 조절"
+                  />
+                  {autoplayMutedFallback ? (
+                    <p className="mt-1.5 text-[10px] leading-relaxed text-white/60">
+                      브라우저 정책으로 처음에는 무음 재생됩니다.
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div
@@ -1056,10 +1163,25 @@ function StudioShortsModal({
                                 controlsList="nodownload noplaybackrate"
                                 disablePictureInPicture
                                 playsInline
+                                autoPlay={index === activeIndex}
+                                muted={muted}
                                 loop
                                 preload={
                                   index === activeIndex ? 'auto' : 'metadata'
                                 }
+                                onLoadedMetadata={(event) => {
+                                  const video = event.currentTarget;
+                                  applyShortsAudioState(video);
+                                  if (index === activeIndex) {
+                                    const playPromise = video.play();
+                                    if (
+                                      playPromise &&
+                                      typeof playPromise.catch === 'function'
+                                    ) {
+                                      playPromise.catch(() => undefined);
+                                    }
+                                  }
+                                }}
                                 onContextMenu={(event) =>
                                   event.preventDefault()
                                 }
