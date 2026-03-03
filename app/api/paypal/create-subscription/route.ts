@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createSubscription, getPayPalApprovalUrl, isPayPalApiError } from '@/utils/paypal';
-import { getURL } from '@/utils/helpers';
 import type { StudioMembershipPlanKey } from '@/utils/studio-membership-plans';
 
 export const runtime = 'nodejs';
@@ -97,11 +96,13 @@ const parsePlanKey = (value: unknown) => {
 const createSubscriptionSession = async ({
   userId,
   studioPostId,
-  planKey
+  planKey,
+  origin
 }: {
   userId: string;
   studioPostId: string;
   planKey: StudioMembershipPlanKey;
+  origin: string;
 }) => {
   const { planId, envKey } = resolvePayPalPlanId(planKey);
 
@@ -109,12 +110,12 @@ const createSubscriptionSession = async ({
     throw new Error(`Missing PayPal plan env for ${planKey} (${envKey})`);
   }
 
-  const returnUrl = new URL(getURL('/api/paypal/subscription/return'));
+  const returnUrl = new URL('/api/paypal/subscription/return', origin);
   if (studioPostId) {
     returnUrl.searchParams.set('studioPostId', studioPostId);
   }
 
-  const cancelUrl = new URL(getURL(getStudioPath(studioPostId)));
+  const cancelUrl = new URL(getStudioPath(studioPostId), origin);
   cancelUrl.searchParams.set('paypal', 'cancel');
 
   const response = await createSubscription(planId, returnUrl.toString(), cancelUrl.toString(), userId);
@@ -134,6 +135,7 @@ const createSubscriptionSession = async ({
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const origin = requestUrl.origin;
   const studioPostId = sanitizeStudioPostId(requestUrl.searchParams.get('studioPostId'));
   const requestedPlanKey = requestUrl.searchParams.get('planKey');
   const parsedPlanKey = parsePlanKey(requestedPlanKey);
@@ -160,7 +162,12 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/signin', requestUrl.origin));
     }
 
-    const payload = await createSubscriptionSession({ userId: user.id, studioPostId, planKey });
+    const payload = await createSubscriptionSession({
+      userId: user.id,
+      studioPostId,
+      planKey,
+      origin
+    });
     return NextResponse.redirect(payload.approvalUrl);
   } catch (error) {
     if (isPayPalApiError(error)) {
@@ -194,6 +201,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const requestUrl = new URL(request.url);
+    const origin = requestUrl.origin;
     const supabase = createClient();
     const {
       data: { user },
@@ -216,7 +225,8 @@ export async function POST(request: Request) {
     const payload = await createSubscriptionSession({
       userId: user.id,
       studioPostId,
-      planKey: requestedPlanKey
+      planKey: requestedPlanKey,
+      origin
     });
 
     return NextResponse.json(
