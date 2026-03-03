@@ -21,7 +21,66 @@ type DashboardWarningMap = Partial<{
   subscriptions: string;
   studio_posts: string;
   studio_membership: string;
+  daily_metrics: string;
 }>;
+
+type DailyMetricsSummary = {
+  date: string;
+  timezone: string;
+  visitor_count: number;
+  post_count: number;
+  community_post_count: number;
+  service_post_count: number;
+  studio_post_count: number;
+};
+
+const VISIT_TIME_ZONE = 'Asia/Seoul';
+
+const getKstDate = (value = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: VISIT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value ?? '1970';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01';
+  return `${year}-${month}-${day}`;
+};
+
+const getKstDayWindow = (value = new Date()) => {
+  const date = getKstDate(value);
+  const startDate = new Date(`${date}T00:00:00+09:00`);
+  const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+  return {
+    date,
+    startIso: startDate.toISOString(),
+    endIso: endDate.toISOString()
+  };
+};
+
+const toUnixMs = (value: unknown) => {
+  if (typeof value !== 'string' || !value.trim()) return Number.NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const hasMissingTableError = (error: unknown, tableName: string) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+
+  return (
+    (combined.includes(tableName) || combined.includes(`public.${tableName}`)) &&
+    (combined.includes('does not exist') ||
+      combined.includes('schema cache') ||
+      combined.includes('could not find the table'))
+  );
+};
 
 const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
   if (!error || typeof error !== 'object') return false;
@@ -141,6 +200,92 @@ export async function GET() {
     : [];
   studioPostsError = studioPostsQuery.error;
 
+  const { date: dailyDate, startIso: dailyStartIso, endIso: dailyEndIso } = getKstDayWindow();
+  const [dailyVisitorQuery, dailyServicePostQuery, dailyCommunityPostQuery] = await Promise.all([
+    (adminClient as any)
+      .from('site_daily_visits')
+      .select('id', { head: true, count: 'exact' })
+      .eq('visit_date', dailyDate),
+    (adminClient as any)
+      .from('service_posts')
+      .select('id', { head: true, count: 'exact' })
+      .gte('created_at', dailyStartIso)
+      .lt('created_at', dailyEndIso),
+    (adminClient as any)
+      .from('community_posts')
+      .select('id', { head: true, count: 'exact' })
+      .gte('created_at', dailyStartIso)
+      .lt('created_at', dailyEndIso)
+  ]);
+
+  let dailyVisitorCount = 0;
+  let dailyServicePostCount = 0;
+  let dailyCommunityPostCount = 0;
+  const dailyMetricWarningMessages: string[] = [];
+
+  if (dailyVisitorQuery.error) {
+    if (!hasMissingTableError(dailyVisitorQuery.error, 'site_daily_visits')) {
+      dailyMetricWarningMessages.push(
+        dailyVisitorQuery.error.message || '방문자 통계를 불러오지 못했습니다.'
+      );
+      console.error('[admin/dashboard] site_daily_visits query failed', dailyVisitorQuery.error);
+    } else {
+      dailyMetricWarningMessages.push(
+        'site_daily_visits 테이블이 없어 방문자 수는 0으로 표시됩니다. 마이그레이션 적용이 필요합니다.'
+      );
+    }
+  } else {
+    dailyVisitorCount = Number(dailyVisitorQuery.count ?? 0);
+  }
+
+  if (dailyServicePostQuery.error) {
+    if (!hasMissingTableError(dailyServicePostQuery.error, 'service_posts')) {
+      dailyMetricWarningMessages.push(
+        dailyServicePostQuery.error.message || '서비스 게시글 통계를 불러오지 못했습니다.'
+      );
+      console.error('[admin/dashboard] service_posts daily count failed', dailyServicePostQuery.error);
+    }
+  } else {
+    dailyServicePostCount = Number(dailyServicePostQuery.count ?? 0);
+  }
+
+  if (dailyCommunityPostQuery.error) {
+    if (!hasMissingTableError(dailyCommunityPostQuery.error, 'community_posts')) {
+      dailyMetricWarningMessages.push(
+        dailyCommunityPostQuery.error.message || '커뮤니티 게시글 통계를 불러오지 못했습니다.'
+      );
+      console.error(
+        '[admin/dashboard] community_posts daily count failed',
+        dailyCommunityPostQuery.error
+      );
+    } else {
+      dailyMetricWarningMessages.push(
+        'community_posts 테이블이 없어 커뮤니티 게시글 수는 0으로 표시됩니다.'
+      );
+    }
+  } else {
+    dailyCommunityPostCount = Number(dailyCommunityPostQuery.count ?? 0);
+  }
+
+  const dailyStartMs = Date.parse(dailyStartIso);
+  const dailyEndMs = Date.parse(dailyEndIso);
+  const dailyStudioPostCount = studioPostsData.reduce((count, row) => {
+    const createdMs = toUnixMs(row.created_at);
+    if (!Number.isFinite(createdMs)) return count;
+    if (createdMs >= dailyStartMs && createdMs < dailyEndMs) return count + 1;
+    return count;
+  }, 0);
+
+  const dailyMetrics: DailyMetricsSummary = {
+    date: dailyDate,
+    timezone: VISIT_TIME_ZONE,
+    visitor_count: dailyVisitorCount,
+    service_post_count: dailyServicePostCount,
+    community_post_count: dailyCommunityPostCount,
+    studio_post_count: dailyStudioPostCount,
+    post_count: dailyServicePostCount + dailyCommunityPostCount + dailyStudioPostCount
+  };
+
   if (subscriptionError) {
     warnings.subscriptions = subscriptionError.message || '구독 정보를 불러오지 못했습니다.';
     console.error('[admin/dashboard] subscriptions query failed', subscriptionError);
@@ -156,6 +301,10 @@ export async function GET() {
         : '게시글 목록을 불러오지 못했습니다.';
     warnings.studio_posts = studioPostsErrorMessage;
     console.error('[admin/dashboard] studio_posts query failed', studioPostsError);
+  }
+
+  if (dailyMetricWarningMessages.length > 0) {
+    warnings.daily_metrics = dailyMetricWarningMessages[0];
   }
 
   const profileMap = new Map(profileData.map((profile) => [profile.id, profile]));
@@ -222,7 +371,8 @@ export async function GET() {
   return NextResponse.json({
     data: {
       members,
-      studio_posts: studioPostsData ?? []
+      studio_posts: studioPostsData ?? [],
+      daily_metrics: dailyMetrics
     },
     warnings
   });

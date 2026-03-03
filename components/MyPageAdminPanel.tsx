@@ -80,21 +80,33 @@ type DashboardResponse = {
   data?: {
     members?: AdminMember[];
     studio_posts?: AdminStudioPost[];
+    daily_metrics?: DailyMetricsSummary;
   };
   warnings?: Partial<{
     profiles: string;
     subscriptions: string;
     studio_posts: string;
     studio_membership: string;
+    daily_metrics: string;
   }>;
   message?: string;
+};
+
+type DailyMetricsSummary = {
+  date: string;
+  timezone: string;
+  visitor_count: number;
+  post_count: number;
+  community_post_count: number;
+  service_post_count: number;
+  studio_post_count: number;
 };
 
 type Props = {
   enabled: boolean;
 };
 
-type AdminTabKey = 'members' | 'service-posts' | 'studio-posts';
+type AdminTabKey = 'members' | 'service-posts' | 'studio-posts' | 'daily-metrics';
 
 type MemberOrdersTabKey = 'shipping_todo' | 'shipping_done';
 type StudioSectionTabKey = 'list' | 'create' | 'media';
@@ -126,12 +138,102 @@ const emptyServiceCreateDraft = (): AdminServiceCreateDraft => ({
   files: []
 });
 
+const sanitizeDailyMetrics = (value: unknown): DailyMetricsSummary | null => {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const toNonNegativeInt = (input: unknown) =>
+    typeof input === 'number' && Number.isFinite(input) && input >= 0 ? Math.floor(input) : 0;
+
+  const date = typeof row.date === 'string' ? row.date : '';
+  if (!date) return null;
+
+  return {
+    date,
+    timezone: typeof row.timezone === 'string' && row.timezone.trim() ? row.timezone : 'Asia/Seoul',
+    visitor_count: toNonNegativeInt(row.visitor_count),
+    post_count: toNonNegativeInt(row.post_count),
+    community_post_count: toNonNegativeInt(row.community_post_count),
+    service_post_count: toNonNegativeInt(row.service_post_count),
+    studio_post_count: toNonNegativeInt(row.studio_post_count)
+  };
+};
+
+function DailyMetricsDonut({
+  visitors,
+  posts
+}: {
+  visitors: number;
+  posts: number;
+}) {
+  const safeVisitors = Number.isFinite(visitors) ? Math.max(0, visitors) : 0;
+  const safePosts = Number.isFinite(posts) ? Math.max(0, posts) : 0;
+  const total = Math.max(1, safeVisitors + safePosts);
+  const visitorRatio = safeVisitors / total;
+  const postRatio = safePosts / total;
+  const size = 208;
+  const strokeWidth = 24;
+  const radius = (size - strokeWidth) / 2;
+  const center = size / 2;
+  const circumference = 2 * Math.PI * radius;
+  const visitorArc = circumference * visitorRatio;
+  const postArc = circumference * postRatio;
+  const postArcOffset = circumference - visitorArc;
+
+  return (
+    <div className="relative h-56 w-56 sm:h-60 sm:w-60">
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="-rotate-90 h-full w-full drop-shadow-[0_0_30px_rgba(56,189,248,0.18)]"
+        role="img"
+        aria-label={`방문자 ${safeVisitors}명, 게시글 ${safePosts}개`}
+      >
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.08)"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#38bdf8"
+          strokeLinecap="round"
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${visitorArc} ${circumference}`}
+          strokeDashoffset={0}
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#f97316"
+          strokeLinecap="round"
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${postArc} ${circumference}`}
+          strokeDashoffset={postArcOffset}
+        />
+      </svg>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <p className="text-xs uppercase tracking-[0.18em] text-white/55">Daily Total</p>
+        <p className="mt-1 text-3xl font-semibold text-white">{safeVisitors + safePosts}</p>
+        <p className="mt-1 text-xs text-white/60">방문 + 게시글</p>
+      </div>
+    </div>
+  );
+}
+
 export default function MyPageAdminPanel({ enabled }: Props) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTabKey>('members');
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [studioPosts, setStudioPosts] = useState<AdminStudioPost[]>([]);
   const [servicePosts, setServicePosts] = useState<ServicePost[]>([]);
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetricsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -264,9 +366,11 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     const nextPosts = Array.isArray(payload?.data?.studio_posts)
       ? payload.data.studio_posts
       : [];
+    const nextDailyMetrics = sanitizeDailyMetrics(payload?.data?.daily_metrics);
 
     setMembers(nextMembers);
     setStudioPosts(nextPosts);
+    setDailyMetrics(nextDailyMetrics);
     setRoleDrafts(
       Object.fromEntries(nextMembers.map((member) => [member.id, member.role])) as Record<
         string,
@@ -390,6 +494,13 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     () => `${servicePosts.length}개`,
     [servicePosts.length]
   );
+  const dailyMetricsPostingRateLabel = useMemo(() => {
+    if (!dailyMetrics) return '0.0%';
+    const visitors = Math.max(0, Number(dailyMetrics.visitor_count || 0));
+    const posts = Math.max(0, Number(dailyMetrics.post_count || 0));
+    if (visitors <= 0) return posts > 0 ? '100.0%' : '0.0%';
+    return `${((posts / visitors) * 100).toFixed(1)}%`;
+  }, [dailyMetrics]);
 
   const handleRoleSave = async (member: AdminMember) => {
     const nextRole = roleDrafts[member.id] ?? member.role;
@@ -1121,7 +1232,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         <div>
           <h3 className="text-lg font-semibold tracking-tight text-white">관리자 패널</h3>
           <p className="mt-1 text-sm text-white/60">
-            회원 관리, 서비스 섹션 관리, 스튜디오 섹션 관리 기능을 마이페이지 안에서 바로 사용합니다.
+            회원/서비스/스튜디오 관리와 일일 방문·게시글 지표를 마이페이지 안에서 바로 확인합니다.
           </p>
         </div>
         <ActionButton
@@ -1141,7 +1252,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           {[
             { key: 'members', label: `회원 관리 (${memberCountLabel})` },
             { key: 'service-posts', label: `서비스 섹션 관리 (${servicePostCountLabel})` },
-            { key: 'studio-posts', label: `스튜디오 섹션 관리 (${studioPostCountLabel})` }
+            { key: 'studio-posts', label: `스튜디오 섹션 관리 (${studioPostCountLabel})` },
+            { key: 'daily-metrics', label: '일일데이터' }
           ].map((tab) => (
             <PillTab
               key={tab.key}
@@ -1163,6 +1275,71 @@ export default function MyPageAdminPanel({ enabled }: Props) {
       {message && (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
           {message}
+        </div>
+      )}
+
+      {activeTab === 'daily-metrics' && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-6">
+          {!dailyMetrics && !loading ? (
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-white/65">
+              일일 지표 데이터를 아직 불러오지 못했습니다.
+            </div>
+          ) : (
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+              <div className="relative overflow-hidden rounded-3xl border border-sky-300/20 bg-gradient-to-br from-sky-500/15 via-cyan-500/10 to-orange-400/10 p-5">
+                <div className="pointer-events-none absolute -left-16 -top-14 h-40 w-40 rounded-full bg-sky-400/15 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-16 -right-10 h-44 w-44 rounded-full bg-orange-400/15 blur-3xl" />
+                <div className="relative">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/65">
+                    일일 데이터
+                  </p>
+                  <p className="mt-2 text-sm text-white/80">
+                    기준일: {dailyMetrics?.date ?? '-'} ({dailyMetrics?.timezone ?? 'Asia/Seoul'})
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <DailyMetricsDonut
+                      visitors={dailyMetrics?.visitor_count ?? 0}
+                      posts={dailyMetrics?.post_count ?? 0}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 content-start">
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/55">오늘 방문자</p>
+                  <p className="mt-1 text-3xl font-semibold text-sky-200">
+                    {(dailyMetrics?.visitor_count ?? 0).toLocaleString('ko-KR')}
+                    <span className="ml-1 text-base text-sky-100/80">명</span>
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/55">오늘 게시글 작성</p>
+                  <p className="mt-1 text-3xl font-semibold text-orange-200">
+                    {(dailyMetrics?.post_count ?? 0).toLocaleString('ko-KR')}
+                    <span className="ml-1 text-base text-orange-100/80">개</span>
+                  </p>
+                  <p className="mt-2 text-xs text-white/60">
+                    방문 대비 작성률: <span className="font-semibold text-white">{dailyMetricsPostingRateLabel}</span>
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/55">게시글 구성</p>
+                  <div className="mt-2 grid gap-2 text-sm text-white/85 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                      커뮤니티 <span className="ml-1 font-semibold">{dailyMetrics?.community_post_count ?? 0}</span>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                      서비스 <span className="ml-1 font-semibold">{dailyMetrics?.service_post_count ?? 0}</span>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                      스튜디오 <span className="ml-1 font-semibold">{dailyMetrics?.studio_post_count ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
