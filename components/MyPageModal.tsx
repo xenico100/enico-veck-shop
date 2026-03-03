@@ -53,6 +53,7 @@ type MembershipSummary = {
   plan_amount: number | null;
   plan_currency: string | null;
   plan_interval: string | null;
+  plan_cycle_days: number | null;
 };
 
 type CommunityPostItem = {
@@ -76,9 +77,35 @@ const parseMembershipAmount = (value: unknown) => {
   return null;
 };
 
-const getMembershipRemainingDays = (nextBillingAt: string | null | undefined) => {
-  if (!nextBillingAt) return null;
-  const parsed = Date.parse(nextBillingAt);
+const parseMembershipIsoMs = (value: string | null | undefined) => {
+  if (!value) return Number.NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const resolveMembershipNextBillingMs = (summary: MembershipSummary | null) => {
+  const directMs = parseMembershipIsoMs(summary?.next_billing_at);
+  if (Number.isFinite(directMs)) return directMs;
+
+  const subscribedMs = parseMembershipIsoMs(summary?.subscribed_at);
+  if (!Number.isFinite(subscribedMs)) return Number.NaN;
+
+  const cycleDays =
+    typeof summary?.plan_cycle_days === 'number' && summary.plan_cycle_days > 0
+      ? summary.plan_cycle_days
+      : 30;
+  let nextMs = subscribedMs + cycleDays * DAY_MS;
+  const nowMs = Date.now();
+  let guard = 0;
+  while (nextMs <= nowMs && guard < 48) {
+    nextMs += cycleDays * DAY_MS;
+    guard += 1;
+  }
+  return nextMs;
+};
+
+const getMembershipRemainingDays = (summary: MembershipSummary | null) => {
+  const parsed = resolveMembershipNextBillingMs(summary);
   if (!Number.isFinite(parsed)) return null;
   const diff = parsed - Date.now();
   if (diff <= 0) return 0;
@@ -167,9 +194,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const labelClass =
     `text-xs uppercase tracking-[0.16em] text-white/50 ${appleFontClass}`;
   const membershipRemainingDays = useMemo(
-    () => getMembershipRemainingDays(membershipSummary?.next_billing_at),
-    [membershipSummary?.next_billing_at]
+    () => getMembershipRemainingDays(membershipSummary),
+    [membershipSummary]
   );
+  const membershipNextBillingLabel = useMemo(() => {
+    const nextMs = resolveMembershipNextBillingMs(membershipSummary);
+    if (!Number.isFinite(nextMs)) return '-';
+    return formatOrderDate(new Date(nextMs).toISOString());
+  }, [membershipSummary]);
   const membershipPaymentLabel = useMemo(
     () => formatMembershipPayment(membershipSummary?.plan_amount, membershipSummary?.plan_currency),
     [membershipSummary?.plan_amount, membershipSummary?.plan_currency]
@@ -795,7 +827,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                         구독 날짜: {membershipSummary?.subscribed_at ? formatOrderDate(membershipSummary.subscribed_at) : '-'}
                       </p>
                       <p className="mt-1 text-sm text-white/85">
-                        결제예정일: {membershipSummary?.next_billing_at ? formatOrderDate(membershipSummary.next_billing_at) : '-'}
+                        결제예정일: {membershipNextBillingLabel}
                       </p>
                       <p className="mt-1 text-sm text-white/85">
                         남은 기간:{' '}

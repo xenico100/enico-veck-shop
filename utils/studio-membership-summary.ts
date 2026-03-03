@@ -28,6 +28,7 @@ type PayPalPlanRow = {
 type StudioAccessRow = {
   user_id: string;
   has_active_subscription: boolean;
+  updated_at: string | null;
 };
 
 export type StudioMembershipSummary = {
@@ -42,6 +43,7 @@ export type StudioMembershipSummary = {
   plan_amount: number | null;
   plan_currency: string | null;
   plan_interval: string | null;
+  plan_cycle_days: number | null;
 };
 
 const PLAN_ENV_BY_KEY: Record<StudioMembershipPlanKey, string> = {
@@ -81,6 +83,18 @@ const parseAmountNumber = (value: number | string | null | undefined) => {
   return null;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const intervalToCycleDays = (interval: string | null | undefined) => {
+  const normalized = String(interval || '').trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized === 'day' || normalized === 'daily') return 1;
+  if (normalized === 'week' || normalized === 'weekly') return 7;
+  if (normalized === 'month' || normalized === 'monthly') return 30;
+  if (normalized === 'year' || normalized === 'yearly') return 365;
+  return null;
+};
+
 const normalizeIso = (value: unknown) => {
   if (typeof value !== 'string' || !value.trim()) return null;
   const parsed = new Date(value);
@@ -92,6 +106,49 @@ const getRawSubscriptionCreateTime = (raw: unknown) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
   return normalizeIso(row.create_time);
+};
+
+const getEstimatedNextBillingAt = (params: {
+  row: PayPalSubscriptionRow | null;
+  hasActiveSubscription: boolean;
+  cycleDays: number | null;
+  fallbackBaseIso?: string | null;
+}) => {
+  const explicit = normalizeIso(params.row?.current_period_end) ?? null;
+  if (explicit) return explicit;
+  if (!params.hasActiveSubscription) return null;
+
+  const cycleDays = params.cycleDays ?? 30;
+  const cycleMs = cycleDays * DAY_MS;
+  if (!Number.isFinite(cycleMs) || cycleMs <= 0) return null;
+
+  const baseCandidates = [
+    normalizeIso(params.fallbackBaseIso),
+    getRawSubscriptionCreateTime(params.row?.raw),
+    normalizeIso(params.row?.created_at),
+    normalizeIso(params.row?.last_event_at)
+  ];
+
+  let baseMs = Number.NaN;
+  for (const candidate of baseCandidates) {
+    const candidateMs = toUnixMs(candidate);
+    if (Number.isFinite(candidateMs)) {
+      baseMs = candidateMs;
+      break;
+    }
+  }
+  if (!Number.isFinite(baseMs)) return null;
+
+  let nextMs = baseMs + cycleMs;
+  const nowMs = Date.now();
+  let guard = 0;
+  while (nextMs <= nowMs && guard < 48) {
+    nextMs += cycleMs;
+    guard += 1;
+  }
+
+  if (!Number.isFinite(nextMs)) return null;
+  return new Date(nextMs).toISOString();
 };
 
 const toUnixMs = (value: string | null | undefined) => {
@@ -153,7 +210,8 @@ const buildDefaultSummary = (userId: string): StudioMembershipSummary => ({
   plan_id: null,
   plan_amount: null,
   plan_currency: null,
-  plan_interval: null
+  plan_interval: null,
+  plan_cycle_days: null
 });
 
 export async function getStudioMembershipSummaryMapForUsers(
@@ -175,7 +233,7 @@ export async function getStudioMembershipSummaryMapForUsers(
       .order('last_event_at', { ascending: false }),
     (admin as any)
       .from('studio_access')
-      .select('user_id,has_active_subscription')
+      .select('user_id,has_active_subscription,updated_at')
       .in('user_id', uniqueUserIds)
   ]);
 
@@ -224,7 +282,15 @@ export async function getStudioMembershipSummaryMapForUsers(
   }
 
   const planMap = new Map(planRows.map((plan) => [plan.id, plan]));
-  const accessMap = new Map(accessRows.map((row) => [row.user_id, Boolean(row.has_active_subscription)]));
+  const accessMap = new Map(
+    accessRows.map((row) => [
+      row.user_id,
+      {
+        hasActive: Boolean(row.has_active_subscription),
+        updatedAt: normalizeIso(row.updated_at)
+      }
+    ])
+  );
 
   for (const userId of uniqueUserIds) {
     const rows = (subscriptionRowsByUser.get(userId) ?? []).slice();
@@ -256,16 +322,26 @@ export async function getStudioMembershipSummaryMapForUsers(
     const representative = activeRepresentative ?? latest;
     const plan = representative?.plan_id ? planMap.get(representative.plan_id) ?? null : null;
     const inferredActive = activeRows.length > 0;
-    const cachedActive = accessMap.get(userId);
+    const accessRecord = accessMap.get(userId);
+    const cachedActive = accessRecord?.hasActive;
+    const accessUpdatedAt = accessRecord?.updatedAt ?? null;
     const hasActiveSubscription = inferredActive || cachedActive === true;
     const planAmount = parseAmountNumber(plan?.amount);
     const planCurrency = plan?.currency ? String(plan.currency).toUpperCase() : null;
+    const planInterval = plan?.interval ? String(plan.interval).toLowerCase() : null;
+    const planCycleDays = intervalToCycleDays(planInterval);
 
     const selectedMembership = inferredActive
       ? getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ?? formatPlanFallbackLabel(plan)
       : getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
         formatPlanFallbackLabel(plan) ??
         (hasActiveSubscription ? '관리자 수동 부여' : null);
+    const nextBillingAt = getEstimatedNextBillingAt({
+      row: representative,
+      hasActiveSubscription,
+      cycleDays: planCycleDays,
+      fallbackBaseIso: accessUpdatedAt
+    });
 
     result.set(userId, {
       user_id: userId,
@@ -278,12 +354,14 @@ export async function getStudioMembershipSummaryMapForUsers(
       subscribed_at:
         getRawSubscriptionCreateTime(representative?.raw) ??
         normalizeIso(representative?.created_at) ??
+        accessUpdatedAt ??
         null,
-      next_billing_at: normalizeIso(representative?.current_period_end) ?? null,
+      next_billing_at: nextBillingAt,
       plan_id: representative?.plan_id ?? null,
       plan_amount: planAmount,
       plan_currency: planCurrency,
-      plan_interval: plan?.interval ? String(plan.interval).toLowerCase() : null
+      plan_interval: planInterval,
+      plan_cycle_days: planCycleDays
     });
   }
 

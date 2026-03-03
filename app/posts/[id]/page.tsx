@@ -291,17 +291,22 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
                 </div>
               )}
 
-              {currentUserId && !hasActiveStudioSubscription && (
+              {currentUserId && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
                   <p className="text-sm font-semibold text-white">
-                    Studio 전용 미디어는 구독자 전용입니다.
+                    {hasActiveStudioSubscription
+                      ? '현재 멤버십을 다른 플랜으로 변경할 수 있습니다.'
+                      : 'Studio 전용 미디어는 구독자 전용입니다.'}
                   </p>
                   <p className="mt-2 text-sm text-neutral-400">
-                    PayPal 월 구독을 활성화하면 이 게시글의 원본 이미지/영상이 표시됩니다.
+                    {hasActiveStudioSubscription
+                      ? '남은 기간 기준 차등 안내를 확인한 뒤 PayPal 자동결제 플랜을 변경할 수 있습니다.'
+                      : 'PayPal 월 구독을 활성화하면 이 게시글의 원본 이미지/영상이 표시됩니다.'}
                   </p>
                   <div className="mt-4">
                     <StudioSubscribeButton
                       studioPostId={post.id}
+                      buttonLabel={hasActiveStudioSubscription ? '멤버십 변경하기' : '멤버십 가입하기'}
                       className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200"
                     />
                   </div>

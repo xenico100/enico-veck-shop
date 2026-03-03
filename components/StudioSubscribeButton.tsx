@@ -10,12 +10,14 @@ import {
 type Props = {
   studioPostId: string;
   className?: string;
+  buttonLabel?: string;
 };
 
 type MembershipBankTransferResponse = {
   message?: string;
   data?: {
     id?: string;
+    amount_total?: number | string | null;
   };
   bankTransfer?: {
     bankName?: string;
@@ -30,15 +32,27 @@ type MembershipBankTransferResponse = {
     title?: string;
     priceKrw?: number;
   };
+  proration?: {
+    enabled?: boolean;
+    current_plan_key?: string | null;
+    target_plan_key?: string | null;
+    remaining_days?: number | null;
+    cycle_days?: number | null;
+    current_credit_krw?: number | null;
+    target_remaining_cost_krw?: number | null;
+    due_now_krw?: number | null;
+  } | null;
 };
 
 type MembershipSummaryLite = {
   has_active_subscription?: boolean;
   selected_membership?: string | null;
+  subscribed_at?: string | null;
   next_billing_at?: string | null;
   plan_amount?: number | string | null;
   plan_currency?: string | null;
   plan_interval?: string | null;
+  plan_cycle_days?: number | null;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -70,13 +84,63 @@ const inferPlanKeyFromSummary = (summary: MembershipSummaryLite | null): StudioM
   return null;
 };
 
-const getRemainingDays = (nextBillingAt: string | null | undefined) => {
-  if (!nextBillingAt) return null;
-  const targetMs = Date.parse(nextBillingAt);
+const parseIsoMs = (value: string | null | undefined) => {
+  if (!value) return Number.NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const resolveEstimatedNextBillingAt = (summary: MembershipSummaryLite | null) => {
+  const directMs = parseIsoMs(summary?.next_billing_at);
+  if (Number.isFinite(directMs)) return directMs;
+
+  const baseMs = parseIsoMs(summary?.subscribed_at);
+  if (!Number.isFinite(baseMs)) return Number.NaN;
+
+  const cycleDays =
+    typeof summary?.plan_cycle_days === 'number' && summary.plan_cycle_days > 0
+      ? summary.plan_cycle_days
+      : 30;
+  let nextMs = baseMs + cycleDays * DAY_MS;
+  const nowMs = Date.now();
+  let guard = 0;
+  while (nextMs <= nowMs && guard < 48) {
+    nextMs += cycleDays * DAY_MS;
+    guard += 1;
+  }
+  return nextMs;
+};
+
+const getRemainingDays = (summary: MembershipSummaryLite | null) => {
+  const targetMs = resolveEstimatedNextBillingAt(summary);
   if (!Number.isFinite(targetMs)) return null;
   const diff = targetMs - Date.now();
   if (diff <= 0) return 0;
   return Math.ceil(diff / DAY_MS);
+};
+
+const formatKrw = (amount: number) => `${Math.round(amount).toLocaleString('ko-KR')}원`;
+
+const getProrationEstimate = (params: {
+  currentAmount: number | null;
+  targetAmount: number;
+  remainingDays: number | null;
+  cycleDays: number;
+}) => {
+  const { currentAmount, targetAmount, remainingDays, cycleDays } = params;
+  if (currentAmount == null || remainingDays == null || cycleDays <= 0) return null;
+
+  const safeRemainingDays = Math.max(0, Math.min(remainingDays, cycleDays));
+  const ratio = safeRemainingDays / cycleDays;
+  const currentCredit = Math.round(currentAmount * ratio);
+  const targetRemainingCost = Math.round(targetAmount * ratio);
+  const dueNow = Math.max(0, targetRemainingCost - currentCredit);
+
+  return {
+    currentCredit,
+    targetRemainingCost,
+    dueNow
+  };
 };
 
 const formatDateLabel = (value: string | null | undefined) => {
@@ -90,7 +154,12 @@ const formatDateLabel = (value: string | null | undefined) => {
   }
 };
 
-export default function StudioSubscribeButton({ studioPostId, className }: Props) {
+const formatDateLabelFromMs = (valueMs: number) => {
+  if (!Number.isFinite(valueMs)) return null;
+  return formatDateLabel(new Date(valueMs).toISOString());
+};
+
+export default function StudioSubscribeButton({ studioPostId, className, buttonLabel }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [loadingState, setLoadingState] = useState<{
     planKey: StudioMembershipPlanKey;
@@ -132,9 +201,26 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
     };
   }, [pickerOpen]);
 
-  const remainingDays = useMemo(
-    () => getRemainingDays(membershipSummary?.next_billing_at),
-    [membershipSummary?.next_billing_at]
+  const remainingDays = useMemo(() => getRemainingDays(membershipSummary), [membershipSummary]);
+  const currentPlanAmount = useMemo(
+    () => parsePlanAmount(membershipSummary?.plan_amount),
+    [membershipSummary?.plan_amount]
+  );
+  const estimatedNextBillingMs = useMemo(
+    () => resolveEstimatedNextBillingAt(membershipSummary),
+    [membershipSummary]
+  );
+  const estimatedNextBillingLabel = useMemo(
+    () => formatDateLabelFromMs(estimatedNextBillingMs),
+    [estimatedNextBillingMs]
+  );
+  const cycleDays = useMemo(() => {
+    const value = membershipSummary?.plan_cycle_days;
+    return typeof value === 'number' && value > 0 ? value : 30;
+  }, [membershipSummary?.plan_cycle_days]);
+  const bankTransferChargedAmount = useMemo(
+    () => parsePlanAmount(bankTransferResult?.data?.amount_total),
+    [bankTransferResult?.data?.amount_total]
   );
 
   const handleSubscribe = (planKey: StudioMembershipPlanKey) => {
@@ -152,14 +238,25 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
       }
 
       const targetPlan = STUDIO_MEMBERSHIP_PLAN_OPTIONS.find((plan) => plan.key === planKey);
-      const nextBillingText = formatDateLabel(membershipSummary.next_billing_at) || '다음 결제일';
+      const nextBillingText = estimatedNextBillingLabel || '다음 결제일';
       const remainingText =
         typeof remainingDays === 'number' ? `남은 기간은 약 ${remainingDays}일` : '남은 기간 확인 불가';
       const currentLabel = membershipSummary.selected_membership || '현재 멤버십';
       const nextLabel = targetPlan?.title || '선택 멤버십';
+      const prorationEstimate = targetPlan
+        ? getProrationEstimate({
+            currentAmount: currentPlanAmount,
+            targetAmount: targetPlan.priceKrw,
+            remainingDays,
+            cycleDays
+          })
+        : null;
+      const prorationText = prorationEstimate
+        ? `\n(내부 계산 기준) 남은 기간 크레딧 ${formatKrw(prorationEstimate.currentCredit)} 반영 시 예상 추가 금액: ${formatKrw(prorationEstimate.dueNow)}`
+        : '';
 
       const shouldContinue = window.confirm(
-        `현재 ${currentLabel} 이용 중입니다. ${remainingText}이며, ${nextLabel}은 ${nextBillingText}(다음 결제주기)부터 적용됩니다.\n계속 진행하시겠어요?`
+        `현재 ${currentLabel} 이용 중입니다. ${remainingText}이며, ${nextLabel}은 ${nextBillingText}(다음 결제주기)부터 적용됩니다.${prorationText}\n계속 진행하시겠어요?`
       );
       if (!shouldContinue) return;
     }
@@ -226,7 +323,7 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
             'inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-70'
           }
         >
-          멤버십 가입하기
+          {buttonLabel || '멤버십 가입하기'}
         </button>
         {error && <p className="text-sm text-rose-200">{error}</p>}
       </div>
@@ -246,12 +343,12 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
               {typeof remainingDays === 'number'
                 ? `남은 기간: 약 ${remainingDays}일`
                 : '남은 기간을 계산하지 못했습니다.'}
-              {formatDateLabel(membershipSummary.next_billing_at)
-                ? ` · 다음 결제일: ${formatDateLabel(membershipSummary.next_billing_at)}`
+              {estimatedNextBillingLabel
+                ? ` · 다음 결제일: ${estimatedNextBillingLabel}`
                 : ''}
             </p>
             <p className="mt-1 text-xs text-amber-100/85">
-              새 플랜은 현재 플랜 만료 후 다음 결제일부터 적용됩니다.
+              남은 기간 기준 차등 계산(예상)을 먼저 안내하고, 새 플랜은 다음 결제주기부터 적용됩니다.
             </p>
           </div>
         )}
@@ -264,6 +361,14 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
               loadingState?.planKey === plan.key && loadingState.method === 'paypal';
             const isBankLoading =
               loadingState?.planKey === plan.key && loadingState.method === 'bank_transfer';
+            const prorationEstimate = membershipSummary?.has_active_subscription
+              ? getProrationEstimate({
+                  currentAmount: currentPlanAmount,
+                  targetAmount: plan.priceKrw,
+                  remainingDays,
+                  cycleDays
+                })
+              : null;
             return (
               <div
                 key={plan.key}
@@ -299,6 +404,12 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
                     {isBankLoading ? '신청 저장 중...' : '계좌이체 신청'}
                   </button>
                 </div>
+                {prorationEstimate ? (
+                  <p className="mt-2 text-[11px] text-white/55">
+                    내부 계산 기준 차등 안내: 남은기간 크레딧 {formatKrw(prorationEstimate.currentCredit)} 반영 시
+                    예상 추가금액 {formatKrw(prorationEstimate.dueNow)}
+                  </p>
+                ) : null}
               </div>
             );
           })}
@@ -306,7 +417,12 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
 
         {bankTransferResult?.bankTransfer ? (
           <div className="mt-3 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-3 text-sm text-emerald-100">
-            <p className="font-semibold">계좌이체 신청이 접수되었습니다.</p>
+            <p className="font-semibold">
+              계좌이체 신청이 접수되었습니다.
+              {bankTransferChargedAmount != null
+                ? ` (청구금액 ${formatKrw(bankTransferChargedAmount)})`
+                : ''}
+            </p>
             {bankTransferResult.bankTransfer.accountConfigured ? (
               <>
                 <p className="mt-2">
@@ -326,6 +442,14 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
             {bankTransferResult.bankTransfer.notice ? (
               <p className="mt-1 text-xs text-emerald-200/90">
                 {bankTransferResult.bankTransfer.notice}
+              </p>
+            ) : null}
+            {bankTransferResult.proration?.enabled ? (
+              <p className="mt-1 text-xs text-emerald-200/90">
+                차등 계산: 남은기간 크레딧{' '}
+                {formatKrw(Number(bankTransferResult.proration.current_credit_krw || 0))} 반영,
+                현재 청구금액{' '}
+                {formatKrw(Number(bankTransferResult.proration.due_now_krw || 0))}
               </p>
             ) : null}
             <p className="mt-1 text-xs text-emerald-200/90">
