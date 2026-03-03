@@ -15,6 +15,7 @@ type CommunityReactionValue = 'like' | 'dislike';
 
 const TITLE_MAX_LENGTH = 160;
 const CONTENT_MAX_LENGTH = 10000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
@@ -24,6 +25,12 @@ const normalizeTitle = (value: unknown) =>
 
 const normalizeContent = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, CONTENT_MAX_LENGTH) : '';
+
+const toUnixMs = (value: string | null | undefined) => {
+  if (!value) return Number.NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
 
 const extractDbErrorText = (error: unknown) => {
   if (!error || typeof error !== 'object') return '';
@@ -156,6 +163,8 @@ export async function GET() {
       post_id: string;
       user_id: string;
       reaction: CommunityReactionValue;
+      created_at: string;
+      updated_at: string;
     }> = [];
 
     if (postIds.length > 0) {
@@ -186,7 +195,7 @@ export async function GET() {
 
       const { data: reactionsData, error: reactionsError } = await readClient
         .from('community_post_reactions')
-        .select('post_id,user_id,reaction')
+        .select('post_id,user_id,reaction,created_at,updated_at')
         .in('post_id', postIds);
 
       if (reactionsError) {
@@ -197,10 +206,12 @@ export async function GET() {
       } else {
         reactions = Array.isArray(reactionsData)
           ? (reactionsData as Array<{
-              post_id: string;
-              user_id: string;
-              reaction: CommunityReactionValue;
-            }>)
+            post_id: string;
+            user_id: string;
+            reaction: CommunityReactionValue;
+            created_at: string;
+            updated_at: string;
+          }>)
           : [];
       }
     }
@@ -229,17 +240,28 @@ export async function GET() {
 
     const reactionStatsByPostId = new Map<
       string,
-      { likeCount: number; dislikeCount: number; viewerReaction: CommunityReactionValue | null }
+      {
+        likeCount: number;
+        dislikeCount: number;
+        dailyLikeCount: number;
+        viewerReaction: CommunityReactionValue | null;
+      }
     >();
+    const dailyStartMs = Date.now() - ONE_DAY_MS;
     for (const reactionRow of reactions) {
       const current = reactionStatsByPostId.get(reactionRow.post_id) ?? {
         likeCount: 0,
         dislikeCount: 0,
+        dailyLikeCount: 0,
         viewerReaction: null
       };
 
       if (reactionRow.reaction === 'like') current.likeCount += 1;
       if (reactionRow.reaction === 'dislike') current.dislikeCount += 1;
+      const reactionTimestamp = toUnixMs(reactionRow.updated_at || reactionRow.created_at);
+      if (reactionRow.reaction === 'like' && reactionTimestamp >= dailyStartMs) {
+        current.dailyLikeCount += 1;
+      }
 
       if (viewerUserId && reactionRow.user_id === viewerUserId) {
         current.viewerReaction =
@@ -256,6 +278,7 @@ export async function GET() {
         ...(reactionStatsByPostId.get(post.id) ?? {
           likeCount: 0,
           dislikeCount: 0,
+          dailyLikeCount: 0,
           viewerReaction: null
         }),
         id: post.id,
@@ -379,6 +402,7 @@ export async function POST(request: Request) {
         isNotice: Boolean(data.is_notice),
         likeCount: 0,
         dislikeCount: 0,
+        dailyLikeCount: 0,
         viewerReaction: null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,

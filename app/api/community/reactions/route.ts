@@ -12,6 +12,7 @@ type CommunityReactionBody = {
 };
 
 const REACTION_VALUES = new Set<CommunityReactionValue>(['like', 'dislike']);
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
@@ -155,7 +156,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const [likeResult, dislikeResult] = await Promise.all([
+    const dailyStartIso = new Date(Date.now() - ONE_DAY_MS).toISOString();
+    const [likeResult, dislikeResult, dailyLikeResult] = await Promise.all([
       readClient
         .from('community_post_reactions')
         .select('id', { head: true, count: 'exact' })
@@ -165,11 +167,17 @@ export async function POST(request: Request) {
         .from('community_post_reactions')
         .select('id', { head: true, count: 'exact' })
         .eq('post_id', postId)
-        .eq('reaction', 'dislike')
+        .eq('reaction', 'dislike'),
+      readClient
+        .from('community_post_reactions')
+        .select('id', { head: true, count: 'exact' })
+        .eq('post_id', postId)
+        .eq('reaction', 'like')
+        .gte('updated_at', dailyStartIso)
     ]);
 
-    if (likeResult.error || dislikeResult.error) {
-      const dbError = likeResult.error || dislikeResult.error;
+    if (likeResult.error || dislikeResult.error || dailyLikeResult.error) {
+      const dbError = likeResult.error || dislikeResult.error || dailyLikeResult.error;
       const dbMessage = parseDbErrorMessage(dbError);
       return jsonError(dbMessage || '좋아요/싫어요 집계에 실패했습니다.', 500, dbError);
     }
@@ -179,6 +187,7 @@ export async function POST(request: Request) {
         postId,
         likeCount: likeResult.count ?? 0,
         dislikeCount: dislikeResult.count ?? 0,
+        dailyLikeCount: dailyLikeResult.count ?? 0,
         viewerReaction
       }
     });

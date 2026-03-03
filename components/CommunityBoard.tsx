@@ -27,6 +27,7 @@ type CommunityPost = {
   isNotice: boolean;
   likeCount: number;
   dislikeCount: number;
+  dailyLikeCount: number;
   viewerReaction: CommunityReactionValue | null;
   createdAt: string;
   updatedAt: string;
@@ -55,6 +56,7 @@ type CommunityReactionResponse = {
     postId: string;
     likeCount: number;
     dislikeCount: number;
+    dailyLikeCount: number;
     viewerReaction: CommunityReactionValue | null;
   };
 };
@@ -274,6 +276,7 @@ export default function CommunityBoard() {
           ...row,
           likeCount: typeof row.likeCount === 'number' ? row.likeCount : 0,
           dislikeCount: typeof row.dislikeCount === 'number' ? row.dislikeCount : 0,
+          dailyLikeCount: typeof row.dailyLikeCount === 'number' ? row.dailyLikeCount : 0,
           viewerReaction: normalizeReactionValue(row.viewerReaction)
         }))
       );
@@ -487,6 +490,10 @@ export default function CommunityBoard() {
                   ...post,
                   likeCount: payload.data.likeCount,
                   dislikeCount: payload.data.dislikeCount,
+                  dailyLikeCount:
+                    typeof payload.data.dailyLikeCount === 'number'
+                      ? payload.data.dailyLikeCount
+                      : post.dailyLikeCount,
                   viewerReaction: normalizeReactionValue(payload.data.viewerReaction)
                 }
               : post
@@ -501,7 +508,17 @@ export default function CommunityBoard() {
   };
 
   const notices = posts.filter((post) => post.isNotice);
-  const regularPosts = posts.filter((post) => !post.isNotice);
+  const popularPost = useMemo(() => {
+    const candidates = posts.filter((post) => !post.isNotice);
+    if (candidates.length === 0) return null;
+
+    return [...candidates].sort((a, b) => {
+      if (b.dailyLikeCount !== a.dailyLikeCount) return b.dailyLikeCount - a.dailyLikeCount;
+      if (b.likeCount !== a.likeCount) return b.likeCount - a.likeCount;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    })[0];
+  }, [posts]);
+  const regularPosts = posts.filter((post) => !post.isNotice && post.id !== popularPost?.id);
 
   return (
     <section className="space-y-6">
@@ -632,6 +649,41 @@ export default function CommunityBoard() {
         </div>
       )}
 
+      {!loading && popularPost && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
+            인기글 (최근 24시간 좋아요 1등)
+          </p>
+          <CommunityPostCard
+            key={popularPost.id}
+            post={popularPost}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            submitting={submitting}
+            editingPostId={editingPostId}
+            editTitle={editTitle}
+            editContent={editContent}
+            editNotice={editNotice}
+            featuredLabel={`24시간 좋아요 ${popularPost.dailyLikeCount}`}
+            commentDraft={commentDraftByPostId[popularPost.id] || ''}
+            onOpenEdit={() => openEditForm(popularPost)}
+            onCloseEdit={closeEditForm}
+            onEditTitleChange={setEditTitle}
+            onEditContentChange={setEditContent}
+            onEditNoticeChange={setEditNotice}
+            onUpdatePost={() => void handleUpdatePost(popularPost.id)}
+            onDeletePost={() => void handleDeletePost(popularPost.id)}
+            onReactPost={(reaction) => void handleReactPost(popularPost.id, reaction)}
+            onCommentDraftChange={(value) =>
+              setCommentDraftByPostId((prev) => ({ ...prev, [popularPost.id]: value }))
+            }
+            onCreateComment={() => void handleCreateComment(popularPost.id)}
+            onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
+            isLoggedIn={isLoggedIn}
+          />
+        </div>
+      )}
+
       {!loading && regularPosts.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">자유게시판</p>
@@ -684,6 +736,7 @@ function CommunityPostCard({
   editTitle,
   editContent,
   editNotice,
+  featuredLabel,
   commentDraft,
   onOpenEdit,
   onCloseEdit,
@@ -706,6 +759,7 @@ function CommunityPostCard({
   editTitle: string;
   editContent: string;
   editNotice: boolean;
+  featuredLabel?: string;
   commentDraft: string;
   onOpenEdit: () => void;
   onCloseEdit: () => void;
@@ -737,6 +791,11 @@ function CommunityPostCard({
             {post.isNotice && (
               <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
                 Notice
+              </span>
+            )}
+            {featuredLabel && (
+              <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">
+                {featuredLabel}
               </span>
             )}
             <h3 className="text-lg font-semibold text-white">{post.title}</h3>
