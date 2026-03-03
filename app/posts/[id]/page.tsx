@@ -42,6 +42,7 @@ const getPayPalBanner = (
   const paypal = readSearchParam(searchParams, 'paypal');
   const status = readSearchParam(searchParams, 'subscription_status');
   const message = readSearchParam(searchParams, 'paypal_message');
+  const missingPlanEnv = readSearchParam(searchParams, 'missing_plan_env');
 
   if (!paypal) return null;
 
@@ -83,7 +84,9 @@ const getPayPalBanner = (
     return {
       tone: 'error' as const,
       title: 'PayPal 요금제 연동이 아직 설정되지 않았습니다.',
-      description: '관리자에게 멤버십 PayPal 플랜 설정을 요청해 주세요.'
+      description: missingPlanEnv
+        ? `누락된 환경변수: ${missingPlanEnv}. 관리자에게 설정을 요청해 주세요.`
+        : '관리자에게 멤버십 PayPal 플랜 설정을 요청해 주세요.'
     };
   }
 

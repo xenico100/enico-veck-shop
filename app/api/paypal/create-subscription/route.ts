@@ -28,11 +28,9 @@ const resolvePayPalPlanId = (planKey: StudioMembershipPlanKey) => {
     return { planId: direct, envKey };
   }
 
-  if (planKey === 'monthly_4900') {
-    const legacy = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
-    if (legacy) {
-      return { planId: legacy, envKey: 'PAYPAL_PLAN_ID_MONTHLY' };
-    }
+  const legacy = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
+  if (legacy) {
+    return { planId: legacy, envKey: 'PAYPAL_PLAN_ID_MONTHLY' };
   }
 
   return { planId: '', envKey };
@@ -57,12 +55,16 @@ const buildStudioRedirectUrl = (
     studioPostId?: string | null;
     paypalState: 'success' | 'cancel' | 'error' | 'inactive';
     message?: string | null;
+    missingPlanEnv?: string | null;
   }
 ) => {
   const redirectUrl = new URL(getStudioPath(options.studioPostId), requestUrl.origin);
   redirectUrl.searchParams.set('paypal', options.paypalState);
   if (options.message) {
     redirectUrl.searchParams.set('paypal_message', options.message);
+  }
+  if (options.missingPlanEnv) {
+    redirectUrl.searchParams.set('missing_plan_env', options.missingPlanEnv);
   }
   return redirectUrl;
 };
@@ -152,16 +154,19 @@ export async function GET(request: Request) {
     }
 
     console.error('[PayPal create-subscription GET] unexpected error', error);
-    const message =
-      error instanceof Error && error.message.includes('Missing PayPal plan env')
-        ? 'missing_paypal_plan_env'
-        : 'unexpected_create_subscription_error';
+    const missingPlanEnvMatch =
+      error instanceof Error
+        ? error.message.match(/Missing PayPal plan env for [^(]+\(([^)]+)\)/)
+        : null;
+    const missingPlanEnv = missingPlanEnvMatch?.[1]?.trim() || null;
+    const message = missingPlanEnv ? 'missing_paypal_plan_env' : 'unexpected_create_subscription_error';
 
     return NextResponse.redirect(
       buildStudioRedirectUrl(requestUrl, {
         studioPostId,
         paypalState: 'error',
-        message
+        message,
+        missingPlanEnv
       })
     );
   }
