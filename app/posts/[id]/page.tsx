@@ -41,6 +41,7 @@ const getPayPalBanner = (
 ) => {
   const paypal = readSearchParam(searchParams, 'paypal');
   const status = readSearchParam(searchParams, 'subscription_status');
+  const message = readSearchParam(searchParams, 'paypal_message');
 
   if (!paypal) return null;
 
@@ -67,6 +68,30 @@ const getPayPalBanner = (
       tone: 'neutral' as const,
       title: 'PayPal 구독 절차가 취소되었습니다.',
       description: '원할 때 다시 구독을 시작할 수 있습니다.'
+    };
+  }
+
+  if (message === 'invalid_plan_key') {
+    return {
+      tone: 'error' as const,
+      title: '멤버십 플랜 정보가 올바르지 않습니다.',
+      description: '페이지를 새로고침한 뒤 다시 시도해 주세요.'
+    };
+  }
+
+  if (message === 'missing_paypal_plan_env') {
+    return {
+      tone: 'error' as const,
+      title: 'PayPal 요금제 연동이 아직 설정되지 않았습니다.',
+      description: '관리자에게 멤버십 PayPal 플랜 설정을 요청해 주세요.'
+    };
+  }
+
+  if (message === 'paypal_subscription_create_failed') {
+    return {
+      tone: 'error' as const,
+      title: 'PayPal 구독 세션 생성에 실패했습니다.',
+      description: '잠시 후 다시 시도해 주세요.'
     };
   }
 

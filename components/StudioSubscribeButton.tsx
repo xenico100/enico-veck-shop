@@ -12,11 +12,6 @@ type Props = {
   className?: string;
 };
 
-type CreateSubscriptionResponse = {
-  approvalUrl?: string;
-  message?: string;
-};
-
 type MembershipBankTransferResponse = {
   message?: string;
   data?: {
@@ -47,37 +42,20 @@ export default function StudioSubscribeButton({ studioPostId, className }: Props
   const [bankTransferResult, setBankTransferResult] =
     useState<MembershipBankTransferResponse | null>(null);
 
-  const handleSubscribe = async (planKey: StudioMembershipPlanKey) => {
+  const handleSubscribe = (planKey: StudioMembershipPlanKey) => {
     if (loadingState) return;
 
     setLoadingState({ planKey, method: 'paypal' });
     setError(null);
     setBankTransferResult(null);
 
-    try {
-      const response = await fetch('/api/paypal/subscription/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studioPostId, planKey })
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as CreateSubscriptionResponse;
-
-      if (response.status === 401) {
-        setLoadingState(null);
-        window.location.assign('/signin');
-        return;
-      }
-
-      if (!response.ok || typeof payload.approvalUrl !== 'string') {
-        throw new Error(payload.message || 'PayPal 구독 요청을 시작하지 못했습니다.');
-      }
-
-      window.location.assign(payload.approvalUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '구독 요청에 실패했습니다.');
-      setLoadingState(null);
+    const redirectUrl = new URL('/api/paypal/subscription/create', window.location.origin);
+    redirectUrl.searchParams.set('planKey', planKey);
+    if (studioPostId.trim()) {
+      redirectUrl.searchParams.set('studioPostId', studioPostId.trim());
     }
+
+    window.location.assign(redirectUrl.toString());
   };
 
   const handleBankTransfer = async (planKey: StudioMembershipPlanKey) => {

@@ -38,6 +38,17 @@ export default async function PostsPage({ searchParams }: PageProps) {
   let errorMessage: string | null = null;
   let currentUserId: string | null = null;
   const paypal = readSearchParam(searchParams, 'paypal');
+  const paypalMessage = readSearchParam(searchParams, 'paypal_message');
+  const paypalStatusMessage =
+    paypal === 'cancel'
+      ? 'PayPal 구독 절차가 취소되었습니다.'
+      : paypal === 'success'
+        ? 'PayPal 구독이 활성화되었습니다. 상세 페이지에서 전용 미디어를 확인하세요.'
+        : paypalMessage === 'missing_paypal_plan_env'
+          ? 'PayPal 멤버십 플랜 설정이 아직 완료되지 않았습니다. 관리자에게 문의해 주세요.'
+          : paypalMessage === 'invalid_plan_key'
+            ? '요청한 멤버십 플랜 정보가 올바르지 않습니다. 페이지를 새로고침해 주세요.'
+            : 'PayPal 구독 처리 상태를 확인해 주세요.';
 
   if (isSupabaseConfigured) {
     const supabase = createClient();
@@ -92,11 +103,7 @@ export default async function PostsPage({ searchParams }: PageProps) {
 
         {paypal && (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-200">
-            {paypal === 'cancel'
-              ? 'PayPal 구독 절차가 취소되었습니다.'
-              : paypal === 'success'
-                ? 'PayPal 구독이 활성화되었습니다. 상세 페이지에서 전용 미디어를 확인하세요.'
-                : 'PayPal 구독 처리 상태를 확인해 주세요.'}
+            {paypalStatusMessage}
           </div>
         )}
 
