@@ -247,6 +247,7 @@ export default function CommunityBoard() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
   const [createNotice, setCreateNotice] = useState(false);
@@ -329,6 +330,7 @@ export default function CommunityBoard() {
         throw new Error(payload.message || '게시글 작성에 실패했습니다.');
       }
       resetCreateForm();
+      setCreateOpen(false);
       await loadPosts();
     } catch (err) {
       setError(err instanceof Error ? err.message : '게시글 작성에 실패했습니다.');
@@ -530,14 +532,27 @@ export default function CommunityBoard() {
               회원 누구나 자유롭게 글을 쓰고 댓글로 소통할 수 있습니다.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadPosts()}
-            disabled={loading || submitting}
-            className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
-          >
-            새로고침
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setCreateOpen(true);
+              }}
+              disabled={submitting}
+              className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
+            >
+              글쓰기
+            </button>
+            <button
+              type="button"
+              onClick={() => void loadPosts()}
+              disabled={loading || submitting}
+              className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+            >
+              새로고침
+            </button>
+          </div>
         </div>
       </div>
 
@@ -553,61 +568,99 @@ export default function CommunityBoard() {
         </div>
       )}
 
-      <form
-        onSubmit={handleCreatePost}
-        className="space-y-3 rounded-3xl border border-white/10 bg-black/40 p-5"
-      >
-        <h2 className="text-lg font-semibold text-white">게시글 작성</h2>
-        {!isLoggedIn ? (
-          <p className="text-sm text-neutral-300">
-            글 작성은 로그인 후 가능합니다.{' '}
-            <Link href="/signin" className="underline underline-offset-4">
-              로그인하러 가기
-            </Link>
-          </p>
-        ) : (
-          <>
-            <input
-              value={createTitle}
-              onChange={(event) => setCreateTitle(event.target.value)}
-              maxLength={160}
-              placeholder="제목"
-              className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
-            />
-            <textarea
-              value={createContent}
-              onChange={(event) => setCreateContent(event.target.value)}
-              rows={4}
-              maxLength={10000}
-              placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
-              className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
-            />
-            <p className="text-xs text-white/55">
-              유튜브 링크를 한 줄에 단독으로 입력하면 플레이어로 표시됩니다.
-            </p>
-            {isAdmin && (
-              <label className="inline-flex items-center gap-2 text-sm text-amber-100">
-                <input
-                  type="checkbox"
-                  checked={createNotice}
-                  onChange={(event) => setCreateNotice(event.target.checked)}
-                  className="h-4 w-4"
-                />
-                공지로 등록 (관리자 전용)
-              </label>
-            )}
-            <div>
+      {createOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="작성창 닫기"
+            disabled={submitting}
+            onClick={() => {
+              if (submitting) return;
+              setCreateOpen(false);
+            }}
+            className="absolute inset-0 bg-black/75"
+          />
+          <form
+            onSubmit={handleCreatePost}
+            className="relative z-[91] w-full max-w-2xl space-y-3 rounded-3xl border border-white/10 bg-black p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-white">게시글 작성</h2>
               <button
-                type="submit"
+                type="button"
+                onClick={() => {
+                  if (submitting) return;
+                  setCreateOpen(false);
+                }}
                 disabled={submitting}
-                className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
               >
-                {submitting ? '저장 중...' : '게시글 올리기'}
+                닫기
               </button>
             </div>
-          </>
-        )}
-      </form>
+            {!isLoggedIn ? (
+              <p className="text-sm text-neutral-300">
+                글 작성은 로그인 후 가능합니다.{' '}
+                <Link href="/signin" className="underline underline-offset-4">
+                  로그인하러 가기
+                </Link>
+              </p>
+            ) : (
+              <>
+                <input
+                  value={createTitle}
+                  onChange={(event) => setCreateTitle(event.target.value)}
+                  maxLength={160}
+                  placeholder="제목"
+                  className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+                />
+                <textarea
+                  value={createContent}
+                  onChange={(event) => setCreateContent(event.target.value)}
+                  rows={6}
+                  maxLength={10000}
+                  placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
+                  className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+                />
+                <p className="text-xs text-white/55">
+                  유튜브 링크를 한 줄에 단독으로 입력하면 플레이어로 표시됩니다.
+                </p>
+                {isAdmin && (
+                  <label className="inline-flex items-center gap-2 text-sm text-amber-100">
+                    <input
+                      type="checkbox"
+                      checked={createNotice}
+                      onChange={(event) => setCreateNotice(event.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    공지로 등록 (관리자 전용)
+                  </label>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
+                  >
+                    {submitting ? '저장 중...' : '게시글 올리기'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (submitting) return;
+                      setCreateOpen(false);
+                    }}
+                    disabled={submitting}
+                    className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                  >
+                    취소
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/70">
