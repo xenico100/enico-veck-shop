@@ -52,6 +52,9 @@ const parseDbErrorMessage = (error: unknown) => {
   return message || null;
 };
 
+const isCommunitySetupMissingMessage = (message: string | null) =>
+  typeof message === 'string' && message.includes('커뮤니티 DB가 아직 적용되지 않았습니다.');
+
 const fallbackAuthorNameFromUser = (user: { id: string; email?: string | null; user_metadata?: any }) => {
   const fullName =
     typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name.trim() : '';
@@ -88,9 +91,10 @@ const buildAuthorNameMap = async (admin: ReturnType<typeof createAdminClient>, u
 
 export async function GET() {
   try {
-    const admin = createAdminClient();
+    const admin = tryCreateAdminClient();
+    const readClient = (admin ?? createClient()) as any;
 
-    const { data: postsData, error: postsError } = await (admin as any)
+    const { data: postsData, error: postsError } = await readClient
       .from('community_posts')
       .select('id,user_id,title,content,is_notice,created_at,updated_at')
       .order('is_notice', { ascending: false })
@@ -98,7 +102,15 @@ export async function GET() {
       .limit(200);
 
     if (postsError) {
-      return jsonError(parseDbErrorMessage(postsError) || '게시글을 불러오지 못했습니다.', 500, postsError);
+      const dbMessage = parseDbErrorMessage(postsError);
+      if (isCommunitySetupMissingMessage(dbMessage)) {
+        return NextResponse.json({
+          data: [],
+          setupRequired: true,
+          message: dbMessage
+        });
+      }
+      return jsonError(dbMessage || '게시글을 불러오지 못했습니다.', 500, postsError);
     }
 
     const posts = Array.isArray(postsData)
@@ -124,7 +136,7 @@ export async function GET() {
     }> = [];
 
     if (postIds.length > 0) {
-      const { data: commentsData, error: commentsError } = await (admin as any)
+      const { data: commentsData, error: commentsError } = await readClient
         .from('community_comments')
         .select('id,post_id,user_id,content,created_at,updated_at')
         .in('post_id', postIds)
@@ -132,7 +144,10 @@ export async function GET() {
         .limit(2000);
 
       if (commentsError) {
-        return jsonError(parseDbErrorMessage(commentsError) || '댓글을 불러오지 못했습니다.', 500, commentsError);
+        const dbMessage = parseDbErrorMessage(commentsError);
+        if (!isCommunitySetupMissingMessage(dbMessage)) {
+          return jsonError(dbMessage || '댓글을 불러오지 못했습니다.', 500, commentsError);
+        }
       }
 
       comments = Array.isArray(commentsData)
@@ -147,10 +162,12 @@ export async function GET() {
         : [];
     }
 
-    const authorNameMap = await buildAuthorNameMap(admin, [
-      ...posts.map((post) => post.user_id),
-      ...comments.map((comment) => comment.user_id)
-    ]);
+    const authorNameMap = admin
+      ? await buildAuthorNameMap(admin, [
+          ...posts.map((post) => post.user_id),
+          ...comments.map((comment) => comment.user_id)
+        ])
+      : new Map<string, string>();
 
     const commentsByPostId = new Map<string, Array<Record<string, unknown>>>();
     for (const comment of comments) {

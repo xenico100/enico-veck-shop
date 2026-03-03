@@ -29,6 +29,7 @@ type CommunityPost = {
 
 type CommunityPostsResponse = {
   message?: string;
+  setupRequired?: boolean;
   data?: CommunityPost[];
 };
 
@@ -222,6 +223,7 @@ export default function CommunityBoard() {
   const [submitting, setSubmitting] = useState(false);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
   const [createNotice, setCreateNotice] = useState(false);
@@ -235,6 +237,7 @@ export default function CommunityBoard() {
   const loadPosts = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setSetupNotice(null);
     try {
       const response = await fetch('/api/community/posts', {
         method: 'GET',
@@ -245,7 +248,11 @@ export default function CommunityBoard() {
         throw new Error(payload.message || '커뮤니티 게시글을 불러오지 못했습니다.');
       }
       setPosts(Array.isArray(payload.data) ? payload.data : []);
+      if (payload.setupRequired && typeof payload.message === 'string' && payload.message.trim()) {
+        setSetupNotice(payload.message);
+      }
     } catch (err) {
+      setSetupNotice(null);
       setError(err instanceof Error ? err.message : '커뮤니티 게시글을 불러오지 못했습니다.');
     } finally {
       setLoading(false);
@@ -450,6 +457,12 @@ export default function CommunityBoard() {
       {error && (
         <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm text-rose-100">
           {error}
+        </div>
+      )}
+
+      {setupNotice && !error && (
+        <div className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+          {setupNotice}
         </div>
       )}
 
