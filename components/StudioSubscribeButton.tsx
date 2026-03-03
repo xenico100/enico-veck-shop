@@ -254,9 +254,10 @@ export default function StudioSubscribeButton({ studioPostId, className, buttonL
       const prorationText = prorationEstimate
         ? `\n(내부 계산 기준) 남은 기간 크레딧 ${formatKrw(prorationEstimate.currentCredit)} 반영 시 예상 추가 금액: ${formatKrw(prorationEstimate.dueNow)}`
         : '';
+      const paypalNotice = '\nPayPal 결제창에 표시되는 금액이 실제 청구 금액입니다.';
 
       const shouldContinue = window.confirm(
-        `현재 ${currentLabel} 이용 중입니다. ${remainingText}이며, ${nextLabel}은 ${nextBillingText}(다음 결제주기)부터 적용됩니다.${prorationText}\n계속 진행하시겠어요?`
+        `현재 ${currentLabel} 이용 중입니다. ${remainingText}이며, ${nextLabel}은 ${nextBillingText}(다음 결제주기)부터 적용됩니다.${prorationText}${paypalNotice}\n계속 진행하시겠어요?`
       );
       if (!shouldContinue) return;
     }
