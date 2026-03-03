@@ -94,6 +94,34 @@ const getRawSubscriptionCreateTime = (raw: unknown) => {
   return normalizeIso(row.create_time);
 };
 
+const toUnixMs = (value: string | null | undefined) => {
+  if (!value) return Number.NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const getRowTimeMs = (row: PayPalSubscriptionRow) => {
+  const candidates = [
+    toUnixMs(normalizeIso(row.last_event_at)),
+    toUnixMs(normalizeIso(row.created_at)),
+    toUnixMs(getRawSubscriptionCreateTime(row.raw))
+  ];
+  for (const value of candidates) {
+    if (Number.isFinite(value)) return value;
+  }
+  return Number.NaN;
+};
+
+const getRowPlanAmount = (
+  row: PayPalSubscriptionRow,
+  planMap: Map<string, PayPalPlanRow>
+) => {
+  const planId = typeof row.plan_id === 'string' ? row.plan_id : '';
+  if (!planId) return null;
+  const plan = planMap.get(planId) ?? null;
+  return parseAmountNumber(plan?.amount);
+};
+
 const formatPlanFallbackLabel = (plan: PayPalPlanRow | null) => {
   if (!plan) return null;
   if (plan.name && plan.name.trim()) return plan.name.trim();
@@ -165,18 +193,18 @@ export async function getStudioMembershipSummaryMapForUsers(
     ? (accessQuery.data as StudioAccessRow[])
     : [];
 
-  const latestSubscriptionByUser = new Map<string, PayPalSubscriptionRow>();
+  const subscriptionRowsByUser = new Map<string, PayPalSubscriptionRow[]>();
   for (const row of subscriptionRows) {
     const userId = typeof row.user_id === 'string' ? row.user_id : null;
     if (!userId) continue;
-    if (!latestSubscriptionByUser.has(userId)) {
-      latestSubscriptionByUser.set(userId, row);
-    }
+    const current = subscriptionRowsByUser.get(userId) ?? [];
+    current.push(row);
+    subscriptionRowsByUser.set(userId, current);
   }
 
   const planIds = Array.from(
     new Set(
-      Array.from(latestSubscriptionByUser.values())
+      subscriptionRows
         .map((row) => (typeof row.plan_id === 'string' ? row.plan_id.trim() : ''))
         .filter(Boolean)
     )
@@ -199,28 +227,60 @@ export async function getStudioMembershipSummaryMapForUsers(
   const accessMap = new Map(accessRows.map((row) => [row.user_id, Boolean(row.has_active_subscription)]));
 
   for (const userId of uniqueUserIds) {
-    const latest = latestSubscriptionByUser.get(userId) ?? null;
-    const plan = latest?.plan_id ? planMap.get(latest.plan_id) ?? null : null;
-    const inferredActive = latest ? isActiveStudioSubscriptionStatus(latest.status) : false;
+    const rows = (subscriptionRowsByUser.get(userId) ?? []).slice();
+    rows.sort((a, b) => {
+      const bTime = getRowTimeMs(b);
+      const aTime = getRowTimeMs(a);
+      if (Number.isFinite(bTime) && Number.isFinite(aTime) && bTime !== aTime) {
+        return bTime - aTime;
+      }
+      return 0;
+    });
+
+    const latest = rows[0] ?? null;
+    const activeRows = rows.filter((row) => isActiveStudioSubscriptionStatus(row.status));
+    const activeRepresentative = activeRows
+      .slice()
+      .sort((a, b) => {
+        const amountDiff = (getRowPlanAmount(b, planMap) ?? -1) - (getRowPlanAmount(a, planMap) ?? -1);
+        if (amountDiff !== 0) return amountDiff;
+
+        const bTime = getRowTimeMs(b);
+        const aTime = getRowTimeMs(a);
+        if (Number.isFinite(bTime) && Number.isFinite(aTime) && bTime !== aTime) {
+          return bTime - aTime;
+        }
+        return 0;
+      })[0] ?? null;
+
+    const representative = activeRepresentative ?? latest;
+    const plan = representative?.plan_id ? planMap.get(representative.plan_id) ?? null : null;
+    const inferredActive = activeRows.length > 0;
     const cachedActive = accessMap.get(userId);
-    const hasActiveSubscription = typeof cachedActive === 'boolean' ? cachedActive : inferredActive;
+    const hasActiveSubscription = inferredActive || cachedActive === true;
     const planAmount = parseAmountNumber(plan?.amount);
     const planCurrency = plan?.currency ? String(plan.currency).toUpperCase() : null;
 
-    const selectedMembership =
-      getPlanLabelByIdFromEnv(latest?.plan_id ?? null) ??
-      formatPlanFallbackLabel(plan) ??
-      (hasActiveSubscription && !latest ? '관리자 수동 부여' : null);
+    const selectedMembership = inferredActive
+      ? getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ?? formatPlanFallbackLabel(plan)
+      : getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
+        formatPlanFallbackLabel(plan) ??
+        (hasActiveSubscription ? '관리자 수동 부여' : null);
 
     result.set(userId, {
       user_id: userId,
       has_active_subscription: hasActiveSubscription,
-      subscription_id: latest?.id ?? null,
-      subscription_status: latest?.status ?? (hasActiveSubscription && !latest ? 'MANUAL_GRANT' : null),
+      subscription_id:
+        representative?.id ?? (hasActiveSubscription && !representative ? `manual:${userId}` : null),
+      subscription_status:
+        representative?.status ?? (hasActiveSubscription && !representative ? 'MANUAL_GRANT' : null),
       selected_membership: selectedMembership,
-      subscribed_at: getRawSubscriptionCreateTime(latest?.raw) ?? normalizeIso(latest?.created_at) ?? null,
-      next_billing_at: normalizeIso(latest?.current_period_end) ?? null,
-      plan_id: latest?.plan_id ?? null,
+      subscribed_at:
+        getRawSubscriptionCreateTime(representative?.raw) ??
+        normalizeIso(representative?.created_at) ??
+        null,
+      next_billing_at: normalizeIso(representative?.current_period_end) ?? null,
+      plan_id: representative?.plan_id ?? null,
       plan_amount: planAmount,
       plan_currency: planCurrency,
       plan_interval: plan?.interval ? String(plan.interval).toLowerCase() : null

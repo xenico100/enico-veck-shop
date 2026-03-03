@@ -246,6 +246,7 @@ export async function requireActiveStudioSubscription(
 type UpsertPayPalSubscriptionInput = {
   subscription: PayPalSubscription;
   eventAt?: string | null;
+  fallbackUserId?: string | null;
 };
 
 type UpsertPayPalSubscriptionResult = {
@@ -279,6 +280,7 @@ export async function upsertPayPalSubscriptionSnapshot(
       ? subscription.subscriber.payer_id.trim()
       : null;
   const customUserId = asUuidOrNull(subscription.custom_id);
+  const fallbackUserId = asUuidOrNull(input.fallbackUserId ?? null);
 
   const { data: existingRow, error: existingError } = await (admin as any)
     .from('paypal_subscriptions')
@@ -292,7 +294,7 @@ export async function upsertPayPalSubscriptionSnapshot(
 
   const existing = (existingRow ?? null) as PayPalSubscriptionRow | null;
   const wasActiveSubscription = isActiveStudioSubscriptionStatus(existing?.status);
-  const userId = customUserId ?? existing?.user_id ?? null;
+  const userId = customUserId ?? existing?.user_id ?? fallbackUserId ?? null;
   const planId = planSnapshot.id ?? existing?.plan_id ?? null;
   const status = incomingStatus ?? existing?.status ?? null;
   const currentPeriodEnd = extractCurrentPeriodEnd(subscription) ?? existing?.current_period_end ?? null;

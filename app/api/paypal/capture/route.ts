@@ -41,13 +41,17 @@ const buildStudioRedirectUrl = (
   return redirectUrl;
 };
 
-const syncPayPalSubscriptionById = async (subscriptionId: string) => {
+const syncPayPalSubscriptionById = async (
+  subscriptionId: string,
+  options?: { fallbackUserId?: string | null }
+) => {
   const adminClient = createAdminClient();
   const subscription = await getSubscription(subscriptionId);
   return upsertPayPalSubscriptionSnapshot(
     {
       subscription,
-      eventAt: new Date().toISOString()
+      eventAt: new Date().toISOString(),
+      fallbackUserId: options?.fallbackUserId ?? null
     },
     adminClient
   );
@@ -78,7 +82,9 @@ export async function GET(request: Request) {
       data: { user }
     } = await supabase.auth.getUser();
 
-    const result = await syncPayPalSubscriptionById(subscriptionId);
+    const result = await syncPayPalSubscriptionById(subscriptionId, {
+      fallbackUserId: user?.id ?? null
+    });
 
     if (user?.id && result.userId && result.userId !== user.id) {
       console.warn('[PayPal capture] user mismatch', {
@@ -135,7 +141,9 @@ export async function POST(request: Request) {
       return jsonError('Missing PayPal subscriptionId', 400);
     }
 
-    const result = await syncPayPalSubscriptionById(subscriptionId);
+    const result = await syncPayPalSubscriptionById(subscriptionId, {
+      fallbackUserId: user.id
+    });
 
     if (result.userId && result.userId !== user.id) {
       return jsonError('Subscription does not belong to the current user', 403, {
@@ -157,4 +165,3 @@ export async function POST(request: Request) {
     return jsonError(error instanceof Error ? error.message : 'Unexpected capture error', 500);
   }
 }
-
