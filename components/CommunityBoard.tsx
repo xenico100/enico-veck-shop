@@ -2,8 +2,11 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { isAdminUserLike } from '@/utils/service-posts';
+
+type CommunityReactionValue = 'like' | 'dislike';
 
 type CommunityComment = {
   id: string;
@@ -22,6 +25,9 @@ type CommunityPost = {
   title: string;
   content: string;
   isNotice: boolean;
+  likeCount: number;
+  dislikeCount: number;
+  viewerReaction: CommunityReactionValue | null;
   createdAt: string;
   updatedAt: string;
   comments: CommunityComment[];
@@ -41,6 +47,16 @@ type CommunityPostResponse = {
 type CommunityCommentResponse = {
   message?: string;
   data?: CommunityComment;
+};
+
+type CommunityReactionResponse = {
+  message?: string;
+  data?: {
+    postId: string;
+    likeCount: number;
+    dislikeCount: number;
+    viewerReaction: CommunityReactionValue | null;
+  };
 };
 
 type RichContentBlock =
@@ -152,6 +168,11 @@ const parseRichContentBlocks = (value: string): RichContentBlock[] => {
   return blocks;
 };
 
+const normalizeReactionValue = (value: unknown): CommunityReactionValue | null => {
+  if (value === 'like' || value === 'dislike') return value;
+  return null;
+};
+
 function RichTextWithYouTube({
   content,
   containerClassName,
@@ -247,7 +268,15 @@ export default function CommunityBoard() {
       if (!response.ok) {
         throw new Error(payload.message || '커뮤니티 게시글을 불러오지 못했습니다.');
       }
-      setPosts(Array.isArray(payload.data) ? payload.data : []);
+      const rows = Array.isArray(payload.data) ? payload.data : [];
+      setPosts(
+        rows.map((row) => ({
+          ...row,
+          likeCount: typeof row.likeCount === 'number' ? row.likeCount : 0,
+          dislikeCount: typeof row.dislikeCount === 'number' ? row.dislikeCount : 0,
+          viewerReaction: normalizeReactionValue(row.viewerReaction)
+        }))
+      );
       if (payload.setupRequired && typeof payload.message === 'string' && payload.message.trim()) {
         setSetupNotice(payload.message);
       }
@@ -430,6 +459,47 @@ export default function CommunityBoard() {
     }
   };
 
+  const handleReactPost = async (postId: string, reaction: CommunityReactionValue) => {
+    if (submitting) return;
+    if (!isLoggedIn) {
+      setError('로그인 후 좋아요/싫어요를 누를 수 있습니다.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/community/reactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, reaction })
+      });
+      const payload = (await response.json().catch(() => ({}))) as CommunityReactionResponse;
+      if (!response.ok) {
+        throw new Error(payload.message || '좋아요/싫어요 저장에 실패했습니다.');
+      }
+
+      if (payload.data) {
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.id === payload.data?.postId
+              ? {
+                  ...post,
+                  likeCount: payload.data.likeCount,
+                  dislikeCount: payload.data.dislikeCount,
+                  viewerReaction: normalizeReactionValue(payload.data.viewerReaction)
+                }
+              : post
+          )
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '좋아요/싫어요 저장에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const notices = posts.filter((post) => post.isNotice);
   const regularPosts = posts.filter((post) => !post.isNotice);
 
@@ -550,6 +620,7 @@ export default function CommunityBoard() {
               onEditNoticeChange={setEditNotice}
               onUpdatePost={() => void handleUpdatePost(post.id)}
               onDeletePost={() => void handleDeletePost(post.id)}
+              onReactPost={(reaction) => void handleReactPost(post.id, reaction)}
               onCommentDraftChange={(value) =>
                 setCommentDraftByPostId((prev) => ({ ...prev, [post.id]: value }))
               }
@@ -583,6 +654,7 @@ export default function CommunityBoard() {
               onEditNoticeChange={setEditNotice}
               onUpdatePost={() => void handleUpdatePost(post.id)}
               onDeletePost={() => void handleDeletePost(post.id)}
+              onReactPost={(reaction) => void handleReactPost(post.id, reaction)}
               onCommentDraftChange={(value) =>
                 setCommentDraftByPostId((prev) => ({ ...prev, [post.id]: value }))
               }
@@ -620,6 +692,7 @@ function CommunityPostCard({
   onEditNoticeChange,
   onUpdatePost,
   onDeletePost,
+  onReactPost,
   onCommentDraftChange,
   onCreateComment,
   onDeleteComment,
@@ -641,6 +714,7 @@ function CommunityPostCard({
   onEditNoticeChange: (value: boolean) => void;
   onUpdatePost: () => void;
   onDeletePost: () => void;
+  onReactPost: (reaction: CommunityReactionValue) => void;
   onCommentDraftChange: (value: string) => void;
   onCreateComment: () => void;
   onDeleteComment: (commentId: string) => void;
@@ -750,6 +824,38 @@ function CommunityPostCard({
           </div>
         </div>
       )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onReactPost('like')}
+          disabled={submitting || !isLoggedIn}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+            post.viewerReaction === 'like'
+              ? 'border-emerald-300/50 bg-emerald-400/15 text-emerald-100'
+              : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+          }`}
+          title={isLoggedIn ? '좋아요' : '로그인 후 사용할 수 있습니다.'}
+        >
+          <ThumbsUp className="h-3.5 w-3.5" />
+          <span>{post.likeCount}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onReactPost('dislike')}
+          disabled={submitting || !isLoggedIn}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+            post.viewerReaction === 'dislike'
+              ? 'border-rose-300/50 bg-rose-400/15 text-rose-100'
+              : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+          }`}
+          title={isLoggedIn ? '싫어요' : '로그인 후 사용할 수 있습니다.'}
+        >
+          <ThumbsDown className="h-3.5 w-3.5" />
+          <span>{post.dislikeCount}</span>
+        </button>
+        {!isLoggedIn && <span className="text-xs text-white/45">로그인 후 반응을 남길 수 있습니다.</span>}
+      </div>
 
       <div className="mt-5 space-y-3 rounded-2xl border border-white/10 bg-black/35 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">

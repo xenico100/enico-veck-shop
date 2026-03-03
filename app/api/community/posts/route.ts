@@ -11,6 +11,8 @@ type CommunityPostBody = {
   isNotice?: boolean;
 };
 
+type CommunityReactionValue = 'like' | 'dislike';
+
 const TITLE_MAX_LENGTH = 160;
 const CONTENT_MAX_LENGTH = 10000;
 
@@ -23,24 +25,34 @@ const normalizeTitle = (value: unknown) =>
 const normalizeContent = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, CONTENT_MAX_LENGTH) : '';
 
-const parseDbErrorMessage = (error: unknown) => {
-  if (!error || typeof error !== 'object') return null;
+const extractDbErrorText = (error: unknown) => {
+  if (!error || typeof error !== 'object') return '';
   const row = error as Record<string, unknown>;
   const message = typeof row.message === 'string' ? row.message : '';
   const details = typeof row.details === 'string' ? row.details : '';
   const hint = typeof row.hint === 'string' ? row.hint : '';
-  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return `${message} ${details} ${hint}`.toLowerCase();
+};
 
-  const missingCommunityPostsTable =
-    (combined.includes('community_posts') || combined.includes('public.community_posts')) &&
+const hasMissingTableError = (error: unknown, tableName: string) => {
+  const combined = extractDbErrorText(error);
+  if (!combined) return false;
+
+  return (
+    (combined.includes(tableName) || combined.includes(`public.${tableName}`)) &&
     (combined.includes('does not exist') ||
       combined.includes('schema cache') ||
-      combined.includes('could not find the table'));
-  const missingCommunityCommentsTable =
-    (combined.includes('community_comments') || combined.includes('public.community_comments')) &&
-    (combined.includes('does not exist') ||
-      combined.includes('schema cache') ||
-      combined.includes('could not find the table'));
+      combined.includes('could not find the table'))
+  );
+};
+
+const parseDbErrorMessage = (error: unknown) => {
+  if (!error || typeof error !== 'object') return null;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const combined = extractDbErrorText(error);
+  const missingCommunityPostsTable = hasMissingTableError(error, 'community_posts');
+  const missingCommunityCommentsTable = hasMissingTableError(error, 'community_comments');
 
   if (missingCommunityPostsTable || missingCommunityCommentsTable) {
     return '커뮤니티 DB가 아직 적용되지 않았습니다. 관리자에게 community_board 마이그레이션 적용을 요청해 주세요.';
@@ -91,8 +103,14 @@ const buildAuthorNameMap = async (admin: ReturnType<typeof createAdminClient>, u
 
 export async function GET() {
   try {
+    const supabase = createClient();
+    const {
+      data: { user: viewerUser }
+    } = await supabase.auth.getUser();
+    const viewerUserId = viewerUser?.id ?? null;
+
     const admin = tryCreateAdminClient();
-    const readClient = (admin ?? createClient()) as any;
+    const readClient = (admin ?? supabase) as any;
 
     const { data: postsData, error: postsError } = await readClient
       .from('community_posts')
@@ -134,6 +152,11 @@ export async function GET() {
       created_at: string;
       updated_at: string;
     }> = [];
+    let reactions: Array<{
+      post_id: string;
+      user_id: string;
+      reaction: CommunityReactionValue;
+    }> = [];
 
     if (postIds.length > 0) {
       const { data: commentsData, error: commentsError } = await readClient
@@ -160,6 +183,26 @@ export async function GET() {
             updated_at: string;
           }>)
         : [];
+
+      const { data: reactionsData, error: reactionsError } = await readClient
+        .from('community_post_reactions')
+        .select('post_id,user_id,reaction')
+        .in('post_id', postIds);
+
+      if (reactionsError) {
+        if (!hasMissingTableError(reactionsError, 'community_post_reactions')) {
+          const dbMessage = parseDbErrorMessage(reactionsError);
+          return jsonError(dbMessage || '좋아요/싫어요 정보를 불러오지 못했습니다.', 500, reactionsError);
+        }
+      } else {
+        reactions = Array.isArray(reactionsData)
+          ? (reactionsData as Array<{
+              post_id: string;
+              user_id: string;
+              reaction: CommunityReactionValue;
+            }>)
+          : [];
+      }
     }
 
     const authorNameMap = admin
@@ -184,8 +227,37 @@ export async function GET() {
       commentsByPostId.set(comment.post_id, current);
     }
 
+    const reactionStatsByPostId = new Map<
+      string,
+      { likeCount: number; dislikeCount: number; viewerReaction: CommunityReactionValue | null }
+    >();
+    for (const reactionRow of reactions) {
+      const current = reactionStatsByPostId.get(reactionRow.post_id) ?? {
+        likeCount: 0,
+        dislikeCount: 0,
+        viewerReaction: null
+      };
+
+      if (reactionRow.reaction === 'like') current.likeCount += 1;
+      if (reactionRow.reaction === 'dislike') current.dislikeCount += 1;
+
+      if (viewerUserId && reactionRow.user_id === viewerUserId) {
+        current.viewerReaction =
+          reactionRow.reaction === 'like' || reactionRow.reaction === 'dislike'
+            ? reactionRow.reaction
+            : null;
+      }
+
+      reactionStatsByPostId.set(reactionRow.post_id, current);
+    }
+
     return NextResponse.json({
       data: posts.map((post) => ({
+        ...(reactionStatsByPostId.get(post.id) ?? {
+          likeCount: 0,
+          dislikeCount: 0,
+          viewerReaction: null
+        }),
         id: post.id,
         userId: post.user_id,
         authorName: authorNameMap.get(post.user_id) || `회원 ${post.user_id.slice(0, 8)}`,
@@ -305,6 +377,9 @@ export async function POST(request: Request) {
         title: data.title,
         content: data.content,
         isNotice: Boolean(data.is_notice),
+        likeCount: 0,
+        dislikeCount: 0,
+        viewerReaction: null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         comments: []
