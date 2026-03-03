@@ -19,7 +19,20 @@ const PLAN_ENV_KEY_BY_PLAN_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000'
 };
 
+// Safety net for Vercel/Sandbox deployments where plan env vars are not configured yet.
+// These IDs are non-secret PayPal plan IDs tied to this sandbox merchant account.
+const SANDBOX_PLAN_ID_FALLBACK_BY_PLAN_KEY: Record<StudioMembershipPlanKey, string> = {
+  monthly_4900: 'P-66J57653FV568243LNGTF3KQ',
+  monthly_13900: 'P-6JS61276AJ849370SNGTF3KY',
+  monthly_69000: 'P-31657772UD838403ANGTF3LA'
+};
+
 const SUPPORTED_PLAN_KEYS = new Set(Object.keys(PLAN_ENV_KEY_BY_PLAN_KEY));
+
+const isSandboxEnvironment = () => {
+  const raw = (process.env.PAYPAL_ENV || 'sandbox').trim().toLowerCase();
+  return raw !== 'live' && raw !== 'production';
+};
 
 const resolvePayPalPlanId = (planKey: StudioMembershipPlanKey) => {
   const envKey = PLAN_ENV_KEY_BY_PLAN_KEY[planKey];
@@ -31,6 +44,13 @@ const resolvePayPalPlanId = (planKey: StudioMembershipPlanKey) => {
   const legacy = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
   if (legacy) {
     return { planId: legacy, envKey: 'PAYPAL_PLAN_ID_MONTHLY' };
+  }
+
+  if (isSandboxEnvironment()) {
+    const sandboxFallback = SANDBOX_PLAN_ID_FALLBACK_BY_PLAN_KEY[planKey];
+    if (sandboxFallback) {
+      return { planId: sandboxFallback, envKey: `${envKey}_SANDBOX_FALLBACK` };
+    }
   }
 
   return { planId: '', envKey };
