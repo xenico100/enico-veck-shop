@@ -1,10 +1,27 @@
 'use client';
 
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { ImageIcon, Lock, Pause, Play, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Clapperboard,
+  ImageIcon,
+  Lock,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+  X
+} from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import StudioProtectedMedia from '@/components/StudioProtectedMedia';
@@ -43,6 +60,28 @@ type StudioMembershipApiData = {
 type StudioMembershipApiResponse = {
   data?: StudioMembershipApiData;
   message?: string;
+};
+
+type StudioMediaKind = 'image' | 'video';
+
+type StudioShortsMediaItem = {
+  id: string;
+  kind: StudioMediaKind;
+  url: string;
+  mime: string | null;
+};
+
+type StudioShortsMediaResponse = {
+  data?: StudioShortsMediaItem[];
+  message?: string;
+};
+
+type StudioShortsMediaState = {
+  loading: boolean;
+  loaded: boolean;
+  videoUrl: string | null;
+  fallbackImageUrl: string | null;
+  error: string | null;
 };
 
 type StudioSectionProps = {
@@ -94,6 +133,14 @@ const STUDIO_ROW_ACCESS_RULES: StudioRowAccessRule[] = [
   }
 ];
 
+const resolveStudioRowRule = (requiredLevel: unknown) => {
+  const normalized = normalizeRequiredMembershipLevel(requiredLevel);
+  return (
+    STUDIO_ROW_ACCESS_RULES.find((rule) => rule.requiredLevel === normalized) ??
+    STUDIO_ROW_ACCESS_RULES[0]
+  );
+};
+
 const dialogOverlayClass =
   'fixed inset-0 z-40 bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 duration-300';
 const dialogContentClass =
@@ -112,7 +159,10 @@ const hasMissingRequiredMembershipLevelColumnError = (error: unknown) => {
   const details = typeof row.details === 'string' ? row.details : '';
   const hint = typeof row.hint === 'string' ? row.hint : '';
   const combined = `${message} ${details} ${hint}`.toLowerCase();
-  return combined.includes('required_membership_level') && combined.includes('studio_posts');
+  return (
+    combined.includes('required_membership_level') &&
+    combined.includes('studio_posts')
+  );
 };
 
 const buildPlaceholderPost = (
@@ -122,7 +172,8 @@ const buildPlaceholderPost = (
 ): StudioPost => ({
   id: `__studio-placeholder-${rowId}-${slotIndex}`,
   title: `${rowRule.membershipLabel} 게시물 준비중`,
-  content: '게시물이 부족한 구간입니다. 관리자에서 Studio 게시물을 추가하면 여기에 표시됩니다.',
+  content:
+    '게시물이 부족한 구간입니다. 관리자에서 Studio 게시물을 추가하면 여기에 표시됩니다.',
   image_url: null,
   created_at: null,
   is_placeholder: true,
@@ -172,10 +223,10 @@ const buildTierRows = (posts: StudioPost[]): StudioDisplayRow[] => {
   const postsByLevel = new Map<number, StudioPost[]>();
 
   posts.forEach((post) => {
-    const requiredLevel = normalizeRequiredMembershipLevel(post.required_membership_level);
-    const rowRule =
-      STUDIO_ROW_ACCESS_RULES.find((rule) => rule.requiredLevel === requiredLevel) ??
-      STUDIO_ROW_ACCESS_RULES[0];
+    const requiredLevel = normalizeRequiredMembershipLevel(
+      post.required_membership_level
+    );
+    const rowRule = resolveStudioRowRule(requiredLevel);
     const current = postsByLevel.get(rowRule.requiredLevel) ?? [];
     current.push({
       ...post,
@@ -203,7 +254,9 @@ const buildTierRows = (posts: StudioPost[]): StudioDisplayRow[] => {
 
   STUDIO_ROW_ACCESS_RULES.slice(1).forEach((rule) => {
     const rowItems = postsByLevel.get(rule.requiredLevel) ?? [];
-    displayRows.push(buildDisplayRow(rule, `${rule.key}-1`, rule.rowLabel, rowItems));
+    displayRows.push(
+      buildDisplayRow(rule, `${rule.key}-1`, rule.rowLabel, rowItems)
+    );
   });
 
   return displayRows;
@@ -239,14 +292,24 @@ const getExcerpt = (value: string | null, maxLength = 72) => {
   return `${normalized.slice(0, maxLength).trimEnd()}...`;
 };
 
+const buildInitialShortsMediaState = (): StudioShortsMediaState => ({
+  loading: false,
+  loaded: false,
+  videoUrl: null,
+  fallbackImageUrl: null,
+  error: null
+});
+
 function StudioDetailModal({
   post,
   onClose,
+  onOpenShorts,
   viewerMembershipTierLevel,
   viewerMembershipTierLoading
 }: {
   post: StudioPost | null;
   onClose: () => void;
+  onOpenShorts: (postId: string) => void;
   viewerMembershipTierLevel: number;
   viewerMembershipTierLoading: boolean;
 }) {
@@ -262,7 +325,10 @@ function StudioDetailModal({
     viewerMembershipTierLevel < requiredTierLevel;
 
   return (
-    <DialogPrimitive.Root open={Boolean(post)} onOpenChange={(open) => !open && onClose()}>
+    <DialogPrimitive.Root
+      open={Boolean(post)}
+      onOpenChange={(open) => !open && onClose()}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className={dialogOverlayClass} />
         <DialogPrimitive.Content className={dialogContentClass}>
@@ -346,6 +412,19 @@ function StudioDetailModal({
                   <DialogPrimitive.Title className="text-2xl font-semibold tracking-tight text-white md:text-4xl">
                     {post.title?.trim() || 'Untitled Post'}
                   </DialogPrimitive.Title>
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenShorts(post.id);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20"
+                    >
+                      <Clapperboard className="h-3.5 w-3.5" />
+                      숏폼 모드
+                    </button>
+                  </div>
                 </div>
 
                 <div className="h-px w-full bg-white/10" />
@@ -399,7 +478,8 @@ function StudioDetailModal({
                       )}
                     </div>
                     <p className="text-sm leading-relaxed text-white/55">
-                      기본은 멤버십 전용이며, 일반 공개 체크 미디어는 비구독자도 볼 수 있습니다.
+                      기본은 멤버십 전용이며, 일반 공개 체크 미디어는 비구독자도
+                      볼 수 있습니다.
                     </p>
                   </div>
 
@@ -410,10 +490,12 @@ function StudioDetailModal({
                   ) : isRowTierLocked ? (
                     <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-5">
                       <p className="text-sm font-semibold text-white">
-                        {requiredTierLabel} 이상에서만 이 게시물의 전용 미디어를 볼 수 있습니다.
+                        {requiredTierLabel} 이상에서만 이 게시물의 전용 미디어를
+                        볼 수 있습니다.
                       </p>
                       <p className="mt-2 text-sm text-white/70">
-                        일반 공개 체크된 미디어는 비구독자도 볼 수 있지만, 전용 미디어 전체는 해당 등급 가입자에게만 열립니다.
+                        일반 공개 체크된 미디어는 비구독자도 볼 수 있지만, 전용
+                        미디어 전체는 해당 등급 가입자에게만 열립니다.
                       </p>
                       <div className="mt-4">
                         {user ? (
@@ -433,9 +515,12 @@ function StudioDetailModal({
                     </div>
                   ) : !user ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                      <p className="text-sm font-semibold text-white">멤버십 가입이 필요합니다.</p>
+                      <p className="text-sm font-semibold text-white">
+                        멤버십 가입이 필요합니다.
+                      </p>
                       <p className="mt-2 text-sm text-white/60">
-                        로그인 후 멤버십 가입을 진행하면 전용 미디어를 볼 수 있습니다.
+                        로그인 후 멤버십 가입을 진행하면 전용 미디어를 볼 수
+                        있습니다.
                       </p>
                       <div className="mt-4">
                         <Link
@@ -452,7 +537,8 @@ function StudioDetailModal({
                         Studio 전용 미디어는 구독자 전용입니다.
                       </p>
                       <p className="mt-2 text-sm text-white/60">
-                        멤버십 가입 후 이 게시글의 원본 이미지/영상을 볼 수 있습니다.
+                        멤버십 가입 후 이 게시글의 원본 이미지/영상을 볼 수
+                        있습니다.
                       </p>
                       <div className="mt-4">
                         <StudioSubscribeButton
@@ -463,7 +549,9 @@ function StudioDetailModal({
                     </div>
                   ) : null}
 
-                  {!authLoading && !viewerMembershipTierLoading && !isRowTierLocked ? (
+                  {!authLoading &&
+                  !viewerMembershipTierLoading &&
+                  !isRowTierLocked ? (
                     <StudioProtectedMedia studioPostId={post.id} />
                   ) : null}
                 </section>
@@ -558,7 +646,10 @@ function StudioWriteModal({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="studio-write-image-url" className={fieldLabelClass}>
+              <label
+                htmlFor="studio-write-image-url"
+                className={fieldLabelClass}
+              >
                 Image URL (optional)
               </label>
               <input
@@ -595,6 +686,480 @@ function StudioWriteModal({
   );
 }
 
+function StudioShortsModal({
+  open,
+  onOpenChange,
+  posts,
+  initialPostId,
+  onOpenPost,
+  viewerMembershipTierLevel,
+  viewerMembershipTierLoading,
+  isAuthenticated
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  posts: StudioPost[];
+  initialPostId: string | null;
+  onOpenPost: (post: StudioPost) => void;
+  viewerMembershipTierLevel: number;
+  viewerMembershipTierLoading: boolean;
+  isAuthenticated: boolean;
+}) {
+  const shortsPosts = useMemo(
+    () => posts.filter((post) => !post.is_placeholder),
+    [posts]
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [muted, setMuted] = useState(true);
+  const [mediaByPostId, setMediaByPostId] = useState<
+    Record<string, StudioShortsMediaState>
+  >({});
+  const mediaByPostIdRef = useRef<Record<string, StudioShortsMediaState>>({});
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const slideRefs = useRef<Array<HTMLElement | null>>([]);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+
+  useEffect(() => {
+    mediaByPostIdRef.current = mediaByPostId;
+  }, [mediaByPostId]);
+
+  useEffect(() => {
+    slideRefs.current = slideRefs.current.slice(0, shortsPosts.length);
+    videoRefs.current = videoRefs.current.slice(0, shortsPosts.length);
+  }, [shortsPosts.length]);
+
+  const loadPostMedia = useCallback(async (postId: string) => {
+    const normalizedPostId = postId.trim();
+    if (!normalizedPostId) return;
+
+    const current = mediaByPostIdRef.current[normalizedPostId];
+    if (current?.loading || current?.loaded) return;
+
+    setMediaByPostId((prev) => ({
+      ...prev,
+      [normalizedPostId]: {
+        ...(prev[normalizedPostId] ?? buildInitialShortsMediaState()),
+        loading: true,
+        error: null
+      }
+    }));
+
+    try {
+      const response = await fetch(
+        `/api/studio/media/${encodeURIComponent(normalizedPostId)}`,
+        { cache: 'no-store' }
+      );
+      const payload = (await response
+        .json()
+        .catch(() => ({}))) as StudioShortsMediaResponse;
+      if (!response.ok) {
+        throw new Error(
+          payload.message || '게시물 미디어를 불러오지 못했습니다.'
+        );
+      }
+
+      const rows = Array.isArray(payload.data) ? payload.data : [];
+      const firstVideo = rows.find((row) => row.kind === 'video') ?? null;
+      const firstImage = rows.find((row) => row.kind === 'image') ?? null;
+
+      setMediaByPostId((prev) => ({
+        ...prev,
+        [normalizedPostId]: {
+          loading: false,
+          loaded: true,
+          videoUrl: firstVideo?.url ?? null,
+          fallbackImageUrl: firstImage?.url ?? null,
+          error: null
+        }
+      }));
+    } catch (error) {
+      setMediaByPostId((prev) => ({
+        ...prev,
+        [normalizedPostId]: {
+          loading: false,
+          loaded: true,
+          videoUrl: null,
+          fallbackImageUrl: null,
+          error:
+            error instanceof Error
+              ? error.message
+              : '게시물 미디어를 불러오지 못했습니다.'
+        }
+      }));
+    }
+  }, []);
+
+  const scrollToIndex = useCallback(
+    (nextIndex: number) => {
+      if (shortsPosts.length === 0) return;
+      const clamped = Math.max(0, Math.min(shortsPosts.length - 1, nextIndex));
+      const target = slideRefs.current[clamped];
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    [shortsPosts.length]
+  );
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+
+    const matchedIndex = initialPostId
+      ? shortsPosts.findIndex((post) => post.id === initialPostId)
+      : -1;
+    const nextActiveIndex = matchedIndex >= 0 ? matchedIndex : 0;
+    setActiveIndex(nextActiveIndex);
+
+    const frameId = window.requestAnimationFrame(() => {
+      const target = slideRefs.current[nextActiveIndex];
+      if (target) target.scrollIntoView({ block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [open, initialPostId, shortsPosts]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+
+    const nearIndexes = [
+      activeIndex - 1,
+      activeIndex,
+      activeIndex + 1,
+      activeIndex + 2
+    ];
+    nearIndexes.forEach((index) => {
+      if (index < 0 || index >= shortsPosts.length) return;
+      void loadPostMedia(shortsPosts[index].id);
+    });
+  }, [activeIndex, loadPostMedia, open, shortsPosts]);
+
+  useEffect(() => {
+    if (!open) return;
+    const root = scrollContainerRef.current;
+    if (!root) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestIndex = -1;
+        let bestRatio = 0;
+
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const indexRaw = (entry.target as HTMLElement).dataset.index;
+          const index = Number(indexRaw);
+          if (!Number.isFinite(index)) return;
+          if (entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            bestIndex = index;
+          }
+        });
+
+        if (bestIndex >= 0) {
+          setActiveIndex((prev) => (prev === bestIndex ? prev : bestIndex));
+        }
+      },
+      {
+        root,
+        threshold: [0.35, 0.55, 0.75]
+      }
+    );
+
+    slideRefs.current.forEach((element, index) => {
+      if (!element) return;
+      element.dataset.index = String(index);
+      observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [open, shortsPosts.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    videoRefs.current.forEach((video, index) => {
+      if (!video) return;
+      if (index === activeIndex) {
+        video.muted = muted;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(() => undefined);
+        }
+      } else {
+        video.pause();
+      }
+    });
+  }, [activeIndex, mediaByPostId, muted, open]);
+
+  useEffect(() => {
+    if (!open) {
+      videoRefs.current.forEach((video) => video?.pause());
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        scrollToIndex(activeIndex + 1);
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        scrollToIndex(activeIndex - 1);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeIndex, open, scrollToIndex]);
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm" />
+        <DialogPrimitive.Content className="fixed inset-0 z-50 bg-black text-white outline-none">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className={`${modalCloseButtonClass} right-4 top-4 md:right-6 md:top-6`}
+            aria-label="숏폼 모드 닫기"
+          >
+            <X className="h-4 w-4 md:h-5 md:w-5" />
+          </button>
+
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-center px-4 pt-4">
+            <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/90 backdrop-blur">
+              <Clapperboard className="h-3.5 w-3.5" />
+              Studio Shorts
+            </div>
+          </div>
+
+          {shortsPosts.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-6 text-center">
+              <div className="max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                <p className="text-base font-semibold">
+                  표시할 Studio 게시물이 없습니다.
+                </p>
+                <p className="mt-2 text-sm text-white/60">
+                  게시물을 추가한 뒤 숏폼 모드를 다시 열어주세요.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="absolute right-4 top-20 z-20 flex flex-col gap-2 md:right-6">
+                <button
+                  type="button"
+                  onClick={() => scrollToIndex(activeIndex - 1)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white/90 backdrop-blur transition hover:bg-white/20"
+                  aria-label="이전 게시물"
+                >
+                  <Play
+                    className="h-4 w-4 rotate-[-90deg]"
+                    fill="currentColor"
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToIndex(activeIndex + 1)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white/90 backdrop-blur transition hover:bg-white/20"
+                  aria-label="다음 게시물"
+                >
+                  <Play className="h-4 w-4 rotate-90" fill="currentColor" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMuted((prev) => !prev)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white/90 backdrop-blur transition hover:bg-white/20"
+                  aria-label={muted ? '음소거 해제' : '음소거'}
+                >
+                  {muted ? (
+                    <VolumeX className="h-4 w-4" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              <div
+                ref={scrollContainerRef}
+                className="h-[100dvh] overflow-y-auto snap-y snap-mandatory"
+              >
+                {shortsPosts.map((post, index) => {
+                  const rowRule = resolveStudioRowRule(
+                    post.required_membership_level
+                  );
+                  const mediaState =
+                    mediaByPostId[post.id] ?? buildInitialShortsMediaState();
+                  const fallbackImage =
+                    mediaState.fallbackImageUrl || post.image_url;
+                  const isRowLocked =
+                    rowRule.requiredLevel > 0 &&
+                    !viewerMembershipTierLoading &&
+                    viewerMembershipTierLevel < rowRule.requiredLevel;
+                  const excerpt = getExcerpt(post.content, 180);
+
+                  if (!mediaState.videoUrl) {
+                    videoRefs.current[index] = null;
+                  }
+
+                  return (
+                    <article
+                      key={`studio-shorts-${post.id}`}
+                      ref={(element) => {
+                        slideRefs.current[index] = element;
+                      }}
+                      className="relative flex min-h-[100dvh] snap-start items-center justify-center px-4 py-16 md:px-8"
+                    >
+                      <div className="w-full max-w-[440px]">
+                        <div className="overflow-hidden rounded-[30px] border border-white/15 bg-black shadow-[0_28px_70px_rgba(0,0,0,0.55)]">
+                          <div className="relative aspect-[9/16] bg-black">
+                            {mediaState.loading ? (
+                              <div className="flex h-full w-full items-center justify-center bg-white/[0.06] text-sm text-white/60">
+                                영상 준비 중...
+                              </div>
+                            ) : mediaState.videoUrl ? (
+                              <video
+                                ref={(element) => {
+                                  videoRefs.current[index] = element;
+                                }}
+                                src={mediaState.videoUrl}
+                                poster={fallbackImage || undefined}
+                                controls
+                                playsInline
+                                loop
+                                preload={
+                                  index === activeIndex ? 'auto' : 'metadata'
+                                }
+                                className="h-full w-full object-cover"
+                              />
+                            ) : fallbackImage ? (
+                              <img
+                                src={fallbackImage}
+                                alt={
+                                  post.title?.trim() || 'Studio post preview'
+                                }
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-white/[0.04] px-6 text-center">
+                                <ImageIcon className="h-8 w-8 text-white/35" />
+                                <p className="text-sm text-white/65">
+                                  이 게시물에는 노출 가능한 영상이 없습니다.
+                                </p>
+                              </div>
+                            )}
+
+                            {isRowLocked && !mediaState.videoUrl && (
+                              <div className="pointer-events-none absolute inset-0 z-[1]">
+                                <div className="absolute inset-0 bg-black/55" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/65 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                    <Lock className="h-3.5 w-3.5" />
+                                    {rowRule.membershipLabel}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2 px-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                                rowRule.requiredLevel === 0
+                                  ? 'border-sky-300/30 bg-sky-500/10 text-sky-100'
+                                  : isRowLocked
+                                    ? 'border-amber-300/25 bg-amber-500/10 text-amber-100'
+                                    : 'border-emerald-300/25 bg-emerald-500/10 text-emerald-100'
+                              }`}
+                            >
+                              {rowRule.membershipLabel}
+                            </span>
+                            <span className="text-xs text-white/45">
+                              {index + 1} / {shortsPosts.length}
+                            </span>
+                          </div>
+                          <h3 className="line-clamp-2 text-lg font-semibold tracking-tight text-white">
+                            {post.title?.trim() || 'Untitled Post'}
+                          </h3>
+                          {excerpt ? (
+                            <p className="line-clamp-3 text-sm leading-relaxed text-white/70">
+                              {excerpt}
+                            </p>
+                          ) : null}
+                          <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                            {formatStudioDate(post.created_at)}
+                          </p>
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onOpenChange(false);
+                                onOpenPost({
+                                  ...post,
+                                  required_membership_level:
+                                    rowRule.requiredLevel,
+                                  required_membership_label:
+                                    rowRule.membershipLabel
+                                });
+                              }}
+                              className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20"
+                            >
+                              상세 보기
+                            </button>
+                          </div>
+
+                          {isRowLocked ? (
+                            <div className="rounded-2xl border border-amber-300/25 bg-amber-500/10 p-3">
+                              <p className="text-xs text-amber-100">
+                                {rowRule.membershipLabel} 이상에서 전체 영상
+                                재생이 가능합니다.
+                              </p>
+                              <div className="mt-2">
+                                {isAuthenticated ? (
+                                  <StudioSubscribeButton
+                                    studioPostId={post.id}
+                                    className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200"
+                                  />
+                                ) : (
+                                  <Link
+                                    href="/signin"
+                                    className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200"
+                                  >
+                                    로그인
+                                  </Link>
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {mediaState.error ? (
+                            <p className="text-xs text-red-200/90">
+                              {mediaState.error}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {index < shortsPosts.length - 1 ? (
+                        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2">
+                          <div className="inline-flex animate-bounce items-center gap-1 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-white/75 backdrop-blur">
+                            <ChevronDown className="h-3.5 w-3.5" />
+                            다음 게시물
+                          </div>
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
 export default function StudioSection({
   studioPostIdFromQuery,
   queryString
@@ -610,6 +1175,10 @@ export default function StudioSection({
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<StudioPost | null>(null);
+  const [isShortsModalOpen, setIsShortsModalOpen] = useState(false);
+  const [shortsInitialPostId, setShortsInitialPostId] = useState<string | null>(
+    null
+  );
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -623,10 +1192,16 @@ export default function StudioSection({
     imageUrl: ''
   });
   const [viewerMembershipTierLevel, setViewerMembershipTierLevel] = useState(0);
-  const [viewerMembershipTierLoading, setViewerMembershipTierLoading] = useState(false);
-  const [viewerMembershipLabel, setViewerMembershipLabel] = useState<string>('일반 멤버십');
+  const [viewerMembershipTierLoading, setViewerMembershipTierLoading] =
+    useState(false);
+  const [viewerMembershipLabel, setViewerMembershipLabel] =
+    useState<string>('일반 멤버십');
 
   const displayRows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
+  const shortsPosts = useMemo(
+    () => studioPosts.filter((post) => !post.is_placeholder),
+    [studioPosts]
+  );
 
   const findPostWithRowMeta = useCallback(
     (postId: string) => {
@@ -636,7 +1211,9 @@ export default function StudioSection({
       for (const row of displayRows) {
         const rowRule = row.rowRule;
         const rowPosts = row.posts ?? [];
-        const found = rowPosts.find((post) => post.id === normalizedId && !post.is_placeholder);
+        const found = rowPosts.find(
+          (post) => post.id === normalizedId && !post.is_placeholder
+        );
         if (!found) continue;
 
         return {
@@ -658,7 +1235,9 @@ export default function StudioSection({
     try {
       let queryResult = await (supabase as never)
         .from('studio_posts')
-        .select('id,title,content,image_url,created_at,required_membership_level')
+        .select(
+          'id,title,content,image_url,created_at,required_membership_level'
+        )
         .order('created_at', { ascending: false });
 
       if (
@@ -697,7 +1276,9 @@ export default function StudioSection({
     } catch (error) {
       setStudioPosts([]);
       setPostsError(
-        error instanceof Error ? error.message : '스튜디오 게시물을 불러오지 못했습니다.'
+        error instanceof Error
+          ? error.message
+          : '스튜디오 게시물을 불러오지 못했습니다.'
       );
     } finally {
       setPostsLoading(false);
@@ -740,10 +1321,16 @@ export default function StudioSection({
     const loadMembershipTier = async () => {
       setViewerMembershipTierLoading(true);
       try {
-        const response = await fetch('/api/account/membership', { cache: 'no-store' });
-        const payload = (await response.json().catch(() => ({}))) as StudioMembershipApiResponse;
+        const response = await fetch('/api/account/membership', {
+          cache: 'no-store'
+        });
+        const payload = (await response
+          .json()
+          .catch(() => ({}))) as StudioMembershipApiResponse;
         if (!response.ok) {
-          throw new Error(payload.message || '멤버십 정보를 불러오지 못했습니다.');
+          throw new Error(
+            payload.message || '멤버십 정보를 불러오지 못했습니다.'
+          );
         }
 
         const membership = payload.data ?? null;
@@ -752,7 +1339,9 @@ export default function StudioSection({
           setViewerMembershipTierLevel(nextTierLevel);
           setViewerMembershipLabel(
             membership?.has_active_subscription
-              ? String(membership?.selected_membership || '활성 멤버십').trim() || '활성 멤버십'
+              ? String(
+                  membership?.selected_membership || '활성 멤버십'
+                ).trim() || '활성 멤버십'
               : '일반 멤버십'
           );
         }
@@ -857,7 +1446,9 @@ export default function StudioSection({
           user_id: user.id,
           required_membership_level: 0
         })
-        .select('id,title,content,image_url,created_at,required_membership_level')
+        .select(
+          'id,title,content,image_url,created_at,required_membership_level'
+        )
         .single();
 
       if (
@@ -909,7 +1500,9 @@ export default function StudioSection({
       resetWriteForm();
       setIsWriteModalOpen(false);
     } catch (error) {
-      setWriteError(error instanceof Error ? error.message : '게시물 작성에 실패했습니다.');
+      setWriteError(
+        error instanceof Error ? error.message : '게시물 작성에 실패했습니다.'
+      );
     } finally {
       setWriteSubmitting(false);
     }
@@ -926,8 +1519,36 @@ export default function StudioSection({
     if (!nextSearch.has('studioPost')) return;
     nextSearch.delete('studioPost');
     const nextQuery = nextSearch.toString();
-    router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}#studio`, { scroll: false });
+    router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}#studio`, {
+      scroll: false
+    });
   }, [pathname, queryString, router]);
+
+  const handleOpenShorts = useCallback(
+    (postId?: string | null) => {
+      if (shortsPosts.length === 0) return;
+      const normalized = (postId || '').trim();
+      const hasTarget =
+        normalized && shortsPosts.some((post) => post.id === normalized);
+      setShortsInitialPostId(hasTarget ? normalized : shortsPosts[0].id);
+      setIsShortsModalOpen(true);
+    },
+    [shortsPosts]
+  );
+
+  const handleOpenPostFromShorts = useCallback(
+    (post: StudioPost) => {
+      setIsShortsModalOpen(false);
+      setSelectedPost(post);
+      const nextSearch = new URLSearchParams(queryString);
+      nextSearch.set('studioPost', post.id);
+      const nextQuery = nextSearch.toString();
+      router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}#studio`, {
+        scroll: false
+      });
+    },
+    [pathname, queryString, router]
+  );
 
   const renderRow = (row: StudioDisplayRow, rowIndex: number) => {
     const rowItems = row.posts ?? [];
@@ -962,7 +1583,9 @@ export default function StudioSection({
           {viewerMembershipTierLoading ? (
             <span className="text-[11px] text-white/45">권한 확인중...</span>
           ) : rowRule.requiredLevel > 0 ? (
-            <span className="text-[11px] text-white/45">{isRowLocked ? '잠금' : '열림'}</span>
+            <span className="text-[11px] text-white/45">
+              {isRowLocked ? '잠금' : '열림'}
+            </span>
           ) : (
             <span className="text-[11px] text-white/45">모두 공개</span>
           )}
@@ -1076,14 +1699,19 @@ export default function StudioSection({
                         {formatStudioDate(post.created_at)}
                       </p>
                       <h3 className="truncate text-sm font-semibold tracking-tight text-white md:text-xl">
-                        {post.title?.trim() || (isPlaceholder ? '게시물 준비중' : 'Untitled Post')}
+                        {post.title?.trim() ||
+                          (isPlaceholder ? '게시물 준비중' : 'Untitled Post')}
                       </h3>
                       {excerpt ? (
-                        <p className="hidden text-xs leading-relaxed text-white/70 md:block">{excerpt}</p>
+                        <p className="hidden text-xs leading-relaxed text-white/70 md:block">
+                          {excerpt}
+                        </p>
                       ) : null}
                       {isPlaceholder ? (
                         <p className="hidden text-[11px] text-white/45 md:block">
-                          {isAdmin ? '관리자 패널에서 게시물을 추가할 수 있습니다.' : '곧 업데이트됩니다.'}
+                          {isAdmin
+                            ? '관리자 패널에서 게시물을 추가할 수 있습니다.'
+                            : '곧 업데이트됩니다.'}
                         </p>
                       ) : null}
                     </div>
@@ -1105,7 +1733,11 @@ export default function StudioSection({
             transform: translate3d(0, 0, 0);
           }
           to {
-            transform: translate3d(calc(-50% - ${MARQUEE_GAP_REM / 2}rem), 0, 0);
+            transform: translate3d(
+              calc(-50% - ${MARQUEE_GAP_REM / 2}rem),
+              0,
+              0
+            );
           }
         }
       `}</style>
@@ -1116,43 +1748,67 @@ export default function StudioSection({
       >
         <div className="mb-10 flex items-start justify-between gap-4 px-4 md:px-8 lg:px-16">
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.34em] text-white/45">Studio</p>
+            <p className="text-xs uppercase tracking-[0.34em] text-white/45">
+              Studio
+            </p>
             <h2 className="text-4xl tracking-tight md:text-5xl">Studio</h2>
             <p className="max-w-2xl text-sm leading-relaxed text-white/55 md:text-base">
               1번 줄은 일반 멤버십, 2~4번 줄은 멤버십 등급별 게시물입니다.
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">현재 권한</span>
+              <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                현재 권한
+              </span>
               <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
-                {viewerMembershipTierLoading ? '확인중...' : viewerMembershipLabel}
+                {viewerMembershipTierLoading
+                  ? '확인중...'
+                  : viewerMembershipLabel}
               </span>
             </div>
           </div>
-
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleOpenShorts(studioPostIdFromQuery)}
+              disabled={shortsPosts.length === 0}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Clapperboard className="h-4 w-4" />
+              숏폼 보기
+            </button>
+          </div>
         </div>
 
-      <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
+        <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
           {postsLoading ? (
-            Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map((_, rowIndex) => (
-              <div key={`studio-skeleton-row-${rowIndex}`} className="overflow-hidden">
-                <div className="flex gap-4" style={{ width: 'fit-content' }}>
-                  {Array.from({ length: 3 }).map((__, cardIndex) => (
-                    <div
-                      key={`studio-skeleton-${rowIndex}-${cardIndex}`}
-                      className="h-[130px] w-[220px] overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
-                    >
-                      <div className="h-full w-full animate-pulse bg-white/[0.05]" />
-                    </div>
-                  ))}
+            Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map(
+              (_, rowIndex) => (
+                <div
+                  key={`studio-skeleton-row-${rowIndex}`}
+                  className="overflow-hidden"
+                >
+                  <div className="flex gap-4" style={{ width: 'fit-content' }}>
+                    {Array.from({ length: 3 }).map((__, cardIndex) => (
+                      <div
+                        key={`studio-skeleton-${rowIndex}-${cardIndex}`}
+                        className="h-[130px] w-[220px] overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
+                      >
+                        <div className="h-full w-full animate-pulse bg-white/[0.05]" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))
+              )
+            )
           ) : (
             <>
               {studioPosts.length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/75">
-                  실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로 채워져 있습니다.
-                  {postsError ? <p className="mt-2 text-xs text-red-300/90">{postsError}</p> : null}
+                  실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로
+                  채워져 있습니다.
+                  {postsError ? (
+                    <p className="mt-2 text-xs text-red-300/90">{postsError}</p>
+                  ) : null}
                 </div>
               ) : postsError ? (
                 <div className="rounded-2xl border border-red-300/20 bg-red-500/10 px-5 py-4 text-sm text-red-100">
@@ -1170,7 +1826,9 @@ export default function StudioSection({
             onClick={togglePlayPause}
             className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={isPlaying ? '일시정지' : '재생'}
-            disabled={displayRows.every((row) => row.posts.every((post) => post.is_placeholder))}
+            disabled={displayRows.every((row) =>
+              row.posts.every((post) => post.is_placeholder)
+            )}
           >
             {isPlaying ? (
               <Pause className="h-5 w-5 text-white" fill="white" />
@@ -1184,8 +1842,20 @@ export default function StudioSection({
       <StudioDetailModal
         post={selectedPost}
         onClose={handleCloseSelectedPost}
+        onOpenShorts={handleOpenShorts}
         viewerMembershipTierLevel={viewerMembershipTierLevel}
         viewerMembershipTierLoading={viewerMembershipTierLoading}
+      />
+
+      <StudioShortsModal
+        open={isShortsModalOpen}
+        onOpenChange={setIsShortsModalOpen}
+        posts={shortsPosts}
+        initialPostId={shortsInitialPostId}
+        onOpenPost={handleOpenPostFromShorts}
+        viewerMembershipTierLevel={viewerMembershipTierLevel}
+        viewerMembershipTierLoading={viewerMembershipTierLoading}
+        isAuthenticated={Boolean(user?.id)}
       />
 
       <StudioWriteModal
