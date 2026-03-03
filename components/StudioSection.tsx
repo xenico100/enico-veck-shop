@@ -83,6 +83,7 @@ type StudioShortsMediaState = {
   videoUrl: string | null;
   fallbackImageUrl: string | null;
   error: string | null;
+  retryCount: number;
 };
 
 type StudioSectionProps = {
@@ -298,10 +299,12 @@ const buildInitialShortsMediaState = (): StudioShortsMediaState => ({
   loaded: false,
   videoUrl: null,
   fallbackImageUrl: null,
-  error: null
+  error: null,
+  retryCount: 0
 });
 
 const SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME = 0.35;
+const SHORTS_MEDIA_FETCH_MAX_RETRY = 3;
 const clampShortsVolume = (value: number) =>
   Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
@@ -807,31 +810,55 @@ function StudioShortsModal({
     if (!normalizedPostId) return;
 
     const current = mediaByPostIdRef.current[normalizedPostId];
-    if (current?.loading || current?.loaded) return;
+    const retryCount = current?.retryCount ?? 0;
+    if (current?.loading) return;
+    if (current?.videoUrl) return;
+    if (current?.loaded && !current.error) return;
+    if (retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY) return;
 
     setMediaByPostId((prev) => ({
       ...prev,
       [normalizedPostId]: {
         ...(prev[normalizedPostId] ?? buildInitialShortsMediaState()),
         loading: true,
-        error: null
+        loaded: false,
+        error: null,
+        retryCount
       }
     }));
 
     try {
-      const response = await fetch(
-        `/api/studio/media/${encodeURIComponent(normalizedPostId)}?preview=1`
+      const previewResponse = await fetch(
+        `/api/studio/media/${encodeURIComponent(normalizedPostId)}?preview=1`,
+        {
+          cache: 'no-store'
+        }
       );
-      const payload = (await response
+      const previewPayload = (await previewResponse
         .json()
         .catch(() => ({}))) as StudioShortsMediaResponse;
-      if (!response.ok) {
+      if (!previewResponse.ok) {
         throw new Error(
-          payload.message || '게시물 미디어를 불러오지 못했습니다.'
+          previewPayload.message || '게시물 미디어를 불러오지 못했습니다.'
         );
       }
 
-      const rows = Array.isArray(payload.data) ? payload.data : [];
+      let rows = Array.isArray(previewPayload.data) ? previewPayload.data : [];
+      if (!rows.some((row) => row.kind === 'video')) {
+        const fullResponse = await fetch(
+          `/api/studio/media/${encodeURIComponent(normalizedPostId)}`,
+          {
+            cache: 'no-store'
+          }
+        );
+        const fullPayload = (await fullResponse
+          .json()
+          .catch(() => ({}))) as StudioShortsMediaResponse;
+        if (fullResponse.ok && Array.isArray(fullPayload.data)) {
+          rows = fullPayload.data;
+        }
+      }
+
       const firstVideo = rows.find((row) => row.kind === 'video') ?? null;
       const firstImage = rows.find((row) => row.kind === 'image') ?? null;
 
@@ -842,7 +869,8 @@ function StudioShortsModal({
           loaded: true,
           videoUrl: firstVideo?.url ?? null,
           fallbackImageUrl: firstImage?.url ?? null,
-          error: null
+          error: firstVideo ? null : '영상 미디어가 없습니다.',
+          retryCount: firstVideo ? retryCount : retryCount + 1
         }
       }));
     } catch (error) {
@@ -850,13 +878,14 @@ function StudioShortsModal({
         ...prev,
         [normalizedPostId]: {
           loading: false,
-          loaded: true,
+          loaded: false,
           videoUrl: null,
           fallbackImageUrl: null,
           error:
             error instanceof Error
               ? error.message
-              : '게시물 미디어를 불러오지 못했습니다.'
+              : '게시물 미디어를 불러오지 못했습니다.',
+          retryCount: retryCount + 1
         }
       }));
     }
@@ -879,7 +908,16 @@ function StudioShortsModal({
     const matchedIndex = initialPostId
       ? shortsPosts.findIndex((post) => post.id === initialPostId)
       : -1;
-    const nextActiveIndex = matchedIndex >= 0 ? matchedIndex : 0;
+    const preferredIndex = matchedIndex >= 0 ? matchedIndex : 0;
+    const preferredPostId = shortsPosts[preferredIndex]?.id ?? '';
+    const preferredHasVideo = Boolean(
+      mediaByPostIdRef.current[preferredPostId]?.videoUrl
+    );
+    const cachedVideoIndex = shortsPosts.findIndex((post) =>
+      Boolean(mediaByPostIdRef.current[post.id]?.videoUrl)
+    );
+    const nextActiveIndex =
+      preferredHasVideo || cachedVideoIndex < 0 ? preferredIndex : cachedVideoIndex;
     setActiveIndex(nextActiveIndex);
 
     const frameId = window.requestAnimationFrame(() => {
@@ -888,6 +926,14 @@ function StudioShortsModal({
     });
     return () => window.cancelAnimationFrame(frameId);
   }, [open, initialPostId, shortsPosts]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+    const preloadTargets = shortsPosts.slice(0, Math.min(shortsPosts.length, 12));
+    preloadTargets.forEach((post) => {
+      void loadPostMedia(post.id);
+    });
+  }, [loadPostMedia, open, shortsPosts]);
 
   useEffect(() => {
     if (!open) return;
@@ -927,6 +973,24 @@ function StudioShortsModal({
       void loadPostMedia(shortsPosts[index].id);
     });
   }, [activeIndex, loadPostMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+    const activePost = shortsPosts[activeIndex];
+    if (!activePost) return;
+
+    const state = mediaByPostId[activePost.id];
+    if (!state) return;
+    if (state.loading) return;
+    if (state.videoUrl) return;
+    if (state.retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY) return;
+
+    const retryTimer = window.setTimeout(() => {
+      void loadPostMedia(activePost.id);
+    }, 260);
+
+    return () => window.clearTimeout(retryTimer);
+  }, [activeIndex, loadPostMedia, mediaByPostId, open, shortsPosts]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -1207,8 +1271,7 @@ function StudioShortsModal({
                   );
                   const mediaState =
                     mediaByPostId[post.id] ?? buildInitialShortsMediaState();
-                  const fallbackImage =
-                    mediaState.fallbackImageUrl || post.image_url;
+                  const fallbackImage = mediaState.fallbackImageUrl;
                   const isRowLocked =
                     rowRule.requiredLevel > 0 &&
                     !viewerMembershipTierLoading &&
@@ -1283,7 +1346,8 @@ function StudioShortsModal({
                                 }
                                 className={videoFitClass}
                               />
-                            ) : fallbackImage ? (
+                            ) : fallbackImage &&
+                              mediaState.retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY ? (
                               <img
                                 src={fallbackImage}
                                 alt={
@@ -1295,7 +1359,10 @@ function StudioShortsModal({
                               <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-white/[0.04] px-6 text-center">
                                 <ImageIcon className="h-8 w-8 text-white/35" />
                                 <p className="text-sm text-white/65">
-                                  이 게시물에는 노출 가능한 영상이 없습니다.
+                                  {mediaState.retryCount >=
+                                  SHORTS_MEDIA_FETCH_MAX_RETRY
+                                    ? '이 게시물에는 노출 가능한 영상이 없습니다.'
+                                    : '영상을 찾는 중입니다...'}
                                 </p>
                               </div>
                             )}
