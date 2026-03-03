@@ -718,6 +718,9 @@ function StudioShortsModal({
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME);
   const [autoplayMutedFallback, setAutoplayMutedFallback] = useState(false);
+  const [videoFitByPostId, setVideoFitByPostId] = useState<
+    Record<string, 'cover' | 'contain'>
+  >({});
   const [mediaByPostId, setMediaByPostId] = useState<
     Record<string, StudioShortsMediaState>
   >({});
@@ -1137,6 +1140,12 @@ function StudioShortsModal({
                     videoRefs.current[index] = null;
                   }
 
+                  const videoFitMode = videoFitByPostId[post.id] ?? 'cover';
+                  const videoFitClass =
+                    videoFitMode === 'contain'
+                      ? 'h-full w-full object-contain bg-black'
+                      : 'h-full w-full object-cover';
+
                   return (
                     <article
                       key={`studio-shorts-${post.id}`}
@@ -1171,6 +1180,15 @@ function StudioShortsModal({
                                 }
                                 onLoadedMetadata={(event) => {
                                   const video = event.currentTarget;
+                                  const fitMode =
+                                    video.videoWidth > video.videoHeight
+                                      ? 'contain'
+                                      : 'cover';
+                                  setVideoFitByPostId((prev) =>
+                                    prev[post.id] === fitMode
+                                      ? prev
+                                      : { ...prev, [post.id]: fitMode }
+                                  );
                                   applyShortsAudioState(video);
                                   if (index === activeIndex) {
                                     const playPromise = video.play();
@@ -1185,7 +1203,7 @@ function StudioShortsModal({
                                 onContextMenu={(event) =>
                                   event.preventDefault()
                                 }
-                                className="h-full w-full object-cover"
+                                className={videoFitClass}
                               />
                             ) : fallbackImage ? (
                               <img
