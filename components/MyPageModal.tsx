@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { Lock, Package, Trash2, X } from 'lucide-react';
+import { FileText, Lock, Package, Trash2, X } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import MyPageAdminPanel from '@/components/MyPageAdminPanel';
@@ -20,7 +20,7 @@ import {
 } from '@/utils/orders';
 import { isAdminUserLike } from '@/utils/service-posts';
 
-type TabKey = 'profile' | 'orders' | 'membership' | 'admin';
+type TabKey = 'profile' | 'orders' | 'community' | 'membership' | 'admin';
 
 type Props = {
   open: boolean;
@@ -30,6 +30,7 @@ type Props = {
 const tabs: Array<{ key: TabKey; label: string; adminOnly?: boolean }> = [
   { key: 'profile', label: '회원 정보' },
   { key: 'orders', label: '주문 목록' },
+  { key: 'community', label: '내 게시글' },
   { key: 'membership', label: '멤버십' },
   { key: 'admin', label: '관리자 패널', adminOnly: true },
 ];
@@ -54,6 +55,23 @@ type MembershipSummary = {
   plan_interval: string | null;
 };
 
+type CommunityPostItem = {
+  id: string;
+  title: string;
+  content: string;
+  is_notice: boolean;
+  created_at: string;
+  updated_at: string;
+  comment_count: number;
+};
+
+const toCommunityExcerpt = (content: string) => {
+  const normalized = content.replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  if (normalized.length <= 150) return normalized;
+  return `${normalized.slice(0, 150)}...`;
+};
+
 export default function MyPageModal({ open, onOpenChange }: Props) {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -72,6 +90,9 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [orderDetailOpen, setOrderDetailOpen] = useState(false);
+  const [communityPosts, setCommunityPosts] = useState<CommunityPostItem[]>([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityError, setCommunityError] = useState<string | null>(null);
   const [membershipLoading, setMembershipLoading] = useState(false);
   const [membershipError, setMembershipError] = useState<string | null>(null);
   const [membershipSummary, setMembershipSummary] = useState<MembershipSummary | null>(null);
@@ -187,6 +208,38 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     if (!open || activeTab !== 'orders') return;
     void fetchOrders();
   }, [open, activeTab, fetchOrders]);
+
+  const fetchCommunityPosts = useMemo(
+    () => async () => {
+      if (!user?.id) {
+        setCommunityPosts([]);
+        return;
+      }
+
+      setCommunityLoading(true);
+      setCommunityError(null);
+      try {
+        const response = await fetch('/api/account/community-posts', { cache: 'no-store' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.message || '내 게시글을 불러오지 못했습니다.');
+        }
+
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        setCommunityPosts(rows as CommunityPostItem[]);
+      } catch (error) {
+        setCommunityError(error instanceof Error ? error.message : '내 게시글을 불러오지 못했습니다.');
+      } finally {
+        setCommunityLoading(false);
+      }
+    },
+    [user?.id]
+  );
+
+  useEffect(() => {
+    if (!open || activeTab !== 'community') return;
+    void fetchCommunityPosts();
+  }, [open, activeTab, fetchCommunityPosts]);
 
   const fetchMembership = useMemo(
     () => async () => {
@@ -690,10 +743,92 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               </div>
             )}
 
+            {activeTab === 'community' && (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-tight text-white">내가 작성한 게시글</h3>
+                    <p className="mt-1 text-sm text-white/60">
+                      커뮤니티에 작성한 글만 모아서 볼 수 있습니다.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ActionButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void fetchCommunityPosts()}
+                      className={appleFontClass}
+                      disabled={communityLoading}
+                    >
+                      {communityLoading ? '불러오는 중…' : '새로고침'}
+                    </ActionButton>
+                    <a
+                      href="/community"
+                      onClick={() => onOpenChange(false)}
+                      className={`inline-flex h-9 items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 text-sm text-white transition hover:bg-white/20 ${appleFontClass}`}
+                    >
+                      커뮤니티 이동
+                    </a>
+                  </div>
+                </div>
+
+                {communityError && (
+                  <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+                    {communityError}
+                  </div>
+                )}
+
+                {communityLoading && communityPosts.length === 0 && (
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-white/70">
+                    게시글을 불러오는 중입니다...
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {!communityLoading && communityPosts.length === 0 ? (
+                    <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
+                        <FileText className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">작성한 게시글이 없습니다</p>
+                      <p className="text-xs text-white/50">
+                        커뮤니티에서 첫 게시글을 작성해 보세요.
+                      </p>
+                    </div>
+                  ) : (
+                    communityPosts.map((post) => (
+                      <article
+                        key={post.id}
+                        className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {post.is_notice && (
+                                <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-500/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                                  공지
+                                </span>
+                              )}
+                              <h4 className="truncate text-sm font-semibold text-white">{post.title}</h4>
+                            </div>
+                            <p className="mt-1 text-xs text-white/55">
+                              작성 {formatOrderDate(post.created_at)} · 댓글 {post.comment_count}개
+                            </p>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm text-white/75">{toCommunityExcerpt(post.content)}</p>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeTab === 'admin' && isAdmin && <MyPageAdminPanel enabled={open && isAdmin} />}
 
             {activeTab !== 'profile' &&
               activeTab !== 'orders' &&
+              activeTab !== 'community' &&
               activeTab !== 'membership' &&
               activeTab !== 'admin' && (
               <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm">
