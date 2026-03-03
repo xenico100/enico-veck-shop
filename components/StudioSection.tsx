@@ -1053,10 +1053,15 @@ function StudioShortsModal({
                                 src={mediaState.videoUrl}
                                 poster={fallbackImage || undefined}
                                 controls
+                                controlsList="nodownload noplaybackrate"
+                                disablePictureInPicture
                                 playsInline
                                 loop
                                 preload={
                                   index === activeIndex ? 'auto' : 'metadata'
+                                }
+                                onContextMenu={(event) =>
+                                  event.preventDefault()
                                 }
                                 className="h-full w-full object-cover"
                               />

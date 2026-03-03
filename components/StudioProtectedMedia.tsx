@@ -40,7 +40,8 @@ const formatBytes = (value: number | null) => {
   if (value == null || !Number.isFinite(value)) return null;
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  if (value < 1024 * 1024 * 1024)
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
   return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 };
 
@@ -55,9 +56,12 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/studio/media/${encodeURIComponent(studioPostId)}`, {
-        cache: 'no-store'
-      });
+      const response = await fetch(
+        `/api/studio/media/${encodeURIComponent(studioPostId)}`,
+        {
+          cache: 'no-store'
+        }
+      );
       const payload = (await response.json().catch(() => ({}))) as ApiResponse;
 
       if (!response.ok) {
@@ -73,7 +77,9 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
     } catch (err) {
       setItems([]);
       setShowingPublicOnly(false);
-      setError(err instanceof Error ? err.message : '미디어를 불러오지 못했습니다.');
+      setError(
+        err instanceof Error ? err.message : '미디어를 불러오지 못했습니다.'
+      );
     } finally {
       setLoading(false);
     }
@@ -135,19 +141,28 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
           {item.kind === 'video' ? (
             <video
               controls
+              controlsList="nodownload noplaybackrate"
+              disablePictureInPicture
               playsInline
               preload="metadata"
               src={item.url}
+              onContextMenu={(event) => event.preventDefault()}
               className="h-auto w-full bg-black"
             />
           ) : (
-            <img src={item.url} alt="" loading="lazy" className="h-auto w-full object-contain" />
+            <img
+              src={item.url}
+              alt=""
+              loading="lazy"
+              className="h-auto w-full object-contain"
+            />
           )}
         </div>
       ))}
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-neutral-400">
-        보안 링크는 잠시 후 만료됩니다. 재생/열기 오류가 나면 다시 불러오기를 눌러주세요.
+        보안 링크는 잠시 후 만료됩니다. 재생/열기 오류가 나면 다시 불러오기를
+        눌러주세요.
         {showingPublicOnly ? ' 일반 공개 미디어만 표시 중입니다.' : ''}
       </div>
     </div>

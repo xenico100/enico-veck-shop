@@ -587,7 +587,10 @@ export default function StudioPostForm() {
                     autoPlay
                     muted
                     loop
+                    controlsList="nodownload noplaybackrate"
+                    disablePictureInPicture
                     playsInline
+                    onContextMenu={(event) => event.preventDefault()}
                     className="h-full w-full object-cover"
                   />
                 ) : imagePreviewUrl ? (
