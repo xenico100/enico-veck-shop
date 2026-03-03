@@ -750,6 +750,30 @@ function StudioShortsModal({
     [muted, volume]
   );
 
+  const playVideoWithAutoplayFallback = useCallback(
+    async (video: HTMLVideoElement | null) => {
+      if (!video) return false;
+
+      try {
+        applyShortsAudioState(video);
+        await video.play();
+        setAutoplayMutedFallback(false);
+        return true;
+      } catch {
+        video.muted = true;
+        setMuted(true);
+        setAutoplayMutedFallback(true);
+        try {
+          await video.play();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    },
+    [applyShortsAudioState]
+  );
+
   const handleToggleMuted = useCallback(() => {
     setMuted((prev) => {
       if (prev) {
@@ -939,6 +963,8 @@ function StudioShortsModal({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    let retryTimer: number | null = null;
+    let retries = 0;
 
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
@@ -951,30 +977,23 @@ function StudioShortsModal({
     if (!activeVideo) return;
 
     const run = async () => {
-      applyShortsAudioState(activeVideo);
-      try {
-        await activeVideo.play();
-        if (!cancelled) {
-          setAutoplayMutedFallback(false);
-        }
-      } catch {
-        if (cancelled) return;
-        activeVideo.muted = true;
-        setMuted(true);
-        setAutoplayMutedFallback(true);
-        try {
-          await activeVideo.play();
-        } catch {
-          // no-op: final fallback is manual play with controls
-        }
-      }
+      const played = await playVideoWithAutoplayFallback(activeVideo);
+      if (cancelled || played) return;
+      if (retries >= 3) return;
+      retries += 1;
+      retryTimer = window.setTimeout(() => {
+        void run();
+      }, 220);
     };
 
     void run();
     return () => {
       cancelled = true;
+      if (retryTimer != null) {
+        window.clearTimeout(retryTimer);
+      }
     };
-  }, [activeIndex, applyShortsAudioState, mediaByPostId, open]);
+  }, [activeIndex, mediaByPostId, open, playVideoWithAutoplayFallback]);
 
   useEffect(() => {
     if (!open) {
@@ -1189,16 +1208,15 @@ function StudioShortsModal({
                                       ? prev
                                       : { ...prev, [post.id]: fitMode }
                                   );
-                                  applyShortsAudioState(video);
                                   if (index === activeIndex) {
-                                    const playPromise = video.play();
-                                    if (
-                                      playPromise &&
-                                      typeof playPromise.catch === 'function'
-                                    ) {
-                                      playPromise.catch(() => undefined);
-                                    }
+                                    void playVideoWithAutoplayFallback(video);
                                   }
+                                }}
+                                onCanPlay={(event) => {
+                                  if (index !== activeIndex) return;
+                                  void playVideoWithAutoplayFallback(
+                                    event.currentTarget
+                                  );
                                 }}
                                 onContextMenu={(event) =>
                                   event.preventDefault()
