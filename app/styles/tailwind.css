@@ -6,6 +6,7 @@
 @layer base {
   html {
     font-size: 18px;
+    scroll-behavior: smooth;
     @apply overflow-x-hidden;
   }
 
@@ -20,5 +21,11 @@
   h5,
   h6 {
     @apply text-white;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
