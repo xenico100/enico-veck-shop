@@ -15,7 +15,15 @@ type R2Config = {
   secretAccessKey: string;
 };
 
+type SignedGetUrlCacheEntry = {
+  url: string;
+  expiresAt: number;
+};
+
 let r2Client: S3Client | null = null;
+const signedGetUrlCache = new Map<string, SignedGetUrlCacheEntry>();
+const SIGNED_GET_URL_CACHE_LIMIT = 800;
+const SIGNED_GET_URL_MIN_VALID_MS = 15 * 1000;
 
 const getR2Config = (): R2Config => {
   const endpoint = process.env.R2_ENDPOINT?.trim() || '';
@@ -70,6 +78,37 @@ const clampTtl = (value: number | undefined, min: number, max: number, fallback:
   return Math.min(max, Math.max(min, Math.floor(numeric)));
 };
 
+const buildSignedGetUrlCacheKey = (bucketName: string, key: string, expiresIn: number) =>
+  `${bucketName}::${key}::${expiresIn}`;
+
+const compactSignedGetUrlCache = () => {
+  if (signedGetUrlCache.size < SIGNED_GET_URL_CACHE_LIMIT) return;
+
+  const now = Date.now();
+  const expiredKeys: string[] = [];
+  signedGetUrlCache.forEach((entry, cacheKey) => {
+    if (entry.expiresAt <= now) {
+      expiredKeys.push(cacheKey);
+    }
+  });
+  expiredKeys.forEach((cacheKey) => {
+    signedGetUrlCache.delete(cacheKey);
+  });
+
+  if (signedGetUrlCache.size < SIGNED_GET_URL_CACHE_LIMIT) return;
+
+  const overflow = signedGetUrlCache.size - SIGNED_GET_URL_CACHE_LIMIT + 1;
+  const keysToDelete: string[] = [];
+  signedGetUrlCache.forEach((_entry, cacheKey) => {
+    if (keysToDelete.length < overflow) {
+      keysToDelete.push(cacheKey);
+    }
+  });
+  keysToDelete.forEach((cacheKey) => {
+    signedGetUrlCache.delete(cacheKey);
+  });
+};
+
 export async function signR2GetUrl(
   key: string,
   options?: { expiresIn?: number; bucketName?: string }
@@ -79,15 +118,29 @@ export async function signR2GetUrl(
   }
 
   const config = getR2Config();
+  const bucketName = options?.bucketName?.trim() || config.bucketName;
+  const expiresIn = clampTtl(options?.expiresIn, 60, 300, 180);
+  const cacheKey = buildSignedGetUrlCacheKey(bucketName, key, expiresIn);
+  const cached = signedGetUrlCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && cached.expiresAt - now > SIGNED_GET_URL_MIN_VALID_MS) {
+    return cached.url;
+  }
+
   const client = getR2Client();
   const command = new GetObjectCommand({
-    Bucket: options?.bucketName?.trim() || config.bucketName,
+    Bucket: bucketName,
     Key: key
   });
 
-  return getSignedUrl(client, command, {
-    expiresIn: clampTtl(options?.expiresIn, 60, 300, 180)
+  const signedUrl = await getSignedUrl(client, command, { expiresIn });
+  compactSignedGetUrlCache();
+  signedGetUrlCache.set(cacheKey, {
+    url: signedUrl,
+    expiresAt: now + expiresIn * 1000
   });
+
+  return signedUrl;
 }
 
 export async function signR2PutUrl(

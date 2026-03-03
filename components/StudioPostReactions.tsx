@@ -20,6 +20,27 @@ type Props = {
   isLoggedIn: boolean;
 };
 
+const buildOptimisticReactionState = (
+  likeCount: number,
+  dislikeCount: number,
+  viewerReaction: StudioReactionValue | null,
+  nextReaction: StudioReactionValue
+) => {
+  const nextViewerReaction: StudioReactionValue | null =
+    viewerReaction === nextReaction ? null : nextReaction;
+  const likeDelta =
+    (nextViewerReaction === 'like' ? 1 : 0) - (viewerReaction === 'like' ? 1 : 0);
+  const dislikeDelta =
+    (nextViewerReaction === 'dislike' ? 1 : 0) -
+    (viewerReaction === 'dislike' ? 1 : 0);
+
+  return {
+    likeCount: Math.max(0, likeCount + likeDelta),
+    dislikeCount: Math.max(0, dislikeCount + dislikeDelta),
+    viewerReaction: nextViewerReaction
+  };
+};
+
 export default function StudioPostReactions({ postId, isLoggedIn }: Props) {
   const [loading, setLoading] = useState(true);
   const [processingReaction, setProcessingReaction] = useState<StudioReactionValue | null>(null);
@@ -67,6 +88,21 @@ export default function StudioPostReactions({ postId, isLoggedIn }: Props) {
 
     setProcessingReaction(reaction);
     setError(null);
+    const previousState = {
+      likeCount,
+      dislikeCount,
+      viewerReaction
+    };
+    const optimisticState = buildOptimisticReactionState(
+      likeCount,
+      dislikeCount,
+      viewerReaction,
+      reaction
+    );
+    setLikeCount(optimisticState.likeCount);
+    setDislikeCount(optimisticState.dislikeCount);
+    setViewerReaction(optimisticState.viewerReaction);
+
     try {
       const response = await fetch('/api/studio/reactions', {
         method: 'POST',
@@ -86,6 +122,9 @@ export default function StudioPostReactions({ postId, isLoggedIn }: Props) {
           : null
       );
     } catch (err) {
+      setLikeCount(previousState.likeCount);
+      setDislikeCount(previousState.dislikeCount);
+      setViewerReaction(previousState.viewerReaction);
       setError(err instanceof Error ? err.message : '좋아요/싫어요 저장에 실패했습니다.');
     } finally {
       setProcessingReaction(null);

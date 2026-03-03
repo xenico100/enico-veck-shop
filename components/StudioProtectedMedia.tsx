@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type SignedStudioMedia = {
   id: string;
@@ -21,6 +21,15 @@ type ApiResponse = {
   details?: unknown;
 };
 
+type CachedMediaEntry = {
+  items: SignedStudioMedia[];
+  showingPublicOnly: boolean;
+  expiresAt: number;
+};
+
+const MEDIA_CACHE_TTL_MS = 45 * 1000;
+const mediaCache = new Map<string, CachedMediaEntry>();
+
 const extractApiDetailMessage = (details: unknown): string | null => {
   if (!details || typeof details !== 'object') return null;
   const row = details as Record<string, unknown>;
@@ -40,53 +49,176 @@ const formatBytes = (value: number | null) => {
   if (value == null || !Number.isFinite(value)) return null;
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024)
+  if (value < 1024 * 1024 * 1024) {
     return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
   return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+};
+
+const getCachedMedia = (postId: string) => {
+  const key = postId.trim();
+  if (!key) return null;
+  const cached = mediaCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    mediaCache.delete(key);
+    return null;
+  }
+  return cached;
+};
+
+const setCachedMedia = (
+  postId: string,
+  items: SignedStudioMedia[],
+  showingPublicOnly: boolean
+) => {
+  const key = postId.trim();
+  if (!key) return;
+  mediaCache.set(key, {
+    items,
+    showingPublicOnly,
+    expiresAt: Date.now() + MEDIA_CACHE_TTL_MS
+  });
+};
+
+const mergeMediaRows = (
+  previewRows: SignedStudioMedia[],
+  fullRows: SignedStudioMedia[]
+) => {
+  if (fullRows.length === 0) return previewRows;
+  const merged = new Map<string, SignedStudioMedia>();
+  for (const row of fullRows) {
+    merged.set(row.id, row);
+  }
+  for (const row of previewRows) {
+    if (!merged.has(row.id)) {
+      merged.set(row.id, row);
+    }
+  }
+  return Array.from(merged.values());
 };
 
 export default function StudioProtectedMedia({ studioPostId }: Props) {
   const [items, setItems] = useState<SignedStudioMedia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showingPublicOnly, setShowingPublicOnly] = useState(false);
+  const requestSeqRef = useRef(0);
 
-  const loadMedia = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadMedia = useCallback(
+    async (forceRefresh = false) => {
+      const requestSeq = requestSeqRef.current + 1;
+      requestSeqRef.current = requestSeq;
 
-    try {
-      const response = await fetch(
-        `/api/studio/media/${encodeURIComponent(studioPostId)}`,
-        {
-          cache: 'no-store'
-        }
-      );
-      const payload = (await response.json().catch(() => ({}))) as ApiResponse;
-
-      if (!response.ok) {
-        const detailMessage = extractApiDetailMessage(payload.details);
-        const baseMessage = payload.message || '미디어를 불러오지 못했습니다.';
-        throw new Error(
-          detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage
-        );
+      const cached = !forceRefresh ? getCachedMedia(studioPostId) : null;
+      if (cached) {
+        setItems(cached.items);
+        setShowingPublicOnly(cached.showingPublicOnly);
+        setLoading(false);
+        setLoadingMore(false);
+        setError(null);
+        return;
       }
 
-      setItems(Array.isArray(payload.data) ? payload.data : []);
-      setShowingPublicOnly(Boolean(payload.meta?.showing_public_only));
-    } catch (err) {
-      setItems([]);
-      setShowingPublicOnly(false);
-      setError(
-        err instanceof Error ? err.message : '미디어를 불러오지 못했습니다.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [studioPostId]);
+      setLoading(true);
+      setLoadingMore(false);
+      setError(null);
+
+      try {
+        const previewResponse = await fetch(
+          `/api/studio/media/${encodeURIComponent(studioPostId)}?preview=1`,
+          {
+            cache: 'no-store'
+          }
+        );
+        const previewPayload = (await previewResponse
+          .json()
+          .catch(() => ({}))) as ApiResponse;
+        if (!previewResponse.ok) {
+          const detailMessage = extractApiDetailMessage(previewPayload.details);
+          const baseMessage = previewPayload.message || '미디어를 불러오지 못했습니다.';
+          throw new Error(
+            detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage
+          );
+        }
+        if (requestSeq !== requestSeqRef.current) return;
+
+        const previewItems = Array.isArray(previewPayload.data)
+          ? previewPayload.data
+          : [];
+        const previewShowingPublicOnly = Boolean(
+          previewPayload.meta?.showing_public_only
+        );
+        setItems(previewItems);
+        setShowingPublicOnly(previewShowingPublicOnly);
+        setLoading(false);
+
+        if (previewItems.length === 0) {
+          setCachedMedia(studioPostId, [], previewShowingPublicOnly);
+          return;
+        }
+
+        setLoadingMore(true);
+        try {
+          const fullResponse = await fetch(
+            `/api/studio/media/${encodeURIComponent(studioPostId)}`,
+            {
+              cache: 'no-store'
+            }
+          );
+          const fullPayload = (await fullResponse
+            .json()
+            .catch(() => ({}))) as ApiResponse;
+          if (!fullResponse.ok) {
+            const detailMessage = extractApiDetailMessage(fullPayload.details);
+            const baseMessage = fullPayload.message || '미디어를 불러오지 못했습니다.';
+            throw new Error(
+              detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage
+            );
+          }
+          if (requestSeq !== requestSeqRef.current) return;
+
+          const fullItems = Array.isArray(fullPayload.data) ? fullPayload.data : [];
+          const mergedItems = mergeMediaRows(previewItems, fullItems);
+          const fullShowingPublicOnly = Boolean(
+            fullPayload.meta?.showing_public_only ?? previewShowingPublicOnly
+          );
+
+          setItems(mergedItems);
+          setShowingPublicOnly(fullShowingPublicOnly);
+          setCachedMedia(studioPostId, mergedItems, fullShowingPublicOnly);
+        } catch (fullLoadError) {
+          if (requestSeq !== requestSeqRef.current) return;
+          console.warn('[StudioProtectedMedia] full media load failed', fullLoadError);
+          setCachedMedia(studioPostId, previewItems, previewShowingPublicOnly);
+        } finally {
+          if (requestSeq === requestSeqRef.current) {
+            setLoadingMore(false);
+          }
+        }
+      } catch (err) {
+        if (requestSeq !== requestSeqRef.current) return;
+        setItems([]);
+        setShowingPublicOnly(false);
+        setLoadingMore(false);
+        setError(
+          err instanceof Error ? err.message : '미디어를 불러오지 못했습니다.'
+        );
+      } finally {
+        if (requestSeq === requestSeqRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [studioPostId]
+  );
 
   useEffect(() => {
     void loadMedia();
+    return () => {
+      requestSeqRef.current += 1;
+    };
   }, [loadMedia]);
 
   if (loading) {
@@ -103,7 +235,7 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
         <p className="text-sm text-rose-100">{error}</p>
         <button
           type="button"
-          onClick={() => void loadMedia()}
+          onClick={() => void loadMedia(true)}
           className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-white/20"
         >
           다시 불러오기
@@ -164,6 +296,7 @@ export default function StudioProtectedMedia({ studioPostId }: Props) {
         보안 링크는 잠시 후 만료됩니다. 재생/열기 오류가 나면 다시 불러오기를
         눌러주세요.
         {showingPublicOnly ? ' 일반 공개 미디어만 표시 중입니다.' : ''}
+        {loadingMore ? ' 나머지 미디어를 불러오는 중입니다...' : ''}
       </div>
     </div>
   );

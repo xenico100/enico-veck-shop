@@ -175,6 +175,27 @@ const normalizeReactionValue = (value: unknown): CommunityReactionValue | null =
   return null;
 };
 
+const buildOptimisticPostReactionState = (
+  post: CommunityPost,
+  nextReaction: CommunityReactionValue
+) => {
+  const nextViewerReaction: CommunityReactionValue | null =
+    post.viewerReaction === nextReaction ? null : nextReaction;
+  const likeDelta =
+    (nextViewerReaction === 'like' ? 1 : 0) -
+    (post.viewerReaction === 'like' ? 1 : 0);
+  const dislikeDelta =
+    (nextViewerReaction === 'dislike' ? 1 : 0) -
+    (post.viewerReaction === 'dislike' ? 1 : 0);
+
+  return {
+    likeCount: Math.max(0, post.likeCount + likeDelta),
+    dislikeCount: Math.max(0, post.dislikeCount + dislikeDelta),
+    dailyLikeCount: Math.max(0, post.dailyLikeCount + likeDelta),
+    viewerReaction: nextViewerReaction
+  };
+};
+
 function RichTextWithYouTube({
   content,
   containerClassName,
@@ -258,6 +279,9 @@ export default function CommunityBoard() {
   const [editContent, setEditContent] = useState('');
   const [editNotice, setEditNotice] = useState(false);
   const [commentDraftByPostId, setCommentDraftByPostId] = useState<Record<string, string>>({});
+  const [reactionPendingByPostId, setReactionPendingByPostId] = useState<
+    Record<string, boolean>
+  >({});
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
@@ -466,14 +490,36 @@ export default function CommunityBoard() {
   };
 
   const handleReactPost = async (postId: string, reaction: CommunityReactionValue) => {
-    if (submitting) return;
+    if (reactionPendingByPostId[postId]) return;
     if (!isLoggedIn) {
       setError('로그인 후 좋아요/싫어요를 누를 수 있습니다.');
       return;
     }
 
-    setSubmitting(true);
+    setReactionPendingByPostId((prev) => ({ ...prev, [postId]: true }));
     setError(null);
+
+    let previousPost: CommunityPost | null = null;
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (post.id !== postId) return post;
+        previousPost = post;
+        return {
+          ...post,
+          ...buildOptimisticPostReactionState(post, reaction)
+        };
+      })
+    );
+
+    if (!previousPost) {
+      setReactionPendingByPostId((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+      return;
+    }
+
     try {
       const response = await fetch('/api/community/reactions', {
         method: 'POST',
@@ -504,9 +550,19 @@ export default function CommunityBoard() {
         );
       }
     } catch (err) {
+      const rollbackPost = previousPost;
+      if (rollbackPost) {
+        setPosts((prev) =>
+          prev.map((post) => (post.id === postId ? rollbackPost : post))
+        );
+      }
       setError(err instanceof Error ? err.message : '좋아요/싫어요 저장에 실패했습니다.');
     } finally {
-      setSubmitting(false);
+      setReactionPendingByPostId((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
     }
   };
 
@@ -773,6 +829,7 @@ export default function CommunityBoard() {
               onUpdatePost={() => void handleUpdatePost(selectedPost.id)}
               onDeletePost={() => void handleDeletePost(selectedPost.id)}
               onReactPost={(reaction) => void handleReactPost(selectedPost.id, reaction)}
+              reactionPending={Boolean(reactionPendingByPostId[selectedPost.id])}
               onCommentDraftChange={(value) =>
                 setCommentDraftByPostId((prev) => ({ ...prev, [selectedPost.id]: value }))
               }
@@ -848,6 +905,7 @@ function CommunityPostCard({
   onUpdatePost,
   onDeletePost,
   onReactPost,
+  reactionPending,
   onCommentDraftChange,
   onCreateComment,
   onDeleteComment,
@@ -871,6 +929,7 @@ function CommunityPostCard({
   onUpdatePost: () => void;
   onDeletePost: () => void;
   onReactPost: (reaction: CommunityReactionValue) => void;
+  reactionPending: boolean;
   onCommentDraftChange: (value: string) => void;
   onCreateComment: () => void;
   onDeleteComment: (commentId: string) => void;
@@ -990,7 +1049,7 @@ function CommunityPostCard({
         <button
           type="button"
           onClick={() => onReactPost('like')}
-          disabled={submitting || !isLoggedIn}
+          disabled={reactionPending || !isLoggedIn}
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
             post.viewerReaction === 'like'
               ? 'border-emerald-300/50 bg-emerald-400/15 text-emerald-100'
@@ -1004,7 +1063,7 @@ function CommunityPostCard({
         <button
           type="button"
           onClick={() => onReactPost('dislike')}
-          disabled={submitting || !isLoggedIn}
+          disabled={reactionPending || !isLoggedIn}
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
             post.viewerReaction === 'dislike'
               ? 'border-rose-300/50 bg-rose-400/15 text-rose-100'

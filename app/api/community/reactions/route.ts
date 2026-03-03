@@ -11,6 +11,12 @@ type CommunityReactionBody = {
   reaction?: CommunityReactionValue;
 };
 
+type CommunityReactionSummary = {
+  likeCount: number;
+  dislikeCount: number;
+  dailyLikeCount: number;
+};
+
 const REACTION_VALUES = new Set<CommunityReactionValue>(['like', 'dislike']);
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -38,6 +44,29 @@ const hasMissingTableError = (error: unknown, tableName: string) => {
   );
 };
 
+const hasMissingRpcFunctionError = (error: unknown, functionName: string) => {
+  const combined = extractDbErrorText(error);
+  if (!combined) return false;
+  return (
+    combined.includes(functionName.toLowerCase()) &&
+    (combined.includes('does not exist') ||
+      combined.includes('could not find the function') ||
+      combined.includes('schema cache'))
+  );
+};
+
+const toCount = (value: unknown) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  return Math.floor(numeric);
+};
+
+const toUnixMs = (value: unknown) => {
+  if (typeof value !== 'string') return Number.NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
 const parseDbErrorMessage = (error: unknown) => {
   if (!error || typeof error !== 'object') return null;
   const row = error as Record<string, unknown>;
@@ -56,6 +85,10 @@ const parseDbErrorMessage = (error: unknown) => {
     return '좋아요/싫어요 권한 설정 문제로 요청에 실패했습니다. 관리자에게 RLS 설정 확인을 요청해 주세요.';
   }
 
+  if (combined.includes('foreign key') && combined.includes('post_id')) {
+    return '게시글을 찾을 수 없습니다.';
+  }
+
   return message || null;
 };
 
@@ -65,6 +98,72 @@ const tryCreateAdminClient = () => {
   } catch {
     return null;
   }
+};
+
+const getReactionSummary = async (
+  readClient: any,
+  postId: string
+): Promise<CommunityReactionSummary> => {
+  const dailyStartIso = new Date(Date.now() - ONE_DAY_MS).toISOString();
+  const rpcResult = await readClient.rpc('get_community_post_reaction_summary', {
+    p_post_id: postId,
+    p_daily_since: dailyStartIso
+  });
+
+  if (!rpcResult.error) {
+    const summaryRow = Array.isArray(rpcResult.data)
+      ? rpcResult.data[0]
+      : rpcResult.data;
+    return {
+      likeCount: toCount(summaryRow?.like_count),
+      dislikeCount: toCount(summaryRow?.dislike_count),
+      dailyLikeCount: toCount(summaryRow?.daily_like_count)
+    };
+  }
+
+  if (!hasMissingRpcFunctionError(rpcResult.error, 'get_community_post_reaction_summary')) {
+    throw rpcResult.error;
+  }
+
+  const fallbackResult = await readClient
+    .from('community_post_reactions')
+    .select('reaction,created_at,updated_at')
+    .eq('post_id', postId);
+  if (fallbackResult.error) {
+    throw fallbackResult.error;
+  }
+
+  const rows = Array.isArray(fallbackResult.data)
+    ? (fallbackResult.data as Array<{
+        reaction: CommunityReactionValue;
+        created_at: string | null;
+        updated_at: string | null;
+      }>)
+    : [];
+  const dailyStartMs = Date.now() - ONE_DAY_MS;
+  let likeCount = 0;
+  let dislikeCount = 0;
+  let dailyLikeCount = 0;
+
+  for (const row of rows) {
+    if (row.reaction === 'like') {
+      likeCount += 1;
+      const reactionTimestamp = toUnixMs(row.updated_at || row.created_at);
+      if (reactionTimestamp >= dailyStartMs) {
+        dailyLikeCount += 1;
+      }
+      continue;
+    }
+    if (row.reaction === 'dislike') {
+      dislikeCount += 1;
+    }
+  }
+
+  return {
+    likeCount,
+    dislikeCount,
+    dailyLikeCount
+  };
 };
 
 export async function POST(request: Request) {
@@ -93,20 +192,6 @@ export async function POST(request: Request) {
     const admin = tryCreateAdminClient();
     const readClient = (admin ?? supabase) as any;
     const writeClient = (admin ?? supabase) as any;
-
-    const { data: postRow, error: postError } = await readClient
-      .from('community_posts')
-      .select('id')
-      .eq('id', postId)
-      .maybeSingle();
-
-    if (postError) {
-      const dbMessage = parseDbErrorMessage(postError);
-      return jsonError(dbMessage || '게시글 확인에 실패했습니다.', 500, postError);
-    }
-    if (!postRow) {
-      return jsonError('게시글을 찾을 수 없습니다.', 404);
-    }
 
     const { data: existing, error: existingError } = await writeClient
       .from('community_post_reactions')
@@ -156,38 +241,26 @@ export async function POST(request: Request) {
       }
     }
 
-    const dailyStartIso = new Date(Date.now() - ONE_DAY_MS).toISOString();
-    const [likeResult, dislikeResult, dailyLikeResult] = await Promise.all([
-      readClient
-        .from('community_post_reactions')
-        .select('id', { head: true, count: 'exact' })
-        .eq('post_id', postId)
-        .eq('reaction', 'like'),
-      readClient
-        .from('community_post_reactions')
-        .select('id', { head: true, count: 'exact' })
-        .eq('post_id', postId)
-        .eq('reaction', 'dislike'),
-      readClient
-        .from('community_post_reactions')
-        .select('id', { head: true, count: 'exact' })
-        .eq('post_id', postId)
-        .eq('reaction', 'like')
-        .gte('updated_at', dailyStartIso)
-    ]);
-
-    if (likeResult.error || dislikeResult.error || dailyLikeResult.error) {
-      const dbError = likeResult.error || dislikeResult.error || dailyLikeResult.error;
-      const dbMessage = parseDbErrorMessage(dbError);
-      return jsonError(dbMessage || '좋아요/싫어요 집계에 실패했습니다.', 500, dbError);
+    let summary: CommunityReactionSummary;
+    try {
+      summary = await getReactionSummary(readClient, postId);
+    } catch (summaryError) {
+      const dbMessage = parseDbErrorMessage(summaryError);
+      const fallbackMessage =
+        summaryError instanceof Error ? summaryError.message : null;
+      return jsonError(
+        dbMessage || fallbackMessage || '좋아요/싫어요 집계에 실패했습니다.',
+        500,
+        summaryError
+      );
     }
 
     return NextResponse.json({
       data: {
         postId,
-        likeCount: likeResult.count ?? 0,
-        dislikeCount: dislikeResult.count ?? 0,
-        dailyLikeCount: dailyLikeResult.count ?? 0,
+        likeCount: summary.likeCount,
+        dislikeCount: summary.dislikeCount,
+        dailyLikeCount: summary.dailyLikeCount,
         viewerReaction
       }
     });

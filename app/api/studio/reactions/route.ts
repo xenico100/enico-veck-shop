@@ -11,6 +11,11 @@ type StudioReactionBody = {
   reaction?: StudioReactionValue;
 };
 
+type StudioReactionSummary = {
+  likeCount: number;
+  dislikeCount: number;
+};
+
 const REACTION_VALUES = new Set<StudioReactionValue>(['like', 'dislike']);
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
@@ -36,6 +41,23 @@ const hasMissingTableError = (error: unknown, tableName: string) => {
   );
 };
 
+const hasMissingRpcFunctionError = (error: unknown, functionName: string) => {
+  const combined = extractDbErrorText(error);
+  if (!combined) return false;
+  return (
+    combined.includes(functionName.toLowerCase()) &&
+    (combined.includes('does not exist') ||
+      combined.includes('could not find the function') ||
+      combined.includes('schema cache'))
+  );
+};
+
+const toCount = (value: unknown) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  return Math.floor(numeric);
+};
+
 const parseDbErrorMessage = (error: unknown) => {
   if (!error || typeof error !== 'object') return null;
   const row = error as Record<string, unknown>;
@@ -51,6 +73,10 @@ const parseDbErrorMessage = (error: unknown) => {
 
   if (combined.includes('row-level security') || combined.includes('permission denied')) {
     return '좋아요/싫어요 권한 설정 문제로 요청에 실패했습니다. 관리자에게 RLS 설정 확인을 요청해 주세요.';
+  }
+
+  if (combined.includes('foreign key') && combined.includes('post_id')) {
+    return '게시글을 찾을 수 없습니다.';
   }
 
   return message || null;
@@ -69,29 +95,52 @@ const parsePostId = (value: string | null | undefined) => {
   return normalized;
 };
 
-const getReactionSummary = async (readClient: any, postId: string) => {
-  const [likeResult, dislikeResult] = await Promise.all([
-    readClient
-      .from('studio_post_reactions')
-      .select('id', { head: true, count: 'exact' })
-      .eq('post_id', postId)
-      .eq('reaction', 'like'),
-    readClient
-      .from('studio_post_reactions')
-      .select('id', { head: true, count: 'exact' })
-      .eq('post_id', postId)
-      .eq('reaction', 'dislike')
-  ]);
+const getReactionSummary = async (
+  readClient: any,
+  postId: string
+): Promise<StudioReactionSummary> => {
+  const rpcResult = await readClient.rpc('get_studio_post_reaction_summary', {
+    p_post_id: postId
+  });
 
-  if (likeResult.error || dislikeResult.error) {
-    const dbError = likeResult.error || dislikeResult.error;
-    const dbMessage = parseDbErrorMessage(dbError);
+  if (!rpcResult.error) {
+    const summaryRow = Array.isArray(rpcResult.data)
+      ? rpcResult.data[0]
+      : rpcResult.data;
+    return {
+      likeCount: toCount(summaryRow?.like_count),
+      dislikeCount: toCount(summaryRow?.dislike_count)
+    };
+  }
+
+  if (!hasMissingRpcFunctionError(rpcResult.error, 'get_studio_post_reaction_summary')) {
+    const dbMessage = parseDbErrorMessage(rpcResult.error);
     throw new Error(dbMessage || '좋아요/싫어요 집계에 실패했습니다.');
   }
 
+  const fallbackResult = await readClient
+    .from('studio_post_reactions')
+    .select('reaction')
+    .eq('post_id', postId);
+
+  if (fallbackResult.error) {
+    const dbMessage = parseDbErrorMessage(fallbackResult.error);
+    throw new Error(dbMessage || '좋아요/싫어요 집계에 실패했습니다.');
+  }
+
+  const rows = Array.isArray(fallbackResult.data)
+    ? (fallbackResult.data as Array<{ reaction: StudioReactionValue }>)
+    : [];
+  let likeCount = 0;
+  let dislikeCount = 0;
+  for (const row of rows) {
+    if (row.reaction === 'like') likeCount += 1;
+    if (row.reaction === 'dislike') dislikeCount += 1;
+  }
+
   return {
-    likeCount: likeResult.count ?? 0,
-    dislikeCount: dislikeResult.count ?? 0
+    likeCount,
+    dislikeCount
   };
 };
 
@@ -110,42 +159,27 @@ export async function GET(request: Request) {
 
     const admin = tryCreateAdminClient();
     const readClient = (admin ?? supabase) as any;
+    const [summary, viewerResult] = await Promise.all([
+      getReactionSummary(readClient, postId),
+      user?.id
+        ? readClient
+            .from('studio_post_reactions')
+            .select('reaction')
+            .eq('post_id', postId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null })
+    ]);
 
-    const { data: postRow, error: postError } = await readClient
-      .from('studio_posts')
-      .select('id')
-      .eq('id', postId)
-      .maybeSingle();
-
-    if (postError) {
-      const dbMessage = parseDbErrorMessage(postError);
-      return jsonError(dbMessage || '게시글 확인에 실패했습니다.', 500, postError);
+    if (viewerResult.error) {
+      const dbMessage = parseDbErrorMessage(viewerResult.error);
+      return jsonError(dbMessage || '내 반응 조회에 실패했습니다.', 500, viewerResult.error);
     }
-    if (!postRow) {
-      return jsonError('게시글을 찾을 수 없습니다.', 404);
-    }
 
-    const summary = await getReactionSummary(readClient, postId);
-
-    let viewerReaction: StudioReactionValue | null = null;
-    if (user?.id) {
-      const { data: existing, error: existingError } = await readClient
-        .from('studio_post_reactions')
-        .select('reaction')
-        .eq('post_id', postId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existingError) {
-        const dbMessage = parseDbErrorMessage(existingError);
-        return jsonError(dbMessage || '내 반응 조회에 실패했습니다.', 500, existingError);
-      }
-
-      viewerReaction =
-        existing?.reaction === 'like' || existing?.reaction === 'dislike'
-          ? (existing.reaction as StudioReactionValue)
-          : null;
-    }
+    const viewerReaction =
+      viewerResult.data?.reaction === 'like' || viewerResult.data?.reaction === 'dislike'
+        ? (viewerResult.data.reaction as StudioReactionValue)
+        : null;
 
     return NextResponse.json({
       data: {
@@ -185,20 +219,6 @@ export async function POST(request: Request) {
     const admin = tryCreateAdminClient();
     const readClient = (admin ?? supabase) as any;
     const writeClient = (admin ?? supabase) as any;
-
-    const { data: postRow, error: postError } = await readClient
-      .from('studio_posts')
-      .select('id')
-      .eq('id', postId)
-      .maybeSingle();
-
-    if (postError) {
-      const dbMessage = parseDbErrorMessage(postError);
-      return jsonError(dbMessage || '게시글 확인에 실패했습니다.', 500, postError);
-    }
-    if (!postRow) {
-      return jsonError('게시글을 찾을 수 없습니다.', 404);
-    }
 
     const { data: existing, error: existingError } = await writeClient
       .from('studio_post_reactions')
