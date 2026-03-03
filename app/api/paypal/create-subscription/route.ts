@@ -17,6 +17,7 @@ const PLAN_ENV_KEY_BY_PLAN_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_13900: 'PAYPAL_PLAN_ID_MONTHLY_13900',
   monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000'
 };
+const LEGACY_PLAN_ENV_KEY = 'PAYPAL_PLAN_ID_MONTHLY';
 
 // Safety net for Vercel/Sandbox deployments where plan env vars are not configured yet.
 // These IDs are non-secret PayPal plan IDs tied to this sandbox merchant account.
@@ -40,9 +41,13 @@ const resolvePayPalPlanId = (planKey: StudioMembershipPlanKey) => {
     return { planId: direct, envKey };
   }
 
-  const legacy = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
-  if (legacy) {
-    return { planId: legacy, envKey: 'PAYPAL_PLAN_ID_MONTHLY' };
+  // Backward compatibility for the old single-plan setup:
+  // only map legacy env to the basic (4,900) tier.
+  if (planKey === 'monthly_4900') {
+    const legacy = process.env[LEGACY_PLAN_ENV_KEY]?.trim();
+    if (legacy) {
+      return { planId: legacy, envKey: LEGACY_PLAN_ENV_KEY };
+    }
   }
 
   if (isSandboxEnvironment()) {

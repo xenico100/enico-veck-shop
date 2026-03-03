@@ -58,20 +58,31 @@ const PLAN_LABEL_BY_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_69000: '프리미엄 멤버십 (월 69,000원)'
 };
 
-const getPlanLabelByIdFromEnv = (planId: string | null) => {
+const PLAN_AMOUNT_BY_KEY: Record<StudioMembershipPlanKey, number> = {
+  monthly_4900: 4900,
+  monthly_13900: 13900,
+  monthly_69000: 69000
+};
+
+const getPlanKeyByIdFromEnv = (planId: string | null) => {
   if (!planId) return null;
   for (const [key, envKey] of Object.entries(PLAN_ENV_BY_KEY) as Array<[StudioMembershipPlanKey, string]>) {
     const envValue = process.env[envKey]?.trim();
     if (envValue && envValue === planId) {
-      return PLAN_LABEL_BY_KEY[key];
+      return key;
     }
   }
 
   const legacy = process.env.PAYPAL_PLAN_ID_MONTHLY?.trim();
   if (legacy && legacy === planId) {
-    return PLAN_LABEL_BY_KEY.monthly_4900;
+    return 'monthly_4900' satisfies StudioMembershipPlanKey;
   }
   return null;
+};
+
+const getPlanLabelByIdFromEnv = (planId: string | null) => {
+  const key = getPlanKeyByIdFromEnv(planId);
+  return key ? PLAN_LABEL_BY_KEY[key] : null;
 };
 
 const parseAmountNumber = (value: number | string | null | undefined) => {
@@ -169,6 +180,15 @@ const getRowTimeMs = (row: PayPalSubscriptionRow) => {
   return Number.NaN;
 };
 
+const isManualSubscriptionRow = (row: PayPalSubscriptionRow | null | undefined) => {
+  const subscriptionId = typeof row?.id === 'string' ? row.id.trim() : '';
+  const planId = typeof row?.plan_id === 'string' ? row.plan_id.trim() : '';
+  return subscriptionId.startsWith('manual:') || planId.startsWith('manual_');
+};
+
+const getRowCurrentPeriodEndMs = (row: PayPalSubscriptionRow) =>
+  toUnixMs(normalizeIso(row.current_period_end));
+
 const getRowPlanAmount = (
   row: PayPalSubscriptionRow,
   planMap: Map<string, PayPalPlanRow>
@@ -177,6 +197,48 @@ const getRowPlanAmount = (
   if (!planId) return null;
   const plan = planMap.get(planId) ?? null;
   return parseAmountNumber(plan?.amount);
+};
+
+const compareRepresentativePriority = (
+  a: PayPalSubscriptionRow,
+  b: PayPalSubscriptionRow,
+  planMap: Map<string, PayPalPlanRow>
+) => {
+  const aManual = isManualSubscriptionRow(a);
+  const bManual = isManualSubscriptionRow(b);
+  if (aManual !== bManual) {
+    return aManual ? 1 : -1;
+  }
+
+  const bPeriodEnd = getRowCurrentPeriodEndMs(b);
+  const aPeriodEnd = getRowCurrentPeriodEndMs(a);
+  const hasBPeriodEnd = Number.isFinite(bPeriodEnd);
+  const hasAPeriodEnd = Number.isFinite(aPeriodEnd);
+  if (hasBPeriodEnd && hasAPeriodEnd && bPeriodEnd !== aPeriodEnd) {
+    return bPeriodEnd - aPeriodEnd;
+  }
+  if (hasBPeriodEnd !== hasAPeriodEnd) {
+    return hasBPeriodEnd ? -1 : 1;
+  }
+
+  const bAmount = getRowPlanAmount(b, planMap);
+  const aAmount = getRowPlanAmount(a, planMap);
+  const hasBAmount = bAmount != null;
+  const hasAAmount = aAmount != null;
+  if (hasBAmount && hasAAmount && bAmount !== aAmount) {
+    return bAmount - aAmount;
+  }
+  if (hasBAmount !== hasAAmount) {
+    return hasBAmount ? -1 : 1;
+  }
+
+  const bTime = getRowTimeMs(b);
+  const aTime = getRowTimeMs(a);
+  if (Number.isFinite(bTime) && Number.isFinite(aTime) && bTime !== aTime) {
+    return bTime - aTime;
+  }
+
+  return 0;
 };
 
 const formatPlanFallbackLabel = (plan: PayPalPlanRow | null) => {
@@ -307,17 +369,7 @@ export async function getStudioMembershipSummaryMapForUsers(
     const activeRows = rows.filter((row) => isActiveStudioSubscriptionStatus(row.status));
     const activeRepresentative = activeRows
       .slice()
-      .sort((a, b) => {
-        const amountDiff = (getRowPlanAmount(b, planMap) ?? -1) - (getRowPlanAmount(a, planMap) ?? -1);
-        if (amountDiff !== 0) return amountDiff;
-
-        const bTime = getRowTimeMs(b);
-        const aTime = getRowTimeMs(a);
-        if (Number.isFinite(bTime) && Number.isFinite(aTime) && bTime !== aTime) {
-          return bTime - aTime;
-        }
-        return 0;
-      })[0] ?? null;
+      .sort((a, b) => compareRepresentativePriority(a, b, planMap))[0] ?? null;
 
     const representative = activeRepresentative ?? latest;
     const plan = representative?.plan_id ? planMap.get(representative.plan_id) ?? null : null;
@@ -326,13 +378,29 @@ export async function getStudioMembershipSummaryMapForUsers(
     const cachedActive = accessRecord?.hasActive;
     const accessUpdatedAt = accessRecord?.updatedAt ?? null;
     const hasActiveSubscription = inferredActive || cachedActive === true;
-    const planAmount = parseAmountNumber(plan?.amount);
-    const planCurrency = plan?.currency ? String(plan.currency).toUpperCase() : null;
-    const planInterval = plan?.interval ? String(plan.interval).toLowerCase() : null;
+    const planKeyFromEnv = getPlanKeyByIdFromEnv(representative?.plan_id ?? null);
+    let planAmount = parseAmountNumber(plan?.amount);
+    let planCurrency = plan?.currency ? String(plan.currency).toUpperCase() : null;
+    let planInterval = plan?.interval ? String(plan.interval).toLowerCase() : null;
+    if (planAmount == null && planKeyFromEnv) {
+      planAmount = PLAN_AMOUNT_BY_KEY[planKeyFromEnv];
+    }
+    if (!planCurrency && planKeyFromEnv) {
+      planCurrency = 'KRW';
+    }
+    if (!planInterval && planKeyFromEnv) {
+      planInterval = 'month';
+    }
     const planCycleDays = intervalToCycleDays(planInterval);
 
     const selectedMembership = inferredActive
-      ? getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ?? formatPlanFallbackLabel(plan)
+      ? getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
+        formatPlanFallbackLabel(plan) ??
+        (hasActiveSubscription
+          ? isManualSubscriptionRow(representative)
+            ? '관리자 수동 부여'
+            : '활성 멤버십'
+          : null)
       : getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
         formatPlanFallbackLabel(plan) ??
         (hasActiveSubscription ? '관리자 수동 부여' : null);
