@@ -18,7 +18,7 @@ const menuItems = [
   { label: 'About', href: '#about' },
   { label: 'Services', href: '#services' },
   { label: 'Studio', href: '#studio' },
-  { label: 'Community', href: '/community' },
+  { label: 'Community', href: '#community' },
 ];
 
 export default function SideMenu({

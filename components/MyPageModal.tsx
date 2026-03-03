@@ -763,7 +763,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                       {communityLoading ? '불러오는 중…' : '새로고침'}
                     </ActionButton>
                     <a
-                      href="/community"
+                      href="#community"
                       onClick={() => onOpenChange(false)}
                       className={`inline-flex h-9 items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 text-sm text-white transition hover:bg-white/20 ${appleFontClass}`}
                     >

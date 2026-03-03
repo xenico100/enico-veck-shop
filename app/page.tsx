@@ -8,6 +8,7 @@ import MainContent from '../components/MainContent';
 import AboutSection from '../components/AboutSection';
 import ServicesSection from '../components/ServicesSection';
 import StudioSectionWithSearchParams from '../components/StudioSectionWithSearchParams';
+import CommunityBoard from '../components/CommunityBoard';
 import Footer from '../components/Footer';
 import AuthModal from '../components/AuthModal';
 import MyPageModal from '../components/MyPageModal';
@@ -53,6 +54,9 @@ export default function LandingPage() {
           <StudioSectionWithSearchParams />
         </Suspense>
       </div>
+      <section id="community" className="mx-auto w-full max-w-5xl px-4 pb-20 pt-12 sm:px-6 lg:px-8">
+        <CommunityBoard />
+      </section>
 
       <Footer />
 

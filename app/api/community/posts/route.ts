@@ -23,6 +23,42 @@ const normalizeTitle = (value: unknown) =>
 const normalizeContent = (value: unknown) =>
   typeof value === 'string' ? value.trim().slice(0, CONTENT_MAX_LENGTH) : '';
 
+const parseDbErrorMessage = (error: unknown) => {
+  if (!error || typeof error !== 'object') return null;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+
+  if (combined.includes('community_posts') && combined.includes('does not exist')) {
+    return '커뮤니티 DB가 아직 적용되지 않았습니다. 관리자에게 community_board 마이그레이션 적용을 요청해 주세요.';
+  }
+  if (combined.includes('row-level security') || combined.includes('permission denied')) {
+    return '커뮤니티 게시글 권한 설정 문제로 작성에 실패했습니다. 관리자에게 RLS 설정 확인을 요청해 주세요.';
+  }
+
+  return message || null;
+};
+
+const fallbackAuthorNameFromUser = (user: { id: string; email?: string | null; user_metadata?: any }) => {
+  const fullName =
+    typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name.trim() : '';
+  if (fullName) return fullName;
+  const name = typeof user.user_metadata?.name === 'string' ? user.user_metadata.name.trim() : '';
+  if (name) return name;
+  const emailLocal = typeof user.email === 'string' ? user.email.split('@')[0]?.trim() : '';
+  return emailLocal || `회원 ${String(user.id || '').slice(0, 8)}`;
+};
+
+const tryCreateAdminClient = () => {
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+};
+
 const buildAuthorNameMap = async (admin: ReturnType<typeof createAdminClient>, userIds: string[]) => {
   const uniqueIds = Array.from(new Set(userIds.map((id) => String(id || '').trim()).filter(Boolean)));
   if (uniqueIds.length === 0) return new Map<string, string>();
@@ -165,28 +201,69 @@ export async function POST(request: Request) {
       return jsonError('공지 작성 권한이 없습니다.', 403);
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await (admin as any)
-      .from('community_posts')
-      .insert({
-        user_id: user.id,
-        title,
-        content,
-        is_notice: isNoticeRequested && isAdmin
-      })
-      .select('id,user_id,title,content,is_notice,created_at,updated_at')
-      .single();
+    let data: any = null;
+    let error: unknown = null;
 
-    if (error || !data) {
-      return jsonError('게시글 작성에 실패했습니다.', 500, error);
+    if (!isNoticeRequested) {
+      // Prefer user-scoped write so non-admin posting works even without service-role key.
+      const userWriteResult = await (supabase as any)
+        .from('community_posts')
+        .insert({
+          user_id: user.id,
+          title,
+          content,
+          is_notice: false
+        })
+        .select('id,user_id,title,content,is_notice,created_at,updated_at')
+        .single();
+
+      data = userWriteResult.data;
+      error = userWriteResult.error;
     }
 
-    const authorNameMap = await buildAuthorNameMap(admin, [data.user_id]);
+    if (!data || error) {
+      const admin = tryCreateAdminClient();
+      if (isNoticeRequested && !admin) {
+        return jsonError(
+          '공지 작성 기능을 사용하려면 서버에 SUPABASE_SERVICE_ROLE_KEY 설정이 필요합니다.',
+          500
+        );
+      }
+
+      if (admin) {
+        const adminWriteResult = await (admin as any)
+          .from('community_posts')
+          .insert({
+            user_id: user.id,
+            title,
+            content,
+            is_notice: isNoticeRequested && isAdmin
+          })
+          .select('id,user_id,title,content,is_notice,created_at,updated_at')
+          .single();
+
+        data = adminWriteResult.data;
+        error = adminWriteResult.error;
+      }
+    }
+
+    if (error || !data) {
+      const dbMessage = parseDbErrorMessage(error);
+      return jsonError(dbMessage || '게시글 작성에 실패했습니다.', 500, error);
+    }
+
+    let authorName = fallbackAuthorNameFromUser(user);
+    const admin = tryCreateAdminClient();
+    if (admin) {
+      const authorNameMap = await buildAuthorNameMap(admin, [data.user_id]);
+      authorName = authorNameMap.get(data.user_id) || authorName;
+    }
+
     return NextResponse.json({
       data: {
         id: data.id,
         userId: data.user_id,
-        authorName: authorNameMap.get(data.user_id) || `회원 ${String(data.user_id).slice(0, 8)}`,
+        authorName,
         title: data.title,
         content: data.content,
         isNotice: Boolean(data.is_notice),
