@@ -715,7 +715,7 @@ function StudioShortsModal({
     [posts]
   );
   const [activeIndex, setActiveIndex] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME);
   const [autoplayMutedFallback, setAutoplayMutedFallback] = useState(false);
   const [videoFitByPostId, setVideoFitByPostId] = useState<
@@ -892,13 +892,41 @@ function StudioShortsModal({
   useEffect(() => {
     if (!open) return;
     setAutoplayMutedFallback(false);
-    setMuted(false);
+    setMuted(true);
     setVolume((prev) =>
       clampShortsVolume(prev) > 0
         ? clampShortsVolume(prev)
         : SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME
     );
   }, [open]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+    const currentPost = shortsPosts[activeIndex];
+    if (!currentPost) return;
+
+    const currentMediaState = mediaByPostId[currentPost.id];
+    if (!currentMediaState) return;
+    if (currentMediaState.loading) return;
+    if (!currentMediaState.loaded) return;
+    if (currentMediaState.videoUrl) return;
+
+    const nextVideoIndex = shortsPosts.findIndex((post, index) => {
+      if (index <= activeIndex) return false;
+      return Boolean(mediaByPostId[post.id]?.videoUrl);
+    });
+
+    if (nextVideoIndex > activeIndex) {
+      scrollToIndex(nextVideoIndex);
+      return;
+    }
+
+    const upcomingIndexes = Array.from({ length: 4 }, (_, offset) => activeIndex + offset + 1)
+      .filter((index) => index >= 0 && index < shortsPosts.length);
+    upcomingIndexes.forEach((index) => {
+      void loadPostMedia(shortsPosts[index].id);
+    });
+  }, [activeIndex, loadPostMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
