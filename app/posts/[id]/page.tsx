@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import StudioPostDeleteButton from '@/components/StudioPostDeleteButton';
 import StudioSubscribeButton from '@/components/StudioSubscribeButton';
 import StudioProtectedMedia from '@/components/StudioProtectedMedia';
+import StudioPostReactions from '@/components/StudioPostReactions';
 
 type PageProps = {
   params: { id: string };
@@ -234,6 +235,8 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
             <div className="whitespace-pre-wrap text-base leading-relaxed text-neutral-200">
               {post.content ?? ''}
             </div>
+
+            <StudioPostReactions postId={post.id} isLoggedIn={Boolean(currentUserId)} />
 
             <div className="h-px w-full bg-white/10" />
 
