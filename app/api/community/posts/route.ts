@@ -196,7 +196,17 @@ export async function POST(request: Request) {
       return jsonError('제목과 내용을 입력해 주세요.', 400);
     }
 
-    const isAdmin = isAdminUserLike({ email: user.email, role: user.role });
+    const isAdmin = isAdminUserLike({
+      email: user.email ?? null,
+      app_metadata:
+        user.app_metadata && typeof user.app_metadata === 'object'
+          ? (user.app_metadata as Record<string, unknown>)
+          : null,
+      user_metadata:
+        user.user_metadata && typeof user.user_metadata === 'object'
+          ? (user.user_metadata as Record<string, unknown>)
+          : null
+    });
     if (isNoticeRequested && !isAdmin) {
       return jsonError('공지 작성 권한이 없습니다.', 403);
     }

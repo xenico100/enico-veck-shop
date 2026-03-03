@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getAdminApiContext } from '@/utils/admin-api';
-import { FORCED_ADMIN_EMAIL } from '@/utils/service-posts';
+import {
+  FORCED_ADMIN_EMAIL,
+  getUserRoleLabel,
+  getUserRoleLevel,
+  normalizeUserRoleValue,
+  resolveUserRoleForUserLike,
+  type UserRoleValue
+} from '@/utils/service-posts';
 import {
   type StudioMembershipTierLevel,
   STUDIO_MEMBERSHIP_MANUAL_PLAN_BY_LEVEL,
@@ -30,7 +37,7 @@ async function parseBody(request: Request) {
 }
 
 export async function PATCH(request: Request, { params }: RouteContext) {
-  const { user, isAdmin, adminClient } = await getAdminApiContext();
+  const { user, isAdmin, adminClient, adminRole, adminRoleLevel } = await getAdminApiContext();
   if (!user) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
@@ -67,7 +74,23 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ message: '변경할 값이 없습니다.' }, { status: 400 });
   }
 
-  const nextRole = body.role === 'admin' ? 'admin' : 'user';
+  if (shouldUpdateRole) {
+    const rawRole = String(body.role ?? '')
+      .trim()
+      .toLowerCase();
+    const isKnownRole =
+      rawRole === 'admin' ||
+      rawRole === 'sub_admin' ||
+      rawRole === 'sub-admin' ||
+      rawRole === 'subadmin' ||
+      rawRole === 'manager' ||
+      rawRole === 'user';
+    if (!isKnownRole) {
+      return NextResponse.json({ message: '지원하지 않는 역할 값입니다.' }, { status: 400 });
+    }
+  }
+
+  const nextRole = normalizeUserRoleValue(body.role) as UserRoleValue;
   const targetUserId = params.id;
 
   if (!targetUserId) {
@@ -82,6 +105,19 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   const targetEmail = targetUser.user.email?.trim().toLowerCase() ?? '';
+  const targetRole = resolveUserRoleForUserLike({
+    email: targetUser.user.email ?? null,
+    app_metadata:
+      targetUser.user.app_metadata && typeof targetUser.user.app_metadata === 'object'
+        ? (targetUser.user.app_metadata as Record<string, unknown>)
+        : null,
+    user_metadata:
+      targetUser.user.user_metadata && typeof targetUser.user.user_metadata === 'object'
+        ? (targetUser.user.user_metadata as Record<string, unknown>)
+        : null
+  });
+  const targetRoleLevel = getUserRoleLevel(targetRole);
+
   if (shouldUpdateRole && targetEmail === FORCED_ADMIN_EMAIL) {
     return NextResponse.json(
       { message: '보호된 관리자 계정의 역할은 변경할 수 없습니다.' },
@@ -90,6 +126,37 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   if (shouldUpdateRole) {
+    const nextRoleLevel = getUserRoleLevel(nextRole);
+    const isTopAdminActor = adminRole === 'admin';
+    if (targetUserId === user.id && nextRole !== targetRole) {
+      return NextResponse.json(
+        { message: '현재 로그인한 계정의 역할은 직접 변경할 수 없습니다.' },
+        { status: 403 }
+      );
+    }
+
+    if (!isTopAdminActor && adminRoleLevel <= targetRoleLevel) {
+      return NextResponse.json(
+        {
+          message: `현재 계정 권한(${getUserRoleLabel(adminRole)})으로는 대상 권한(${getUserRoleLabel(
+            targetRole
+          )})을 변경할 수 없습니다.`
+        },
+        { status: 403 }
+      );
+    }
+
+    if (!isTopAdminActor && adminRoleLevel <= nextRoleLevel) {
+      return NextResponse.json(
+        {
+          message: `현재 계정 권한(${getUserRoleLabel(adminRole)})으로는 ${getUserRoleLabel(
+            nextRole
+          )} 권한을 부여할 수 없습니다.`
+        },
+        { status: 403 }
+      );
+    }
+
     const currentAppMetadata =
       targetUser.user.app_metadata && typeof targetUser.user.app_metadata === 'object'
         ? (targetUser.user.app_metadata as Record<string, unknown>)
@@ -269,7 +336,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
-  const { user, isAdmin, adminClient } = await getAdminApiContext();
+  const { user, isAdmin, adminClient, adminRole, adminRoleLevel } = await getAdminApiContext();
   if (!user) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
@@ -291,9 +358,34 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
   const { data: targetUser } = await adminClient.auth.admin.getUserById(targetUserId);
   const targetEmail = targetUser?.user?.email?.trim().toLowerCase() ?? '';
+  const targetRole = resolveUserRoleForUserLike({
+    email: targetUser?.user?.email ?? null,
+    app_metadata:
+      targetUser?.user?.app_metadata && typeof targetUser.user.app_metadata === 'object'
+        ? (targetUser.user.app_metadata as Record<string, unknown>)
+        : null,
+    user_metadata:
+      targetUser?.user?.user_metadata && typeof targetUser.user.user_metadata === 'object'
+        ? (targetUser.user.user_metadata as Record<string, unknown>)
+        : null
+  });
+  const targetRoleLevel = getUserRoleLevel(targetRole);
+  const isTopAdminActor = adminRole === 'admin';
+
   if (targetEmail === FORCED_ADMIN_EMAIL) {
     return NextResponse.json(
       { message: '보호된 관리자 계정은 삭제할 수 없습니다.' },
+      { status: 403 }
+    );
+  }
+
+  if (!isTopAdminActor && adminRoleLevel <= targetRoleLevel) {
+    return NextResponse.json(
+      {
+        message: `현재 계정 권한(${getUserRoleLabel(adminRole)})으로는 대상 권한(${getUserRoleLabel(
+          targetRole
+        )}) 계정을 삭제할 수 없습니다.`
+      },
       { status: 403 }
     );
   }

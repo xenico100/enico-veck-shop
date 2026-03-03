@@ -60,7 +60,17 @@ export async function PATCH(
       return jsonError('게시글을 찾을 수 없습니다.', 404);
     }
 
-    const isAdmin = isAdminUserLike({ email: user.email, role: user.role });
+    const isAdmin = isAdminUserLike({
+      email: user.email ?? null,
+      app_metadata:
+        user.app_metadata && typeof user.app_metadata === 'object'
+          ? (user.app_metadata as Record<string, unknown>)
+          : null,
+      user_metadata:
+        user.user_metadata && typeof user.user_metadata === 'object'
+          ? (user.user_metadata as Record<string, unknown>)
+          : null
+    });
     const isOwner = existing.user_id === user.id;
     if (!isOwner && !isAdmin) {
       return jsonError('수정 권한이 없습니다.', 403);
@@ -148,7 +158,17 @@ export async function DELETE(
       return jsonError('게시글을 찾을 수 없습니다.', 404);
     }
 
-    const isAdmin = isAdminUserLike({ email: user.email, role: user.role });
+    const isAdmin = isAdminUserLike({
+      email: user.email ?? null,
+      app_metadata:
+        user.app_metadata && typeof user.app_metadata === 'object'
+          ? (user.app_metadata as Record<string, unknown>)
+          : null,
+      user_metadata:
+        user.user_metadata && typeof user.user_metadata === 'object'
+          ? (user.user_metadata as Record<string, unknown>)
+          : null
+    });
     const isOwner = existing.user_id === user.id;
     if (!isOwner && !isAdmin) {
       return jsonError('삭제 권한이 없습니다.', 403);

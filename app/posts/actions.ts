@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
-import { isAdminEmailValue, isAdminRoleValue } from '@/utils/service-posts';
+import { isAdminUserLike } from '@/utils/service-posts';
 import { cleanupStudioPostMediaFromR2 } from '@/utils/studio-media-cleanup';
 
 const STUDIO_POSTS_TABLE = 'studio_posts';
@@ -84,11 +84,7 @@ const isAdminLikeUser = (user: {
   app_metadata?: Record<string, unknown> | null;
   user_metadata?: Record<string, unknown> | null;
 }) => {
-  const role =
-    (user.app_metadata?.role as string | undefined) ??
-    (user.user_metadata?.role as string | undefined) ??
-    null;
-  return isAdminEmailValue(user.email) || isAdminRoleValue(role);
+  return isAdminUserLike(user);
 };
 
 const validateImageFile = (file: File | null) => {

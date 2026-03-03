@@ -34,6 +34,22 @@ export type ServicePostPayload = {
 
 export const SERVICE_CATEGORIES = ['녹음', '믹스/마스터', '더빙/성우'] as const;
 export const FORCED_ADMIN_EMAIL = 'morba9850@gmail.com';
+export const USER_ROLE_VALUES = ['admin', 'sub_admin', 'manager', 'user'] as const;
+export type UserRoleValue = (typeof USER_ROLE_VALUES)[number];
+
+const USER_ROLE_LEVEL: Record<UserRoleValue, number> = {
+  admin: 3,
+  sub_admin: 2,
+  manager: 1,
+  user: 0
+};
+
+const USER_ROLE_LABEL: Record<UserRoleValue, string> = {
+  admin: '관리자',
+  sub_admin: '부관리자',
+  manager: '매니저',
+  user: '일반 유저'
+};
 
 export const categoryColorPresets: Record<string, string[]> = {
   녹음: ['#1a1a1a', '#4a4a4a', '#8a8a8a'],
@@ -91,13 +107,47 @@ export const isAdminEmailValue = (email?: string | null) => {
   return adminEmails.includes(normalized);
 };
 
-export const isAdminRoleValue = (role?: string | null) =>
-  (role ?? '').trim().toLowerCase() === 'admin';
+export const normalizeUserRoleValue = (role?: string | null): UserRoleValue => {
+  const normalized = (role ?? '').trim().toLowerCase();
+  if (normalized === 'admin') return 'admin';
+  if (normalized === 'sub_admin' || normalized === 'sub-admin' || normalized === 'subadmin') {
+    return 'sub_admin';
+  }
+  if (normalized === 'manager') return 'manager';
+  if (normalized === 'user') return 'user';
+  return 'user';
+};
+
+export const getUserRoleLevel = (role?: string | null) =>
+  USER_ROLE_LEVEL[normalizeUserRoleValue(role)];
+
+export const getUserRoleLabel = (role?: string | null) =>
+  USER_ROLE_LABEL[normalizeUserRoleValue(role)];
+
+export const isAdminRoleValue = (role?: string | null) => getUserRoleLevel(role) >= 1;
+
+export const resolveUserRoleForUserLike = (user?: {
+  email?: string | null;
+  role?: string | null;
+  app_metadata?: Record<string, unknown> | null;
+  user_metadata?: Record<string, unknown> | null;
+} | null): UserRoleValue => {
+  if (!user) return 'user';
+  if (isAdminEmailValue(user.email)) return 'admin';
+
+  const explicitRole =
+    user.role ??
+    (typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : null) ??
+    (typeof user.user_metadata?.role === 'string' ? user.user_metadata.role : null);
+
+  return normalizeUserRoleValue(explicitRole);
+};
 
 export const isAdminUserLike = (user?: {
   email?: string | null;
   role?: string | null;
+  app_metadata?: Record<string, unknown> | null;
+  user_metadata?: Record<string, unknown> | null;
 } | null) => {
-  if (!user) return false;
-  return isAdminEmailValue(user.email) || isAdminRoleValue(user.role);
+  return getUserRoleLevel(resolveUserRoleForUserLike(user)) >= getUserRoleLevel('manager');
 };

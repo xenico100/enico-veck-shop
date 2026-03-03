@@ -24,7 +24,14 @@ import {
   normalizeOrders,
   type OrderRecord
 } from '@/utils/orders';
-import { SERVICE_CATEGORIES, type ServicePost } from '@/utils/service-posts';
+import {
+  SERVICE_CATEGORIES,
+  USER_ROLE_VALUES,
+  getUserRoleLabel,
+  normalizeUserRoleValue,
+  type ServicePost,
+  type UserRoleValue
+} from '@/utils/service-posts';
 import {
   type StudioMembershipTierLevel,
   STUDIO_MEMBERSHIP_TIER_OPTIONS,
@@ -37,7 +44,7 @@ type AdminMember = {
   email: string | null;
   created_at: string | null;
   last_sign_in_at: string | null;
-  role: 'user' | 'admin';
+  role: UserRoleValue;
   full_name: string | null;
   name: string | null;
   phone: string | null;
@@ -128,7 +135,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, 'user' | 'admin'>>({});
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, UserRoleValue>>({});
   const [membershipTierDrafts, setMembershipTierDrafts] = useState<
     Record<string, StudioMembershipTierLevel>
   >({});
@@ -263,7 +270,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
     setRoleDrafts(
       Object.fromEntries(nextMembers.map((member) => [member.id, member.role])) as Record<
         string,
-        'user' | 'admin'
+        UserRoleValue
       >
     );
     setMembershipTierDrafts(
@@ -1196,6 +1203,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           이름: {member.name ?? member.full_name ?? '-'} · Stripe구독:{' '}
                           {member.subscription_status ?? 'none'}
                         </p>
+                        <p className="mt-1 text-xs text-white/45">권한: {getUserRoleLabel(member.role)}</p>
                         <p className="mt-1 text-xs text-white/45">
                           가입: {formatDate(member.created_at)} · 최근 로그인:{' '}
                           {formatDate(member.last_sign_in_at)}
@@ -1245,18 +1253,17 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           onChange={(e) =>
                             setRoleDrafts((prev) => ({
                               ...prev,
-                              [member.id]: (e.target.value === 'admin' ? 'admin' : 'user')
+                              [member.id]: normalizeUserRoleValue(e.target.value)
                             }))
                           }
                           className="h-9 rounded-full border border-white/20 bg-white/10 px-3 pr-8 text-sm font-medium text-white shadow-sm backdrop-blur-sm outline-none focus:ring-2 focus:ring-white/40"
                           disabled={isBusy || protectedAdmin}
                         >
-                          <option value="user" className="bg-neutral-900">
-                            user
-                          </option>
-                          <option value="admin" className="bg-neutral-900">
-                            admin
-                          </option>
+                          {USER_ROLE_VALUES.map((roleValue) => (
+                            <option key={`member-role-${member.id}-${roleValue}`} value={roleValue} className="bg-neutral-900">
+                              {getUserRoleLabel(roleValue)}
+                            </option>
+                          ))}
                         </select>
                         <ActionButton
                           type="button"

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import { signR2GetUrl } from '@/utils/r2';
-import { isAdminEmailValue } from '@/utils/service-posts';
+import { isAdminUserLike } from '@/utils/service-posts';
 
 type RouteContext = {
   params: { id: string };
@@ -56,7 +56,18 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return jsonError('다운로드 파일이 아직 등록되지 않았습니다.', 404);
   }
 
-  const isAdmin = isAdminEmailValue(user.email) || post.created_by === user.id;
+  const isAdmin =
+    isAdminUserLike({
+      email: user.email ?? null,
+      app_metadata:
+        user.app_metadata && typeof user.app_metadata === 'object'
+          ? (user.app_metadata as Record<string, unknown>)
+          : null,
+      user_metadata:
+        user.user_metadata && typeof user.user_metadata === 'object'
+          ? (user.user_metadata as Record<string, unknown>)
+          : null
+    }) || post.created_by === user.id;
   let hasPurchased = false;
   if (!isAdmin) {
     const { data: purchase, error: purchaseError } = await (adminClient as any)

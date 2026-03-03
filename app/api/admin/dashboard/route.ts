@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminApiContext } from '@/utils/admin-api';
-import { FORCED_ADMIN_EMAIL } from '@/utils/service-posts';
+import { FORCED_ADMIN_EMAIL, resolveUserRoleForUserLike } from '@/utils/service-posts';
 import { getStudioMembershipSummaryMapForUsers, type StudioMembershipSummary } from '@/utils/studio-membership-summary';
 
 type ProfileRow = {
@@ -191,17 +191,24 @@ export async function GET() {
     const profile = profileMap.get(member.id);
     const studioMembership = studioMembershipMap.get(member.id) ?? null;
     const email = (member.email ?? '').trim().toLowerCase();
-    const role =
-      (member.app_metadata && typeof member.app_metadata === 'object'
-        ? String((member.app_metadata as Record<string, unknown>).role ?? 'user')
-        : 'user') || 'user';
+    const role = resolveUserRoleForUserLike({
+      email: member.email ?? null,
+      app_metadata:
+        member.app_metadata && typeof member.app_metadata === 'object'
+          ? (member.app_metadata as Record<string, unknown>)
+          : null,
+      user_metadata:
+        member.user_metadata && typeof member.user_metadata === 'object'
+          ? (member.user_metadata as Record<string, unknown>)
+          : null
+    });
 
     return {
       id: member.id,
       email: member.email ?? null,
       created_at: member.created_at ?? null,
       last_sign_in_at: member.last_sign_in_at ?? null,
-      role: role === 'admin' ? 'admin' : 'user',
+      role,
       full_name: profile?.full_name ?? null,
       name: profile?.name ?? null,
       phone: profile?.phone ?? null,

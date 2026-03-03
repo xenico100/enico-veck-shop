@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import {
-  isAdminEmailValue,
+  isAdminUserLike,
   normalizeImageUrls,
   slugifyServicePost,
   type ServicePostPayload
@@ -29,7 +29,17 @@ export async function GET(_request: Request, { params }: RouteContext) {
   const {
     data: { user }
   } = await supabase.auth.getUser();
-  const isAdmin = isAdminEmailValue(user?.email);
+  const isAdmin = isAdminUserLike({
+    email: user?.email ?? null,
+    app_metadata:
+      user?.app_metadata && typeof user.app_metadata === 'object'
+        ? (user.app_metadata as Record<string, unknown>)
+        : null,
+    user_metadata:
+      user?.user_metadata && typeof user.user_metadata === 'object'
+        ? (user.user_metadata as Record<string, unknown>)
+        : null
+  });
 
   let query = (supabase as never).from(SERVICE_POSTS_TABLE).select('*').eq('id', id);
 
@@ -109,7 +119,17 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
-  const isAdmin = isAdminEmailValue(user.email);
+  const isAdmin = isAdminUserLike({
+    email: user.email ?? null,
+    app_metadata:
+      user.app_metadata && typeof user.app_metadata === 'object'
+        ? (user.app_metadata as Record<string, unknown>)
+        : null,
+    user_metadata:
+      user.user_metadata && typeof user.user_metadata === 'object'
+        ? (user.user_metadata as Record<string, unknown>)
+        : null
+  });
   const client = isAdmin ? createAdminClient() : (supabase as never);
   const id = params.id;
 
@@ -191,7 +211,17 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
-  const isAdmin = isAdminEmailValue(user.email);
+  const isAdmin = isAdminUserLike({
+    email: user.email ?? null,
+    app_metadata:
+      user.app_metadata && typeof user.app_metadata === 'object'
+        ? (user.app_metadata as Record<string, unknown>)
+        : null,
+    user_metadata:
+      user.user_metadata && typeof user.user_metadata === 'object'
+        ? (user.user_metadata as Record<string, unknown>)
+        : null
+  });
   const client = isAdmin ? createAdminClient() : (supabase as never);
   const id = params.id;
 
