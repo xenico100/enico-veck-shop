@@ -42,11 +42,175 @@ type CommunityCommentResponse = {
   data?: CommunityComment;
 };
 
+type RichContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'youtube'; sourceUrl: string; videoId: string; startSeconds: number | null };
+
 const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat('ko-KR', {
     dateStyle: 'medium',
     timeStyle: 'short'
   }).format(new Date(value));
+
+const parseYouTubeStartSeconds = (raw: string | null) => {
+  if (!raw) return null;
+  const value = raw.trim().toLowerCase();
+  if (!value) return null;
+
+  if (/^\d+$/.test(value)) {
+    const direct = Number.parseInt(value, 10);
+    return Number.isFinite(direct) && direct > 0 ? direct : null;
+  }
+
+  const hmsMatch = value.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+  if (!hmsMatch) return null;
+
+  const hours = Number.parseInt(hmsMatch[1] || '0', 10);
+  const minutes = Number.parseInt(hmsMatch[2] || '0', 10);
+  const seconds = Number.parseInt(hmsMatch[3] || '0', 10);
+  const total = hours * 3600 + minutes * 60 + seconds;
+
+  return Number.isFinite(total) && total > 0 ? total : null;
+};
+
+const extractYouTubeEmbedInfo = (urlText: string) => {
+  try {
+    const url = new URL(urlText.trim());
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null;
+    }
+
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    let videoId = '';
+
+    if (hostname === 'youtu.be') {
+      videoId = pathParts[0] || '';
+    } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+      if (url.pathname === '/watch') {
+        videoId = url.searchParams.get('v') || '';
+      } else if (pathParts[0] === 'embed' || pathParts[0] === 'shorts' || pathParts[0] === 'live') {
+        videoId = pathParts[1] || '';
+      }
+    }
+
+    if (!/^[A-Za-z0-9_-]{10,15}$/.test(videoId)) {
+      return null;
+    }
+
+    const hashValue = url.hash.replace(/^#/, '');
+    const hashParams = new URLSearchParams(hashValue.includes('=') ? hashValue : '');
+    const rawStart =
+      url.searchParams.get('t') ||
+      url.searchParams.get('start') ||
+      hashParams.get('t') ||
+      hashParams.get('start') ||
+      (hashValue && !hashValue.includes('=') ? hashValue : null);
+
+    return {
+      sourceUrl: url.toString(),
+      videoId,
+      startSeconds: parseYouTubeStartSeconds(rawStart)
+    };
+  } catch {
+    return null;
+  }
+};
+
+const parseRichContentBlocks = (value: string): RichContentBlock[] => {
+  const lines = value.split(/\r?\n/);
+  const blocks: RichContentBlock[] = [];
+  let textBuffer: string[] = [];
+
+  const flushText = () => {
+    const text = textBuffer.join('\n');
+    if (text.trim()) {
+      blocks.push({ type: 'text', text });
+    }
+    textBuffer = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const embedInfo = trimmed ? extractYouTubeEmbedInfo(trimmed) : null;
+    if (embedInfo) {
+      flushText();
+      blocks.push({
+        type: 'youtube',
+        sourceUrl: embedInfo.sourceUrl,
+        videoId: embedInfo.videoId,
+        startSeconds: embedInfo.startSeconds
+      });
+      continue;
+    }
+
+    textBuffer.push(line);
+  }
+
+  flushText();
+  return blocks;
+};
+
+function RichTextWithYouTube({
+  content,
+  containerClassName,
+  textClassName
+}: {
+  content: string;
+  containerClassName: string;
+  textClassName: string;
+}) {
+  const blocks = useMemo(() => parseRichContentBlocks(content || ''), [content]);
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={containerClassName}>
+      {blocks.map((block, index) => {
+        if (block.type === 'text') {
+          return (
+            <p key={`text-${index}`} className={textClassName}>
+              {block.text}
+            </p>
+          );
+        }
+
+        const src =
+          block.startSeconds && block.startSeconds > 0
+            ? `https://www.youtube.com/embed/${block.videoId}?start=${block.startSeconds}`
+            : `https://www.youtube.com/embed/${block.videoId}`;
+
+        return (
+          <div
+            key={`youtube-${block.videoId}-${index}`}
+            className="overflow-hidden rounded-2xl border border-white/15 bg-black/60"
+          >
+            <div className="aspect-video w-full">
+              <iframe
+                src={src}
+                title={`YouTube video ${index + 1}`}
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                className="h-full w-full"
+              />
+            </div>
+            <a
+              href={block.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block truncate border-t border-white/10 px-3 py-2 text-xs text-white/65 hover:text-white/85"
+            >
+              {block.sourceUrl}
+            </a>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function CommunityBoard() {
   const auth = useAuth();
@@ -315,9 +479,12 @@ export default function CommunityBoard() {
               onChange={(event) => setCreateContent(event.target.value)}
               rows={4}
               maxLength={10000}
-              placeholder="내용"
+              placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
               className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
+            <p className="text-xs text-white/55">
+              유튜브 링크를 한 줄에 단독으로 입력하면 플레이어로 표시됩니다.
+            </p>
             {isAdmin && (
               <label className="inline-flex items-center gap-2 text-sm text-amber-100">
                 <input
@@ -526,7 +693,11 @@ function CommunityPostCard({
       </div>
 
       {!isEditing ? (
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-white/85">{post.content}</p>
+        <RichTextWithYouTube
+          content={post.content}
+          containerClassName="mt-3 space-y-3"
+          textClassName="whitespace-pre-wrap text-sm leading-relaxed text-white/85"
+        />
       ) : (
         <div className="mt-3 space-y-2">
           <input
@@ -540,6 +711,7 @@ function CommunityPostCard({
             onChange={(event) => onEditContentChange(event.target.value)}
             rows={4}
             maxLength={10000}
+            placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
             className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
           />
           {isAdmin && (
@@ -588,7 +760,11 @@ function CommunityPostCard({
                       <p className="text-xs text-white/55">
                         {comment.authorName} · {formatDateTime(comment.createdAt)}
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-white/85">{comment.content}</p>
+                      <RichTextWithYouTube
+                        content={comment.content}
+                        containerClassName="mt-1 space-y-2"
+                        textClassName="whitespace-pre-wrap text-sm text-white/85"
+                      />
                     </div>
                     {canDeleteComment && (
                       <button
