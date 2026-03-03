@@ -248,6 +248,7 @@ export default function CommunityBoard() {
   const [error, setError] = useState<string | null>(null);
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
   const [createNotice, setCreateNotice] = useState(false);
@@ -521,6 +522,18 @@ export default function CommunityBoard() {
     })[0];
   }, [posts]);
   const regularPosts = posts.filter((post) => !post.isNotice && post.id !== popularPost?.id);
+  const selectedPost = useMemo(
+    () => posts.find((post) => post.id === selectedPostId) ?? null,
+    [posts, selectedPostId]
+  );
+
+  useEffect(() => {
+    if (!selectedPostId) return;
+    const exists = posts.some((post) => post.id === selectedPostId);
+    if (!exists) {
+      setSelectedPostId(null);
+    }
+  }, [posts, selectedPostId]);
 
   return (
     <section className="space-y-6">
@@ -672,31 +685,13 @@ export default function CommunityBoard() {
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">공지사항</p>
           {notices.map((post) => (
-            <CommunityPostCard
+            <CommunityPostTitleRow
               key={post.id}
               post={post}
-              currentUserId={currentUserId}
-              isAdmin={isAdmin}
-              submitting={submitting}
-              editingPostId={editingPostId}
-              editTitle={editTitle}
-              editContent={editContent}
-              editNotice={editNotice}
-              commentDraft={commentDraftByPostId[post.id] || ''}
-              onOpenEdit={() => openEditForm(post)}
-              onCloseEdit={closeEditForm}
-              onEditTitleChange={setEditTitle}
-              onEditContentChange={setEditContent}
-              onEditNoticeChange={setEditNotice}
-              onUpdatePost={() => void handleUpdatePost(post.id)}
-              onDeletePost={() => void handleDeletePost(post.id)}
-              onReactPost={(reaction) => void handleReactPost(post.id, reaction)}
-              onCommentDraftChange={(value) =>
-                setCommentDraftByPostId((prev) => ({ ...prev, [post.id]: value }))
-              }
-              onCreateComment={() => void handleCreateComment(post.id)}
-              onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
-              isLoggedIn={isLoggedIn}
+              onOpen={() => {
+                setError(null);
+                setSelectedPostId(post.id);
+              }}
             />
           ))}
         </div>
@@ -707,32 +702,14 @@ export default function CommunityBoard() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
             인기글 (최근 24시간 좋아요 1등)
           </p>
-          <CommunityPostCard
+          <CommunityPostTitleRow
             key={popularPost.id}
             post={popularPost}
-            currentUserId={currentUserId}
-            isAdmin={isAdmin}
-            submitting={submitting}
-            editingPostId={editingPostId}
-            editTitle={editTitle}
-            editContent={editContent}
-            editNotice={editNotice}
             featuredLabel={`24시간 좋아요 ${popularPost.dailyLikeCount}`}
-            commentDraft={commentDraftByPostId[popularPost.id] || ''}
-            onOpenEdit={() => openEditForm(popularPost)}
-            onCloseEdit={closeEditForm}
-            onEditTitleChange={setEditTitle}
-            onEditContentChange={setEditContent}
-            onEditNoticeChange={setEditNotice}
-            onUpdatePost={() => void handleUpdatePost(popularPost.id)}
-            onDeletePost={() => void handleDeletePost(popularPost.id)}
-            onReactPost={(reaction) => void handleReactPost(popularPost.id, reaction)}
-            onCommentDraftChange={(value) =>
-              setCommentDraftByPostId((prev) => ({ ...prev, [popularPost.id]: value }))
-            }
-            onCreateComment={() => void handleCreateComment(popularPost.id)}
-            onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
-            isLoggedIn={isLoggedIn}
+            onOpen={() => {
+              setError(null);
+              setSelectedPostId(popularPost.id);
+            }}
           />
         </div>
       )}
@@ -741,9 +718,45 @@ export default function CommunityBoard() {
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">자유게시판</p>
           {regularPosts.map((post) => (
-            <CommunityPostCard
+            <CommunityPostTitleRow
               key={post.id}
               post={post}
+              onOpen={() => {
+                setError(null);
+                setSelectedPostId(post.id);
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {selectedPost && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6">
+          <button
+            type="button"
+            aria-label="게시글 닫기"
+            onClick={() => {
+              if (submitting) return;
+              setSelectedPostId(null);
+            }}
+            className="absolute inset-0 bg-black/80"
+          />
+          <div className="relative z-[91] max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/15 bg-black p-3 sm:p-5">
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  if (submitting) return;
+                  setSelectedPostId(null);
+                }}
+                disabled={submitting}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+              >
+                닫기
+              </button>
+            </div>
+            <CommunityPostCard
+              post={selectedPost}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
               submitting={submitting}
@@ -751,23 +764,23 @@ export default function CommunityBoard() {
               editTitle={editTitle}
               editContent={editContent}
               editNotice={editNotice}
-              commentDraft={commentDraftByPostId[post.id] || ''}
-              onOpenEdit={() => openEditForm(post)}
+              commentDraft={commentDraftByPostId[selectedPost.id] || ''}
+              onOpenEdit={() => openEditForm(selectedPost)}
               onCloseEdit={closeEditForm}
               onEditTitleChange={setEditTitle}
               onEditContentChange={setEditContent}
               onEditNoticeChange={setEditNotice}
-              onUpdatePost={() => void handleUpdatePost(post.id)}
-              onDeletePost={() => void handleDeletePost(post.id)}
-              onReactPost={(reaction) => void handleReactPost(post.id, reaction)}
+              onUpdatePost={() => void handleUpdatePost(selectedPost.id)}
+              onDeletePost={() => void handleDeletePost(selectedPost.id)}
+              onReactPost={(reaction) => void handleReactPost(selectedPost.id, reaction)}
               onCommentDraftChange={(value) =>
-                setCommentDraftByPostId((prev) => ({ ...prev, [post.id]: value }))
+                setCommentDraftByPostId((prev) => ({ ...prev, [selectedPost.id]: value }))
               }
-              onCreateComment={() => void handleCreateComment(post.id)}
+              onCreateComment={() => void handleCreateComment(selectedPost.id)}
               onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
               isLoggedIn={isLoggedIn}
             />
-          ))}
+          </div>
         </div>
       )}
 
@@ -777,6 +790,42 @@ export default function CommunityBoard() {
         </div>
       )}
     </section>
+  );
+}
+
+function CommunityPostTitleRow({
+  post,
+  featuredLabel,
+  onOpen
+}: {
+  post: CommunityPost;
+  featuredLabel?: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={
+        post.isNotice
+          ? 'w-full rounded-2xl border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-left transition hover:bg-amber-400/15'
+          : 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:bg-white/10'
+      }
+    >
+      <div className="flex items-center gap-2">
+        {post.isNotice && (
+          <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-100">
+            Notice
+          </span>
+        )}
+        {featuredLabel && (
+          <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-100">
+            {featuredLabel}
+          </span>
+        )}
+        <p className="line-clamp-1 text-sm font-semibold text-white">{post.title}</p>
+      </div>
+    </button>
   );
 }
 
