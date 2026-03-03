@@ -930,6 +930,23 @@ function StudioShortsModal({
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
+    const activePost = shortsPosts[activeIndex];
+    if (!activePost) return;
+
+    const activeMediaState = mediaByPostId[activePost.id];
+    if (!activeMediaState || !activeMediaState.loaded) return;
+    if (activeMediaState.videoUrl) return;
+
+    const firstVideoIndex = shortsPosts.findIndex((post) =>
+      Boolean(mediaByPostId[post.id]?.videoUrl)
+    );
+    if (firstVideoIndex >= 0 && firstVideoIndex !== activeIndex) {
+      scrollToIndex(firstVideoIndex);
+    }
+  }, [activeIndex, mediaByPostId, open, scrollToIndex, shortsPosts]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
 
     const nearIndexes = [
       activeIndex - 1,
@@ -1022,6 +1039,21 @@ function StudioShortsModal({
       }
     };
   }, [activeIndex, mediaByPostId, open, playVideoWithAutoplayFallback]);
+
+  useEffect(() => {
+    if (!open) return;
+    const watchdog = window.setInterval(() => {
+      const activeVideo = videoRefs.current[activeIndex];
+      if (!activeVideo) return;
+      if (!activeVideo.paused) return;
+      if (activeVideo.readyState < 2) return;
+      void playVideoWithAutoplayFallback(activeVideo);
+    }, 600);
+
+    return () => {
+      window.clearInterval(watchdog);
+    };
+  }, [activeIndex, open, playVideoWithAutoplayFallback]);
 
   useEffect(() => {
     if (!open) {
