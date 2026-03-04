@@ -5,7 +5,12 @@ import { getStudioMembershipSummaryForUser } from '@/utils/studio-membership-sum
 
 export const runtime = 'nodejs';
 
+const ORPHAN_REPAIR_CHECK_TTL_MS = 10 * 60 * 1000;
+const orphanRepairCheckedAtByUser = new Map<string, number>();
+
 const normalizeEmail = (value: unknown) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+const normalizeUserId = (value: unknown) =>
   typeof value === 'string' ? value.trim().toLowerCase() : '';
 
 const getRawSubscriberEmail = (raw: unknown) => {
@@ -70,6 +75,21 @@ const tryRepairOrphanPayPalSubscriptionsByEmail = async (params: {
   );
 };
 
+const shouldRunOrphanRepair = (userId: string) => {
+  const normalizedUserId = normalizeUserId(userId);
+  if (!normalizedUserId) return false;
+  const now = Date.now();
+  const previousCheckedAt = orphanRepairCheckedAtByUser.get(normalizedUserId);
+  if (
+    typeof previousCheckedAt === 'number' &&
+    now - previousCheckedAt < ORPHAN_REPAIR_CHECK_TTL_MS
+  ) {
+    return false;
+  }
+  orphanRepairCheckedAtByUser.set(normalizedUserId, now);
+  return true;
+};
+
 export async function GET() {
   const supabase = createClient();
   const {
@@ -82,10 +102,12 @@ export async function GET() {
   }
 
   try {
-    await tryRepairOrphanPayPalSubscriptionsByEmail({
-      userId: user.id,
-      userEmail: user.email ?? null
-    });
+    if (shouldRunOrphanRepair(user.id)) {
+      await tryRepairOrphanPayPalSubscriptionsByEmail({
+        userId: user.id,
+        userEmail: user.email ?? null
+      });
+    }
 
     const membership = await getStudioMembershipSummaryForUser(user.id);
     return NextResponse.json({ data: membership });

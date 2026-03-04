@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { createSubscription, getPayPalApprovalUrl, isPayPalApiError } from '@/utils/paypal';
-import type { StudioMembershipPlanKey } from '@/utils/studio-membership-plans';
+import {
+  createSubscription,
+  getPayPalApprovalUrl,
+  isPayPalApiError
+} from '@/utils/paypal';
+import {
+  inferStudioMembershipPlanKeyFromSummary,
+  isStudioMembershipTierDowngrade,
+  type StudioMembershipPlanKey
+} from '@/utils/studio-membership-plans';
+import { getStudioMembershipSummaryForUser } from '@/utils/studio-membership-summary';
 
 export const runtime = 'nodejs';
 
@@ -10,9 +19,11 @@ type CreateSubscriptionBody = {
   planKey?: StudioMembershipPlanKey;
 };
 
+type PayPalPlanKey = 'monthly_4900' | 'monthly_13900' | 'monthly_69000';
+
 const studioPostIdRegex = /^[a-z0-9-]{8,}$/i;
 
-const PLAN_ENV_KEY_BY_PLAN_KEY: Record<StudioMembershipPlanKey, string> = {
+const PLAN_ENV_KEY_BY_PLAN_KEY: Record<PayPalPlanKey, string> = {
   monthly_4900: 'PAYPAL_PLAN_ID_MONTHLY_4900',
   monthly_13900: 'PAYPAL_PLAN_ID_MONTHLY_13900',
   monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000'
@@ -21,20 +32,22 @@ const LEGACY_PLAN_ENV_KEY = 'PAYPAL_PLAN_ID_MONTHLY';
 
 // Safety net for Vercel/Sandbox deployments where plan env vars are not configured yet.
 // These IDs are non-secret PayPal plan IDs tied to this sandbox merchant account.
-const SANDBOX_PLAN_ID_FALLBACK_BY_PLAN_KEY: Record<StudioMembershipPlanKey, string> = {
+const SANDBOX_PLAN_ID_FALLBACK_BY_PLAN_KEY: Record<PayPalPlanKey, string> = {
   monthly_4900: 'P-66J57653FV568243LNGTF3KQ',
   monthly_13900: 'P-6JS61276AJ849370SNGTF3KY',
   monthly_69000: 'P-31657772UD838403ANGTF3LA'
 };
 
-const SUPPORTED_PLAN_KEYS = new Set(Object.keys(PLAN_ENV_KEY_BY_PLAN_KEY));
+const SUPPORTED_PLAN_KEYS = new Set(
+  Object.keys(PLAN_ENV_KEY_BY_PLAN_KEY) as PayPalPlanKey[]
+);
 
 const isSandboxEnvironment = () => {
   const raw = (process.env.PAYPAL_ENV || 'sandbox').trim().toLowerCase();
   return raw !== 'live' && raw !== 'production';
 };
 
-const resolvePayPalPlanId = (planKey: StudioMembershipPlanKey) => {
+const resolvePayPalPlanId = (planKey: PayPalPlanKey) => {
   const envKey = PLAN_ENV_KEY_BY_PLAN_KEY[planKey];
   const direct = process.env[envKey]?.trim();
   if (direct) {
@@ -82,7 +95,10 @@ const buildStudioRedirectUrl = (
     missingPlanEnv?: string | null;
   }
 ) => {
-  const redirectUrl = new URL(getStudioPath(options.studioPostId), requestUrl.origin);
+  const redirectUrl = new URL(
+    getStudioPath(options.studioPostId),
+    requestUrl.origin
+  );
   redirectUrl.searchParams.set('paypal', options.paypalState);
   if (options.message) {
     redirectUrl.searchParams.set('paypal_message', options.message);
@@ -95,7 +111,30 @@ const buildStudioRedirectUrl = (
 
 const parsePlanKey = (value: unknown) => {
   if (typeof value !== 'string') return null;
-  return SUPPORTED_PLAN_KEYS.has(value) ? (value as StudioMembershipPlanKey) : null;
+  return SUPPORTED_PLAN_KEYS.has(value as PayPalPlanKey)
+    ? (value as PayPalPlanKey)
+    : null;
+};
+
+const getMembershipChangeValidation = async (params: {
+  userId: string;
+  targetPlanKey: PayPalPlanKey;
+}) => {
+  const membershipSummary = await getStudioMembershipSummaryForUser(params.userId);
+  const currentPlanKey = inferStudioMembershipPlanKeyFromSummary(membershipSummary);
+  if (!currentPlanKey) {
+    return {
+      isSamePlan: false,
+      isTierDowngrade: false
+    };
+  }
+  return {
+    isSamePlan: currentPlanKey === params.targetPlanKey,
+    isTierDowngrade: isStudioMembershipTierDowngrade(
+      currentPlanKey,
+      params.targetPlanKey
+    )
+  };
 };
 
 const createSubscriptionSession = async ({
@@ -106,7 +145,7 @@ const createSubscriptionSession = async ({
 }: {
   userId: string;
   studioPostId: string;
-  planKey: StudioMembershipPlanKey;
+  planKey: PayPalPlanKey;
   origin: string;
 }) => {
   const { planId, envKey } = resolvePayPalPlanId(planKey);
@@ -123,7 +162,12 @@ const createSubscriptionSession = async ({
   const cancelUrl = new URL(getStudioPath(studioPostId), origin);
   cancelUrl.searchParams.set('paypal', 'cancel');
 
-  const response = await createSubscription(planId, returnUrl.toString(), cancelUrl.toString(), userId);
+  const response = await createSubscription(
+    planId,
+    returnUrl.toString(),
+    cancelUrl.toString(),
+    userId
+  );
   const approvalUrl = getPayPalApprovalUrl(response);
 
   if (!approvalUrl) {
@@ -141,10 +185,12 @@ const createSubscriptionSession = async ({
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const origin = requestUrl.origin;
-  const studioPostId = sanitizeStudioPostId(requestUrl.searchParams.get('studioPostId'));
+  const studioPostId = sanitizeStudioPostId(
+    requestUrl.searchParams.get('studioPostId')
+  );
   const requestedPlanKey = requestUrl.searchParams.get('planKey');
   const parsedPlanKey = parsePlanKey(requestedPlanKey);
-  const planKey = parsedPlanKey ?? 'monthly_4900';
+  const planKey: PayPalPlanKey = parsedPlanKey ?? 'monthly_4900';
 
   if (requestedPlanKey && !parsedPlanKey) {
     return NextResponse.redirect(
@@ -165,6 +211,29 @@ export async function GET(request: Request) {
 
     if (authError || !user) {
       return NextResponse.redirect(new URL('/signin', requestUrl.origin));
+    }
+
+    const membershipValidation = await getMembershipChangeValidation({
+      userId: user.id,
+      targetPlanKey: planKey
+    });
+    if (membershipValidation.isSamePlan) {
+      return NextResponse.redirect(
+        buildStudioRedirectUrl(requestUrl, {
+          studioPostId,
+          paypalState: 'error',
+          message: 'already_active_plan'
+        })
+      );
+    }
+    if (membershipValidation.isTierDowngrade) {
+      return NextResponse.redirect(
+        buildStudioRedirectUrl(requestUrl, {
+          studioPostId,
+          paypalState: 'error',
+          message: 'downgrade_requires_schedule'
+        })
+      );
     }
 
     const payload = await createSubscriptionSession({
@@ -191,7 +260,9 @@ export async function GET(request: Request) {
         ? error.message.match(/Missing PayPal plan env for [^(]+\(([^)]+)\)/)
         : null;
     const missingPlanEnv = missingPlanEnvMatch?.[1]?.trim() || null;
-    const message = missingPlanEnv ? 'missing_paypal_plan_env' : 'unexpected_create_subscription_error';
+    const message = missingPlanEnv
+      ? 'missing_paypal_plan_env'
+      : 'unexpected_create_subscription_error';
 
     return NextResponse.redirect(
       buildStudioRedirectUrl(requestUrl, {
@@ -218,13 +289,31 @@ export async function POST(request: Request) {
       return jsonError('로그인이 필요합니다.', 401);
     }
 
-    const body = (await request.json().catch(() => ({}))) as CreateSubscriptionBody;
+    const body = (await request
+      .json()
+      .catch(() => ({}))) as CreateSubscriptionBody;
     const studioPostId = sanitizeStudioPostId(body.studioPostId);
     const parsedPlanKey = parsePlanKey(body.planKey);
-    const requestedPlanKey = parsedPlanKey ?? 'monthly_4900';
+    const requestedPlanKey: PayPalPlanKey = parsedPlanKey ?? 'monthly_4900';
 
     if (body.planKey && !parsedPlanKey) {
-      return jsonError('Invalid membership plan key', 400, { planKey: body.planKey });
+      return jsonError('Invalid membership plan key', 400, {
+        planKey: body.planKey
+      });
+    }
+
+    const membershipValidation = await getMembershipChangeValidation({
+      userId: user.id,
+      targetPlanKey: requestedPlanKey
+    });
+    if (membershipValidation.isSamePlan) {
+      return jsonError('이미 사용 중인 멤버십 플랜입니다.', 400);
+    }
+    if (membershipValidation.isTierDowngrade) {
+      return jsonError(
+        '낮은 멤버십으로 변경 시 다음 결제일부터 변경 예약을 이용해 주세요.',
+        400
+      );
     }
 
     const payload = await createSubscriptionSession({
@@ -234,20 +323,26 @@ export async function POST(request: Request) {
       origin
     });
 
-    return NextResponse.json(
-      payload,
-      { status: 200 }
-    );
+    return NextResponse.json(payload, { status: 200 });
   } catch (error) {
     if (isPayPalApiError(error)) {
-      return jsonError('PayPal subscription creation failed', error.status, error.details);
+      return jsonError(
+        'PayPal subscription creation failed',
+        error.status,
+        error.details
+      );
     }
-    if (error instanceof Error && error.message.includes('Missing PayPal plan env')) {
+    if (
+      error instanceof Error &&
+      error.message.includes('Missing PayPal plan env')
+    ) {
       return jsonError(error.message, 500);
     }
     console.error('[PayPal create-subscription] unexpected error', error);
     return jsonError(
-      error instanceof Error ? error.message : 'Unexpected create-subscription error',
+      error instanceof Error
+        ? error.message
+        : 'Unexpected create-subscription error',
       500
     );
   }

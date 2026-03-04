@@ -11,6 +11,10 @@ import { useToast } from '@/components/ui/Toasts/use-toast';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { getBankTransferInfo } from '@/utils/bank-transfer';
+import {
+  uploadBankTransferProofFile,
+  validateBankTransferProofFile
+} from '@/utils/bank-transfer-client';
 
 const appleFontClass =
   '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
@@ -20,7 +24,10 @@ const formatMoney = (amount: number | null, currency = 'KRW') => {
   if (amount == null || Number.isNaN(amount)) return '문의';
   try {
     const locale = currency === 'USD' ? 'en-US' : 'ko-KR';
-    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount);
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency
+    }).format(amount);
   } catch {
     if (currency === 'USD') return `$${amount.toFixed(2)}`;
     return `₩${new Intl.NumberFormat('ko-KR').format(amount)}`;
@@ -35,6 +42,7 @@ type CartModalProps = {
 type GuestCheckoutForm = {
   name: string;
   email: string;
+  depositorName: string;
   phone: string;
   address: string;
 };
@@ -52,6 +60,7 @@ type BankTransferOrderResponse = {
     orderRef?: string | null;
     accountConfigured?: boolean;
     depositorName?: string;
+    proofImageUrl?: string;
   };
 };
 
@@ -79,28 +88,39 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   const { items, itemCount, total, removeItem, updateQty, clear } = useCart();
   const { toast } = useToast();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'bank_transfer'>('paypal');
+  const [paymentMethod, setPaymentMethod] = useState<
+    'paypal' | 'bank_transfer'
+  >('paypal');
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [profilePrefillLoading, setProfilePrefillLoading] = useState(false);
   const [guestForm, setGuestForm] = useState<GuestCheckoutForm>({
     name: '',
     email: '',
+    depositorName: '',
     phone: '',
     address: ''
   });
+  const [bankTransferProofFile, setBankTransferProofFile] =
+    useState<File | null>(null);
 
-  const hasUnpricedItems = useMemo(() => items.some((item) => item.price == null), [items]);
+  const hasUnpricedItems = useMemo(
+    () => items.some((item) => item.price == null),
+    [items]
+  );
   const totalKRW = useMemo(() => Math.round(total), [total]);
-  const usdTotal = useMemo(() => Number((totalKRW / USD_EXCHANGE_RATE).toFixed(2)), [totalKRW]);
+  const usdTotal = useMemo(
+    () => Number((totalKRW / USD_EXCHANGE_RATE).toFixed(2)),
+    [totalKRW]
+  );
   const usdTotalLabel = useMemo(() => usdTotal.toFixed(2), [usdTotal]);
   const bankTransferInfo = useMemo(() => getBankTransferInfo(), []);
   const hasConfiguredBankAccount = useMemo(
     () =>
       Boolean(
         bankTransferInfo.bankName &&
-          bankTransferInfo.accountNumber &&
-          bankTransferInfo.accountHolder
+        bankTransferInfo.accountNumber &&
+        bankTransferInfo.accountHolder
       ),
     [bankTransferInfo]
   );
@@ -125,6 +145,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       setPaymentMethod('paypal');
       setCheckoutError(null);
       setIsSavingOrder(false);
+      setBankTransferProofFile(null);
     }
   }, [open]);
 
@@ -147,7 +168,8 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
     if (user?.name) {
       setGuestForm((prev) => ({
         ...prev,
-        name: prev.name || user.name
+        name: prev.name || user.name,
+        depositorName: prev.depositorName || user.name
       }));
     }
   }, [user?.name]);
@@ -163,21 +185,29 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
     const loadProfileForPrefill = async () => {
       setProfilePrefillLoading(true);
       try {
-        const response = await fetch('/api/account/profile', { cache: 'no-store' });
+        const response = await fetch('/api/account/profile', {
+          cache: 'no-store'
+        });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(payload?.message || '회원정보를 불러오지 못했습니다.');
+          throw new Error(
+            payload?.message || '회원정보를 불러오지 못했습니다.'
+          );
         }
 
-        const row = (payload?.data ?? null) as
-          | { name?: string | null; email?: string | null; phone?: string | null; address?: string | null }
-          | null;
+        const row = (payload?.data ?? null) as {
+          name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          address?: string | null;
+        } | null;
 
         if (cancelled) return;
 
         setGuestForm((prev) => ({
           name: prev.name || row?.name || user.name || '',
           email: prev.email || row?.email || user.email || '',
+          depositorName: prev.depositorName || row?.name || user.name || '',
           phone: prev.phone || row?.phone || '',
           address: prev.address || row?.address || ''
         }));
@@ -217,6 +247,32 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
 
     return {
       value: { name, email, phone, address }
+    } as const;
+  };
+
+  const getBankTransferPayload = async () => {
+    const depositorName =
+      guestForm.depositorName.trim() ||
+      guestForm.name.trim() ||
+      user?.name?.trim() ||
+      '';
+    if (!depositorName) {
+      return { error: '입금자명을 입력해 주세요.' } as const;
+    }
+
+    const validatedFile = validateBankTransferProofFile(bankTransferProofFile);
+    if (!validatedFile.ok) {
+      return { error: validatedFile.message } as const;
+    }
+
+    const uploadResult = await uploadBankTransferProofFile(
+      bankTransferProofFile as File
+    );
+    return {
+      value: {
+        depositorName,
+        proofImageUrl: uploadResult.url
+      }
     } as const;
   };
 
@@ -306,7 +362,9 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       const saveOrderPayload = await saveOrderResponse.json().catch(() => ({}));
 
       if (!saveOrderResponse.ok) {
-        throw new Error(saveOrderPayload?.message || '결제 완료 후 주문 저장에 실패했습니다.');
+        throw new Error(
+          saveOrderPayload?.message || '결제 완료 후 주문 저장에 실패했습니다.'
+        );
       }
 
       clear();
@@ -344,6 +402,10 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       if ('error' in customerPayload) {
         throw new Error(customerPayload.error);
       }
+      const bankTransferPayload = await getBankTransferPayload();
+      if ('error' in bankTransferPayload) {
+        throw new Error(bankTransferPayload.error);
+      }
 
       const response = await fetch('/api/orders/bank-transfer', {
         method: 'POST',
@@ -353,12 +415,17 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
         body: JSON.stringify({
           totalKRW,
           items: cartSnapshot,
-          customerContact: customerPayload.value
+          customerContact: customerPayload.value,
+          bankTransfer: bankTransferPayload.value
         })
       });
-      const payload = (await response.json().catch(() => ({}))) as BankTransferOrderResponse;
+      const payload = (await response
+        .json()
+        .catch(() => ({}))) as BankTransferOrderResponse;
       if (!response.ok) {
-        throw new Error(payload?.message || '계좌이체 주문 저장에 실패했습니다.');
+        throw new Error(
+          payload?.message || '계좌이체 주문 저장에 실패했습니다.'
+        );
       }
 
       clear();
@@ -392,7 +459,10 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
 
   const handlePayPalError = (error: unknown) => {
     console.error('[PayPal Diagnostic] paypal button onError', error);
-    const message = error instanceof Error ? error.message : 'PayPal 결제 중 오류가 발생했습니다.';
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'PayPal 결제 중 오류가 발생했습니다.';
     setCheckoutError(message);
     window.alert(`PayPal 결제 오류: ${message}`);
     toast({
@@ -422,7 +492,10 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     : '장바구니가 비어 있습니다.'}
               </DialogPrimitive.Description>
             </div>
-            <GlassCloseButton onClick={() => onOpenChange(false)} label="장바구니 닫기" />
+            <GlassCloseButton
+              onClick={() => onOpenChange(false)}
+              label="장바구니 닫기"
+            />
           </div>
 
           <div className="max-h-[70vh] overflow-y-auto px-5 py-5 md:px-6">
@@ -432,13 +505,18 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
                     <ShoppingBag className="h-5 w-5" />
                   </div>
-                  <p className="text-sm font-medium text-white">장바구니가 비어 있습니다</p>
-                  <p className="text-xs text-white/50">Services에서 항목을 추가해 보세요.</p>
+                  <p className="text-sm font-medium text-white">
+                    장바구니가 비어 있습니다
+                  </p>
+                  <p className="text-xs text-white/50">
+                    Services에서 항목을 추가해 보세요.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {items.map((item) => {
-                    const itemTotal = item.price == null ? null : item.price * item.quantity;
+                    const itemTotal =
+                      item.price == null ? null : item.price * item.quantity;
                     return (
                       <div
                         key={item.key}
@@ -448,16 +526,26 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.09] to-white/[0.04] p-1 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
                             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07]">
                               {item.image ? (
-                                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                                <img
+                                  src={item.image}
+                                  alt={item.title}
+                                  className="h-full w-full object-cover"
+                                />
                               ) : (
                                 <ShoppingBag className="h-5 w-5 text-white/60" />
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-white">{item.title}</p>
-                              <p className="mt-1 text-xs text-white/65">수량 {item.quantity}</p>
+                              <p className="truncate text-sm font-medium text-white">
+                                {item.title}
+                              </p>
+                              <p className="mt-1 text-xs text-white/65">
+                                수량 {item.quantity}
+                              </p>
                               <p className="mt-1 text-sm font-medium text-white/95">
-                                {itemTotal == null ? '가격 문의' : `${formatMoney(itemTotal, item.currency)}`}
+                                {itemTotal == null
+                                  ? '가격 문의'
+                                  : `${formatMoney(itemTotal, item.currency)}`}
                               </p>
                             </div>
                           </div>
@@ -465,8 +553,12 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           <div className="flex shrink-0 flex-col items-end gap-2">
                             <QuantityStepper
                               value={item.quantity}
-                              onDecrement={() => updateQty(item.key, item.quantity - 1)}
-                              onIncrement={() => updateQty(item.key, item.quantity + 1)}
+                              onDecrement={() =>
+                                updateQty(item.key, item.quantity - 1)
+                              }
+                              onIncrement={() =>
+                                updateQty(item.key, item.quantity + 1)
+                              }
                               decrementLabel={`${item.title} 수량 감소`}
                               incrementLabel={`${item.title} 수량 증가`}
                             />
@@ -490,15 +582,26 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
             ) : (
               <div className="space-y-4">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/50">Order Summary</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/50">
+                    Order Summary
+                  </p>
                   <p className="mt-2 text-sm text-white/80">
-                    총 결제 금액: <span className="font-semibold text-white">{formatMoney(totalKRW, 'KRW')}</span>{' '}
-                    <span className="text-white/60">(approx. {formatMoney(usdTotal, 'USD')})</span>
+                    총 결제 금액:{' '}
+                    <span className="font-semibold text-white">
+                      {formatMoney(totalKRW, 'KRW')}
+                    </span>{' '}
+                    <span className="text-white/60">
+                      (approx. {formatMoney(usdTotal, 'USD')})
+                    </span>
                   </p>
                   <p className="mt-2 text-xs text-white/50">
-                    환율 기준: 1 USD = {new Intl.NumberFormat('ko-KR').format(USD_EXCHANGE_RATE)} KRW (고정 환율)
+                    환율 기준: 1 USD ={' '}
+                    {new Intl.NumberFormat('ko-KR').format(USD_EXCHANGE_RATE)}{' '}
+                    KRW (고정 환율)
                   </p>
-                  <p className="mt-1 text-xs text-white/50">주문 항목 수: {itemCount}개</p>
+                  <p className="mt-1 text-xs text-white/50">
+                    주문 항목 수: {itemCount}개
+                  </p>
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
@@ -507,47 +610,78 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                       주문자/배송 정보
                     </h3>
                     <p className="mt-1 text-xs text-white/55">
-                      주문 저장 및 배송 안내를 위해 이름, 이메일, 핸드폰 번호, 집 주소를 입력해 주세요.
+                      주문 저장 및 배송 안내를 위해 이름, 이메일, 핸드폰 번호,
+                      집 주소를 입력해 주세요.
                     </p>
                   </div>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-xs text-white/60">이름</label>
+                      <label className="mb-1 block text-xs text-white/60">
+                        이름
+                      </label>
                       <input
                         type="text"
                         value={guestForm.name}
-                        onChange={(event) => updateGuestForm({ name: event.target.value })}
+                        onChange={(event) =>
+                          updateGuestForm({ name: event.target.value })
+                        }
                         placeholder="홍길동"
                         className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-white/60">이메일</label>
+                      <label className="mb-1 block text-xs text-white/60">
+                        이메일
+                      </label>
                       <input
                         type="email"
                         value={guestForm.email}
-                        onChange={(event) => updateGuestForm({ email: event.target.value })}
+                        onChange={(event) =>
+                          updateGuestForm({ email: event.target.value })
+                        }
                         placeholder="you@example.com"
                         className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-white/60">핸드폰 번호</label>
+                      <label className="mb-1 block text-xs text-white/60">
+                        입금자명
+                      </label>
+                      <input
+                        type="text"
+                        value={guestForm.depositorName}
+                        onChange={(event) =>
+                          updateGuestForm({ depositorName: event.target.value })
+                        }
+                        placeholder="주문자명과 동일 권장"
+                        className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-white/60">
+                        핸드폰 번호
+                      </label>
                       <input
                         type="tel"
                         value={guestForm.phone}
-                        onChange={(event) => updateGuestForm({ phone: event.target.value })}
+                        onChange={(event) =>
+                          updateGuestForm({ phone: event.target.value })
+                        }
                         placeholder="010-0000-0000"
                         className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-white/60">집 주소</label>
+                      <label className="mb-1 block text-xs text-white/60">
+                        집 주소
+                      </label>
                       <input
                         type="text"
                         value={guestForm.address}
-                        onChange={(event) => updateGuestForm({ address: event.target.value })}
+                        onChange={(event) =>
+                          updateGuestForm({ address: event.target.value })
+                        }
                         placeholder="배송지 주소"
                         className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/20"
                       />
@@ -557,8 +691,12 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
 
                 <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
                   <div className="mb-3">
-                    <h3 className="text-sm font-semibold tracking-tight text-white">결제수단 선택</h3>
-                    <p className="mt-1 text-xs text-white/55">PayPal 또는 계좌이체를 선택할 수 있습니다.</p>
+                    <h3 className="text-sm font-semibold tracking-tight text-white">
+                      결제수단 선택
+                    </h3>
+                    <p className="mt-1 text-xs text-white/55">
+                      PayPal 또는 계좌이체를 선택할 수 있습니다.
+                    </p>
                   </div>
 
                   <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -598,20 +736,34 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                       <PaypalButton
                         buttonProps={{
-                          style: { layout: 'vertical', shape: 'pill', label: 'paypal' },
+                          style: {
+                            layout: 'vertical',
+                            shape: 'pill',
+                            label: 'paypal'
+                          },
                           disabled: isSavingOrder,
-                          forceReRender: [usdTotalLabel, itemCount, user?.id ?? '', isSavingOrder],
+                          forceReRender: [
+                            usdTotalLabel,
+                            itemCount,
+                            user?.id ?? '',
+                            isSavingOrder
+                          ],
                           onClick: async () => {
-                            console.log('[PayPal Diagnostic] PayPal button clicked (popup should open)', {
-                              host:
-                                typeof window !== 'undefined' ? window.location.host : 'unknown',
-                              siteMode:
-                                typeof window !== 'undefined' &&
-                                (window.location.hostname === 'localhost' ||
-                                  window.location.hostname === '127.0.0.1')
-                                  ? 'localhost'
-                                  : 'production-like'
-                            });
+                            console.log(
+                              '[PayPal Diagnostic] PayPal button clicked (popup should open)',
+                              {
+                                host:
+                                  typeof window !== 'undefined'
+                                    ? window.location.host
+                                    : 'unknown',
+                                siteMode:
+                                  typeof window !== 'undefined' &&
+                                  (window.location.hostname === 'localhost' ||
+                                    window.location.hostname === '127.0.0.1')
+                                    ? 'localhost'
+                                    : 'production-like'
+                              }
+                            );
                           },
                           createOrder: async () => {
                             try {
@@ -621,40 +773,66 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                                 throw new Error(customerPayload.error);
                               }
 
-                              const parsedAmount = Number(String(usdTotalLabel).replace(/,/g, ''));
-                              if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-                                throw new Error('Invalid USD amount for PayPal checkout');
+                              const parsedAmount = Number(
+                                String(usdTotalLabel).replace(/,/g, '')
+                              );
+                              if (
+                                !Number.isFinite(parsedAmount) ||
+                                parsedAmount <= 0
+                              ) {
+                                throw new Error(
+                                  'Invalid USD amount for PayPal checkout'
+                                );
                               }
 
-                              const normalizedUsdAmount = parsedAmount.toFixed(2);
-                              const response = await fetch('/api/paypal/order/create', {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                  amount: normalizedUsdAmount,
-                                  currency: 'USD'
-                                })
-                              });
-                              const payload = await response.json().catch(() => ({}));
+                              const normalizedUsdAmount =
+                                parsedAmount.toFixed(2);
+                              const response = await fetch(
+                                '/api/paypal/order/create',
+                                {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({
+                                    amount: normalizedUsdAmount,
+                                    currency: 'USD'
+                                  })
+                                }
+                              );
+                              const payload = await response
+                                .json()
+                                .catch(() => ({}));
 
-                              console.log('[PayPal Diagnostic] create-order API response', {
-                                ok: response.ok,
-                                status: response.status,
-                                environment: payload?.debug?.environment ?? null,
-                                orderId: payload?.id ?? null,
-                                orderStatus: payload?.status ?? null,
-                                message: payload?.message ?? null
-                              });
+                              console.log(
+                                '[PayPal Diagnostic] create-order API response',
+                                {
+                                  ok: response.ok,
+                                  status: response.status,
+                                  environment:
+                                    payload?.debug?.environment ?? null,
+                                  orderId: payload?.id ?? null,
+                                  orderStatus: payload?.status ?? null,
+                                  message: payload?.message ?? null
+                                }
+                              );
 
-                              if (!response.ok || typeof payload?.id !== 'string') {
-                                throw new Error(payload?.message || 'Failed to create PayPal order');
+                              if (
+                                !response.ok ||
+                                typeof payload?.id !== 'string'
+                              ) {
+                                throw new Error(
+                                  payload?.message ||
+                                    'Failed to create PayPal order'
+                                );
                               }
 
                               return payload.id;
                             } catch (error) {
-                              console.error('[PayPal Diagnostic] createOrder failed', error);
+                              console.error(
+                                '[PayPal Diagnostic] createOrder failed',
+                                error
+                              );
                               const message =
                                 error instanceof Error
                                   ? error.message
@@ -666,20 +844,29 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                           },
                           onApprove: handlePayPalApprove,
                           onError: handlePayPalError,
-                          onCancel: (cancelData: unknown, cancelActions: unknown) => {
-                            console.warn('[PayPal Diagnostic] paypal button onCancel', {
-                              cancelData,
-                              cancelActions
-                            });
+                          onCancel: (
+                            cancelData: unknown,
+                            cancelActions: unknown
+                          ) => {
+                            console.warn(
+                              '[PayPal Diagnostic] paypal button onCancel',
+                              {
+                                cancelData,
+                                cancelActions
+                              }
+                            );
                             toast({
                               title: '결제가 취소되었습니다',
-                              description: '원하시면 다른 결제 수단 또는 다시 시도해 주세요.'
+                              description:
+                                '원하시면 다른 결제 수단 또는 다시 시도해 주세요.'
                             });
                           }
                         }}
                       />
                       {authLoading ? (
-                        <p className="mt-2 text-xs text-white/45">로그인 상태 확인 중...</p>
+                        <p className="mt-2 text-xs text-white/45">
+                          로그인 상태 확인 중...
+                        </p>
                       ) : null}
                       {!authLoading ? (
                         <p className="mt-2 text-xs text-white/45">
@@ -696,7 +883,9 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 p-3">
-                      <p className="text-sm font-semibold text-emerald-100">계좌이체 안내</p>
+                      <p className="text-sm font-semibold text-emerald-100">
+                        계좌이체 안내
+                      </p>
                       {hasConfiguredBankAccount ? (
                         <>
                           <p className="mt-2 text-sm text-emerald-50">
@@ -711,19 +900,45 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                         </>
                       ) : (
                         <p className="mt-2 text-sm text-amber-100">
-                          계좌 정보가 아직 설정되지 않았습니다. 관리자에게 문의해 주세요.
+                          계좌 정보가 아직 설정되지 않았습니다. 관리자에게
+                          문의해 주세요.
                         </p>
                       )}
                       <p className="mt-2 text-xs text-emerald-50/90">
                         {bankTransferInfo.notice}
                       </p>
+                      <div className="mt-3">
+                        <label className="mb-1 block text-xs text-emerald-100/90">
+                          이체인증 이미지 첨부 (필수)
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null;
+                            setBankTransferProofFile(file);
+                          }}
+                          className="w-full rounded-xl border border-emerald-200/30 bg-black/20 px-3 py-2 text-xs text-emerald-50 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-200/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-50 hover:file:bg-emerald-200/30"
+                        />
+                        {bankTransferProofFile ? (
+                          <p className="mt-1 text-[11px] text-emerald-100/80">
+                            첨부됨: {bankTransferProofFile.name}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-[11px] text-emerald-100/80">
+                            입금 후 캡처 이미지를 올려 주세요.
+                          </p>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => void handleBankTransferCheckout()}
-                        disabled={isSavingOrder}
+                        disabled={isSavingOrder || !bankTransferProofFile}
                         className="mt-3 w-full rounded-xl border border-emerald-200/40 bg-emerald-300/20 px-3 py-2.5 text-sm font-semibold text-emerald-50 transition hover:bg-emerald-300/30 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isSavingOrder ? '주문 접수 중...' : '계좌이체 주문 접수'}
+                        {isSavingOrder
+                          ? '주문 접수 중...'
+                          : '계좌이체 주문 접수'}
                       </button>
                       <p className="mt-2 text-xs text-emerald-50/80">
                         입금 확인 전까지 주문 상태는 결제 대기로 표시됩니다.
@@ -745,8 +960,12 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
             {!isCheckingOut ? (
               <>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">Total</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{formatMoney(totalKRW, 'KRW')}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                    Total
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-white">
+                    {formatMoney(totalKRW, 'KRW')}
+                  </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <ActionButton
@@ -774,10 +993,14 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
             ) : (
               <>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">Payment Total</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                    Payment Total
+                  </p>
                   <p className="mt-1 text-sm font-medium text-white">
                     {formatMoney(totalKRW, 'KRW')}{' '}
-                    <span className="text-white/60">(approx. {formatMoney(usdTotal, 'USD')})</span>
+                    <span className="text-white/60">
+                      (approx. {formatMoney(usdTotal, 'USD')})
+                    </span>
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">

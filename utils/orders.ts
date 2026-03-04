@@ -14,12 +14,18 @@ export type OrderCustomerContact = {
   address: string;
 };
 
-export type OrderPaymentMethod = 'paypal' | 'bank_transfer' | 'stripe' | 'unknown';
+export type OrderPaymentMethod =
+  | 'paypal'
+  | 'bank_transfer'
+  | 'stripe'
+  | 'unknown';
 
 export type OrderBankTransferInfo = {
   bank_name: string | null;
   account_number: string | null;
   account_holder: string | null;
+  depositor_name: string | null;
+  proof_image_url: string | null;
   notice: string | null;
   transfer_status: string | null;
   requested_at: string | null;
@@ -68,7 +74,9 @@ export const normalizeOrderItems = (value: unknown): OrderItemSnapshot[] => {
     .filter(Boolean) as OrderItemSnapshot[];
 };
 
-const normalizeCustomerContact = (value: unknown): OrderCustomerContact | null => {
+const normalizeCustomerContact = (
+  value: unknown
+): OrderCustomerContact | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
   const name = typeof row.name === 'string' ? row.name.trim() : '';
@@ -110,32 +118,47 @@ const normalizeBankTransferInfo = (
     bank_name: asTextOrNull(row.bank_name),
     account_number: asTextOrNull(row.account_number),
     account_holder: asTextOrNull(row.account_holder),
+    depositor_name: asTextOrNull(row.depositor_name),
+    proof_image_url: asTextOrNull(row.proof_image_url),
     notice: asTextOrNull(row.notice),
     transfer_status: asTextOrNull(row.transfer_status),
     requested_at: asTextOrNull(row.requested_at)
   };
 };
 
-const resolvePaymentMethod = (row: Record<string, unknown>, metadata: Record<string, unknown> | null) => {
+const resolvePaymentMethod = (
+  row: Record<string, unknown>,
+  metadata: Record<string, unknown> | null
+) => {
   const raw =
-    typeof metadata?.payment_method === 'string' ? metadata.payment_method.trim().toLowerCase() : '';
+    typeof metadata?.payment_method === 'string'
+      ? metadata.payment_method.trim().toLowerCase()
+      : '';
 
-  if (raw === 'bank_transfer') return 'bank_transfer' satisfies OrderPaymentMethod;
+  if (raw === 'bank_transfer')
+    return 'bank_transfer' satisfies OrderPaymentMethod;
   if (raw === 'paypal') return 'paypal' satisfies OrderPaymentMethod;
   if (raw === 'stripe') return 'stripe' satisfies OrderPaymentMethod;
 
   if (typeof row.paypal_order_id === 'string' && row.paypal_order_id.trim()) {
     return 'paypal' satisfies OrderPaymentMethod;
   }
-  if (typeof row.stripe_checkout_session_id === 'string' && row.stripe_checkout_session_id.trim()) {
+  if (
+    typeof row.stripe_checkout_session_id === 'string' &&
+    row.stripe_checkout_session_id.trim()
+  ) {
     return 'stripe' satisfies OrderPaymentMethod;
   }
-  if (normalizeBankTransferInfo(
-    row.shipping_address && typeof row.shipping_address === 'object' && !Array.isArray(row.shipping_address)
-      ? (row.shipping_address as Record<string, unknown>)
-      : null,
-    metadata
-  )) {
+  if (
+    normalizeBankTransferInfo(
+      row.shipping_address &&
+        typeof row.shipping_address === 'object' &&
+        !Array.isArray(row.shipping_address)
+        ? (row.shipping_address as Record<string, unknown>)
+        : null,
+      metadata
+    )
+  ) {
     return 'bank_transfer' satisfies OrderPaymentMethod;
   }
 
@@ -150,11 +173,15 @@ export const normalizeOrderRecord = (value: unknown): OrderRecord | null => {
   }
 
   const shippingAddress =
-    row.shipping_address && typeof row.shipping_address === 'object' && !Array.isArray(row.shipping_address)
+    row.shipping_address &&
+    typeof row.shipping_address === 'object' &&
+    !Array.isArray(row.shipping_address)
       ? (row.shipping_address as Record<string, unknown>)
       : null;
   const metadata =
-    row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+    row.metadata &&
+    typeof row.metadata === 'object' &&
+    !Array.isArray(row.metadata)
       ? (row.metadata as Record<string, unknown>)
       : null;
   const customerContact = normalizeCustomerContact(
@@ -170,16 +197,24 @@ export const normalizeOrderRecord = (value: unknown): OrderRecord | null => {
     currency: typeof row.currency === 'string' ? row.currency : null,
     amount_total: row.amount_total == null ? null : Number(row.amount_total),
     created_at: row.created_at,
-    paypal_order_id: typeof row.paypal_order_id === 'string' ? row.paypal_order_id : null,
-    tracking_number: typeof row.tracking_number === 'string' ? row.tracking_number : null,
-    shipping_carrier: typeof row.shipping_carrier === 'string' ? row.shipping_carrier : null,
-    shipping_status: typeof row.shipping_status === 'string' ? row.shipping_status : null,
+    paypal_order_id:
+      typeof row.paypal_order_id === 'string' ? row.paypal_order_id : null,
+    tracking_number:
+      typeof row.tracking_number === 'string' ? row.tracking_number : null,
+    shipping_carrier:
+      typeof row.shipping_carrier === 'string' ? row.shipping_carrier : null,
+    shipping_status:
+      typeof row.shipping_status === 'string' ? row.shipping_status : null,
     shipping_address: shippingAddress,
     customer_contact: customerContact,
     stripe_checkout_session_id:
-      typeof row.stripe_checkout_session_id === 'string' ? row.stripe_checkout_session_id : null,
+      typeof row.stripe_checkout_session_id === 'string'
+        ? row.stripe_checkout_session_id
+        : null,
     stripe_payment_intent_id:
-      typeof row.stripe_payment_intent_id === 'string' ? row.stripe_payment_intent_id : null,
+      typeof row.stripe_payment_intent_id === 'string'
+        ? row.stripe_payment_intent_id
+        : null,
     payment_method: paymentMethod,
     bank_transfer: bankTransfer,
     items: normalizeOrderItems(row.items),
@@ -192,10 +227,16 @@ export const normalizeOrders = (rows: unknown): OrderRecord[] => {
   return rows.map(normalizeOrderRecord).filter(Boolean) as OrderRecord[];
 };
 
-export const formatOrderMoney = (amount: number | null | undefined, currency = 'KRW') => {
+export const formatOrderMoney = (
+  amount: number | null | undefined,
+  currency = 'KRW'
+) => {
   if (amount == null || Number.isNaN(amount)) return '금액 확인 필요';
   try {
-    return new Intl.NumberFormat('ko-KR', { style: 'currency', currency }).format(amount);
+    return new Intl.NumberFormat('ko-KR', {
+      style: 'currency',
+      currency
+    }).format(amount);
   } catch {
     return `₩${new Intl.NumberFormat('ko-KR').format(amount)}`;
   }
@@ -221,7 +262,9 @@ export const mapOrderStatusLabel = (status?: string | null) => {
   return status || '상태 미상';
 };
 
-export const mapPaymentMethodLabel = (method?: OrderPaymentMethod | string | null) => {
+export const mapPaymentMethodLabel = (
+  method?: OrderPaymentMethod | string | null
+) => {
   const normalized = (method ?? '').toLowerCase();
   if (normalized === 'paypal') return 'PayPal';
   if (normalized === 'bank_transfer') return '계좌이체';
@@ -231,10 +274,14 @@ export const mapPaymentMethodLabel = (method?: OrderPaymentMethod | string | nul
 
 export const getOrderStatusBadgeClass = (status?: string | null) => {
   const normalized = (status ?? '').toLowerCase();
-  if (normalized === 'paid') return 'border-emerald-300/30 bg-emerald-300/15 text-emerald-100';
-  if (normalized === 'pending') return 'border-amber-300/30 bg-amber-300/15 text-amber-100';
-  if (normalized === 'canceled') return 'border-zinc-300/20 bg-zinc-300/10 text-zinc-100';
-  if (normalized === 'refunded') return 'border-sky-300/30 bg-sky-300/15 text-sky-100';
+  if (normalized === 'paid')
+    return 'border-emerald-300/30 bg-emerald-300/15 text-emerald-100';
+  if (normalized === 'pending')
+    return 'border-amber-300/30 bg-amber-300/15 text-amber-100';
+  if (normalized === 'canceled')
+    return 'border-zinc-300/20 bg-zinc-300/10 text-zinc-100';
+  if (normalized === 'refunded')
+    return 'border-sky-300/30 bg-sky-300/15 text-sky-100';
   return 'border-white/20 bg-white/10 text-white';
 };
 

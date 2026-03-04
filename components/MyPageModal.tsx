@@ -7,6 +7,7 @@ import { FileText, Lock, Package, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import MyPageAdminPanel from '@/components/MyPageAdminPanel';
 import OrderDetailModal from '@/components/OrderDetailModal';
+import StudioSubscribeButton from '@/components/StudioSubscribeButton';
 import ActionButton from '@/components/ui/ActionButton';
 import PillTab from '@/components/ui/PillTab';
 import { useToast } from '@/components/ui/Toasts/use-toast';
@@ -54,6 +55,10 @@ type MembershipSummary = {
   plan_currency: string | null;
   plan_interval: string | null;
   plan_cycle_days: number | null;
+  scheduled_change_target_plan_key: string | null;
+  scheduled_change_target_membership: string | null;
+  scheduled_change_effective_at: string | null;
+  scheduled_change_order_id: string | null;
 };
 
 type CommunityPostItem = {
@@ -838,12 +843,50 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                       <p className="mt-1 text-sm text-white/85">
                         다음 결제 금액: {membershipBillingLabel ?? '-'}
                       </p>
+                      {membershipSummary?.scheduled_change_effective_at ? (
+                        <p className="mt-2 rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+                          예약 변경:{' '}
+                          {membershipSummary.scheduled_change_target_membership ??
+                            membershipSummary.scheduled_change_target_plan_key ??
+                            '-'}{' '}
+                          · 적용일:{' '}
+                          {formatOrderDate(
+                            membershipSummary.scheduled_change_effective_at
+                          )}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
                   <p className="mt-4 text-xs leading-relaxed text-white/50">
                     구독 관리/취소는 PayPal 자동결제(Automatic Payments)에서 진행할 수 있습니다.
                   </p>
+                </div>
+
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm md:p-5">
+                  <div className="flex flex-col gap-1">
+                    <h4 className="text-sm font-semibold text-white">
+                      멤버십 변경
+                    </h4>
+                    <p className="text-xs text-white/55">
+                      언제든 플랜 변경이 가능합니다. 낮은 등급으로 변경 시 다음
+                      결제일(다음달)부터 적용됩니다.
+                    </p>
+                  </div>
+                  <div className="mt-3">
+                    <StudioSubscribeButton
+                      studioPostId=""
+                      alwaysOpen
+                      onActionCompleted={fetchMembership}
+                      membershipSummaryOverride={membershipSummary}
+                      profilePrefillOverride={{
+                        name: profileForm.name || user?.name || '',
+                        email: user?.email || '',
+                        phone: profileForm.phone,
+                        address: profileForm.address
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

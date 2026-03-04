@@ -40,18 +40,29 @@ export default async function PostsPage({ searchParams }: PageProps) {
   const paypal = readSearchParam(searchParams, 'paypal');
   const paypalMessage = readSearchParam(searchParams, 'paypal_message');
   const missingPlanEnv = readSearchParam(searchParams, 'missing_plan_env');
-  const paypalStatusMessage =
-    paypal === 'cancel'
-      ? 'PayPal 구독 절차가 취소되었습니다.'
-      : paypal === 'success'
-        ? 'PayPal 구독이 활성화되었습니다. 상세 페이지에서 전용 미디어를 확인하세요.'
-        : paypalMessage === 'missing_paypal_plan_env'
-          ? missingPlanEnv
-            ? `PayPal 멤버십 플랜 환경변수(${missingPlanEnv})가 누락되었습니다. 관리자에게 문의해 주세요.`
-            : 'PayPal 멤버십 플랜 설정이 아직 완료되지 않았습니다. 관리자에게 문의해 주세요.'
-          : paypalMessage === 'invalid_plan_key'
-            ? '요청한 멤버십 플랜 정보가 올바르지 않습니다. 페이지를 새로고침해 주세요.'
-            : 'PayPal 구독 처리 상태를 확인해 주세요.';
+  const paypalStatusMessage = (() => {
+    if (paypal === 'cancel') {
+      return 'PayPal 구독 절차가 취소되었습니다.';
+    }
+    if (paypal === 'success') {
+      return 'PayPal 구독이 활성화되었습니다. 상세 페이지에서 전용 미디어를 확인하세요.';
+    }
+    if (paypalMessage === 'missing_paypal_plan_env') {
+      return missingPlanEnv
+        ? `PayPal 멤버십 플랜 환경변수(${missingPlanEnv})가 누락되었습니다. 관리자에게 문의해 주세요.`
+        : 'PayPal 멤버십 플랜 설정이 아직 완료되지 않았습니다. 관리자에게 문의해 주세요.';
+    }
+    if (paypalMessage === 'invalid_plan_key') {
+      return '요청한 멤버십 플랜 정보가 올바르지 않습니다. 페이지를 새로고침해 주세요.';
+    }
+    if (paypalMessage === 'already_active_plan') {
+      return '이미 사용 중인 멤버십 플랜입니다.';
+    }
+    if (paypalMessage === 'downgrade_requires_schedule') {
+      return '낮은 멤버십으로 변경은 마이페이지에서 다음 결제일 적용 예약으로 진행해 주세요.';
+    }
+    return 'PayPal 구독 처리 상태를 확인해 주세요.';
+  })();
 
   if (isSupabaseConfigured) {
     const supabase = createClient();
@@ -141,6 +152,8 @@ export default async function PostsPage({ searchParams }: PageProps) {
                       src={post.image_url}
                       alt={post.title ?? 'Studio post image'}
                       className="h-52 w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="flex h-52 w-full items-center justify-center bg-neutral-900 text-sm uppercase tracking-[0.3em] text-neutral-500">

@@ -12,6 +12,7 @@ const PUBLIC_SERVICE_POST_SELECT =
   'id,title,slug,category,summary,content,price_from,currency,is_paid_file,file_price,download_file_url,image_urls,is_published,created_at,updated_at,created_by';
 const PUBLIC_SERVICE_POST_SELECT_FALLBACK =
   'id,title,slug,category,summary,content,price_from,currency,image_urls,is_published,created_at,updated_at,created_by';
+const PUBLIC_SERVICE_POSTS_CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=300';
 
 const parseJsonBody = async <T,>(request: Request) => {
   try {
@@ -148,7 +149,14 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json({ data: data ?? [] });
+  return NextResponse.json(
+    { data: data ?? [] },
+    {
+      headers: {
+        'Cache-Control': PUBLIC_SERVICE_POSTS_CACHE_CONTROL
+      }
+    }
+  );
 }
 
 export async function POST(request: Request) {

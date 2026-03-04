@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import {
   STUDIO_MEMBERSHIP_PLAN_OPTIONS,
+  isStudioMembershipTierDowngrade,
   type StudioMembershipPlanKey
 } from '@/utils/studio-membership-plans';
 import {
@@ -17,6 +18,16 @@ export const runtime = 'nodejs';
 type MembershipBankTransferRequest = {
   studioPostId?: string;
   planKey?: StudioMembershipPlanKey;
+  customerContact?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
+  bankTransfer?: {
+    depositorName?: string;
+    proofImageUrl?: string;
+  };
 };
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
@@ -43,6 +54,55 @@ const parseIsoMs = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 };
 
+const normalizeText = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const normalizeHttpUrl = (value: unknown) => {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
+      return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const normalizeCustomerContact = (
+  value: unknown,
+  fallback: { name: string; email: string; phone: string; address: string }
+) => {
+  const source = isRecord(value) ? value : {};
+  const name = normalizeText(source.name) || fallback.name;
+  const email = normalizeText(source.email) || fallback.email;
+  const phone = normalizeText(source.phone) || fallback.phone;
+  const address = normalizeText(source.address) || fallback.address;
+
+  if (!name || !email || !phone || !address) return null;
+
+  return { name, email, phone, address };
+};
+
+const normalizeBankTransferPayload = (
+  value: unknown,
+  fallbackDepositorName: string
+) => {
+  if (!isRecord(value)) return null;
+  const depositorName =
+    normalizeText(value.depositorName) || fallbackDepositorName;
+  const proofImageUrl = normalizeHttpUrl(value.proofImageUrl);
+  if (!depositorName || !proofImageUrl) return null;
+  return {
+    depositorName,
+    proofImageUrl
+  };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
 const inferPlanKeyFromMembership = (summary: {
   has_active_subscription?: boolean;
   selected_membership?: string | null;
@@ -52,6 +112,7 @@ const inferPlanKeyFromMembership = (summary: {
 
   const amount = parseAmount(summary.plan_amount);
   if (amount != null) {
+    if (amount >= 290000) return 'yearly_290000';
     if (amount >= 69000) return 'monthly_69000';
     if (amount >= 13900) return 'monthly_13900';
     if (amount >= 4900) return 'monthly_4900';
@@ -59,9 +120,19 @@ const inferPlanKeyFromMembership = (summary: {
 
   const label = String(summary.selected_membership || '').toLowerCase();
   if (!label) return null;
-  if (label.includes('프리미엄') || label.includes('premium')) return 'monthly_69000';
-  if (label.includes('플러스') || label.includes('plus')) return 'monthly_13900';
-  if (label.includes('베이직') || label.includes('basic')) return 'monthly_4900';
+  if (
+    label.includes('1년') ||
+    label.includes('연간') ||
+    label.includes('year')
+  ) {
+    return 'yearly_290000';
+  }
+  if (label.includes('프리미엄') || label.includes('premium'))
+    return 'monthly_69000';
+  if (label.includes('플러스') || label.includes('plus'))
+    return 'monthly_13900';
+  if (label.includes('베이직') || label.includes('basic'))
+    return 'monthly_4900';
   return null;
 };
 
@@ -109,7 +180,8 @@ const getProrationDueNow = (params: {
   cycleDays: number;
 }) => {
   const { currentAmount, targetAmount, remainingDays, cycleDays } = params;
-  if (currentAmount == null || remainingDays == null || cycleDays <= 0) return null;
+  if (currentAmount == null || remainingDays == null || cycleDays <= 0)
+    return null;
 
   const safeRemainingDays = Math.max(0, Math.min(remainingDays, cycleDays));
   const ratio = safeRemainingDays / cycleDays;
@@ -135,7 +207,9 @@ export async function POST(request: Request) {
     return jsonError('로그인이 필요합니다.', 401);
   }
 
-  const body = (await request.json().catch(() => ({}))) as MembershipBankTransferRequest;
+  const body = (await request
+    .json()
+    .catch(() => ({}))) as MembershipBankTransferRequest;
   const requestedPlanKey =
     typeof body.planKey === 'string' ? body.planKey : 'monthly_4900';
   const plan = planMap.get(requestedPlanKey as StudioMembershipPlanKey);
@@ -143,9 +217,11 @@ export async function POST(request: Request) {
     return jsonError('유효하지 않은 멤버십 플랜입니다.', 400);
   }
 
-  const studioPostId = typeof body.studioPostId === 'string' ? body.studioPostId.trim() : '';
+  const studioPostId =
+    typeof body.studioPostId === 'string' ? body.studioPostId.trim() : '';
   const bankTransferInfo = getBankTransferInfo();
-  const hasConfiguredAccount = hasBankTransferAccountConfigured(bankTransferInfo);
+  const hasConfiguredAccount =
+    hasBankTransferAccountConfigured(bankTransferInfo);
 
   let prorationInfo: {
     enabled: boolean;
@@ -166,37 +242,52 @@ export async function POST(request: Request) {
       if (currentPlanKey && currentPlanKey === plan.key) {
         return jsonError('이미 사용 중인 멤버십 플랜입니다.', 400);
       }
-
-      const currentPlanAmount = parseAmount(membershipSummary.plan_amount);
-      const cycleDays =
-        typeof membershipSummary.plan_cycle_days === 'number' && membershipSummary.plan_cycle_days > 0
-          ? membershipSummary.plan_cycle_days
-          : 30;
-      const remainingDays = getRemainingDays(membershipSummary);
-      const proration = getProrationDueNow({
-        currentAmount: currentPlanAmount,
-        targetAmount: plan.priceKrw,
-        remainingDays,
-        cycleDays
-      });
-
-      if (proration) {
-        chargeAmountKrw = proration.dueNow;
+      if (
+        currentPlanKey &&
+        isStudioMembershipTierDowngrade(currentPlanKey, plan.key)
+      ) {
+        return jsonError(
+          '낮은 멤버십 변경은 다음 결제일부터 적용되는 변경 예약으로 신청해 주세요.',
+          400
+        );
       }
 
-      prorationInfo = {
-        enabled: true,
-        current_plan_key: currentPlanKey,
-        target_plan_key: plan.key,
-        remaining_days: remainingDays,
-        cycle_days: cycleDays,
-        current_credit_krw: proration?.currentCredit ?? null,
-        target_remaining_cost_krw: proration?.targetRemainingCost ?? null,
-        due_now_krw: proration?.dueNow ?? null
-      };
+      if (plan.billingCycle === 'monthly') {
+        const currentPlanAmount = parseAmount(membershipSummary.plan_amount);
+        const cycleDays =
+          typeof membershipSummary.plan_cycle_days === 'number' &&
+          membershipSummary.plan_cycle_days > 0
+            ? membershipSummary.plan_cycle_days
+            : 30;
+        const remainingDays = getRemainingDays(membershipSummary);
+        const proration = getProrationDueNow({
+          currentAmount: currentPlanAmount,
+          targetAmount: plan.priceKrw,
+          remainingDays,
+          cycleDays
+        });
+
+        if (proration) {
+          chargeAmountKrw = proration.dueNow;
+        }
+
+        prorationInfo = {
+          enabled: true,
+          current_plan_key: currentPlanKey,
+          target_plan_key: plan.key,
+          remaining_days: remainingDays,
+          cycle_days: cycleDays,
+          current_credit_krw: proration?.currentCredit ?? null,
+          target_remaining_cost_krw: proration?.targetRemainingCost ?? null,
+          due_now_krw: proration?.dueNow ?? null
+        };
+      }
     }
   } catch (membershipSummaryError) {
-    console.warn('[studio/membership/bank-transfer] membership summary lookup failed', membershipSummaryError);
+    console.warn(
+      '[studio/membership/bank-transfer] membership summary lookup failed',
+      membershipSummaryError
+    );
   }
 
   const { data: profileRow } = await (supabase as any)
@@ -206,23 +297,36 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   const profileName =
-    (typeof profileRow?.name === 'string' && profileRow.name.trim()) ||
-    (typeof profileRow?.full_name === 'string' && profileRow.full_name.trim()) ||
-    (typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()) ||
-    (typeof user.user_metadata?.name === 'string' && user.user_metadata.name.trim()) ||
+    normalizeText(profileRow?.name) ||
+    normalizeText(profileRow?.full_name) ||
+    normalizeText(user.user_metadata?.full_name) ||
+    normalizeText(user.user_metadata?.name) ||
     '회원';
-  const profilePhone =
-    typeof profileRow?.phone === 'string' ? profileRow.phone.trim() : '';
-  const profileAddress =
-    typeof profileRow?.address === 'string' ? profileRow.address.trim() : '';
+  const profilePhone = normalizeText(profileRow?.phone);
+  const profileAddress = normalizeText(profileRow?.address);
+  const profileEmail = normalizeText(user.email);
 
-  const nowIso = new Date().toISOString();
-  const customerContact = {
+  const customerContact = normalizeCustomerContact(body.customerContact, {
     name: profileName,
-    email: user.email ?? '',
+    email: profileEmail,
     phone: profilePhone,
     address: profileAddress
-  };
+  });
+  if (!customerContact) {
+    return jsonError(
+      '입금자 정보(이름/이메일/핸드폰/주소)를 모두 입력해 주세요.',
+      400
+    );
+  }
+  const bankTransferPayload = normalizeBankTransferPayload(
+    body.bankTransfer,
+    customerContact.name
+  );
+  if (!bankTransferPayload) {
+    return jsonError('입금자명과 이체인증 이미지를 확인해 주세요.', 400);
+  }
+
+  const nowIso = new Date().toISOString();
 
   const orderPayload = {
     user_id: user.id,
@@ -250,6 +354,8 @@ export async function POST(request: Request) {
         bank_name: bankTransferInfo.bankName || null,
         account_number: bankTransferInfo.accountNumber || null,
         account_holder: bankTransferInfo.accountHolder || null,
+        depositor_name: bankTransferPayload.depositorName,
+        proof_image_url: bankTransferPayload.proofImageUrl,
         notice: bankTransferInfo.notice,
         transfer_status: 'awaiting',
         requested_at: nowIso
@@ -264,11 +370,17 @@ export async function POST(request: Request) {
         plan_key: plan.key,
         plan_title: plan.title,
         plan_price_krw: plan.priceKrw,
+        plan_billing_cycle: plan.billingCycle,
+        plan_duration_days: plan.durationDays,
         charged_amount_krw: chargeAmountKrw,
         studio_post_id: studioPostId || null,
         auto_renewal: false
       },
       membership_proration: prorationInfo,
+      bank_transfer: {
+        depositor_name: bankTransferPayload.depositorName,
+        proof_image_url: bankTransferPayload.proofImageUrl
+      },
       account_configured: hasConfiguredAccount
     }
   };
@@ -284,7 +396,8 @@ export async function POST(request: Request) {
 
   if (insertResult.error) {
     try {
-      const { createAdminClient } = await import('@/utils/supabase/adminClient');
+      const { createAdminClient } =
+        await import('@/utils/supabase/adminClient');
       const adminClient = createAdminClient();
       insertResult = await (adminClient as any)
         .from('orders')
@@ -292,13 +405,17 @@ export async function POST(request: Request) {
         .select(selectColumns)
         .single();
     } catch (adminError) {
-      console.error('[studio/membership/bank-transfer] admin fallback failed', adminError);
+      console.error(
+        '[studio/membership/bank-transfer] admin fallback failed',
+        adminError
+      );
     }
   }
 
   if (insertResult.error || !insertResult.data) {
     return jsonError(
-      insertResult.error?.message || '멤버십 계좌이체 신청을 저장하지 못했습니다.',
+      insertResult.error?.message ||
+        '멤버십 계좌이체 신청을 저장하지 못했습니다.',
       500,
       insertResult.error
     );
@@ -328,6 +445,10 @@ export async function POST(request: Request) {
     },
     amountTotal: chargeAmountKrw,
     currency: 'KRW',
+    bankTransfer: {
+      depositorName: bankTransferPayload.depositorName,
+      proofImageUrl: bankTransferPayload.proofImageUrl
+    },
     note: hasConfiguredAccount
       ? `플랜키: ${plan.key}${prorationInfo?.enabled ? `, 차등청구=${chargeAmountKrw}원` : ''}`
       : `플랜키: ${plan.key}${prorationInfo?.enabled ? `, 차등청구=${chargeAmountKrw}원` : ''} (계좌정보 미설정)`
@@ -340,12 +461,15 @@ export async function POST(request: Request) {
       ...bankTransferInfo,
       accountConfigured: hasConfiguredAccount,
       orderRef,
-      depositorName: customerContact.name
+      depositorName: bankTransferPayload.depositorName,
+      proofImageUrl: bankTransferPayload.proofImageUrl
     },
     plan: {
       key: plan.key,
       title: plan.title,
-      priceKrw: plan.priceKrw
+      priceKrw: plan.priceKrw,
+      billingCycle: plan.billingCycle,
+      durationDays: plan.durationDays
     },
     proration: prorationInfo
   });

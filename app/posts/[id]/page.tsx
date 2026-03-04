@@ -80,6 +80,22 @@ const getPayPalBanner = (
     };
   }
 
+  if (message === 'already_active_plan') {
+    return {
+      tone: 'warn' as const,
+      title: '이미 사용 중인 멤버십 플랜입니다.',
+      description: '현재 플랜과 다른 멤버십을 선택해 주세요.'
+    };
+  }
+
+  if (message === 'downgrade_requires_schedule') {
+    return {
+      tone: 'warn' as const,
+      title: '다운그레이드는 다음 결제일부터 적용됩니다.',
+      description: '마이페이지 멤버십 탭에서 변경 예약으로 진행해 주세요.'
+    };
+  }
+
   if (message === 'missing_paypal_plan_env') {
     return {
       tone: 'error' as const,
@@ -213,6 +229,8 @@ export default async function PostDetailPage({ params, searchParams }: PageProps
               src={post.image_url}
               alt={post.title ?? 'Studio post image'}
               className="h-[280px] w-full object-cover sm:h-[420px]"
+              decoding="async"
+              fetchPriority="high"
             />
           ) : (
             <div className="flex h-[280px] w-full items-center justify-center bg-neutral-900 text-sm uppercase tracking-[0.3em] text-neutral-500 sm:h-[420px]">

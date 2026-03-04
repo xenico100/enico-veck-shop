@@ -29,6 +29,10 @@ type BankTransferOrderRequest = {
     phone?: string;
     address?: string;
   };
+  bankTransfer?: {
+    depositorName?: string;
+    proofImageUrl?: string;
+  };
 };
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
@@ -45,7 +49,8 @@ const normalizeCartItems = (input: unknown) => {
       if (!isRecord(item)) return null;
 
       const id = typeof item.id === 'string' ? item.id.trim() : '';
-      const type = typeof item.type === 'string' ? item.type.trim().toLowerCase() : '';
+      const type =
+        typeof item.type === 'string' ? item.type.trim().toLowerCase() : '';
       const title = typeof item.title === 'string' ? item.title.trim() : '';
       const image = typeof item.image === 'string' ? item.image : null;
       const currency =
@@ -54,9 +59,12 @@ const normalizeCartItems = (input: unknown) => {
           : 'KRW';
       const quantityRaw = Number(item.quantity ?? 1);
       const quantity =
-        Number.isFinite(quantityRaw) && quantityRaw > 0 ? Math.floor(quantityRaw) : 1;
+        Number.isFinite(quantityRaw) && quantityRaw > 0
+          ? Math.floor(quantityRaw)
+          : 1;
       const priceRaw = Number(item.price);
-      const price = Number.isFinite(priceRaw) && priceRaw > 0 ? Math.round(priceRaw) : null;
+      const price =
+        Number.isFinite(priceRaw) && priceRaw > 0 ? Math.round(priceRaw) : null;
       if (!title || !id || !type || price == null) return null;
 
       return {
@@ -89,9 +97,47 @@ const normalizeCustomerContact = (value: unknown) => {
   return { name, email, phone, address };
 };
 
+const normalizeHttpUrl = (value: unknown) => {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) return null;
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const normalizeBankTransferPayload = (
+  value: unknown,
+  fallbackDepositorName: string
+) => {
+  if (!isRecord(value)) return null;
+
+  const depositorNameRaw =
+    typeof value.depositorName === 'string' ? value.depositorName.trim() : '';
+  const depositorName = depositorNameRaw || fallbackDepositorName;
+  const proofImageUrl = normalizeHttpUrl(value.proofImageUrl);
+
+  if (!depositorName || !proofImageUrl) {
+    return null;
+  }
+
+  return {
+    depositorName,
+    proofImageUrl
+  };
+};
+
 const getFriendlyInsertError = (message: string) => {
   const lower = message.toLowerCase();
-  if (lower.includes('row-level security') || lower.includes('permission denied')) {
+  if (
+    lower.includes('row-level security') ||
+    lower.includes('permission denied')
+  ) {
     return '주문 저장 권한이 없어 주문을 저장하지 못했습니다.';
   }
   if (lower.includes('orders') && lower.includes('column')) {
@@ -108,15 +154,30 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (authError) {
-    console.warn('[orders/bank-transfer] auth lookup warning (continuing as guest)', {
-      message: authError.message
-    });
+    console.warn(
+      '[orders/bank-transfer] auth lookup warning (continuing as guest)',
+      {
+        message: authError.message
+      }
+    );
   }
 
-  const body = (await request.json().catch(() => ({}))) as BankTransferOrderRequest;
+  const body = (await request
+    .json()
+    .catch(() => ({}))) as BankTransferOrderRequest;
   const customerContact = normalizeCustomerContact(body.customerContact);
   if (!customerContact) {
-    return jsonError('주문자 정보(이름, 이메일, 연락처, 주소)를 모두 입력해 주세요.', 400);
+    return jsonError(
+      '주문자 정보(이름, 이메일, 연락처, 주소)를 모두 입력해 주세요.',
+      400
+    );
+  }
+  const bankTransferPayload = normalizeBankTransferPayload(
+    body.bankTransfer,
+    customerContact.name
+  );
+  if (!bankTransferPayload) {
+    return jsonError('입금자명과 이체인증 이미지를 확인해 주세요.', 400);
   }
 
   const items = normalizeCartItems(body.items);
@@ -142,7 +203,8 @@ export async function POST(request: Request) {
   }
 
   const bankTransferInfo = getBankTransferInfo();
-  const hasConfiguredAccount = hasBankTransferAccountConfigured(bankTransferInfo);
+  const hasConfiguredAccount =
+    hasBankTransferAccountConfigured(bankTransferInfo);
 
   const nowIso = new Date().toISOString();
   const orderPayload = {
@@ -162,6 +224,8 @@ export async function POST(request: Request) {
         bank_name: bankTransferInfo.bankName || null,
         account_number: bankTransferInfo.accountNumber || null,
         account_holder: bankTransferInfo.accountHolder || null,
+        depositor_name: bankTransferPayload.depositorName,
+        proof_image_url: bankTransferPayload.proofImageUrl,
         notice: bankTransferInfo.notice,
         transfer_status: 'awaiting',
         requested_at: nowIso
@@ -171,6 +235,10 @@ export async function POST(request: Request) {
       payment_method: 'bank_transfer',
       transfer_status: 'awaiting',
       requested_at: nowIso,
+      bank_transfer: {
+        depositor_name: bankTransferPayload.depositorName,
+        proof_image_url: bankTransferPayload.proofImageUrl
+      },
       account_configured: hasConfiguredAccount
     }
   };
@@ -179,17 +247,26 @@ export async function POST(request: Request) {
     'id,user_id,status,currency,amount_total,paypal_order_id,created_at,items,shipping_address,tracking_number,shipping_carrier,shipping_status,metadata';
 
   const insertWithClient = async (dbClient: any) =>
-    await dbClient.from('orders').insert(orderPayload).select(selectColumns).single();
+    await dbClient
+      .from('orders')
+      .insert(orderPayload)
+      .select(selectColumns)
+      .single();
 
   let insertResult = await insertWithClient(supabase as any);
 
   if (
     insertResult.error &&
-    ((insertResult.error.message || '').toLowerCase().includes('row-level security') ||
-      (insertResult.error.message || '').toLowerCase().includes('permission denied'))
+    ((insertResult.error.message || '')
+      .toLowerCase()
+      .includes('row-level security') ||
+      (insertResult.error.message || '')
+        .toLowerCase()
+        .includes('permission denied'))
   ) {
     try {
-      const { createAdminClient } = await import('@/utils/supabase/adminClient');
+      const { createAdminClient } =
+        await import('@/utils/supabase/adminClient');
       const adminClient = createAdminClient();
       insertResult = await insertWithClient(adminClient as any);
     } catch (adminError) {
@@ -231,9 +308,11 @@ export async function POST(request: Request) {
     },
     amountTotal,
     currency: 'KRW',
-    note: hasConfiguredAccount
-      ? '입금 대기'
-      : '계좌정보 미설정 상태에서 접수'
+    bankTransfer: {
+      depositorName: bankTransferPayload.depositorName,
+      proofImageUrl: bankTransferPayload.proofImageUrl
+    },
+    note: hasConfiguredAccount ? '입금 대기' : '계좌정보 미설정 상태에서 접수'
   });
 
   return NextResponse.json({
@@ -243,7 +322,8 @@ export async function POST(request: Request) {
       ...bankTransferInfo,
       accountConfigured: hasConfiguredAccount,
       orderRef,
-      depositorName: customerContact.name
+      depositorName: bankTransferPayload.depositorName,
+      proofImageUrl: bankTransferPayload.proofImageUrl
     }
   });
 }

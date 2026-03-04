@@ -359,12 +359,16 @@ function StudioDetailModal({
                       alt=""
                       aria-hidden="true"
                       className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="relative flex min-h-[220px] items-center justify-center p-3 md:min-h-[320px] md:p-6">
                       <img
                         src={post.image_url}
                         alt={post.title ?? 'Studio post image'}
                         className="max-h-[58vh] w-auto max-w-full rounded-xl object-contain shadow-[0_22px_50px_rgba(0,0,0,0.45)] md:rounded-2xl"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   </>
@@ -1414,6 +1418,8 @@ function StudioShortsModal({
                                   post.title?.trim() || 'Studio post preview'
                                 }
                                 className="h-full w-full object-cover"
+                                loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-white/[0.04] px-6 text-center">
@@ -2040,6 +2046,8 @@ export default function StudioSection({
                       className={`h-full w-full object-cover transition-transform duration-700 ease-out ${
                         isRowLocked ? '' : 'group-hover:scale-[1.03]'
                       }`}
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.02]">

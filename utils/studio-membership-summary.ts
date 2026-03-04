@@ -31,6 +31,21 @@ type StudioAccessRow = {
   updated_at: string | null;
 };
 
+type MembershipChangeOrderRow = {
+  id: string;
+  user_id: string | null;
+  status: string | null;
+  created_at: string | null;
+  metadata: unknown;
+};
+
+type ScheduledMembershipChange = {
+  orderId: string;
+  targetPlanKey: StudioMembershipPlanKey;
+  targetPlanTitle: string;
+  effectiveAt: string;
+};
+
 export type StudioMembershipSummary = {
   user_id: string;
   has_active_subscription: boolean;
@@ -44,29 +59,56 @@ export type StudioMembershipSummary = {
   plan_currency: string | null;
   plan_interval: string | null;
   plan_cycle_days: number | null;
+  scheduled_change_target_plan_key: StudioMembershipPlanKey | null;
+  scheduled_change_target_membership: string | null;
+  scheduled_change_effective_at: string | null;
+  scheduled_change_order_id: string | null;
 };
 
 const PLAN_ENV_BY_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_4900: 'PAYPAL_PLAN_ID_MONTHLY_4900',
   monthly_13900: 'PAYPAL_PLAN_ID_MONTHLY_13900',
-  monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000'
+  monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000',
+  yearly_290000: 'PAYPAL_PLAN_ID_YEARLY_290000'
 };
 
 const PLAN_LABEL_BY_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_4900: '베이직 멤버십 (월 4,900원)',
   monthly_13900: '플러스 멤버십 (월 13,900원)',
-  monthly_69000: '프리미엄 멤버십 (월 69,000원)'
+  monthly_69000: '프리미엄 멤버십 (월 69,000원)',
+  yearly_290000: '프리미엄 멤버십 1년권 (연 290,000원)'
 };
 
 const PLAN_AMOUNT_BY_KEY: Record<StudioMembershipPlanKey, number> = {
   monthly_4900: 4900,
   monthly_13900: 13900,
-  monthly_69000: 69000
+  monthly_69000: 69000,
+  yearly_290000: 290000
 };
+
+const PLAN_KEY_SET = new Set(
+  Object.keys(PLAN_LABEL_BY_KEY) as StudioMembershipPlanKey[]
+);
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const normalizeText = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const isStudioMembershipPlanKey = (
+  value: unknown
+): value is StudioMembershipPlanKey =>
+  typeof value === 'string' &&
+  PLAN_KEY_SET.has(value as StudioMembershipPlanKey);
 
 const getPlanKeyByIdFromEnv = (planId: string | null) => {
   if (!planId) return null;
-  for (const [key, envKey] of Object.entries(PLAN_ENV_BY_KEY) as Array<[StudioMembershipPlanKey, string]>) {
+  for (const [key, envKey] of Object.entries(PLAN_ENV_BY_KEY) as Array<
+    [StudioMembershipPlanKey, string]
+  >) {
     const envValue = process.env[envKey]?.trim();
     if (envValue && envValue === planId) {
       return key;
@@ -97,7 +139,9 @@ const parseAmountNumber = (value: number | string | null | undefined) => {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const intervalToCycleDays = (interval: string | null | undefined) => {
-  const normalized = String(interval || '').trim().toLowerCase();
+  const normalized = String(interval || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return null;
   if (normalized === 'day' || normalized === 'daily') return 1;
   if (normalized === 'week' || normalized === 'weekly') return 7;
@@ -111,6 +155,51 @@ const normalizeIso = (value: unknown) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString();
+};
+
+const hasMissingOrdersMetadataColumnError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const row = error as Record<string, unknown>;
+  const message = typeof row.message === 'string' ? row.message : '';
+  const details = typeof row.details === 'string' ? row.details : '';
+  const hint = typeof row.hint === 'string' ? row.hint : '';
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return (
+    combined.includes('orders.metadata') ||
+    (combined.includes('metadata') && combined.includes('orders'))
+  );
+};
+
+const parseScheduledMembershipChange = (
+  row: MembershipChangeOrderRow
+): ScheduledMembershipChange | null => {
+  if (!normalizeText(row.id)) return null;
+  const metadata = asRecord(row.metadata);
+  if (!metadata) return null;
+  const orderKind = normalizeText(metadata.order_kind).toLowerCase();
+  if (orderKind !== 'studio_membership_change_request') return null;
+
+  const change = asRecord(metadata.studio_membership_change);
+  if (!change) return null;
+  const changeType = normalizeText(change.change_type).toLowerCase();
+  if (changeType !== 'downgrade') return null;
+
+  const targetPlanKeyRaw = normalizeText(change.target_plan_key);
+  if (!isStudioMembershipPlanKey(targetPlanKeyRaw)) return null;
+
+  const effectiveAt = normalizeIso(change.effective_at);
+  if (!effectiveAt) return null;
+
+  const targetPlanTitle =
+    normalizeText(change.target_plan_title) ||
+    PLAN_LABEL_BY_KEY[targetPlanKeyRaw];
+
+  return {
+    orderId: row.id,
+    targetPlanKey: targetPlanKeyRaw,
+    targetPlanTitle,
+    effectiveAt
+  };
 };
 
 const getRawSubscriptionCreateTime = (raw: unknown) => {
@@ -180,7 +269,9 @@ const getRowTimeMs = (row: PayPalSubscriptionRow) => {
   return Number.NaN;
 };
 
-const isManualSubscriptionRow = (row: PayPalSubscriptionRow | null | undefined) => {
+const isManualSubscriptionRow = (
+  row: PayPalSubscriptionRow | null | undefined
+) => {
   const subscriptionId = typeof row?.id === 'string' ? row.id.trim() : '';
   const planId = typeof row?.plan_id === 'string' ? row.plan_id.trim() : '';
   return subscriptionId.startsWith('manual:') || planId.startsWith('manual_');
@@ -273,14 +364,20 @@ const buildDefaultSummary = (userId: string): StudioMembershipSummary => ({
   plan_amount: null,
   plan_currency: null,
   plan_interval: null,
-  plan_cycle_days: null
+  plan_cycle_days: null,
+  scheduled_change_target_plan_key: null,
+  scheduled_change_target_membership: null,
+  scheduled_change_effective_at: null,
+  scheduled_change_order_id: null
 });
 
 export async function getStudioMembershipSummaryMapForUsers(
   userIds: string[],
   adminClient?: AdminClient
 ) {
-  const uniqueUserIds = Array.from(new Set(userIds.map((id) => String(id || '').trim()).filter(Boolean)));
+  const uniqueUserIds = Array.from(
+    new Set(userIds.map((id) => String(id || '').trim()).filter(Boolean))
+  );
   const result = new Map<string, StudioMembershipSummary>();
 
   if (uniqueUserIds.length === 0) return result;
@@ -290,7 +387,9 @@ export async function getStudioMembershipSummaryMapForUsers(
   const [subscriptionQuery, accessQuery] = await Promise.all([
     (admin as any)
       .from('paypal_subscriptions')
-      .select('id,user_id,plan_id,status,current_period_end,last_event_at,created_at,raw')
+      .select(
+        'id,user_id,plan_id,status,current_period_end,last_event_at,created_at,raw'
+      )
       .in('user_id', uniqueUserIds)
       .order('last_event_at', { ascending: false }),
     (admin as any)
@@ -300,18 +399,54 @@ export async function getStudioMembershipSummaryMapForUsers(
   ]);
 
   if (subscriptionQuery.error) {
-    console.error('[studio-membership-summary] paypal_subscriptions query failed', subscriptionQuery.error);
+    console.error(
+      '[studio-membership-summary] paypal_subscriptions query failed',
+      subscriptionQuery.error
+    );
   }
   if (accessQuery.error) {
-    console.error('[studio-membership-summary] studio_access query failed', accessQuery.error);
+    console.error(
+      '[studio-membership-summary] studio_access query failed',
+      accessQuery.error
+    );
   }
 
-  const subscriptionRows = !subscriptionQuery.error && Array.isArray(subscriptionQuery.data)
-    ? (subscriptionQuery.data as PayPalSubscriptionRow[])
-    : [];
-  const accessRows = !accessQuery.error && Array.isArray(accessQuery.data)
-    ? (accessQuery.data as StudioAccessRow[])
-    : [];
+  const subscriptionRows =
+    !subscriptionQuery.error && Array.isArray(subscriptionQuery.data)
+      ? (subscriptionQuery.data as PayPalSubscriptionRow[])
+      : [];
+  const accessRows =
+    !accessQuery.error && Array.isArray(accessQuery.data)
+      ? (accessQuery.data as StudioAccessRow[])
+      : [];
+
+  let membershipChangeRows: MembershipChangeOrderRow[] = [];
+  const membershipChangeQuery = await (admin as any)
+    .from('orders')
+    .select('id,user_id,status,created_at,metadata')
+    .in('user_id', uniqueUserIds)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (membershipChangeQuery.error) {
+    if (!hasMissingOrdersMetadataColumnError(membershipChangeQuery.error)) {
+      console.error(
+        '[studio-membership-summary] membership change orders query failed',
+        membershipChangeQuery.error
+      );
+    }
+  } else if (Array.isArray(membershipChangeQuery.data)) {
+    membershipChangeRows = membershipChangeQuery.data as MembershipChangeOrderRow[];
+  }
+
+  const scheduledChangeMap = new Map<string, ScheduledMembershipChange>();
+  for (const row of membershipChangeRows) {
+    const userId = typeof row.user_id === 'string' ? row.user_id : null;
+    if (!userId || scheduledChangeMap.has(userId)) continue;
+    const parsed = parseScheduledMembershipChange(row);
+    if (!parsed) continue;
+    scheduledChangeMap.set(userId, parsed);
+  }
 
   const subscriptionRowsByUser = new Map<string, PayPalSubscriptionRow[]>();
   for (const row of subscriptionRows) {
@@ -325,7 +460,9 @@ export async function getStudioMembershipSummaryMapForUsers(
   const planIds = Array.from(
     new Set(
       subscriptionRows
-        .map((row) => (typeof row.plan_id === 'string' ? row.plan_id.trim() : ''))
+        .map((row) =>
+          typeof row.plan_id === 'string' ? row.plan_id.trim() : ''
+        )
         .filter(Boolean)
     )
   );
@@ -337,9 +474,14 @@ export async function getStudioMembershipSummaryMapForUsers(
       .select('id,name,amount,currency,interval')
       .in('id', planIds);
     if (planQuery.error) {
-      console.error('[studio-membership-summary] paypal_plans query failed', planQuery.error);
+      console.error(
+        '[studio-membership-summary] paypal_plans query failed',
+        planQuery.error
+      );
     } else {
-      planRows = Array.isArray(planQuery.data) ? (planQuery.data as PayPalPlanRow[]) : [];
+      planRows = Array.isArray(planQuery.data)
+        ? (planQuery.data as PayPalPlanRow[])
+        : [];
     }
   }
 
@@ -366,22 +508,34 @@ export async function getStudioMembershipSummaryMapForUsers(
     });
 
     const latest = rows[0] ?? null;
-    const activeRows = rows.filter((row) => isActiveStudioSubscriptionStatus(row.status));
-    const activeRepresentative = activeRows
-      .slice()
-      .sort((a, b) => compareRepresentativePriority(a, b, planMap))[0] ?? null;
+    const activeRows = rows.filter((row) =>
+      isActiveStudioSubscriptionStatus(row.status)
+    );
+    const activeRepresentative =
+      activeRows
+        .slice()
+        .sort((a, b) => compareRepresentativePriority(a, b, planMap))[0] ??
+      null;
 
     const representative = activeRepresentative ?? latest;
-    const plan = representative?.plan_id ? planMap.get(representative.plan_id) ?? null : null;
+    const plan = representative?.plan_id
+      ? (planMap.get(representative.plan_id) ?? null)
+      : null;
     const inferredActive = activeRows.length > 0;
     const accessRecord = accessMap.get(userId);
     const cachedActive = accessRecord?.hasActive;
     const accessUpdatedAt = accessRecord?.updatedAt ?? null;
     const hasActiveSubscription = inferredActive || cachedActive === true;
-    const planKeyFromEnv = getPlanKeyByIdFromEnv(representative?.plan_id ?? null);
+    const planKeyFromEnv = getPlanKeyByIdFromEnv(
+      representative?.plan_id ?? null
+    );
     let planAmount = parseAmountNumber(plan?.amount);
-    let planCurrency = plan?.currency ? String(plan.currency).toUpperCase() : null;
-    let planInterval = plan?.interval ? String(plan.interval).toLowerCase() : null;
+    let planCurrency = plan?.currency
+      ? String(plan.currency).toUpperCase()
+      : null;
+    let planInterval = plan?.interval
+      ? String(plan.interval).toLowerCase()
+      : null;
     if (planAmount == null && planKeyFromEnv) {
       planAmount = PLAN_AMOUNT_BY_KEY[planKeyFromEnv];
     }
@@ -389,21 +543,32 @@ export async function getStudioMembershipSummaryMapForUsers(
       planCurrency = 'KRW';
     }
     if (!planInterval && planKeyFromEnv) {
-      planInterval = 'month';
+      planInterval = planKeyFromEnv === 'yearly_290000' ? 'year' : 'month';
     }
-    const planCycleDays = intervalToCycleDays(planInterval);
+    let planCycleDays = intervalToCycleDays(planInterval);
 
-    const selectedMembership = inferredActive
-      ? getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
+    let selectedMembership = inferredActive
+      ? (getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
         formatPlanFallbackLabel(plan) ??
         (hasActiveSubscription
           ? isManualSubscriptionRow(representative)
             ? '관리자 수동 부여'
             : '활성 멤버십'
-          : null)
-      : getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
+          : null))
+      : (getPlanLabelByIdFromEnv(representative?.plan_id ?? null) ??
         formatPlanFallbackLabel(plan) ??
-        (hasActiveSubscription ? '관리자 수동 부여' : null);
+        (hasActiveSubscription ? '관리자 수동 부여' : null));
+    const scheduledChange = scheduledChangeMap.get(userId) ?? null;
+    let scheduledChangeTargetPlanKey: StudioMembershipPlanKey | null = null;
+    let scheduledChangeTargetMembership: string | null = null;
+    let scheduledChangeEffectiveAt: string | null = null;
+    let scheduledChangeOrderId: string | null = null;
+    if (scheduledChange && hasActiveSubscription) {
+      scheduledChangeTargetPlanKey = scheduledChange.targetPlanKey;
+      scheduledChangeTargetMembership = scheduledChange.targetPlanTitle;
+      scheduledChangeEffectiveAt = scheduledChange.effectiveAt;
+      scheduledChangeOrderId = scheduledChange.orderId;
+    }
     const nextBillingAt = getEstimatedNextBillingAt({
       row: representative,
       hasActiveSubscription,
@@ -415,9 +580,11 @@ export async function getStudioMembershipSummaryMapForUsers(
       user_id: userId,
       has_active_subscription: hasActiveSubscription,
       subscription_id:
-        representative?.id ?? (hasActiveSubscription && !representative ? `manual:${userId}` : null),
+        representative?.id ??
+        (hasActiveSubscription && !representative ? `manual:${userId}` : null),
       subscription_status:
-        representative?.status ?? (hasActiveSubscription && !representative ? 'MANUAL_GRANT' : null),
+        representative?.status ??
+        (hasActiveSubscription && !representative ? 'MANUAL_GRANT' : null),
       selected_membership: selectedMembership,
       subscribed_at:
         getRawSubscriptionCreateTime(representative?.raw) ??
@@ -429,7 +596,11 @@ export async function getStudioMembershipSummaryMapForUsers(
       plan_amount: planAmount,
       plan_currency: planCurrency,
       plan_interval: planInterval,
-      plan_cycle_days: planCycleDays
+      plan_cycle_days: planCycleDays,
+      scheduled_change_target_plan_key: scheduledChangeTargetPlanKey,
+      scheduled_change_target_membership: scheduledChangeTargetMembership,
+      scheduled_change_effective_at: scheduledChangeEffectiveAt,
+      scheduled_change_order_id: scheduledChangeOrderId
     });
   }
 
@@ -444,6 +615,9 @@ export async function getStudioMembershipSummaryForUser(
   if (!normalized) {
     throw new Error('userId is required');
   }
-  const map = await getStudioMembershipSummaryMapForUsers([normalized], adminClient);
+  const map = await getStudioMembershipSummaryMapForUsers(
+    [normalized],
+    adminClient
+  );
   return map.get(normalized) ?? buildDefaultSummary(normalized);
 }

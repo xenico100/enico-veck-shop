@@ -239,7 +239,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     setServicesLoading(true);
     setServicesError(null);
     try {
-      const response = await fetch('/api/service-posts', { cache: 'no-store' });
+      const response = await fetch('/api/service-posts');
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload?.message || '서비스 목록을 불러오지 못했습니다.');
@@ -811,6 +811,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                       alt={service.title}
                       className="w-full h-full object-contain"
                       draggable="false"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   
@@ -894,6 +896,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                       src={service.image}
                       alt={service.title}
                       className="w-full h-full object-contain"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   

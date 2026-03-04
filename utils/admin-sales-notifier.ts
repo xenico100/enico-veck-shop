@@ -25,6 +25,10 @@ type SendAdminSalesNotificationInput = {
   currency?: string | null;
   note?: string | null;
   occurredAt?: string | null;
+  bankTransfer?: {
+    depositorName?: string | null;
+    proofImageUrl?: string | null;
+  } | null;
 };
 
 const DEFAULT_ALERT_TO_EMAIL = 'morba9850@gmail.com';
@@ -56,7 +60,9 @@ const formatMoney = (amount: number | null | undefined, currency = 'KRW') => {
 };
 
 const getAlertConfig = () => {
-  const enabled = normalizeText(process.env.SALES_ALERT_EMAIL_ENABLED).toLowerCase();
+  const enabled = normalizeText(
+    process.env.SALES_ALERT_EMAIL_ENABLED
+  ).toLowerCase();
   if (enabled === '0' || enabled === 'false' || enabled === 'off') {
     return { disabled: true as const };
   }
@@ -84,8 +90,7 @@ const toItemSummary = (items: SalesNotificationItem[]) => {
     .map((item) => {
       const title = normalizeText(item.title) || '상품명 미상';
       const qty = Number(item.quantity ?? 1);
-      const safeQty =
-        Number.isFinite(qty) && qty > 0 ? Math.floor(qty) : 1;
+      const safeQty = Number.isFinite(qty) && qty > 0 ? Math.floor(qty) : 1;
       const priceLabel =
         Number.isFinite(item.price ?? NaN) && (item.price ?? 0) > 0
           ? ` (${formatMoney(item.price ?? null, item.currency || 'KRW')})`
@@ -122,8 +127,7 @@ export async function sendAdminSalesNotification(
       return { sent: false, skipped: 'missing_resend_api_key' as const };
     }
 
-    const customerName =
-      normalizeText(input.customer?.name) || '이름 미입력';
+    const customerName = normalizeText(input.customer?.name) || '이름 미입력';
     const customerEmail =
       normalizeText(input.customer?.email) || '이메일 미입력';
     const customerPhone =
@@ -131,12 +135,19 @@ export async function sendAdminSalesNotification(
     const customerAddress =
       normalizeText(input.customer?.address) || '주소 미입력';
     const currency = normalizeText(input.currency) || 'KRW';
-    const itemSummary = toItemSummary(Array.isArray(input.items) ? input.items : []);
+    const itemSummary = toItemSummary(
+      Array.isArray(input.items) ? input.items : []
+    );
     const amountLabel = formatMoney(input.amountTotal ?? null, currency);
     const occurredAt =
       normalizeText(input.occurredAt) || new Date().toISOString();
-    const referenceLabel = toReferenceLabel(input.orderId, input.subscriptionId);
+    const referenceLabel = toReferenceLabel(
+      input.orderId,
+      input.subscriptionId
+    );
     const note = normalizeText(input.note);
+    const depositorName = normalizeText(input.bankTransfer?.depositorName);
+    const proofImageUrl = normalizeText(input.bankTransfer?.proofImageUrl);
     const paymentMethod = normalizeText(input.paymentMethod) || '미상';
     const eventLabel = normalizeText(input.eventLabel) || '새 결제 이벤트';
 
@@ -153,6 +164,12 @@ export async function sendAdminSalesNotification(
       `주문자 주소: ${customerAddress}`,
       `발생시각: ${occurredAt}`
     ];
+    if (depositorName) {
+      lines.push(`입금자명: ${depositorName}`);
+    }
+    if (proofImageUrl) {
+      lines.push(`이체인증 이미지: ${proofImageUrl}`);
+    }
     if (note) {
       lines.push(`비고: ${note}`);
     }

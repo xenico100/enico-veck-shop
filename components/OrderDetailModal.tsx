@@ -90,7 +90,12 @@ export default function OrderDetailModal({
       trackingNumber: order.tracking_number ?? '',
       shippingStatus: order.shipping_status ?? 'preparing'
     });
-  }, [order?.id, order?.shipping_carrier, order?.tracking_number, order?.shipping_status]);
+  }, [
+    order?.id,
+    order?.shipping_carrier,
+    order?.tracking_number,
+    order?.shipping_status
+  ]);
 
   const handleSaveShipping = async () => {
     if (!order || !onSaveShipping) return;
@@ -144,8 +149,12 @@ export default function OrderDetailModal({
                   >
                     {mapShippingStatusLabel(order.shipping_status)}
                   </span>
-                  <span className="text-xs text-white/55">{formatOrderDate(order.created_at)}</span>
-                  <span className="text-xs text-white/40">주문번호: {order.id.slice(0, 8)}…</span>
+                  <span className="text-xs text-white/55">
+                    {formatOrderDate(order.created_at)}
+                  </span>
+                  <span className="text-xs text-white/40">
+                    주문번호: {order.id.slice(0, 8)}…
+                  </span>
                 </div>
 
                 <div className="mt-4 space-y-3">
@@ -161,13 +170,19 @@ export default function OrderDetailModal({
                       >
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
                           {item.image ? (
-                            <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="h-full w-full object-cover"
+                            />
                           ) : (
                             <ShoppingBag className="h-4 w-4 text-white/60" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-white">{item.title}</p>
+                          <p className="truncate text-sm font-medium text-white">
+                            {item.title}
+                          </p>
                           <p className="mt-1 text-xs text-white/50">
                             {item.type} · 수량 {item.qty}
                           </p>
@@ -175,7 +190,10 @@ export default function OrderDetailModal({
                         <div className="text-right text-sm text-white/90">
                           {item.price == null
                             ? '금액 확인'
-                            : formatOrderMoney(item.price * item.qty, order.currency || 'KRW')}
+                            : formatOrderMoney(
+                                item.price * item.qty,
+                                order.currency || 'KRW'
+                              )}
                         </div>
                       </div>
                     ))
@@ -185,26 +203,63 @@ export default function OrderDetailModal({
                 <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
                   <span className="text-sm text-white/60">총 결제 금액</span>
                   <span className="text-lg font-semibold text-white">
-                    {formatOrderMoney(order.amount_total, order.currency || 'KRW')}
+                    {formatOrderMoney(
+                      order.amount_total,
+                      order.currency || 'KRW'
+                    )}
                   </span>
                 </div>
                 <div className="mt-2">
-                  <InfoRow label="결제수단" value={mapPaymentMethodLabel(order.payment_method)} />
+                  <InfoRow
+                    label="결제수단"
+                    value={mapPaymentMethodLabel(order.payment_method)}
+                  />
                   {order.payment_method === 'bank_transfer' ? (
                     <>
                       <InfoRow
                         label="입금 상태"
-                        value={order.bank_transfer?.transfer_status || 'awaiting'}
+                        value={
+                          order.bank_transfer?.transfer_status || 'awaiting'
+                        }
                       />
                       <InfoRow
                         label="입금 계좌"
                         value={
-                          order.bank_transfer?.bank_name && order.bank_transfer?.account_number
+                          order.bank_transfer?.bank_name &&
+                          order.bank_transfer?.account_number
                             ? `${order.bank_transfer.bank_name} ${order.bank_transfer.account_number}`
                             : null
                         }
                       />
-                      <InfoRow label="예금주" value={order.bank_transfer?.account_holder || null} />
+                      <InfoRow
+                        label="예금주"
+                        value={order.bank_transfer?.account_holder || null}
+                      />
+                      <InfoRow
+                        label="입금자명"
+                        value={
+                          order.bank_transfer?.depositor_name ||
+                          order.customer_contact?.name ||
+                          null
+                        }
+                      />
+                      <div className="flex items-start justify-between gap-3 border-b border-white/5 py-2 last:border-b-0">
+                        <span className="text-xs text-white/50">이체인증</span>
+                        {order.bank_transfer?.proof_image_url ? (
+                          <a
+                            href={order.bank_transfer.proof_image_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-right text-sm text-sky-200 underline underline-offset-2 hover:text-sky-100"
+                          >
+                            이미지 보기
+                          </a>
+                        ) : (
+                          <span className="max-w-[70%] break-words text-right text-sm text-white/90">
+                            -
+                          </span>
+                        )}
+                      </div>
                     </>
                   ) : null}
                 </div>
@@ -212,7 +267,9 @@ export default function OrderDetailModal({
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                  <h4 className="text-sm font-semibold tracking-tight text-white">주문자 정보</h4>
+                  <h4 className="text-sm font-semibold tracking-tight text-white">
+                    주문자 정보
+                  </h4>
                   <div className="mt-2">
                     <InfoRow label="이름" value={contact?.name} />
                     <InfoRow label="이메일" value={contact?.email} />
@@ -222,9 +279,14 @@ export default function OrderDetailModal({
                 </div>
 
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-                  <h4 className="text-sm font-semibold tracking-tight text-white">택배 정보</h4>
+                  <h4 className="text-sm font-semibold tracking-tight text-white">
+                    택배 정보
+                  </h4>
                   <div className="mt-2">
-                    <InfoRow label="택배 상태" value={mapShippingStatusLabel(order.shipping_status)} />
+                    <InfoRow
+                      label="택배 상태"
+                      value={mapShippingStatusLabel(order.shipping_status)}
+                    />
                     <InfoRow label="택배사" value={order.shipping_carrier} />
                     <InfoRow label="운송장번호" value={order.tracking_number} />
                   </div>
@@ -234,13 +296,19 @@ export default function OrderDetailModal({
               {adminShippingEditable && onSaveShipping ? (
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
                   <div className="mb-3">
-                    <h4 className="text-sm font-semibold tracking-tight text-white">관리자 배송 처리</h4>
-                    <p className="mt-1 text-xs text-white/55">택배사, 운송장번호, 배송 상태를 저장합니다.</p>
+                    <h4 className="text-sm font-semibold tracking-tight text-white">
+                      관리자 배송 처리
+                    </h4>
+                    <p className="mt-1 text-xs text-white/55">
+                      택배사, 운송장번호, 배송 상태를 저장합니다.
+                    </p>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs text-white/60">택배사</label>
+                      <label className="mb-1 block text-xs text-white/60">
+                        택배사
+                      </label>
                       <input
                         type="text"
                         value={shippingDraft.shippingCarrier}
@@ -255,7 +323,9 @@ export default function OrderDetailModal({
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-white/60">운송장번호</label>
+                      <label className="mb-1 block text-xs text-white/60">
+                        운송장번호
+                      </label>
                       <input
                         type="text"
                         value={shippingDraft.trackingNumber}
@@ -272,7 +342,9 @@ export default function OrderDetailModal({
                   </div>
 
                   <div className="mt-3">
-                    <label className="mb-1 block text-xs text-white/60">배송 상태</label>
+                    <label className="mb-1 block text-xs text-white/60">
+                      배송 상태
+                    </label>
                     <select
                       value={shippingDraft.shippingStatus}
                       onChange={(event) =>
@@ -284,7 +356,11 @@ export default function OrderDetailModal({
                       className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-white/20"
                     >
                       {shippingStatusOptions.map((option) => (
-                        <option key={option.value} value={option.value} className="bg-zinc-900">
+                        <option
+                          key={option.value}
+                          value={option.value}
+                          className="bg-zinc-900"
+                        >
                           {option.label}
                         </option>
                       ))}
@@ -311,7 +387,11 @@ export default function OrderDetailModal({
               ) : null}
 
               <div className="flex justify-end">
-                <ActionButton variant="secondary" size="md" onClick={() => onOpenChange(false)}>
+                <ActionButton
+                  variant="secondary"
+                  size="md"
+                  onClick={() => onOpenChange(false)}
+                >
                   닫기
                 </ActionButton>
               </div>

@@ -1,22 +1,48 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import dynamic from 'next/dynamic';
 
 import Header from '../components/Header';
-import SideMenu from '../components/SideMenu';
 import MainContent from '../components/MainContent';
 import AboutSection from '../components/AboutSection';
-import ServicesSection from '../components/ServicesSection';
-import StudioSectionWithSearchParams from '../components/StudioSectionWithSearchParams';
-import CommunityBoard from '../components/CommunityBoard';
-import Footer from '../components/Footer';
-import AuthModal from '../components/AuthModal';
-import MyPageModal from '../components/MyPageModal';
-import CartModal from '../components/CartModal';
 import { useAuth } from './context/AuthContext';
+
+const SideMenu = dynamic(() => import('../components/SideMenu'));
+const ServicesSection = dynamic(() => import('../components/ServicesSection'));
+const StudioSectionWithSearchParams = dynamic(
+  () => import('../components/StudioSectionWithSearchParams'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center text-sm text-white/60 sm:px-6 lg:px-8">
+        Studio 콘텐츠를 불러오는 중...
+      </div>
+    )
+  }
+);
+const CommunityBoard = dynamic(() => import('../components/CommunityBoard'), {
+  ssr: false,
+  loading: () => (
+    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-12 text-center text-sm text-white/60 sm:px-6 lg:px-8">
+      커뮤니티를 불러오는 중...
+    </div>
+  )
+});
+const Footer = dynamic(() => import('../components/Footer'));
+const AuthModal = dynamic(() => import('../components/AuthModal'), {
+  ssr: false
+});
+const MyPageModal = dynamic(() => import('../components/MyPageModal'), {
+  ssr: false
+});
+const CartModal = dynamic(() => import('../components/CartModal'), {
+  ssr: false
+});
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
 
   // ✅ Auth modal state (서비스 팝업이랑 같은 패턴)
   const [authOpen, setAuthOpen] = useState(false);
@@ -29,22 +55,28 @@ export default function LandingPage() {
 
   const openCart = () => setCartOpen(true);
   const openMyPage = () => setMyPageOpen(true);
+  const openMenu = () => {
+    setHasOpenedMenu(true);
+    setIsMenuOpen(true);
+  };
 
   return (
     <main className="relative min-h-screen bg-black text-white">
-      <Header onMenuClick={() => setIsMenuOpen(true)} />
+      <Header onMenuClick={openMenu} />
 
-      <SideMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        onCartClick={openCart}
-        onLoginClick={() => {
-          setAuthMode('login');
-          setAuthError(null);
-          setAuthOpen(true);
-        }}
-        onMyPageClick={openMyPage}
-      />
+      {hasOpenedMenu ? (
+        <SideMenu
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          onCartClick={openCart}
+          onLoginClick={() => {
+            setAuthMode('login');
+            setAuthError(null);
+            setAuthOpen(true);
+          }}
+          onMyPageClick={openMyPage}
+        />
+      ) : null}
 
       <div id="home"><MainContent /></div>
       <div id="about"><AboutSection /></div>
@@ -61,52 +93,58 @@ export default function LandingPage() {
       <Footer />
 
       {/* ✅ 로그인 / 회원가입 모달 (서비스 팝업과 동일한 방식) */}
-      <AuthModal
-        open={authOpen}
-        mode={authMode}
-        onClose={() => setAuthOpen(false)}
-        onSwitchMode={(mode) => {
-          setAuthMode(mode);
-          setAuthError(null);
-        }}
-        loading={authLoading}
-        error={authError}
-        onLogin={async (email, password) => {
-          try {
-            setAuthLoading(true);
+      {authOpen ? (
+        <AuthModal
+          open={authOpen}
+          mode={authMode}
+          onClose={() => setAuthOpen(false)}
+          onSwitchMode={(mode) => {
+            setAuthMode(mode);
             setAuthError(null);
-            await signInWithEmail(email, password);
-            setAuthOpen(false);
-          } catch (e: any) {
-            setAuthError(e?.message ?? '로그인 실패');
-          } finally {
-            setAuthLoading(false);
-          }
-        }}
-        onSignup={async (name, email, password) => {
-          try {
-            setAuthLoading(true);
+          }}
+          loading={authLoading}
+          error={authError}
+          onLogin={async (email, password) => {
+            try {
+              setAuthLoading(true);
+              setAuthError(null);
+              await signInWithEmail(email, password);
+              setAuthOpen(false);
+            } catch (e: any) {
+              setAuthError(e?.message ?? '로그인 실패');
+            } finally {
+              setAuthLoading(false);
+            }
+          }}
+          onSignup={async (name, email, password) => {
+            try {
+              setAuthLoading(true);
+              setAuthError(null);
+              await signUpWithEmail(name, email, password);
+              setAuthOpen(false);
+            } catch (e: any) {
+              setAuthError(e?.message ?? '회원가입 실패');
+            } finally {
+              setAuthLoading(false);
+            }
+          }}
+          onGoogle={() => {
             setAuthError(null);
-            await signUpWithEmail(name, email, password);
-            setAuthOpen(false);
-          } catch (e: any) {
-            setAuthError(e?.message ?? '회원가입 실패');
-          } finally {
-            setAuthLoading(false);
-          }
-        }}
-        onGoogle={() => {
-          setAuthError(null);
-          setAuthLoading(true);
-          signInWithGoogle().catch((e: any) => {
-            setAuthError(e?.message ?? 'Google 로그인 실패');
-            setAuthLoading(false);
-          });
-        }}
-      />
+            setAuthLoading(true);
+            signInWithGoogle().catch((e: any) => {
+              setAuthError(e?.message ?? 'Google 로그인 실패');
+              setAuthLoading(false);
+            });
+          }}
+        />
+      ) : null}
 
-      <MyPageModal open={myPageOpen} onOpenChange={setMyPageOpen} />
-      <CartModal open={cartOpen} onOpenChange={setCartOpen} />
+      {myPageOpen ? (
+        <MyPageModal open={myPageOpen} onOpenChange={setMyPageOpen} />
+      ) : null}
+      {cartOpen ? (
+        <CartModal open={cartOpen} onOpenChange={setCartOpen} />
+      ) : null}
     </main>
   );
 }
