@@ -102,7 +102,7 @@ export function ServiceDetailModal({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-500 ${
+        className={`fixed inset-0 z-40 bg-[#010811d6] backdrop-blur-sm transition-opacity duration-500 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -110,7 +110,7 @@ export function ServiceDetailModal({
 
       {/* Modal */}
       <div
-        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] md:w-[600px] max-w-[95vw] h-[85vh] md:max-h-[85vh] bg-[#0a0a0a] z-50 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl transition-all duration-500 ease-out ${
+        className={`fixed left-1/2 top-1/2 z-50 h-[85vh] w-[95%] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-cyan-100/25 bg-[#041221f2] shadow-2xl transition-all duration-500 ease-out md:max-h-[85vh] md:w-[600px] md:rounded-3xl ${
           isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}
       >
@@ -118,7 +118,7 @@ export function ServiceDetailModal({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 shadow-md backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:right-5 md:top-5"
+            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 text-cyan-50 shadow-md backdrop-blur-md transition-all duration-200 ease-out hover:bg-cyan-200/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 md:right-5 md:top-5"
             aria-label="닫기"
           >
             <X className="h-4 w-4 md:h-5 md:w-5" />
@@ -127,8 +127,8 @@ export function ServiceDetailModal({
           {isLoading && (
             <div className="flex h-[70vh] items-center justify-center px-6 text-center">
               <div className="space-y-3">
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                <p className="text-sm text-white/70">서비스 정보를 불러오는 중입니다…</p>
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-cyan-100/25 border-t-cyan-50" />
+                <p className="text-sm text-cyan-50/72">서비스 정보를 불러오는 중입니다…</p>
               </div>
             </div>
           )}
@@ -145,7 +145,7 @@ export function ServiceDetailModal({
           {!isLoading && !error && service && (
             <>
           {/* Image Carousel */}
-          <div className="relative w-full h-[250px] md:h-[500px] bg-[#1a1a1a] flex items-center justify-center group">
+          <div className="group relative flex h-[250px] w-full items-center justify-center border-b border-cyan-100/15 bg-[#051423] md:h-[500px]">
             <img
               src={images[currentImageIndex]}
               alt={service.title}
@@ -157,17 +157,17 @@ export function ServiceDetailModal({
               <>
                 <button
                   onClick={handlePrevImage}
-                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-all"
+                  className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/15 opacity-0 backdrop-blur-md transition-all hover:bg-cyan-200/25 group-hover:opacity-100 md:left-4 md:h-10 md:w-10"
                   aria-label="이전 이미지"
                 >
-                  <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  <ChevronLeft className="h-4 w-4 text-cyan-50 md:h-5 md:w-5" />
                 </button>
                 <button
                   onClick={handleNextImage}
-                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black/70 transition-all"
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/15 opacity-0 backdrop-blur-md transition-all hover:bg-cyan-200/25 group-hover:opacity-100 md:right-4 md:h-10 md:w-10"
                   aria-label="다음 이미지"
                 >
-                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  <ChevronRight className="h-4 w-4 text-cyan-50 md:h-5 md:w-5" />
                 </button>
               </>
             )}
@@ -180,7 +180,7 @@ export function ServiceDetailModal({
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
                     className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${
-                      index === currentImageIndex ? 'bg-white w-5 md:w-6' : 'bg-white/40'
+                      index === currentImageIndex ? 'w-5 bg-cyan-50 md:w-6' : 'bg-cyan-50/35'
                     }`}
                     aria-label={`이미지 ${index + 1}`}
                   />
@@ -192,24 +192,24 @@ export function ServiceDetailModal({
           {/* Content */}
           <div className="p-6 md:p-8">
             {/* Category */}
-            <p className="text-xs text-red-500 mb-2 uppercase tracking-wide">
+            <p className="mb-2 text-xs uppercase tracking-[0.2em] text-cyan-50/62">
               {service.category || '서비스'}
             </p>
 
             {/* Title */}
-            <h2 className="text-3xl md:text-4xl mb-2 tracking-tight text-white">{service.title}</h2>
+            <h2 className="mb-2 text-3xl tracking-tight text-white md:text-4xl">{service.title}</h2>
 
             {/* Price */}
             <p className="text-xl text-white mb-4">{service.price}</p>
 
             {/* Divider */}
-            <div className="w-full h-px bg-gray-800 my-6" />
+            <div className="my-6 h-px w-full bg-cyan-100/20" />
 
             {/* Description */}
             <div className="mb-6">
               <div className="space-y-4">
                 {contentBlocks.length === 0 ? (
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-gray-300">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-cyan-50/72">
                     상세 설명이 준비 중입니다.
                   </p>
                 ) : (
@@ -217,7 +217,7 @@ export function ServiceDetailModal({
                     block.type === 'image' ? (
                       <figure
                         key={`service-content-image-${index}`}
-                        className="overflow-hidden rounded-xl border border-white/10 bg-black/30"
+                        className="overflow-hidden rounded-xl border border-cyan-100/18 bg-[#03101b]"
                       >
                         <img
                           src={block.value}
@@ -229,7 +229,7 @@ export function ServiceDetailModal({
                     ) : (
                       <p
                         key={`service-content-text-${index}`}
-                        className="whitespace-pre-line text-sm leading-relaxed text-gray-300"
+                        className="whitespace-pre-line text-sm leading-relaxed text-cyan-50/72"
                       >
                         {block.value}
                       </p>
@@ -238,7 +238,7 @@ export function ServiceDetailModal({
                 )}
               </div>
               {service.subtitle ? (
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="mt-3 text-xs text-cyan-50/52">
                   {service.subtitle}
                 </p>
               ) : null}
@@ -246,14 +246,14 @@ export function ServiceDetailModal({
 
             {/* Color Selection */}
             <div className="mb-6">
-              <p className="text-sm text-gray-400 mb-3">색상</p>
+              <p className="mb-3 text-sm text-cyan-50/62">색상</p>
               <div className="flex gap-3">
                 {(service.colors ?? []).map((color, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedColor(idx)}
                     className={`w-12 h-12 rounded-full border-2 transition-all ${
-                      selectedColor === idx ? 'border-white scale-110' : 'border-gray-600'
+                      selectedColor === idx ? 'scale-110 border-cyan-50' : 'border-cyan-100/35'
                     }`}
                     style={{ backgroundColor: color }}
                     aria-label={`색상 ${idx + 1}`}
@@ -269,7 +269,7 @@ export function ServiceDetailModal({
                   type="button"
                   onClick={() => service && onPaidFileDownload?.(service)}
                   disabled={paidFileDownloadPending || !service.downloadFileObjectKey}
-                  className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="h-11 w-full rounded-full border border-cyan-100/32 bg-cyan-200/12 px-5 text-sm font-semibold tracking-[0.2px] text-cyan-50 shadow-md transition-all duration-200 ease-out hover:bg-cyan-200/22 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {paidFileDownloadPending ? '다운로드 링크 준비 중…' : '3D 파일 다운로드'}
                 </button>
@@ -277,7 +277,7 @@ export function ServiceDetailModal({
                 <button
                   type="button"
                   onClick={() => service && onPaidFileCheckout?.(service)}
-                  className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  className="h-11 w-full rounded-full border border-amber-100/35 bg-amber-100/16 px-5 text-sm font-semibold tracking-[0.2px] text-amber-50 shadow-md transition-all duration-200 ease-out hover:bg-amber-100/26 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45"
                 >
                   {`결제하고 다운로드하기 (${paidFilePriceText ?? service.price})`}
                 </button>
@@ -286,7 +286,7 @@ export function ServiceDetailModal({
               <button
                 type="button"
                 onClick={() => service && onAddToCart?.(service)}
-                className="h-11 w-full rounded-full border border-white/15 bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition-all duration-200 ease-out hover:bg-neutral-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                className="h-11 w-full rounded-full border border-amber-100/35 bg-amber-100/16 px-5 text-sm font-semibold tracking-[0.2px] text-amber-50 shadow-md transition-all duration-200 ease-out hover:bg-amber-100/26 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45"
               >
                 장바구니에 담기
               </button>

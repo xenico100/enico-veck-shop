@@ -2,25 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 수정 파일: app/styles/tailwind.css - html/body overflow-x 숨김으로 가로 오버플로우 방지 */
 @layer base {
   html {
-    font-size: 18px;
     scroll-behavior: smooth;
     @apply overflow-x-hidden;
   }
 
   body {
-    @apply overflow-x-hidden text-[17px] leading-relaxed text-neutral-200 antialiased;
+    @apply overflow-x-hidden antialiased;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply text-white;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 

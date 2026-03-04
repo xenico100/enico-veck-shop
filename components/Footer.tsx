@@ -2,45 +2,55 @@
 
 export default function Footer() {
   return (
-    <footer className="relative bg-black text-white border-t border-gray-900 px-4 md:px-8 lg:px-16 py-12 max-w-full">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <h3 className="text-xl tracking-[0.2em]">ZEUS</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Professional Sound Studio<br />
-              제우스 스튜디오
+    <footer className="relative border-t border-cyan-200/20 px-4 pb-10 pt-12 md:px-8 md:pt-16">
+      <div className="section-shell">
+        <div className="tech-panel grid gap-8 p-6 md:grid-cols-[1.1fr_0.8fr_0.8fr] md:p-8">
+          <div>
+            <p className="section-kicker">ZEUS STUDIO</p>
+            <h3 className="mt-3 text-2xl">Hyperreal Sound Partner</h3>
+            <p className="mt-3 text-sm leading-relaxed text-cyan-50/75">
+              Professional recording, localization, sound production,
+              immersive mixing and high-precision mastering.
             </p>
           </div>
-          
-          {/* Contact */}
-          <div className="space-y-4">
-            <h4 className="text-sm tracking-wider text-gray-300">CONTACT</h4>
-            <div className="space-y-2 text-xs text-gray-400">
-              <p>info@zeusstudio.com</p>
+
+          <div>
+            <p className="section-kicker !tracking-[0.24em]">Contact</p>
+            <div className="mt-3 space-y-1.5 text-sm text-cyan-50/75">
+              <p>070@zeus-studio.net</p>
               <p>+82 2-1234-5678</p>
-              <p className="pt-2">서울특별시 강남구 테헤란로 123</p>
+              <p>서울 강남구 양재천로 551 4F</p>
             </div>
           </div>
-          
-          {/* Links */}
-          <div className="space-y-4">
-            <h4 className="text-sm tracking-wider text-gray-300">FOLLOW US</h4>
-            <div className="flex gap-4 text-xs text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">Instagram</a>
-              <a href="#" className="hover:text-white transition-colors">YouTube</a>
-              <a href="#" className="hover:text-white transition-colors">Facebook</a>
+
+          <div>
+            <p className="section-kicker !tracking-[0.24em]">Network</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <a
+                href="#"
+                className="inline-flex rounded-full border border-cyan-200/30 bg-cyan-200/10 px-3 py-1.5 text-cyan-50/85 no-underline transition hover:bg-cyan-200/20"
+              >
+                Instagram
+              </a>
+              <a
+                href="#"
+                className="inline-flex rounded-full border border-cyan-200/30 bg-cyan-200/10 px-3 py-1.5 text-cyan-50/85 no-underline transition hover:bg-cyan-200/20"
+              >
+                YouTube
+              </a>
+              <a
+                href="#"
+                className="inline-flex rounded-full border border-cyan-200/30 bg-cyan-200/10 px-3 py-1.5 text-cyan-50/85 no-underline transition hover:bg-cyan-200/20"
+              >
+                Facebook
+              </a>
             </div>
           </div>
         </div>
-        
-        {/* Copyright */}
-        <div className="mt-12 pt-8 border-t border-gray-900 text-center">
-          <p className="text-xs text-gray-500">
-            © 2025 ZEUS STUDIO. All rights reserved.
-          </p>
-        </div>
+
+        <p className="mt-6 text-center text-xs tracking-[0.14em] text-cyan-50/45">
+          © 2026 ZEUS STUDIO. All rights reserved.
+        </p>
       </div>
     </footer>
   );

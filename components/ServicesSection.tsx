@@ -131,17 +131,17 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const startX = useRef(0);
   const scrollLeft = useRef(0);
   const appleFontClass =
-    '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
+    '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const segmentedContainerClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
-  const serviceSecondaryButtonClass = `h-11 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold tracking-[0.2px] text-white/90 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-white/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
-  const servicePrimaryButtonClass = `h-11 rounded-full bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black no-underline shadow-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-neutral-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
-  const arrowButtonClass = `size-11 rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30`;
-  const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const serviceSecondaryButtonClass = `h-11 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 text-sm font-semibold tracking-[0.2px] text-cyan-50 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-cyan-200/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 ${appleFontClass}`;
+  const servicePrimaryButtonClass = `h-11 rounded-full border border-amber-100/35 bg-amber-100/18 px-5 text-sm font-semibold tracking-[0.2px] text-amber-50 no-underline shadow-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-amber-100/28 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45 ${appleFontClass}`;
+  const arrowButtonClass = `size-11 rounded-full border border-cyan-100/28 bg-cyan-200/12 text-cyan-50 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-cyan-200/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40`;
+  const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-cyan-100/25 bg-cyan-200/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-cyan-50 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-cyan-200/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/35 ${appleFontClass}`;
   const createInputClass =
-    'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/25';
-  const createLabelClass = `text-xs uppercase tracking-[0.18em] text-white/50 ${appleFontClass}`;
+    'w-full rounded-2xl border border-cyan-100/20 bg-cyan-200/[0.08] px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/40 outline-none focus:ring-2 focus:ring-cyan-100/35';
+  const createLabelClass = `text-xs uppercase tracking-[0.18em] text-cyan-50/55 ${appleFontClass}`;
   const adminCloseButtonClass =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-white/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30';
+    'flex h-10 w-10 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/10 text-cyan-50/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-cyan-200/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/35';
   const isAdmin = isAdminUserLike(user);
 
   const getSwatchClass = (color: string) =>
@@ -718,11 +718,17 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     ));
 
   return (
-    <section id="services" className="relative bg-[#0a0a0a] text-white min-h-screen flex flex-col justify-center px-4 md:px-8 lg:px-16 py-20 max-w-full">
-      <div className="max-w-7xl mx-auto w-full">
+    <section
+      id="services"
+      className="relative px-4 py-16 text-white md:px-8 md:py-24"
+    >
+      <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-5 md:p-8">
         {/* Title */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-4xl tracking-tight md:text-5xl">Services</h2>
+          <div>
+            <p className="section-kicker">Services</p>
+            <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">Service Matrix</h2>
+          </div>
           {isAdmin && (
             <button
               type="button"
@@ -758,7 +764,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         {/* Services Carousel */}
         <div className="relative">
           {servicesError && (
-            <div className="mb-6 rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+            <div className="mb-6 rounded-2xl border border-red-300/30 bg-red-300/10 p-4 text-sm text-red-100">
               {servicesError}
             </div>
           )}
@@ -790,7 +796,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
             >
               {servicesLoading && renderServiceSkeletonCards(4)}
               {!servicesLoading && filteredServices.length === 0 && (
-                <div className="flex min-h-[360px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/70">
+                <div className="flex min-h-[360px] w-full items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-8 text-center text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
@@ -800,12 +806,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 return (
                 <div 
                   key={index} 
-                  className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-white/10 transition-all duration-300 ${
+                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden rounded-2xl border border-cyan-200/16 bg-[#071a2acc] shadow-[0_14px_35px_rgba(0,8,14,0.38)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/35 hover:shadow-[0_22px_46px_rgba(0,15,24,0.5)] ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
                   {/* Image */}
-                  <div className="relative w-full h-64 bg-[#0f0f0f] flex items-center justify-center p-8">
+                  <div className="relative flex h-64 w-full items-center justify-center bg-[#04131fd6] p-8">
                     <img
                       src={service.image}
                       alt={service.title}
@@ -817,11 +823,11 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   </div>
                   
                   {/* Color Options */}
-                  <div className="flex gap-2 justify-center py-4">
+                  <div className="flex justify-center gap-2 py-4">
                     {service.colors.map((color, idx) => (
                       <div
                         key={idx}
-                        className={`h-3 w-3 rounded-full border border-gray-600 ${getSwatchClass(color)}`}
+                        className={`h-3 w-3 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
                       />
                     ))}
                   </div>
@@ -829,8 +835,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   {/* Content */}
                   <div className="p-6 flex flex-col flex-1">
                     <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
-                    <p className="text-xs text-gray-500 mb-3">{service.subtitle}</p>
-                    <p className="text-xs text-gray-400 leading-relaxed mb-4 whitespace-pre-line flex-1">
+                    <p className="text-xs text-cyan-100/55 mb-3">{service.subtitle}</p>
+                    <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line flex-1">
                       {previewDescription}
                     </p>
                     <p className="text-sm text-white mb-4">{service.price}</p>
@@ -876,7 +882,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
             <div className="flex gap-4">
               {servicesLoading && renderServiceSkeletonCards(2, true)}
               {!servicesLoading && filteredServices.length === 0 && (
-                <div className="flex min-h-[280px] w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/70">
+                <div className="flex min-h-[280px] w-full items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-6 text-center text-sm text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
@@ -886,12 +892,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 return (
                 <div 
                   key={index} 
-                  className={`flex-shrink-0 w-[280px] flex flex-col bg-[#1a1a1a] rounded-2xl overflow-hidden transition-all duration-300 ${
+                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden rounded-2xl border border-cyan-200/16 bg-[#071a2acc] transition-all duration-300 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
                   {/* Image */}
-                  <div className="relative w-full h-56 bg-[#0f0f0f] flex items-center justify-center p-6">
+                  <div className="relative flex h-56 w-full items-center justify-center bg-[#04131fd6] p-6">
                     <img
                       src={service.image}
                       alt={service.title}
@@ -902,11 +908,11 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   </div>
                   
                   {/* Color Options */}
-                  <div className="flex gap-2 justify-center py-4">
+                  <div className="flex justify-center gap-2 py-4">
                     {service.colors.map((color, idx) => (
                       <div
                         key={idx}
-                        className={`h-3 w-3 rounded-full border border-gray-600 ${getSwatchClass(color)}`}
+                        className={`h-3 w-3 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
                       />
                     ))}
                   </div>
@@ -914,8 +920,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   {/* Content */}
                   <div className="p-6">
                     <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
-                    <p className="text-xs text-gray-500 mb-3">{service.subtitle}</p>
-                    <p className="text-xs text-gray-400 leading-relaxed mb-4 whitespace-pre-line">
+                    <p className="text-xs text-cyan-100/55 mb-3">{service.subtitle}</p>
+                    <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line">
                       {previewDescription}
                     </p>
                     <p className="text-sm text-white mb-4">{service.price}</p>
@@ -955,16 +961,16 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           }}
         >
           <div
-            className={`w-full max-w-2xl rounded-3xl border border-white/10 bg-black/70 p-5 shadow-2xl backdrop-blur-xl md:p-6 ${appleFontClass}`}
+            className={`w-full max-w-2xl rounded-3xl border border-cyan-100/25 bg-[#041221ee] p-5 shadow-2xl backdrop-blur-xl md:p-6 ${appleFontClass}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-white/50">Services</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-cyan-50/55">Services</p>
                 <h3 className="mt-2 text-lg font-semibold tracking-tight text-white">
                   게시물 작성
                 </h3>
-                <p className="mt-1 text-sm text-white/60">
+                <p className="mt-1 text-sm text-cyan-50/68">
                   Services 섹션용 새 게시글을 생성합니다.
                 </p>
               </div>
@@ -1054,7 +1060,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   placeholder="상세 설명"
                   disabled={createSubmitting || createContentUploading}
                 />
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-cyan-50/55">
                   {createContentUploading
                     ? '이미지 업로드 중... 완료되면 상세 내용에 URL이 자동 추가됩니다.'
                     : '이미지를 이 칸으로 드래그하면 자동 업로드 후 상세 내용에 삽입됩니다.'}
@@ -1082,17 +1088,17 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   multiple
                   onChange={handleCreateFilesChange}
                   disabled={createSubmitting}
-                  className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/15 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white/85 hover:file:bg-white/20"
+                  className="block w-full text-sm text-cyan-50/82 file:mr-3 file:rounded-full file:border file:border-cyan-100/25 file:bg-cyan-200/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-cyan-50/90 hover:file:bg-cyan-200/20"
                 />
                 {createForm.files.length > 0 && (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-cyan-50/55">
                     선택됨: {createForm.files.map((file) => file.name).join(', ')}
                   </p>
                 )}
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <label className="flex items-center gap-2 text-sm text-white/80">
+              <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-4">
+                <label className="flex items-center gap-2 text-sm text-cyan-50/82">
                   <input
                     type="checkbox"
                     checked={createForm.is_paid_file}
@@ -1109,12 +1115,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                             })
                       }));
                     }}
-                    className="h-4 w-4 rounded border-white/20 bg-white/10"
+                    className="h-4 w-4 rounded border-cyan-100/25 bg-cyan-200/10"
                     disabled={createSubmitting}
                   />
                   유료 3D 파일 포함
                 </label>
-                <p className="mt-2 text-xs text-white/50">
+                <p className="mt-2 text-xs text-cyan-50/55">
                   체크 시 결제 완료 사용자에게만 3D 파일 다운로드 버튼이 노출됩니다.
                 </p>
 
@@ -1140,9 +1146,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                         type="file"
                         onChange={handlePaidDownloadFileChange}
                         disabled={createSubmitting}
-                        className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/15 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white/85 hover:file:bg-white/20"
+                        className="block w-full text-sm text-cyan-50/82 file:mr-3 file:rounded-full file:border file:border-cyan-100/25 file:bg-cyan-200/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-cyan-50/90 hover:file:bg-cyan-200/20"
                       />
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-cyan-50/55">
                         {createForm.paid_download_file
                           ? `선택됨: ${createForm.paid_download_file.name} · ${createForm.paid_download_file.type || 'unknown'} · ${createForm.paid_download_file.size.toLocaleString()} bytes`
                           : '게시글 생성 후 Presigned PUT으로 R2에 업로드되고 object key가 저장됩니다.'}
@@ -1152,12 +1158,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 )}
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-white/80">
+              <label className="flex items-center gap-2 text-sm text-cyan-50/82">
                 <input
                   type="checkbox"
                   checked={createForm.is_published}
                   onChange={(e) => handleCreateFormFieldChange('is_published', e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 bg-white/10"
+                  className="h-4 w-4 rounded border-cyan-100/25 bg-cyan-200/10"
                   disabled={createSubmitting}
                 />
                 게시글 공개
@@ -1169,7 +1175,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 </div>
               )}
               {createMessage && (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+                <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-3 text-sm text-cyan-50/82">
                   {createMessage}
                 </div>
               )}

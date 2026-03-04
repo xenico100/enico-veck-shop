@@ -593,11 +593,12 @@ export default function CommunityBoard() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <div className="rounded-3xl border border-cyan-100/20 bg-cyan-200/10 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-white">커뮤니티 자유게시판</h1>
-            <p className="mt-2 text-sm text-neutral-300">
+            <p className="section-kicker !tracking-[0.24em]">Community</p>
+            <h1 className="mt-2 text-2xl font-semibold text-white">커뮤니티 자유게시판</h1>
+            <p className="mt-2 text-sm text-cyan-50/72">
               회원 누구나 자유롭게 글을 쓰고 댓글로 소통할 수 있습니다.
             </p>
           </div>
@@ -609,7 +610,7 @@ export default function CommunityBoard() {
                 setCreateOpen(true);
               }}
               disabled={submitting}
-              className="inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full border border-amber-100/35 bg-amber-100/15 px-4 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-100/25 disabled:opacity-60"
             >
               글쓰기
             </button>
@@ -617,7 +618,7 @@ export default function CommunityBoard() {
               type="button"
               onClick={() => void loadPosts()}
               disabled={loading || submitting}
-              className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-2 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
             >
               새로고침
             </button>
@@ -626,13 +627,13 @@ export default function CommunityBoard() {
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm text-rose-100">
+        <div className="rounded-2xl border border-rose-300/35 bg-rose-500/10 p-4 text-sm text-rose-100">
           {error}
         </div>
       )}
 
       {setupNotice && !error && (
-        <div className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <div className="rounded-2xl border border-amber-300/35 bg-amber-500/10 p-4 text-sm text-amber-100">
           {setupNotice}
         </div>
       )}
@@ -651,7 +652,7 @@ export default function CommunityBoard() {
           />
           <form
             onSubmit={handleCreatePost}
-            className="relative z-[91] w-full max-w-2xl space-y-3 rounded-3xl border border-white/10 bg-black p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
+            className="relative z-[91] w-full max-w-2xl space-y-3 rounded-3xl border border-cyan-100/25 bg-[#041221f2] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
           >
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-white">게시글 작성</h2>
@@ -662,13 +663,13 @@ export default function CommunityBoard() {
                   setCreateOpen(false);
                 }}
                 disabled={submitting}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
               >
                 닫기
               </button>
             </div>
             {!isLoggedIn ? (
-              <p className="text-sm text-neutral-300">
+              <p className="text-sm text-cyan-50/72">
                 글 작성은 로그인 후 가능합니다.{' '}
                 <Link href="/signin" className="underline underline-offset-4">
                   로그인하러 가기
@@ -681,7 +682,7 @@ export default function CommunityBoard() {
                   onChange={(event) => setCreateTitle(event.target.value)}
                   maxLength={160}
                   placeholder="제목"
-                  className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+                  className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
                 />
                 <textarea
                   value={createContent}
@@ -689,9 +690,9 @@ export default function CommunityBoard() {
                   rows={6}
                   maxLength={10000}
                   placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
-                  className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+                  className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
                 />
-                <p className="text-xs text-white/55">
+                <p className="text-xs text-cyan-50/55">
                   유튜브 링크를 한 줄에 단독으로 입력하면 플레이어로 표시됩니다.
                 </p>
                 {isAdmin && (
@@ -709,7 +710,7 @@ export default function CommunityBoard() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-full border border-amber-100/35 bg-amber-100/15 px-5 py-2.5 text-sm font-semibold text-amber-50 transition hover:bg-amber-100/25 disabled:opacity-60"
                   >
                     {submitting ? '저장 중...' : '게시글 올리기'}
                   </button>
@@ -720,7 +721,7 @@ export default function CommunityBoard() {
                       setCreateOpen(false);
                     }}
                     disabled={submitting}
-                    className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                    className="inline-flex items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-2 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
                   >
                     취소
                   </button>
@@ -732,7 +733,7 @@ export default function CommunityBoard() {
       )}
 
       {loading ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white/70">
+        <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-5 text-sm text-cyan-50/74">
           게시글을 불러오는 중입니다...
         </div>
       ) : null}
@@ -797,7 +798,7 @@ export default function CommunityBoard() {
             }}
             className="absolute inset-0 bg-black/80"
           />
-          <div className="relative z-[91] max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/15 bg-black p-3 sm:p-5">
+          <div className="relative z-[91] max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-cyan-100/25 bg-[#041221f2] p-3 sm:p-5">
             <div className="mb-3 flex justify-end">
               <button
                 type="button"
@@ -806,7 +807,7 @@ export default function CommunityBoard() {
                   setSelectedPostId(null);
                 }}
                 disabled={submitting}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
               >
                 닫기
               </button>
@@ -842,7 +843,7 @@ export default function CommunityBoard() {
       )}
 
       {!loading && posts.length === 0 && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-neutral-300">
+        <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-6 text-center text-sm text-cyan-50/75">
           아직 게시글이 없습니다. 첫 글을 작성해 보세요.
         </div>
       )}
@@ -865,8 +866,8 @@ function CommunityPostTitleRow({
       onClick={onOpen}
       className={
         post.isNotice
-          ? 'w-full rounded-2xl border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-left transition hover:bg-amber-400/15'
-          : 'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:bg-white/10'
+          ? 'w-full rounded-2xl border border-amber-300/35 bg-amber-500/10 px-4 py-3 text-left transition hover:bg-amber-400/16'
+          : 'w-full rounded-2xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-left transition hover:bg-cyan-200/16'
       }
     >
       <div className="flex items-center gap-2">
@@ -942,8 +943,8 @@ function CommunityPostCard({
     <article
       className={
         post.isNotice
-          ? 'rounded-3xl border border-amber-300/30 bg-amber-500/10 p-5'
-          : 'rounded-3xl border border-white/10 bg-white/5 p-5'
+          ? 'rounded-3xl border border-amber-300/35 bg-amber-500/10 p-5'
+          : 'rounded-3xl border border-cyan-100/20 bg-cyan-200/10 p-5'
       }
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -973,7 +974,7 @@ function CommunityPostCard({
                 type="button"
                 onClick={onOpenEdit}
                 disabled={submitting}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
               >
                 수정
               </button>
@@ -982,7 +983,7 @@ function CommunityPostCard({
                 type="button"
                 onClick={onCloseEdit}
                 disabled={submitting}
-                className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
               >
                 취소
               </button>
@@ -991,7 +992,7 @@ function CommunityPostCard({
               type="button"
               onClick={onDeletePost}
               disabled={submitting}
-              className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/20 disabled:opacity-60"
+              className="rounded-full border border-rose-300/35 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/24 disabled:opacity-60"
             >
               삭제
             </button>
@@ -1011,7 +1012,7 @@ function CommunityPostCard({
             value={editTitle}
             onChange={(event) => onEditTitleChange(event.target.value)}
             maxLength={160}
-            className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
           />
           <textarea
             value={editContent}
@@ -1019,7 +1020,7 @@ function CommunityPostCard({
             rows={4}
             maxLength={10000}
             placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
-            className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
           />
           {isAdmin && (
             <label className="inline-flex items-center gap-2 text-sm text-amber-100">
@@ -1037,7 +1038,7 @@ function CommunityPostCard({
               type="button"
               onClick={onUpdatePost}
               disabled={submitting}
-              className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-60"
+              className="rounded-full border border-amber-100/35 bg-amber-100/15 px-4 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-100/25 disabled:opacity-60"
             >
               저장
             </button>
@@ -1053,7 +1054,7 @@ function CommunityPostCard({
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
             post.viewerReaction === 'like'
               ? 'border-emerald-300/50 bg-emerald-400/15 text-emerald-100'
-              : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+              : 'border-cyan-100/30 bg-cyan-200/10 text-cyan-50 hover:bg-cyan-200/20'
           }`}
           title={isLoggedIn ? '좋아요' : '로그인 후 사용할 수 있습니다.'}
         >
@@ -1067,7 +1068,7 @@ function CommunityPostCard({
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
             post.viewerReaction === 'dislike'
               ? 'border-rose-300/50 bg-rose-400/15 text-rose-100'
-              : 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+              : 'border-cyan-100/30 bg-cyan-200/10 text-cyan-50 hover:bg-cyan-200/20'
           }`}
           title={isLoggedIn ? '싫어요' : '로그인 후 사용할 수 있습니다.'}
         >
@@ -1077,8 +1078,8 @@ function CommunityPostCard({
         {!isLoggedIn && <span className="text-xs text-white/45">로그인 후 반응을 남길 수 있습니다.</span>}
       </div>
 
-      <div className="mt-5 space-y-3 rounded-2xl border border-white/10 bg-black/35 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+      <div className="mt-5 space-y-3 rounded-2xl border border-cyan-100/20 bg-[#041320b0] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-50/60">
           댓글 {post.comments.length}
         </p>
         {post.comments.length === 0 ? (
@@ -1092,7 +1093,7 @@ function CommunityPostCard({
               return (
                 <li
                   key={comment.id}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  className="rounded-xl border border-cyan-100/18 bg-cyan-200/10 px-3 py-2"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -1110,7 +1111,7 @@ function CommunityPostCard({
                         type="button"
                         onClick={() => onDeleteComment(comment.id)}
                         disabled={submitting}
-                        className="rounded-full border border-rose-300/25 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-100 transition hover:bg-rose-500/20 disabled:opacity-60"
+                        className="rounded-full border border-rose-300/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-100 transition hover:bg-rose-500/22 disabled:opacity-60"
                       >
                         삭제
                       </button>
@@ -1137,14 +1138,14 @@ function CommunityPostCard({
               rows={2}
               maxLength={2000}
               placeholder="댓글을 입력해 주세요."
-              className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-3 py-2 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
             />
             <div>
               <button
                 type="button"
                 onClick={onCreateComment}
                 disabled={submitting}
-                className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 disabled:opacity-60"
+                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
               >
                 댓글 등록
               </button>

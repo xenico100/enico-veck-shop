@@ -7,24 +7,31 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
-  const appleFontClass =
-    '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-6 flex justify-between items-start max-w-full">
-      <div className={`flex flex-col text-white ${appleFontClass}`}>
-        <span className="mb-1 text-xs tracking-[0.3em] text-white/80">STUDIO</span>
-        <span className="text-2xl tracking-[0.2em]">ZEUS</span>
-      </div>
+    <header className="fixed inset-x-0 top-0 z-40 px-4 pt-4 md:px-8 md:pt-6">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between rounded-2xl border border-cyan-200/25 bg-[#05111fd9] px-4 py-3 shadow-[0_12px_42px_rgba(1,11,20,0.48)] backdrop-blur-xl md:px-6 md:py-4">
+        <a href="#home" className="group flex items-center gap-3 no-underline">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-200/10 text-[10px] font-semibold tracking-[0.28em] text-cyan-100">
+            ZS
+          </span>
+          <div>
+            <p className="section-kicker !text-[0.58rem] !tracking-[0.3em]">Audio Intelligence</p>
+            <p className="display-font text-sm text-white md:text-lg">ZEUS STUDIO</p>
+          </div>
+        </a>
 
-      <button
-        onClick={onMenuClick}
-        className={`group flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-neutral-200 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.12] hover:text-white ${appleFontClass}`}
-        aria-label="메뉴 열기"
-      >
-        <span className="text-xs font-medium tracking-[0.3em]">MENU</span>
-        <Menu className="h-5 w-5 transition-transform duration-200 ease-in-out group-hover:scale-105" />
-      </button>
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="tech-chip hidden md:inline-flex">Realtime Session</span>
+          <button
+            onClick={onMenuClick}
+            className="group inline-flex items-center gap-2.5 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 py-2 text-xs font-semibold tracking-[0.22em] text-cyan-50 transition duration-200 hover:border-cyan-100/50 hover:bg-cyan-200/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40"
+            aria-label="메뉴 열기"
+          >
+            <span>MENU</span>
+            <Menu className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
+          </button>
+        </div>
+      </div>
     </header>
   );
 }

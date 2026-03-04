@@ -13,7 +13,7 @@ type ActionButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const baseClass =
-  'inline-flex items-center justify-center rounded-full border transition font-semibold focus:outline-none focus:ring-2 focus:ring-white/40 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
+  'inline-flex items-center justify-center rounded-full border transition font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-100/45 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50';
 
 const sizeClasses: Record<ActionButtonSize, string> = {
   sm: 'h-9 px-4 text-sm',
@@ -21,16 +21,19 @@ const sizeClasses: Record<ActionButtonSize, string> = {
 };
 
 const variantClasses: Record<Exclude<ActionButtonVariant, 'pill'>, string> = {
-  primary: 'bg-white text-black border-white/40 shadow-md hover:bg-white/90',
-  secondary: 'bg-white/10 text-white border-white/20 backdrop-blur-sm hover:bg-white/15',
-  ghost: 'bg-transparent text-white border-transparent hover:bg-white/10',
-  destructive: 'bg-red-500/20 text-red-200 border-red-500/30 hover:bg-red-500/25'
+  primary:
+    'border-amber-100/35 bg-amber-100/20 text-amber-50 shadow-md hover:bg-amber-100/30',
+  secondary:
+    'border-cyan-100/30 bg-cyan-200/10 text-cyan-50 backdrop-blur-sm hover:bg-cyan-200/20',
+  ghost: 'border-transparent bg-transparent text-cyan-50 hover:bg-cyan-200/10',
+  destructive:
+    'border-rose-300/35 bg-rose-500/15 text-rose-100 hover:bg-rose-500/24'
 };
 
 const pillVariantClass = (active: boolean) =>
   active
-    ? 'bg-white text-black border-white/40 shadow-md hover:bg-white/90'
-    : 'bg-white/10 text-white border-white/20 hover:bg-white/15';
+    ? 'border-amber-100/45 bg-amber-100/20 text-amber-50 shadow-md hover:bg-amber-100/30'
+    : 'border-cyan-100/30 bg-cyan-200/10 text-cyan-50 hover:bg-cyan-200/20';
 
 export default function ActionButton({
   variant = 'secondary',

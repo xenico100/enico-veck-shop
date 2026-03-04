@@ -2133,98 +2133,101 @@ export default function StudioSection({
 
       <section
         id="studio"
-        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden bg-black py-20 text-white"
+        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-16 text-white md:px-8 md:py-24"
       >
-        <div className="mb-10 flex items-start justify-between gap-4 px-4 md:px-8 lg:px-16">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.34em] text-white/45">
-              Studio
-            </p>
-            <h2 className="text-4xl tracking-tight md:text-5xl">Studio</h2>
-            <p className="max-w-2xl text-sm leading-relaxed text-white/55 md:text-base">
-              1번 줄은 일반 멤버십, 2~4번 줄은 멤버십 등급별 게시물입니다.
-            </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">
-                현재 권한
-              </span>
-              <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/80">
-                {viewerMembershipTierLoading
-                  ? '확인중...'
-                  : viewerMembershipLabel}
-              </span>
+        <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-5 md:p-8">
+          <div className="mb-10 flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <p className="section-kicker">
+                Studio
+              </p>
+              <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">Studio Flux</h2>
+              <p className="max-w-2xl text-sm leading-relaxed text-cyan-50/72 md:text-base">
+                1번 줄은 일반 멤버십, 2~4번 줄은 멤버십 등급별 게시물입니다.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] uppercase tracking-[0.18em] text-cyan-50/50">
+                  현재 권한
+                </span>
+                <span className="inline-flex items-center rounded-full border border-cyan-100/25 bg-cyan-200/10 px-3 py-1 text-xs text-cyan-50/90">
+                  {viewerMembershipTierLoading
+                    ? '확인중...'
+                    : viewerMembershipLabel}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleOpenShorts(studioPostIdFromQuery)}
+                disabled={shortsPosts.length === 0}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 text-sm font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Clapperboard className="h-4 w-4" />
+                숏폼 보기
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="mb-12 space-y-4">
+            {postsLoading ? (
+              Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map(
+                (_, rowIndex) => (
+                  <div
+                    key={`studio-skeleton-row-${rowIndex}`}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex gap-4" style={{ width: 'fit-content' }}>
+                      {Array.from({ length: 3 }).map((__, cardIndex) => (
+                        <div
+                          key={`studio-skeleton-${rowIndex}-${cardIndex}`}
+                          className="h-[130px] w-[220px] overflow-hidden rounded-xl border border-cyan-100/20 bg-cyan-200/[0.06] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
+                        >
+                          <div className="h-full w-full animate-pulse bg-cyan-100/[0.08]" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )
+            ) : (
+              <>
+                {studioPosts.length === 0 ? (
+                  <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/[0.08] px-5 py-4 text-sm text-cyan-50/78">
+                    실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로
+                    채워져 있습니다.
+                    {postsError ? (
+                      <p className="mt-2 text-xs text-red-300/90">{postsError}</p>
+                    ) : null}
+                  </div>
+                ) : postsError ? (
+                  <div className="rounded-2xl border border-red-300/30 bg-red-500/10 px-5 py-4 text-sm text-red-100">
+                    {postsError}
+                  </div>
+                ) : null}
+                {displayRows.map((row, rowIndex) => renderRow(row, rowIndex))}
+              </>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end">
             <button
               type="button"
-              onClick={() => handleOpenShorts(studioPostIdFromQuery)}
-              disabled={shortsPosts.length === 0}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={togglePlayPause}
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 backdrop-blur-md transition-colors hover:bg-cyan-200/24 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={isPlaying ? '일시정지' : '재생'}
+              disabled={displayRows.every((row) =>
+                row.posts.every((post) => post.is_placeholder)
+              )}
             >
-              <Clapperboard className="h-4 w-4" />
-              숏폼 보기
+              {isPlaying ? (
+                <Pause className="h-5 w-5 text-cyan-50" fill="currentColor" />
+              ) : (
+                <Play className="h-5 w-5 text-cyan-50" fill="currentColor" />
+              )}
             </button>
           </div>
-        </div>
-
-        <div className="mb-12 space-y-4 px-4 md:px-6 2xl:px-16">
-          {postsLoading ? (
-            Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map(
-              (_, rowIndex) => (
-                <div
-                  key={`studio-skeleton-row-${rowIndex}`}
-                  className="overflow-hidden"
-                >
-                  <div className="flex gap-4" style={{ width: 'fit-content' }}>
-                    {Array.from({ length: 3 }).map((__, cardIndex) => (
-                      <div
-                        key={`studio-skeleton-${rowIndex}-${cardIndex}`}
-                        className="h-[130px] w-[220px] overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
-                      >
-                        <div className="h-full w-full animate-pulse bg-white/[0.05]" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            )
-          ) : (
-            <>
-              {studioPosts.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/75">
-                  실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로
-                  채워져 있습니다.
-                  {postsError ? (
-                    <p className="mt-2 text-xs text-red-300/90">{postsError}</p>
-                  ) : null}
-                </div>
-              ) : postsError ? (
-                <div className="rounded-2xl border border-red-300/20 bg-red-500/10 px-5 py-4 text-sm text-red-100">
-                  {postsError}
-                </div>
-              ) : null}
-              {displayRows.map((row, rowIndex) => renderRow(row, rowIndex))}
-            </>
-          )}
-        </div>
-
-        <div className="mt-6 flex justify-end px-4 md:px-8 lg:px-16">
-          <button
-            type="button"
-            onClick={togglePlayPause}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label={isPlaying ? '일시정지' : '재생'}
-            disabled={displayRows.every((row) =>
-              row.posts.every((post) => post.is_placeholder)
-            )}
-          >
-            {isPlaying ? (
-              <Pause className="h-5 w-5 text-white" fill="white" />
-            ) : (
-              <Play className="h-5 w-5 text-white" fill="white" />
-            )}
-          </button>
         </div>
       </section>
 

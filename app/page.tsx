@@ -15,7 +15,7 @@ const StudioSectionWithSearchParams = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center text-sm text-white/60 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center text-sm text-cyan-50/70 sm:px-6 lg:px-8">
         Studio 콘텐츠를 불러오는 중...
       </div>
     )
@@ -24,7 +24,7 @@ const StudioSectionWithSearchParams = dynamic(
 const CommunityBoard = dynamic(() => import('../components/CommunityBoard'), {
   ssr: false,
   loading: () => (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-12 text-center text-sm text-white/60 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-12 text-center text-sm text-cyan-50/70 sm:px-6 lg:px-8">
       커뮤니티를 불러오는 중...
     </div>
   )
@@ -61,7 +61,13 @@ export default function LandingPage() {
   };
 
   return (
-    <main className="relative min-h-screen bg-black text-white">
+    <main className="relative min-h-screen overflow-hidden text-slate-100">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <span className="ambient-orb left-[-8rem] top-[10vh] h-72 w-72 bg-[radial-gradient(circle,rgba(129,232,255,0.4)_0%,rgba(129,232,255,0)_72%)]" />
+        <span className="ambient-orb right-[-6rem] top-[34vh] h-80 w-80 bg-[radial-gradient(circle,rgba(255,182,92,0.26)_0%,rgba(255,182,92,0)_72%)] [animation-delay:1.8s]" />
+        <span className="ambient-orb bottom-[-10rem] left-[30vw] h-96 w-96 bg-[radial-gradient(circle,rgba(92,209,255,0.2)_0%,rgba(92,209,255,0)_72%)] [animation-delay:3.4s]" />
+      </div>
+
       <Header onMenuClick={openMenu} />
 
       {hasOpenedMenu ? (
@@ -78,16 +84,19 @@ export default function LandingPage() {
         />
       ) : null}
 
-      <div id="home"><MainContent /></div>
-      <div id="about"><AboutSection /></div>
-      <div id="services"><ServicesSection onOpenCart={openCart} /></div>
-      <div id="studio">
+      <MainContent />
+      <AboutSection />
+      <ServicesSection onOpenCart={openCart} />
+      <div className="relative">
         <Suspense fallback={<div>Loading...</div>}>
           <StudioSectionWithSearchParams />
         </Suspense>
       </div>
-      <section id="community" className="mx-auto w-full max-w-5xl px-4 pb-20 pt-12 sm:px-6 lg:px-8">
-        <CommunityBoard />
+
+      <section id="community" className="section-shell pb-24 pt-8 md:pt-14">
+        <div className="tech-panel scanline animate-rise p-4 sm:p-6 md:p-8">
+          <CommunityBoard />
+        </div>
       </section>
 
       <Footer />

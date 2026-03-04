@@ -1,56 +1,75 @@
 'use client';
 
-const studioImage = "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2070&auto=format&fit=crop";
+const studioImage = '/images/studio/astudiomain.png';
+
+const featureRows = [
+  {
+    title: 'Hyperreal Spatial Control',
+    description:
+      '정밀한 음장 설계와 레이어링으로 실제보다 더 선명한 공간감을 구현합니다.'
+  },
+  {
+    title: 'AI-Assisted Mix Pipeline',
+    description:
+      '신호 분석 기반의 빠른 프리셋 제안과 엔지니어 수작업 튜닝을 결합합니다.'
+  },
+  {
+    title: 'Cross-Media Mastering',
+    description:
+      '광고, 게임, OTT, 숏폼까지 매체별 출력 규격에 맞춰 다중 마스터를 제공합니다.'
+  }
+];
 
 export default function AboutSection() {
   return (
-    <section id="about" className="relative bg-black text-white min-h-screen flex items-center justify-center px-4 md:px-8 lg:px-16 py-20 max-w-full">
-      <div className="max-w-3xl mx-auto w-full flex flex-col items-center text-center space-y-12">
-        {/* Title */}
-        <h2 className="text-5xl md:text-6xl tracking-wide">About</h2>
-        
-        {/* Image */}
-        <div className="relative w-full max-w-2xl">
-          <img 
-            src={studioImage} 
-            alt="ZEUS Studio Recording Equipment"
-            className="w-full h-auto rounded-lg"
-          />
+    <section id="about" className="relative px-4 py-16 md:px-8 md:py-24">
+      <div className="section-shell">
+        <div className="mb-8 animate-rise">
+          <p className="section-kicker">About</p>
+          <h2 className="section-title">High-Tech Acoustic Engine</h2>
         </div>
-        
-        {/* Text Content */}
-        <div className="space-y-6 text-sm leading-relaxed">
-          <p className="text-gray-300">
-            제우스 스튜디오는<br />
-            전문적인 오디오 작업과 다양한 서비스를<br />
-            최고의 퀄리티로 제공하기 위해 노력하고 있습니다.
-          </p>
-          
-          <p className="text-gray-300">
-            제우스 스튜디오의 전문적인 엔지니어들과 믿을만 있는 매니저들이<br />
-            최고의 예술 작업과 프로젝트 컨설팅 서비스를 약속드립니다.
-          </p>
-          
-          <p className="text-gray-300">
-            항상 최신을 다하여 최고의 콘텐츠를 만들 수 있도록 노력하겠습니다.<br />
-            앞서가 다디어로 소통과 작업을 최고로 대하겠습니다.
-          </p>
-          
-          <div className="pt-4 space-y-4 text-gray-400 text-xs">
-            <p>
-              <strong className="text-white">ZEUS STUDIO</strong> provides high-quality sound works and the best<br />
-              services on sound production & mixing, dubbing etc.
+
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.95fr]">
+          <div className="tech-panel scanline animate-rise overflow-hidden p-2 [animation-delay:0.08s]">
+            <div className="relative overflow-hidden rounded-[1.1rem] border border-cyan-100/25 bg-[#030a10]">
+              <img
+                src={studioImage}
+                alt="ZEUS Studio Control Room"
+                className="h-[300px] w-full object-cover opacity-92 md:h-[520px]"
+                loading="lazy"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#030a10] via-[#030a10a8] to-transparent p-4 md:p-6">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-50/70">Control Room View</p>
+                <p className="mt-1 text-sm text-cyan-50/90 md:text-base">
+                  Room-accurate monitoring environment with precision low-end management.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="tech-panel animate-rise space-y-5 p-5 [animation-delay:0.14s] md:p-7">
+            <p className="text-sm leading-relaxed text-cyan-50/82 md:text-base">
+              제우스 스튜디오는 엔지니어의 감각과 디지털 음향 기술을 결합해
+              빠르고 정확한 제작 시스템을 운영합니다. 단순 녹음을 넘어,
+              콘텐츠 세계관에 맞는 사운드 리얼리티를 설계합니다.
             </p>
-            
-            <p>
-              We promise that our professional sound engineers and reliable<br />
-              project managers do our best to support your project and<br />
-              expand your content business with outstanding sound works.
-            </p>
-            
-            <p>
-              <strong className="text-white">ZEUS STUDIO</strong> will be your capable production partner of your<br />
-              future business.
+
+            <div className="space-y-3">
+              {featureRows.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-xl border border-cyan-200/20 bg-[#071a28cc] p-4"
+                >
+                  <h3 className="text-sm text-white md:text-base">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-cyan-50/72">
+                    {item.description}
+                  </p>
+                </article>
+              ))}
+            </div>
+
+            <p className="rounded-xl border border-amber-100/25 bg-amber-100/10 px-4 py-3 text-sm text-amber-50/85">
+              "ZEUS STUDIO will be your production partner for scalable audio business."
             </p>
           </div>
         </div>
