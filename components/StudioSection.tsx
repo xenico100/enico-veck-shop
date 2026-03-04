@@ -77,6 +77,19 @@ type StudioShortsMediaResponse = {
   message?: string;
 };
 
+type StudioMediaBatchItem = {
+  postId: string;
+  videoUrl: string | null;
+  fallbackImageUrl: string | null;
+  hasVideo: boolean;
+  showing_public_only?: boolean;
+};
+
+type StudioMediaBatchResponse = {
+  data?: StudioMediaBatchItem[];
+  message?: string;
+};
+
 type StudioShortsMediaState = {
   loading: boolean;
   loaded: boolean;
@@ -813,93 +826,103 @@ function StudioShortsModal({
     []
   );
 
-  const loadPostMedia = useCallback(async (postId: string) => {
-    const normalizedPostId = postId.trim();
-    if (!normalizedPostId) return false;
-
-    const current = mediaByPostIdRef.current[normalizedPostId];
-    const retryCount = current?.retryCount ?? 0;
-    if (current?.loading) return false;
-    if (current?.videoUrl) return true;
-    if (current?.loaded && !current.error) return false;
-    if (retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY) return false;
-
-    setMediaByPostId((prev) => ({
-      ...prev,
-      [normalizedPostId]: {
-        ...(prev[normalizedPostId] ?? buildInitialShortsMediaState()),
-        loading: true,
-        loaded: false,
-        error: null,
-        retryCount
-      }
-    }));
-
-    try {
-      const previewResponse = await fetch(
-        `/api/studio/media/${encodeURIComponent(normalizedPostId)}?preview=1`,
-        {
-          cache: 'no-store'
-        }
+  const loadBatchMedia = useCallback(
+    async (postIds: string[]) => {
+      const normalizedIds = Array.from(
+        new Set(postIds.map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean))
       );
-      const previewPayload = (await previewResponse
-        .json()
-        .catch(() => ({}))) as StudioShortsMediaResponse;
-      if (!previewResponse.ok) {
-        throw new Error(
-          previewPayload.message || '게시물 미디어를 불러오지 못했습니다.'
-        );
-      }
+      const targetIds = normalizedIds.filter((id) => {
+        const current = mediaByPostIdRef.current[id];
+        if (current?.loading) return false;
+        if (current?.videoUrl) return false;
+        if (current?.loaded && !current.error) return false;
+        if ((current?.retryCount ?? 0) >= SHORTS_MEDIA_FETCH_MAX_RETRY) return false;
+        return true;
+      });
+      if (targetIds.length === 0) return {} as Record<string, StudioMediaBatchItem>;
 
-      let rows = Array.isArray(previewPayload.data) ? previewPayload.data : [];
-      if (!rows.some((row) => row.kind === 'video')) {
-        const fullResponse = await fetch(
-          `/api/studio/media/${encodeURIComponent(normalizedPostId)}`,
-          {
-            cache: 'no-store'
+      setMediaByPostId((prev) => {
+        const next = { ...prev };
+        targetIds.forEach((id) => {
+          const prevState = prev[id] ?? buildInitialShortsMediaState();
+          next[id] = {
+            ...prevState,
+            loading: true,
+            error: null
+          };
+        });
+        return next;
+      });
+
+      try {
+        const response = await fetch('/api/studio/media/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify({ postIds: targetIds })
+        });
+        const payload = (await response.json().catch(() => ({}))) as StudioMediaBatchResponse;
+        if (!response.ok) {
+          throw new Error(payload?.message || '게시물 미디어를 불러오지 못했습니다.');
+        }
+
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        const rowMap = new Map<string, StudioMediaBatchItem>();
+        rows.forEach((row) => {
+          if (row?.postId) {
+            rowMap.set(row.postId, row);
           }
-        );
-        const fullPayload = (await fullResponse
-          .json()
-          .catch(() => ({}))) as StudioShortsMediaResponse;
-        if (fullResponse.ok && Array.isArray(fullPayload.data)) {
-          rows = fullPayload.data;
-        }
+        });
+
+        setMediaByPostId((prev) => {
+          const next = { ...prev };
+          targetIds.forEach((id) => {
+            const incoming = rowMap.get(id);
+            const prevState = prev[id] ?? buildInitialShortsMediaState();
+            const hasVideo = Boolean(incoming?.videoUrl);
+            next[id] = {
+              loading: false,
+              loaded: true,
+              videoUrl: incoming?.videoUrl ?? null,
+              fallbackImageUrl: incoming?.fallbackImageUrl ?? null,
+              error: hasVideo ? null : '영상 미디어가 없습니다.',
+              retryCount: hasVideo ? prevState.retryCount : (prevState.retryCount ?? 0) + 1
+            };
+          });
+          return next;
+        });
+
+        return rows.reduce<Record<string, StudioMediaBatchItem>>((acc, row) => {
+          if (row?.postId) {
+            acc[row.postId] = row;
+          }
+          return acc;
+        }, {});
+      } catch (error) {
+        setMediaByPostId((prev) => {
+          const next = { ...prev };
+          targetIds.forEach((id) => {
+            const prevState = prev[id] ?? buildInitialShortsMediaState();
+            next[id] = {
+              loading: false,
+              loaded: false,
+              videoUrl: null,
+              fallbackImageUrl: null,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : '게시물 미디어를 불러오지 못했습니다.',
+              retryCount: (prevState.retryCount ?? 0) + 1
+            };
+          });
+          return next;
+        });
+        return {} as Record<string, StudioMediaBatchItem>;
       }
+    },
+    []
+  );
 
-      const firstVideo = rows.find((row) => row.kind === 'video') ?? null;
-      const firstImage = rows.find((row) => row.kind === 'image') ?? null;
-
-      setMediaByPostId((prev) => ({
-        ...prev,
-        [normalizedPostId]: {
-          loading: false,
-          loaded: true,
-          videoUrl: firstVideo?.url ?? null,
-          fallbackImageUrl: firstImage?.url ?? null,
-          error: firstVideo ? null : '영상 미디어가 없습니다.',
-          retryCount: firstVideo ? retryCount : retryCount + 1
-        }
-      }));
-      return Boolean(firstVideo);
-    } catch (error) {
-      setMediaByPostId((prev) => ({
-        ...prev,
-        [normalizedPostId]: {
-          loading: false,
-          loaded: false,
-          videoUrl: null,
-          fallbackImageUrl: null,
-          error:
-            error instanceof Error
-              ? error.message
-              : '게시물 미디어를 불러오지 못했습니다.',
-          retryCount: retryCount + 1
-        }
-      }));
-      return false;
-    }
-  }, []);
 
   const scrollToIndex = useCallback(
     (nextIndex: number, behavior: ScrollBehavior = 'smooth') => {
@@ -941,10 +964,8 @@ function StudioShortsModal({
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
     const preloadTargets = shortsPosts.slice(0, Math.min(shortsPosts.length, 12));
-    preloadTargets.forEach((post) => {
-      void loadPostMedia(post.id);
-    });
-  }, [loadPostMedia, open, shortsPosts]);
+    void loadBatchMedia(preloadTargets.map((post) => post.id));
+  }, [loadBatchMedia, open, shortsPosts]);
 
   useEffect(() => {
     if (!open) return;
@@ -980,10 +1001,8 @@ function StudioShortsModal({
 
     const upcomingIndexes = Array.from({ length: 4 }, (_, offset) => activeIndex + offset + 1)
       .filter((index) => index >= 0 && index < shortsPosts.length);
-    upcomingIndexes.forEach((index) => {
-      void loadPostMedia(shortsPosts[index].id);
-    });
-  }, [activeIndex, loadPostMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
+    void loadBatchMedia(upcomingIndexes.map((index) => shortsPosts[index].id));
+  }, [activeIndex, loadBatchMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -997,11 +1016,11 @@ function StudioShortsModal({
     if (state.retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY) return;
 
     const retryTimer = window.setTimeout(() => {
-      void loadPostMedia(activePost.id);
+      void loadBatchMedia([activePost.id]);
     }, 260);
 
     return () => window.clearTimeout(retryTimer);
-  }, [activeIndex, loadPostMedia, mediaByPostId, open, shortsPosts]);
+  }, [activeIndex, loadBatchMedia, mediaByPostId, open, shortsPosts]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -1036,7 +1055,10 @@ function StudioShortsModal({
             return;
           }
 
-          const hasVideo = await loadPostMedia(postId);
+          const batchResult = await loadBatchMedia([postId]);
+          const hasVideo =
+            batchResult[postId]?.videoUrl ||
+            mediaByPostIdRef.current[postId]?.videoUrl;
           if (cancelled) return;
           if (hasVideo) {
             if (index !== activeIndex) {
@@ -1054,7 +1076,7 @@ function StudioShortsModal({
     return () => {
       cancelled = true;
     };
-  }, [activeIndex, loadPostMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
+  }, [activeIndex, loadBatchMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -1082,11 +1104,13 @@ function StudioShortsModal({
       activeIndex + 1,
       activeIndex + 2
     ];
-    nearIndexes.forEach((index) => {
-      if (index < 0 || index >= shortsPosts.length) return;
-      void loadPostMedia(shortsPosts[index].id);
-    });
-  }, [activeIndex, loadPostMedia, open, shortsPosts]);
+    const ids = nearIndexes
+      .filter((index) => index >= 0 && index < shortsPosts.length)
+      .map((index) => shortsPosts[index].id);
+    if (ids.length > 0) {
+      void loadBatchMedia(ids);
+    }
+  }, [activeIndex, loadBatchMedia, open, shortsPosts]);
 
   useEffect(() => {
     if (!open) return;

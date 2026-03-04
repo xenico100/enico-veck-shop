@@ -36,10 +36,17 @@ type CachedPostAccessRule = {
   expiresAt: number;
 };
 
+type CachedSignedUrl = {
+  url: string;
+  expiresAt: number;
+};
+
 const MEMBERSHIP_TIER_CACHE_TTL_MS = 45 * 1000;
 const POST_ACCESS_CACHE_TTL_MS = 60 * 1000;
+const SIGNED_URL_CACHE_TTL_MS = 5 * 60 * 1000;
 const membershipTierCache = new Map<string, CachedMembershipTier>();
 const postAccessCache = new Map<string, CachedPostAccessRule>();
+const signedUrlCache = new Map<string, CachedSignedUrl>();
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
@@ -113,6 +120,20 @@ const setCachedPostRequiredLevel = (postId: string, requiredLevel: number) => {
     requiredLevel,
     expiresAt: Date.now() + POST_ACCESS_CACHE_TTL_MS
   });
+};
+
+const getCachedSignedUrl = (cacheKey: string) => {
+  const cached = signedUrlCache.get(cacheKey);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    signedUrlCache.delete(cacheKey);
+    return null;
+  }
+  return cached.url;
+};
+
+const setCachedSignedUrl = (cacheKey: string, url: string, ttlMs = SIGNED_URL_CACHE_TTL_MS) => {
+  signedUrlCache.set(cacheKey, { url, expiresAt: Date.now() + ttlMs });
 };
 
 const selectPreviewRows = (rows: StudioMediaRow[]) => {
@@ -298,10 +319,17 @@ export async function GET(request: Request, { params }: RouteContext) {
         mime: row.mime,
         bytes: row.bytes,
         is_free_public: Boolean(row.is_free_public),
-        url: await signR2GetUrl(row.r2_key, {
-          bucketName: row.r2_bucket || undefined,
-          expiresIn: 180
-        })
+        url: await (async () => {
+          const cacheKey = `${row.r2_bucket || ''}:${row.r2_key}`;
+          const cached = getCachedSignedUrl(cacheKey);
+          if (cached) return cached;
+          const signedUrl = await signR2GetUrl(row.r2_key, {
+            bucketName: row.r2_bucket || undefined,
+            expiresIn: 600
+          });
+          setCachedSignedUrl(cacheKey, signedUrl);
+          return signedUrl;
+        })()
       }))
     );
 
