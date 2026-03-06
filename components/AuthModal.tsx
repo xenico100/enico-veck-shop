@@ -33,12 +33,12 @@ export default function AuthModal({
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
   const closeButtonClass =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-[#f5f5f7] backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18]';
+    'flex h-10 w-10 items-center justify-center rounded-full border border-lime-300/25 bg-lime-300/10 text-lime-100 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-lime-300/20';
   const tabGroupClass =
-    'inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md';
+    'inline-flex items-center gap-1 rounded-full border border-lime-300/18 bg-lime-300/8 p-1 backdrop-blur-md';
   const tabButtonBase = `rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] no-underline transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
-  const primaryButtonClass = `w-full rounded-full bg-white py-3 text-sm font-medium text-black transition-colors duration-200 ease-in-out hover:bg-neutral-200 disabled:opacity-50 ${appleFontClass}`;
-  const secondaryButtonClass = `w-full rounded-full border border-white/20 bg-white/10 py-3 text-sm font-medium text-white backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/20 disabled:opacity-50 ${appleFontClass}`;
+  const primaryButtonClass = `w-full rounded-full bg-lime-300/90 py-3 text-sm font-medium text-[#071006] transition-colors duration-200 ease-in-out hover:bg-lime-200 disabled:opacity-50 ${appleFontClass}`;
+  const secondaryButtonClass = `w-full rounded-full border border-orange-300/35 bg-orange-300/12 py-3 text-sm font-medium text-orange-100 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-orange-300/22 disabled:opacity-50 ${appleFontClass}`;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -116,20 +116,20 @@ export default function AuthModal({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[60] bg-black/60" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] bg-black/70" onClick={onClose} />
 
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
-        <div className={`w-full max-w-md rounded-3xl border border-white/10 bg-[#0a0a0a]/95 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ${appleFontClass}`}>
-          <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+        <div className={`w-full max-w-md rounded-3xl border border-lime-300/18 bg-[#070a06]/95 shadow-[0_24px_80px_rgba(0,0,0,0.6)] ${appleFontClass}`}>
+          <div className="flex items-center justify-between border-b border-lime-300/18 px-6 py-5">
             <div className={tabGroupClass}>
               <button
                 type="button"
                 onClick={() => onSwitchMode('login')}
                 className={`${tabButtonBase} ${
                   mode === 'login'
-                    ? 'bg-white text-black hover:bg-neutral-200'
-                    : 'border border-transparent bg-transparent text-white/80 hover:bg-white/20 hover:text-white'
+                    ? 'bg-lime-300 text-[#081008] hover:bg-lime-200'
+                    : 'border border-transparent bg-transparent text-lime-100/80 hover:bg-lime-300/15 hover:text-white'
                 }`}
               >
                 로그인
@@ -139,8 +139,8 @@ export default function AuthModal({
                 onClick={() => onSwitchMode('signup')}
                 className={`${tabButtonBase} ${
                   mode === 'signup'
-                    ? 'bg-white text-black hover:bg-neutral-200'
-                    : 'border border-transparent bg-transparent text-white/80 hover:bg-white/20 hover:text-white'
+                    ? 'bg-lime-300 text-[#081008] hover:bg-lime-200'
+                    : 'border border-transparent bg-transparent text-lime-100/80 hover:bg-lime-300/15 hover:text-white'
                 }`}
               >
                 회원가입
@@ -155,33 +155,33 @@ export default function AuthModal({
           <div className="px-6 py-6 space-y-4">
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs text-gray-500 mb-2">이름</label>
+                <label className="mb-2 block text-xs text-lime-100/55">이름</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white outline-none focus:border-white/20"
+                  className="w-full rounded-xl border border-lime-300/20 bg-lime-300/7 px-4 py-3 text-sm text-lime-100 outline-none focus:border-lime-200/40"
                   placeholder="홍길동"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs text-gray-500 mb-2">이메일</label>
+              <label className="mb-2 block text-xs text-lime-100/55">이메일</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white outline-none focus:border-white/20"
+                className="w-full rounded-xl border border-lime-300/20 bg-lime-300/7 px-4 py-3 text-sm text-lime-100 outline-none focus:border-lime-200/40"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-2">비밀번호</label>
+              <label className="mb-2 block text-xs text-lime-100/55">비밀번호</label>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
-                className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white outline-none focus:border-white/20"
+                className="w-full rounded-xl border border-lime-300/20 bg-lime-300/7 px-4 py-3 text-sm text-lime-100 outline-none focus:border-lime-200/40"
                 placeholder="••••••••"
               />
             </div>
@@ -193,7 +193,7 @@ export default function AuthModal({
               </div>
             )}
             {mode === 'login' && resetMessage && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+              <div className="rounded-2xl border border-lime-300/18 bg-lime-300/8 p-3 text-sm text-lime-100/85">
                 {resetMessage}
               </div>
             )}
@@ -204,7 +204,7 @@ export default function AuthModal({
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={loading || resetLoading}
-                  className={`inline-flex min-h-11 items-center rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium tracking-[0.2px] text-white/85 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`}
+                  className={`inline-flex min-h-11 items-center rounded-full border border-lime-300/18 bg-lime-300/8 px-4 text-sm font-medium tracking-[0.2px] text-lime-100/88 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-lime-300/14 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/35 ${appleFontClass}`}
                 >
                   {resetLoading ? '전송 중…' : '비밀번호 찾기'}
                 </button>
@@ -229,7 +229,7 @@ export default function AuthModal({
               Google로 계속
             </button>
 
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs leading-relaxed text-lime-100/55">
               계속 진행하면 서비스 약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다.
             </p>
           </div>

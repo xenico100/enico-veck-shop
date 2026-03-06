@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_KR, Orbitron } from "next/font/google";
+import { Do_Hyeon, Noto_Sans_KR, Share_Tech_Mono } from "next/font/google";
 
 import "./styles/tailwind.css";
 import "./styles/theme.css";
 import Providers from "./providers";
 
-const sansFont = IBM_Plex_Sans_KR({
+const sansFont = Noto_Sans_KR({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "700"],
 });
 
-const displayFont = Orbitron({
+const displayFont = Do_Hyeon({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "600", "700", "800"],
+  weight: "400",
+});
+
+const monoFont = Share_Tech_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: "400",
 });
 
 const siteUrl =
@@ -32,7 +38,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className={`dark ${sansFont.variable} ${displayFont.variable}`}>
+    <html
+      lang="ko"
+      className={`dark ${sansFont.variable} ${displayFont.variable} ${monoFont.variable}`}
+    >
       <body className="bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>
