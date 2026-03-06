@@ -57,7 +57,7 @@ export default function MainContent() {
               {statItems.map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-cyan-300/25 bg-[#0a120ab8] px-4 py-3 shadow-[inset_0_1px_0_rgba(223,255,179,0.2)]"
+                  className="rounded-2xl border border-cyan-300/25 bg-[#0a1120b8] px-4 py-3 shadow-[inset_0_1px_0_rgba(194,219,255,0.22)]"
                 >
                   <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200/65">
                     {item.label}

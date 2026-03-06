@@ -9,7 +9,7 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-4 pt-4 md:px-8 md:pt-6">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between rounded-2xl border border-cyan-300/25 bg-[#060a07e0] px-4 py-3 shadow-[0_14px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl md:px-6 md:py-4">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between rounded-2xl border border-cyan-300/25 bg-[#060912e0] px-4 py-3 shadow-[0_14px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl md:px-6 md:py-4">
         <a href="#home" className="group flex items-center gap-3 no-underline">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/35 bg-cyan-300/10 text-[10px] font-semibold tracking-[0.28em] text-cyan-100">
             NX

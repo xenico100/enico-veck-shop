@@ -31,7 +31,7 @@ export default function AboutSection() {
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.95fr]">
           <div className="tech-panel scanline animate-rise overflow-hidden p-2 [animation-delay:0.08s]">
-            <div className="relative overflow-hidden rounded-[1.1rem] border border-cyan-300/25 bg-[#070a06]">
+            <div className="relative overflow-hidden rounded-[1.1rem] border border-cyan-300/25 bg-[#060913]">
               <img
                 src={studioImage}
                 alt="ZEUS Studio Control Room"
@@ -58,7 +58,7 @@ export default function AboutSection() {
               {featureRows.map((item) => (
                 <article
                   key={item.title}
-                  className="rounded-xl border border-cyan-300/22 bg-[#0c150ccc] p-4"
+                  className="rounded-xl border border-cyan-300/22 bg-[#0c1530cc] p-4"
                 >
                   <h3 className="text-sm text-cyan-50 md:text-base">{item.title}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-cyan-50/72">
