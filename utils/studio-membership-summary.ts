@@ -2,7 +2,10 @@ import 'server-only';
 
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import { isActiveStudioSubscriptionStatus } from '@/utils/studio-subscription';
-import type { StudioMembershipPlanKey } from '@/utils/studio-membership-plans';
+import {
+  normalizeStudioMembershipPlanKey,
+  type StudioMembershipPlanKey
+} from '@/utils/studio-membership-plans';
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -68,27 +71,25 @@ export type StudioMembershipSummary = {
 const PLAN_ENV_BY_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_4900: 'PAYPAL_PLAN_ID_MONTHLY_4900',
   monthly_13900: 'PAYPAL_PLAN_ID_MONTHLY_13900',
-  monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000',
-  yearly_290000: 'PAYPAL_PLAN_ID_YEARLY_290000'
+  monthly_79000: 'PAYPAL_PLAN_ID_MONTHLY_79000'
 };
 
 const PLAN_LABEL_BY_KEY: Record<StudioMembershipPlanKey, string> = {
   monthly_4900: '베이직 멤버십 (월 4,900원)',
   monthly_13900: '플러스 멤버십 (월 13,900원)',
-  monthly_69000: '프리미엄 멤버십 (월 69,000원)',
-  yearly_290000: '프리미엄 멤버십 1년권 (연 290,000원)'
+  monthly_79000: '프리미엄 멤버십 (월 79,000원)'
 };
 
 const PLAN_AMOUNT_BY_KEY: Record<StudioMembershipPlanKey, number> = {
   monthly_4900: 4900,
   monthly_13900: 13900,
-  monthly_69000: 69000,
-  yearly_290000: 290000
+  monthly_79000: 79000
 };
 
-const PLAN_KEY_SET = new Set(
-  Object.keys(PLAN_LABEL_BY_KEY) as StudioMembershipPlanKey[]
-);
+const LEGACY_PLAN_ENV_BY_KEY: Record<string, string> = {
+  monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000',
+  yearly_290000: 'PAYPAL_PLAN_ID_YEARLY_290000'
+};
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' && !Array.isArray(value)
@@ -98,12 +99,6 @@ const asRecord = (value: unknown): Record<string, unknown> | null =>
 const normalizeText = (value: unknown) =>
   typeof value === 'string' ? value.trim() : '';
 
-const isStudioMembershipPlanKey = (
-  value: unknown
-): value is StudioMembershipPlanKey =>
-  typeof value === 'string' &&
-  PLAN_KEY_SET.has(value as StudioMembershipPlanKey);
-
 const getPlanKeyByIdFromEnv = (planId: string | null) => {
   if (!planId) return null;
   for (const [key, envKey] of Object.entries(PLAN_ENV_BY_KEY) as Array<
@@ -112,6 +107,13 @@ const getPlanKeyByIdFromEnv = (planId: string | null) => {
     const envValue = process.env[envKey]?.trim();
     if (envValue && envValue === planId) {
       return key;
+    }
+  }
+
+  for (const [legacyKey, envKey] of Object.entries(LEGACY_PLAN_ENV_BY_KEY)) {
+    const envValue = process.env[envKey]?.trim();
+    if (envValue && envValue === planId) {
+      return normalizeStudioMembershipPlanKey(legacyKey);
     }
   }
 
@@ -184,19 +186,21 @@ const parseScheduledMembershipChange = (
   const changeType = normalizeText(change.change_type).toLowerCase();
   if (changeType !== 'downgrade') return null;
 
-  const targetPlanKeyRaw = normalizeText(change.target_plan_key);
-  if (!isStudioMembershipPlanKey(targetPlanKeyRaw)) return null;
+  const targetPlanKey = normalizeStudioMembershipPlanKey(
+    normalizeText(change.target_plan_key)
+  );
+  if (!targetPlanKey) return null;
 
   const effectiveAt = normalizeIso(change.effective_at);
   if (!effectiveAt) return null;
 
   const targetPlanTitle =
     normalizeText(change.target_plan_title) ||
-    PLAN_LABEL_BY_KEY[targetPlanKeyRaw];
+    PLAN_LABEL_BY_KEY[targetPlanKey];
 
   return {
     orderId: row.id,
-    targetPlanKey: targetPlanKeyRaw,
+    targetPlanKey,
     targetPlanTitle,
     effectiveAt
   };
@@ -543,7 +547,7 @@ export async function getStudioMembershipSummaryMapForUsers(
       planCurrency = 'KRW';
     }
     if (!planInterval && planKeyFromEnv) {
-      planInterval = planKeyFromEnv === 'yearly_290000' ? 'year' : 'month';
+      planInterval = 'month';
     }
     let planCycleDays = intervalToCycleDays(planInterval);
 

@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import {
   STUDIO_MEMBERSHIP_PLAN_OPTIONS,
   isStudioMembershipTierDowngrade,
+  normalizeStudioMembershipPlanKey,
   type StudioMembershipPlanKey
 } from '@/utils/studio-membership-plans';
 import {
@@ -118,8 +119,8 @@ const inferPlanKeyFromMembership = (summary: {
 
   const amount = parseAmount(summary.plan_amount);
   if (amount != null) {
-    if (amount >= 290000) return 'yearly_290000';
-    if (amount >= 69000) return 'monthly_69000';
+    // Legacy 69,000 and yearly plans are treated as current premium tier.
+    if (amount >= 69000) return 'monthly_79000';
     if (amount >= 13900) return 'monthly_13900';
     if (amount >= 4900) return 'monthly_4900';
   }
@@ -129,12 +130,13 @@ const inferPlanKeyFromMembership = (summary: {
   if (
     label.includes('1년') ||
     label.includes('연간') ||
-    label.includes('year')
+    label.includes('year') ||
+    label.includes('프리미엄') ||
+    label.includes('premium') ||
+    /(?:79|69)\s*,?\s*000/.test(label)
   ) {
-    return 'yearly_290000';
+    return 'monthly_79000';
   }
-  if (label.includes('프리미엄') || label.includes('premium'))
-    return 'monthly_69000';
   if (label.includes('플러스') || label.includes('plus'))
     return 'monthly_13900';
   if (label.includes('베이직') || label.includes('basic'))
@@ -237,8 +239,10 @@ export async function POST(request: Request) {
   const body = (await request
     .json()
     .catch(() => ({}))) as MembershipBankTransferRequest;
-  const requestedPlanKey =
+  const requestedPlanKeyRaw =
     typeof body.planKey === 'string' ? body.planKey : 'monthly_4900';
+  const requestedPlanKey =
+    normalizeStudioMembershipPlanKey(requestedPlanKeyRaw) ?? 'monthly_4900';
   const plan = planMap.get(requestedPlanKey as StudioMembershipPlanKey);
   if (!plan) {
     return jsonError('유효하지 않은 멤버십 플랜입니다.', 400);

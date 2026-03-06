@@ -8,6 +8,7 @@ import {
 import {
   inferStudioMembershipPlanKeyFromSummary,
   isStudioMembershipTierDowngrade,
+  normalizeStudioMembershipPlanKey,
   type StudioMembershipPlanKey
 } from '@/utils/studio-membership-plans';
 import { getStudioMembershipSummaryForUser } from '@/utils/studio-membership-summary';
@@ -19,23 +20,24 @@ type CreateSubscriptionBody = {
   planKey?: StudioMembershipPlanKey;
 };
 
-type PayPalPlanKey = 'monthly_4900' | 'monthly_13900' | 'monthly_69000';
+type PayPalPlanKey = 'monthly_4900' | 'monthly_13900' | 'monthly_79000';
 
 const studioPostIdRegex = /^[a-z0-9-]{8,}$/i;
 
 const PLAN_ENV_KEY_BY_PLAN_KEY: Record<PayPalPlanKey, string> = {
   monthly_4900: 'PAYPAL_PLAN_ID_MONTHLY_4900',
   monthly_13900: 'PAYPAL_PLAN_ID_MONTHLY_13900',
-  monthly_69000: 'PAYPAL_PLAN_ID_MONTHLY_69000'
+  monthly_79000: 'PAYPAL_PLAN_ID_MONTHLY_79000'
 };
 const LEGACY_PLAN_ENV_KEY = 'PAYPAL_PLAN_ID_MONTHLY';
+const LEGACY_PREMIUM_PLAN_ENV_KEY = 'PAYPAL_PLAN_ID_MONTHLY_69000';
 
 // Safety net for Vercel/Sandbox deployments where plan env vars are not configured yet.
 // These IDs are non-secret PayPal plan IDs tied to this sandbox merchant account.
 const SANDBOX_PLAN_ID_FALLBACK_BY_PLAN_KEY: Record<PayPalPlanKey, string> = {
   monthly_4900: 'P-66J57653FV568243LNGTF3KQ',
   monthly_13900: 'P-6JS61276AJ849370SNGTF3KY',
-  monthly_69000: 'P-31657772UD838403ANGTF3LA'
+  monthly_79000: 'P-31657772UD838403ANGTF3LA'
 };
 
 const SUPPORTED_PLAN_KEYS = new Set(
@@ -52,6 +54,13 @@ const resolvePayPalPlanId = (planKey: PayPalPlanKey) => {
   const direct = process.env[envKey]?.trim();
   if (direct) {
     return { planId: direct, envKey };
+  }
+
+  if (planKey === 'monthly_79000') {
+    const legacyPremium = process.env[LEGACY_PREMIUM_PLAN_ENV_KEY]?.trim();
+    if (legacyPremium) {
+      return { planId: legacyPremium, envKey: LEGACY_PREMIUM_PLAN_ENV_KEY };
+    }
   }
 
   // Backward compatibility for the old single-plan setup:
@@ -111,8 +120,10 @@ const buildStudioRedirectUrl = (
 
 const parsePlanKey = (value: unknown) => {
   if (typeof value !== 'string') return null;
-  return SUPPORTED_PLAN_KEYS.has(value as PayPalPlanKey)
-    ? (value as PayPalPlanKey)
+  const normalized = normalizeStudioMembershipPlanKey(value);
+  if (!normalized) return null;
+  return SUPPORTED_PLAN_KEYS.has(normalized as PayPalPlanKey)
+    ? (normalized as PayPalPlanKey)
     : null;
 };
 

@@ -30,17 +30,17 @@ const STUDIO_POST_ACCESS_OPTIONS = [
   {
     value: 1,
     title: '베이직 멤버십',
-    description: '월 4,900원 이상 멤버십에서 열람 가능'
+    description: '월 4,900원 가로 영상 플랫폼 멤버십에서 열람 가능'
   },
   {
     value: 2,
     title: '플러스 멤버십',
-    description: '월 13,900원 이상 멤버십에서 열람 가능'
+    description: '월 13,900원 숏폼 플랫폼 멤버십에서 열람 가능'
   },
   {
     value: 3,
     title: '프리미엄 멤버십',
-    description: '월 69,000원 멤버십에서만 열람 가능'
+    description: '월 79,000원 포토+글 블로그 플랫폼 멤버십에서 열람 가능'
   }
 ] as const;
 

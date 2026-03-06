@@ -1964,9 +1964,9 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             disabled={isBusy}
                           >
                             <option value="0">일반 공개</option>
-                            <option value="1">베이직 멤버십 (월 4,900원 이상)</option>
-                            <option value="2">플러스 멤버십 (월 13,900원 이상)</option>
-                            <option value="3">프리미엄 멤버십 (월 69,000원)</option>
+                            <option value="1">베이직 멤버십 (월 4,900원 · 가로 영상)</option>
+                            <option value="2">플러스 멤버십 (월 13,900원 · 숏폼)</option>
+                            <option value="3">프리미엄 멤버십 (월 79,000원 · 포토+글 블로그)</option>
                           </select>
                         </div>
                         <div className="grid gap-2">
@@ -2218,184 +2218,185 @@ export default function MyPageAdminPanel({ enabled }: Props) {
             </div>
           </div>
 
-          {serviceCreateOpen && (
-            <div className="mb-5 rounded-2xl border border-white/10 bg-black/20 p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-white">Service 게시글 업로드</p>
-                  <p className="mt-1 text-xs text-white/50">
-                    새 Service 게시글을 생성하고 이미지 URL/업로드 파일을 함께 등록합니다.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                <div className="grid gap-2">
-                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">제목</label>
-                  <input
-                    className={inputClass}
-                    value={serviceCreateDraft.title}
-                    onChange={(e) => handleServiceCreateDraftChange('title', e.target.value)}
-                    placeholder="서비스 제목"
-                    disabled={serviceCreateSubmitting}
-                  />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="grid gap-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
-                      카테고리
-                    </label>
-                    <select
-                      className={inputClass}
-                      value={serviceCreateDraft.category}
-                      onChange={(e) => handleServiceCreateDraftChange('category', e.target.value)}
-                      disabled={serviceCreateSubmitting}
-                    >
-                      {SERVICE_CATEGORIES.map((category) => (
-                        <option key={category} value={category} className="bg-neutral-900">
-                          {category}
-                        </option>
-                      ))}
-                    </select>
+          <div className="max-h-[62vh] space-y-5 overflow-y-auto overscroll-contain pr-1">
+            {serviceCreateOpen && (
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">Service 게시글 업로드</p>
+                    <p className="mt-1 text-xs text-white/50">
+                      새 Service 게시글을 생성하고 이미지 URL/업로드 파일을 함께 등록합니다.
+                    </p>
                   </div>
+                </div>
 
+                <div className="grid gap-3">
                   <div className="grid gap-2">
-                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
-                      가격 시작
-                    </label>
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">제목</label>
                     <input
                       className={inputClass}
-                      type="number"
-                      min={0}
-                      value={serviceCreateDraft.price_from}
-                      onChange={(e) => handleServiceCreateDraftChange('price_from', e.target.value)}
-                      placeholder="150000"
+                      value={serviceCreateDraft.title}
+                      onChange={(e) => handleServiceCreateDraftChange('title', e.target.value)}
+                      placeholder="서비스 제목"
                       disabled={serviceCreateSubmitting}
                     />
                   </div>
-                </div>
 
-                <div className="grid gap-2">
-                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
-                    요약
-                  </label>
-                  <input
-                    className={inputClass}
-                    value={serviceCreateDraft.summary}
-                    onChange={(e) => handleServiceCreateDraftChange('summary', e.target.value)}
-                    placeholder="카드에 표시될 짧은 요약"
-                    disabled={serviceCreateSubmitting}
-                  />
-                </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2">
+                      <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                        카테고리
+                      </label>
+                      <select
+                        className={inputClass}
+                        value={serviceCreateDraft.category}
+                        onChange={(e) => handleServiceCreateDraftChange('category', e.target.value)}
+                        disabled={serviceCreateSubmitting}
+                      >
+                        {SERVICE_CATEGORIES.map((category) => (
+                          <option key={category} value={category} className="bg-neutral-900">
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="grid gap-2">
-                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
-                    상세 내용
-                  </label>
-                  <textarea
-                    className={`${inputClass} min-h-28 resize-y ${
-                      serviceCreateContentDragOver
-                        ? 'border-sky-300/50 bg-sky-500/10 ring-2 ring-sky-300/40'
-                        : ''
-                    }`}
-                    value={serviceCreateDraft.content}
-                    onChange={(e) => handleServiceCreateDraftChange('content', e.target.value)}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      if (!serviceCreateContentDragOver) {
-                        setServiceCreateContentDragOver(true);
-                      }
-                    }}
-                    onDragLeave={() => setServiceCreateContentDragOver(false)}
-                    onDrop={(event) => void handleServiceCreateContentDrop(event)}
-                    placeholder="상세 설명"
-                    disabled={serviceCreateSubmitting || serviceCreateContentUploading}
-                  />
-                  <p className="text-xs text-white/45">
-                    {serviceCreateContentUploading
-                      ? '이미지 업로드 중... 완료되면 상세 내용에 URL이 자동 추가됩니다.'
-                      : '이미지를 이 칸으로 드래그하면 자동 업로드 후 상세 내용에 삽입됩니다.'}
-                  </p>
-                </div>
+                    <div className="grid gap-2">
+                      <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                        가격 시작
+                      </label>
+                      <input
+                        className={inputClass}
+                        type="number"
+                        min={0}
+                        value={serviceCreateDraft.price_from}
+                        onChange={(e) => handleServiceCreateDraftChange('price_from', e.target.value)}
+                        placeholder="150000"
+                        disabled={serviceCreateSubmitting}
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid gap-2">
-                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
-                    이미지 URL 목록 (한 줄에 하나)
-                  </label>
-                  <textarea
-                    className={`${inputClass} min-h-24 resize-y`}
-                    value={serviceCreateDraft.image_urls_text}
-                    onChange={(e) =>
-                      handleServiceCreateDraftChange('image_urls_text', e.target.value)
-                    }
-                    placeholder="https://..."
-                    disabled={serviceCreateSubmitting}
-                  />
-                </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                      요약
+                    </label>
+                    <input
+                      className={inputClass}
+                      value={serviceCreateDraft.summary}
+                      onChange={(e) => handleServiceCreateDraftChange('summary', e.target.value)}
+                      placeholder="카드에 표시될 짧은 요약"
+                      disabled={serviceCreateSubmitting}
+                    />
+                  </div>
 
-                <div className="grid gap-2">
-                  <label className="text-xs uppercase tracking-[0.18em] text-white/50">
-                    이미지 업로드
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleServiceCreateFilesChange}
-                    className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/20 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
-                    disabled={serviceCreateSubmitting}
-                  />
-                  {serviceCreateDraft.files.length > 0 && (
-                    <p className="text-xs text-white/50">
-                      선택됨: {serviceCreateDraft.files.map((file) => file.name).join(', ')}
+                  <div className="grid gap-2">
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                      상세 내용
+                    </label>
+                    <textarea
+                      className={`${inputClass} min-h-28 resize-y ${
+                        serviceCreateContentDragOver
+                          ? 'border-sky-300/50 bg-sky-500/10 ring-2 ring-sky-300/40'
+                          : ''
+                      }`}
+                      value={serviceCreateDraft.content}
+                      onChange={(e) => handleServiceCreateDraftChange('content', e.target.value)}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (!serviceCreateContentDragOver) {
+                          setServiceCreateContentDragOver(true);
+                        }
+                      }}
+                      onDragLeave={() => setServiceCreateContentDragOver(false)}
+                      onDrop={(event) => void handleServiceCreateContentDrop(event)}
+                      placeholder="상세 설명"
+                      disabled={serviceCreateSubmitting || serviceCreateContentUploading}
+                    />
+                    <p className="text-xs text-white/45">
+                      {serviceCreateContentUploading
+                        ? '이미지 업로드 중... 완료되면 상세 내용에 URL이 자동 추가됩니다.'
+                        : '이미지를 이 칸으로 드래그하면 자동 업로드 후 상세 내용에 삽입됩니다.'}
                     </p>
-                  )}
-                </div>
+                  </div>
 
-                <label className="flex items-center gap-2 text-sm text-white/85">
-                  <input
-                    type="checkbox"
-                    checked={serviceCreateDraft.is_published}
-                    onChange={(e) =>
-                      handleServiceCreateDraftChange('is_published', e.target.checked)
-                    }
-                    className="h-4 w-4 rounded border-white/20 bg-white/10"
-                    disabled={serviceCreateSubmitting}
-                  />
-                  게시글 공개
-                </label>
+                  <div className="grid gap-2">
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                      이미지 URL 목록 (한 줄에 하나)
+                    </label>
+                    <textarea
+                      className={`${inputClass} min-h-24 resize-y`}
+                      value={serviceCreateDraft.image_urls_text}
+                      onChange={(e) =>
+                        handleServiceCreateDraftChange('image_urls_text', e.target.value)
+                      }
+                      placeholder="https://..."
+                      disabled={serviceCreateSubmitting}
+                    />
+                  </div>
 
-                <div className="flex flex-wrap justify-end gap-2">
-                  <ActionButton
-                    type="button"
-                    onClick={() => {
-                      setServiceCreateOpen(false);
-                      resetServiceCreateDraft();
-                    }}
-                    variant="secondary"
-                    size="sm"
-                    className={appleFontClass}
-                    disabled={serviceCreateSubmitting || serviceCreateContentUploading}
-                  >
-                    취소
-                  </ActionButton>
-                  <ActionButton
-                    type="button"
-                    onClick={() => void handleServicePostCreate()}
-                    variant="primary"
-                    size="sm"
-                    className={appleFontClass}
-                    disabled={serviceCreateSubmitting || serviceCreateContentUploading}
-                  >
-                    {serviceCreateSubmitting ? '업로드 중…' : '게시글 업로드'}
-                  </ActionButton>
+                  <div className="grid gap-2">
+                    <label className="text-xs uppercase tracking-[0.18em] text-white/50">
+                      이미지 업로드
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleServiceCreateFilesChange}
+                      className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border file:border-white/20 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+                      disabled={serviceCreateSubmitting}
+                    />
+                    {serviceCreateDraft.files.length > 0 && (
+                      <p className="text-xs text-white/50">
+                        선택됨: {serviceCreateDraft.files.map((file) => file.name).join(', ')}
+                      </p>
+                    )}
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm text-white/85">
+                    <input
+                      type="checkbox"
+                      checked={serviceCreateDraft.is_published}
+                      onChange={(e) =>
+                        handleServiceCreateDraftChange('is_published', e.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-white/20 bg-white/10"
+                      disabled={serviceCreateSubmitting}
+                    />
+                    게시글 공개
+                  </label>
+
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <ActionButton
+                      type="button"
+                      onClick={() => {
+                        setServiceCreateOpen(false);
+                        resetServiceCreateDraft();
+                      }}
+                      variant="secondary"
+                      size="sm"
+                      className={appleFontClass}
+                      disabled={serviceCreateSubmitting || serviceCreateContentUploading}
+                    >
+                      취소
+                    </ActionButton>
+                    <ActionButton
+                      type="button"
+                      onClick={() => void handleServicePostCreate()}
+                      variant="primary"
+                      size="sm"
+                      className={appleFontClass}
+                      disabled={serviceCreateSubmitting || serviceCreateContentUploading}
+                    >
+                      {serviceCreateSubmitting ? '업로드 중…' : '게시글 업로드'}
+                    </ActionButton>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-3">
+            <div className="space-y-3">
             {servicePosts.length === 0 && !loading ? (
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
                 등록된 Service 게시글이 없습니다.
@@ -2601,6 +2602,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 );
               })
             )}
+            </div>
           </div>
         </div>
       )}

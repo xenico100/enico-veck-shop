@@ -1,6 +1,9 @@
 export type StudioMembershipPlanKey =
   | 'monthly_4900'
   | 'monthly_13900'
+  | 'monthly_79000';
+
+export type StudioMembershipLegacyPlanKey =
   | 'monthly_69000'
   | 'yearly_290000';
 
@@ -22,7 +25,7 @@ export const STUDIO_MEMBERSHIP_PLAN_OPTIONS: StudioMembershipPlanOption[] = [
     key: 'monthly_4900',
     title: '베이직 멤버십',
     priceKrw: 4900,
-    description: '월간 Studio 멤버십',
+    description: '가로 영상 전용 플랫폼',
     billingCycle: 'monthly',
     durationDays: 30,
     supportsPayPal: true,
@@ -32,33 +35,31 @@ export const STUDIO_MEMBERSHIP_PLAN_OPTIONS: StudioMembershipPlanOption[] = [
     key: 'monthly_13900',
     title: '플러스 멤버십',
     priceKrw: 13900,
-    description: '월간 Studio 멤버십',
+    description: '숏폼 영상 전용 플랫폼',
     billingCycle: 'monthly',
     durationDays: 30,
     supportsPayPal: true,
     accessTierLevel: 2
   },
   {
-    key: 'monthly_69000',
+    key: 'monthly_79000',
     title: '프리미엄 멤버십',
-    priceKrw: 69000,
-    description: '월간 Studio 멤버십',
+    priceKrw: 79000,
+    description: '사진+글 결합형 블로그 플랫폼',
     billingCycle: 'monthly',
     durationDays: 30,
     supportsPayPal: true,
     accessTierLevel: 3
-  },
-  {
-    key: 'yearly_290000',
-    title: '프리미엄 멤버십 1년권',
-    priceKrw: 290000,
-    description: '연간 결제 · 최고 멤버십 전체 접근',
-    billingCycle: 'yearly',
-    durationDays: 365,
-    supportsPayPal: false,
-    accessTierLevel: 3
   }
 ];
+
+const LEGACY_PLAN_KEY_ALIAS: Record<
+  StudioMembershipLegacyPlanKey,
+  StudioMembershipPlanKey
+> = {
+  monthly_69000: 'monthly_79000',
+  yearly_290000: 'monthly_79000'
+};
 
 const formatPlanPriceLabel = (plan: StudioMembershipPlanOption) =>
   plan.billingCycle === 'yearly'
@@ -84,11 +85,32 @@ const planOptionByKey = new Map(
   STUDIO_MEMBERSHIP_PLAN_OPTIONS.map((plan) => [plan.key, plan] as const)
 );
 
+export const normalizeStudioMembershipPlanKey = (
+  key: string | null | undefined
+): StudioMembershipPlanKey | null => {
+  if (typeof key !== 'string') return null;
+  const normalized = key.trim();
+  if (!normalized) return null;
+
+  if (planOptionByKey.has(normalized as StudioMembershipPlanKey)) {
+    return normalized as StudioMembershipPlanKey;
+  }
+
+  if (normalized in LEGACY_PLAN_KEY_ALIAS) {
+    return LEGACY_PLAN_KEY_ALIAS[normalized as StudioMembershipLegacyPlanKey];
+  }
+
+  return null;
+};
+
 export const getStudioMembershipPlanOptionByKey = (
   key: StudioMembershipPlanKey | string | null | undefined
 ) => {
-  if (typeof key !== 'string') return null;
-  return planOptionByKey.get(key as StudioMembershipPlanKey) ?? null;
+  const normalized = normalizeStudioMembershipPlanKey(
+    typeof key === 'string' ? key : null
+  );
+  if (!normalized) return null;
+  return planOptionByKey.get(normalized) ?? null;
 };
 
 type MembershipSummaryLike = {
@@ -113,19 +135,23 @@ export const inferStudioMembershipPlanKeyFromSummary = (
 
   const amount = parsePlanAmount(summary.plan_amount);
   if (amount != null) {
-    if (amount >= 290000) return 'yearly_290000';
-    if (amount >= 69000) return 'monthly_69000';
+    // Legacy 69,000 and yearly plans are treated as current premium tier.
+    if (amount >= 69000) return 'monthly_79000';
     if (amount >= 13900) return 'monthly_13900';
     if (amount >= 4900) return 'monthly_4900';
   }
 
   const label = String(summary.selected_membership || '').toLowerCase();
   if (!label) return null;
-  if (label.includes('1년') || label.includes('연간') || label.includes('year')) {
-    return 'yearly_290000';
-  }
-  if (label.includes('프리미엄') || label.includes('premium')) {
-    return 'monthly_69000';
+  if (
+    label.includes('1년') ||
+    label.includes('연간') ||
+    label.includes('year') ||
+    label.includes('프리미엄') ||
+    label.includes('premium') ||
+    /(?:79|69)\s*,?\s*000/.test(label)
+  ) {
+    return 'monthly_79000';
   }
   if (label.includes('플러스') || label.includes('plus')) {
     return 'monthly_13900';

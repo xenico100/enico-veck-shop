@@ -5,6 +5,7 @@ import {
   getStudioMembershipPlanOptionByKey,
   inferStudioMembershipPlanKeyFromSummary,
   isStudioMembershipTierDowngrade,
+  normalizeStudioMembershipPlanKey,
   type StudioMembershipPlanKey
 } from '@/utils/studio-membership-plans';
 import { getStudioMembershipSummaryForUser } from '@/utils/studio-membership-summary';
@@ -97,7 +98,8 @@ export async function POST(request: Request) {
     .catch(() => ({}))) as MembershipChangeRequestBody;
   const requestedPlanKey =
     normalizeText(body.targetPlanKey) || normalizeText(body.planKey);
-  const targetPlan = planMap.get(requestedPlanKey as StudioMembershipPlanKey);
+  const targetPlanKey = normalizeStudioMembershipPlanKey(requestedPlanKey);
+  const targetPlan = targetPlanKey ? planMap.get(targetPlanKey) : null;
 
   if (!targetPlan) {
     return jsonError('유효하지 않은 멤버십 플랜입니다.', 400);

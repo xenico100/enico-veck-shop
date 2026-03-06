@@ -121,29 +121,32 @@ type StudioDisplayRow = {
 const STUDIO_COLUMNS_PER_ROW = 3;
 const MARQUEE_GAP_REM = 1; // gap-4 == 1rem
 const PREMIUM_ROW_PRICE_DISPLAY = 79000;
+const FREE_TRIAL_POST_LIMIT = 3;
 const STUDIO_ROW_ACCESS_RULES: StudioRowAccessRule[] = [
   {
     key: 'free',
-    rowLabel: '1번 줄',
-    membershipLabel: '일반 멤버십',
+    rowLabel: '무료 일반 멤버십',
+    membershipLabel: '무료 체험 3개',
     requiredLevel: 0
   },
   {
     key: 'tier_4900',
-    rowLabel: '2번 줄',
-    membershipLabel: '멤버십 월 4,900원',
+    rowLabel: '가로 영상 플랫폼',
+    membershipLabel: '멤버십 월 4,900원 · 가로 영상',
     requiredLevel: 1
   },
   {
     key: 'tier_13900',
-    rowLabel: '3번 줄',
-    membershipLabel: '멤버십 월 13,900원',
+    rowLabel: '숏폼 영상 플랫폼',
+    membershipLabel: '멤버십 월 13,900원 · 숏폼',
     requiredLevel: 2
   },
   {
     key: 'tier_79000',
-    rowLabel: '4번 줄',
-    membershipLabel: `멤버십 월 ${PREMIUM_ROW_PRICE_DISPLAY.toLocaleString('ko-KR')}원`,
+    rowLabel: '포토+글 블로그 플랫폼',
+    membershipLabel: `멤버십 월 ${PREMIUM_ROW_PRICE_DISPLAY.toLocaleString(
+      'ko-KR'
+    )}원 · 블로그`,
     requiredLevel: 3
   }
 ];
@@ -196,16 +199,6 @@ const buildPlaceholderPost = (
   required_membership_label: rowRule.membershipLabel
 });
 
-const chunkRowPosts = (items: StudioPost[], size: number) => {
-  if (size <= 0) return [items];
-
-  const rows: StudioPost[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    rows.push(items.slice(index, index + size));
-  }
-  return rows;
-};
-
 const buildDisplayRow = (
   rowRule: StudioRowAccessRule,
   rowId: string,
@@ -253,19 +246,14 @@ const buildTierRows = (posts: StudioPost[]): StudioDisplayRow[] => {
 
   const displayRows: StudioDisplayRow[] = [];
   const freeRule = STUDIO_ROW_ACCESS_RULES[0];
-  const freePosts = postsByLevel.get(freeRule.requiredLevel) ?? [];
-  const freeChunks = chunkRowPosts(freePosts, STUDIO_COLUMNS_PER_ROW);
+  const freePosts = (postsByLevel.get(freeRule.requiredLevel) ?? []).slice(
+    0,
+    FREE_TRIAL_POST_LIMIT
+  );
 
-  if (freeChunks.length === 0) {
-    freeChunks.push([]);
-  }
-
-  freeChunks.forEach((chunk, index) => {
-    const rowId = `${freeRule.key}-${index + 1}`;
-    const rowLabel =
-      index === 0 ? freeRule.rowLabel : `${freeRule.rowLabel} +${index}`;
-    displayRows.push(buildDisplayRow(freeRule, rowId, rowLabel, chunk));
-  });
+  displayRows.push(
+    buildDisplayRow(freeRule, `${freeRule.key}-trial`, freeRule.rowLabel, freePosts)
+  );
 
   STUDIO_ROW_ACCESS_RULES.slice(1).forEach((rule) => {
     const rowItems = postsByLevel.get(rule.requiredLevel) ?? [];
@@ -313,6 +301,13 @@ const getStudioPostCreatedAtMs = (post: StudioPost) => {
   return parsed;
 };
 
+const SHORTS_PRIORITY_BY_TIER_LEVEL: Record<number, number> = {
+  2: 0,
+  0: 1,
+  1: 2,
+  3: 3
+};
+
 const sortStudioShortsPosts = (posts: StudioPost[]) =>
   [...posts].sort((left, right) => {
     const leftLevel = normalizeRequiredMembershipLevel(
@@ -321,7 +316,9 @@ const sortStudioShortsPosts = (posts: StudioPost[]) =>
     const rightLevel = normalizeRequiredMembershipLevel(
       right.required_membership_level
     );
-    if (leftLevel !== rightLevel) return leftLevel - rightLevel;
+    const leftPriority = SHORTS_PRIORITY_BY_TIER_LEVEL[leftLevel] ?? 99;
+    const rightPriority = SHORTS_PRIORITY_BY_TIER_LEVEL[rightLevel] ?? 99;
+    if (leftPriority !== rightPriority) return leftPriority - rightPriority;
     return getStudioPostCreatedAtMs(right) - getStudioPostCreatedAtMs(left);
   });
 
@@ -2259,7 +2256,8 @@ export default function StudioSection({
               </p>
               <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">Studio Flux</h2>
               <p className="max-w-2xl text-sm leading-relaxed text-cyan-50/72 md:text-base">
-                1번 줄은 일반 멤버십, 2~4번 줄은 멤버십 등급별 게시물입니다.
+                무료 일반 멤버십은 체험판 3개만 공개되고, 월 4,900은 가로 영상,
+                월 13,900은 숏폼, 월 79,000은 포토+글 블로그를 이용합니다.
               </p>
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="text-[11px] uppercase tracking-[0.18em] text-cyan-50/50">
