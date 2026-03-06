@@ -31,7 +31,7 @@ export default function AboutSection() {
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.95fr]">
           <div className="tech-panel scanline animate-rise overflow-hidden p-2 [animation-delay:0.08s]">
-            <div className="relative overflow-hidden rounded-[1.1rem] border border-lime-300/25 bg-[#070a06]">
+            <div className="relative overflow-hidden rounded-[1.1rem] border border-cyan-300/25 bg-[#070a06]">
               <img
                 src={studioImage}
                 alt="ZEUS Studio Control Room"
@@ -39,8 +39,8 @@ export default function AboutSection() {
                 loading="lazy"
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#030503] via-[#030503ac] to-transparent p-4 md:p-6">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-lime-100/70">Relay Room View</p>
-                <p className="mt-1 text-sm text-lime-50/88 md:text-base">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-100/70">Relay Room View</p>
+                <p className="mt-1 text-sm text-cyan-50/88 md:text-base">
                   Multi-node command room with shadow-dispatch monitoring.
                 </p>
               </div>
@@ -48,7 +48,7 @@ export default function AboutSection() {
           </div>
 
           <div className="tech-panel animate-rise space-y-5 p-5 [animation-delay:0.14s] md:p-7">
-            <p className="text-sm leading-relaxed text-lime-50/82 md:text-base">
+            <p className="text-sm leading-relaxed text-cyan-50/82 md:text-base">
               이 플랫폼은 일반 공개 트래픽과 유료 멤버십 스트림을 동일 화면에서
               제어하기 위해 설계된 다크웹 톤 인터페이스입니다. 단순 전시가 아니라
               실제 접근 권한 흐름이 시각적으로 바로 드러나게 구성했습니다.
@@ -58,10 +58,10 @@ export default function AboutSection() {
               {featureRows.map((item) => (
                 <article
                   key={item.title}
-                  className="rounded-xl border border-lime-300/22 bg-[#0c150ccc] p-4"
+                  className="rounded-xl border border-cyan-300/22 bg-[#0c150ccc] p-4"
                 >
-                  <h3 className="text-sm text-lime-50 md:text-base">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-lime-50/72">
+                  <h3 className="text-sm text-cyan-50 md:text-base">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-cyan-50/72">
                     {item.description}
                   </p>
                 </article>

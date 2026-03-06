@@ -133,15 +133,15 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const appleFontClass =
     '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const segmentedContainerClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
-  const serviceSecondaryButtonClass = `h-11 rounded-full border border-lime-300/30 bg-lime-300/10 px-4 text-sm font-semibold tracking-[0.2px] text-lime-100 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-lime-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/40 ${appleFontClass}`;
+  const serviceSecondaryButtonClass = `h-11 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 text-sm font-semibold tracking-[0.2px] text-cyan-100 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-cyan-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40 ${appleFontClass}`;
   const servicePrimaryButtonClass = `h-11 rounded-full border border-orange-300/35 bg-orange-300/16 px-5 text-sm font-semibold tracking-[0.2px] text-orange-100 no-underline shadow-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-orange-300/24 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200/40 ${appleFontClass}`;
-  const arrowButtonClass = `size-11 rounded-full border border-lime-300/28 bg-lime-300/12 text-lime-100 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-lime-300/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/40`;
-  const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-lime-100 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-lime-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/35 ${appleFontClass}`;
+  const arrowButtonClass = `size-11 rounded-full border border-cyan-300/28 bg-cyan-300/12 text-cyan-100 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-cyan-300/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40`;
+  const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-cyan-100 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35 ${appleFontClass}`;
   const createInputClass =
-    'w-full rounded-2xl border border-lime-300/20 bg-lime-300/[0.08] px-4 py-3 text-sm text-lime-100 placeholder:text-lime-100/40 outline-none focus:ring-2 focus:ring-lime-200/35';
-  const createLabelClass = `text-xs uppercase tracking-[0.18em] text-lime-100/55 ${appleFontClass}`;
+    'w-full rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] px-4 py-3 text-sm text-cyan-100 placeholder:text-cyan-100/40 outline-none focus:ring-2 focus:ring-cyan-200/35';
+  const createLabelClass = `text-xs uppercase tracking-[0.18em] text-cyan-100/55 ${appleFontClass}`;
   const adminCloseButtonClass =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-lime-300/25 bg-lime-300/10 text-lime-100/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-lime-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-200/35';
+    'flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10 text-cyan-100/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35';
   const isAdmin = isAdminUserLike(user);
 
   const getSwatchClass = (color: string) =>

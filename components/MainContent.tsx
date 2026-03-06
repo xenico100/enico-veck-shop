@@ -33,7 +33,7 @@ export default function MainContent() {
               <br />
               ARCHIVE
             </h1>
-            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-lime-100/74 md:text-base">
+            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-cyan-100/74 md:text-base">
               폐쇄형 네트워크 인터페이스로 콘텐츠를 분산 배치하고,
               티어별 시청 권한을 실시간으로 재조립하는 다크웹 스타일 허브입니다.
             </p>
@@ -41,7 +41,7 @@ export default function MainContent() {
             <div className="mt-7 flex flex-wrap gap-2.5">
               <a
                 href="#services"
-                className="inline-flex items-center rounded-full border border-lime-300/35 bg-lime-300/12 px-5 py-2.5 text-xs font-semibold tracking-[0.18em] text-lime-100 no-underline transition hover:bg-lime-300/20"
+                className="inline-flex items-center rounded-full border border-cyan-300/35 bg-cyan-300/12 px-5 py-2.5 text-xs font-semibold tracking-[0.18em] text-cyan-100 no-underline transition hover:bg-cyan-300/20"
               >
                 OPEN NODE MAP
               </a>
@@ -57,25 +57,25 @@ export default function MainContent() {
               {statItems.map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-lime-300/25 bg-[#0a120ab8] px-4 py-3 shadow-[inset_0_1px_0_rgba(223,255,179,0.2)]"
+                  className="rounded-2xl border border-cyan-300/25 bg-[#0a120ab8] px-4 py-3 shadow-[inset_0_1px_0_rgba(223,255,179,0.2)]"
                 >
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-lime-200/65">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200/65">
                     {item.label}
                   </p>
-                  <p className="mt-2 display-font text-lg text-lime-50 md:text-xl">{item.value}</p>
+                  <p className="mt-2 display-font text-lg text-cyan-50 md:text-xl">{item.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <aside className="tech-panel scanline animate-rise relative overflow-hidden p-5 [animation-delay:0.15s] md:p-7">
-            <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-lime-300/15 blur-2xl" />
+            <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
             <p className="section-kicker">Signal</p>
             <h2 className="mt-2 text-2xl md:text-3xl">Live Node Intel</h2>
 
-            <div className="mt-6 space-y-4 text-sm text-lime-50/80">
+            <div className="mt-6 space-y-4 text-sm text-cyan-50/80">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-lime-200/65">Node</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Node</p>
                 <p className="mt-1 leading-relaxed">
                   서울 강남구 양재천로 551 4F
                   <br />
@@ -83,7 +83,7 @@ export default function MainContent() {
                 </p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-lime-200/65">Ping</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Ping</p>
                 <p className="mt-1">070@zeus-studio.net</p>
               </div>
             </div>
