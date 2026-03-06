@@ -691,12 +691,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     Array.from({ length: count }).map((_, index) => (
       <div
         key={`service-skeleton-${mobile ? 'm' : 'd'}-${index}`}
-        className={`flex-shrink-0 w-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#151515] ${
+        className={`flex-shrink-0 w-[280px] overflow-hidden border-t border-white/10 pt-5 ${
           mobile ? '' : 'min-h-[420px]'
         }`}
         aria-hidden="true"
       >
-        <div className={`${mobile ? 'h-56' : 'h-64'} w-full bg-white/5`} />
+        <div className={`${mobile ? 'h-56' : 'h-64'} w-full bg-white/5/40`} />
         <div className="flex justify-center gap-2 py-4">
           <div className="h-3 w-3 rounded-full bg-white/10" />
           <div className="h-3 w-3 rounded-full bg-white/10" />
@@ -710,8 +710,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           <div className="h-4 w-2/3 rounded bg-white/5" />
           <div className="mt-2 h-5 w-24 rounded bg-white/10" />
           <div className="flex gap-2.5 pt-1">
-            <div className="h-11 flex-1 rounded-full bg-white/10" />
-            <div className="h-11 flex-1 rounded-full bg-white/5" />
+            <div className="h-11 flex-1 bg-white/10" />
+            <div className="h-11 flex-1 bg-white/5" />
           </div>
         </div>
       </div>
@@ -796,7 +796,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
             >
               {servicesLoading && renderServiceSkeletonCards(4)}
               {!servicesLoading && filteredServices.length === 0 && (
-                <div className="flex min-h-[360px] w-full items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-8 text-center text-cyan-50/75">
+                <div className="flex min-h-[360px] w-full items-center justify-center border-t border-cyan-100/12 py-8 text-center text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
@@ -806,12 +806,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 return (
                 <div 
                   key={index} 
-                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden rounded-2xl border border-cyan-200/16 bg-[#071a2acc] shadow-[0_14px_35px_rgba(0,8,14,0.38)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/35 hover:shadow-[0_22px_46px_rgba(0,15,24,0.5)] ${
+                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 hover:border-cyan-200/35 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
                   {/* Image */}
-                  <div className="relative flex h-64 w-full items-center justify-center bg-[#04131fd6] p-8">
+                  <div className="relative flex h-64 w-full items-center justify-center bg-transparent p-0">
                     <img
                       src={service.image}
                       alt={service.title}
@@ -833,7 +833,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   </div>
                   
                   {/* Content */}
-                  <div className="p-6 flex flex-col flex-1">
+                  <div className="flex flex-1 flex-col px-0 pb-0 pt-5">
                     <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
                     <p className="text-xs text-cyan-100/55 mb-3">{service.subtitle}</p>
                     <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line flex-1">
@@ -882,7 +882,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
             <div className="flex gap-4">
               {servicesLoading && renderServiceSkeletonCards(2, true)}
               {!servicesLoading && filteredServices.length === 0 && (
-                <div className="flex min-h-[280px] w-full items-center justify-center rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-6 text-center text-sm text-cyan-50/75">
+                <div className="flex min-h-[280px] w-full items-center justify-center border-t border-cyan-100/12 py-6 text-center text-sm text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
                 </div>
               )}
@@ -892,12 +892,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 return (
                 <div 
                   key={index} 
-                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden rounded-2xl border border-cyan-200/16 bg-[#071a2acc] transition-all duration-300 ${
+                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
                   {/* Image */}
-                  <div className="relative flex h-56 w-full items-center justify-center bg-[#04131fd6] p-6">
+                  <div className="relative flex h-56 w-full items-center justify-center bg-transparent p-0">
                     <img
                       src={service.image}
                       alt={service.title}
@@ -918,7 +918,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   </div>
                   
                   {/* Content */}
-                  <div className="p-6">
+                  <div className="px-0 pb-0 pt-5">
                     <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
                     <p className="text-xs text-cyan-100/55 mb-3">{service.subtitle}</p>
                     <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line">

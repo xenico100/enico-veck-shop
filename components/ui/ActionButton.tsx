@@ -13,28 +13,28 @@ type ActionButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const baseClass =
-  'inline-flex items-center justify-center rounded-[0.92rem] border font-medium tracking-[0.08em] transition-[transform,border-color,background-color,box-shadow,color] duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-cyan-100/35 active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-50';
+  'relative inline-flex items-center justify-center gap-2 border-0 bg-transparent px-0 font-medium uppercase tracking-[0.12em] transition-[transform,color,opacity] duration-200 ease-out after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-center after:scale-x-[0.72] after:bg-current after:opacity-40 after:transition-[transform,opacity] after:duration-200 hover:after:scale-x-100 hover:after:opacity-90 focus:outline-none focus:ring-0 active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-50';
 
 const sizeClasses: Record<ActionButtonSize, string> = {
-  sm: 'min-h-9 px-3.5 text-[0.78rem]',
-  md: 'min-h-11 px-5 text-[0.82rem]'
+  sm: 'min-h-8 text-[0.74rem]',
+  md: 'min-h-10 text-[0.78rem]'
 };
 
 const variantClasses: Record<Exclude<ActionButtonVariant, 'pill'>, string> = {
   primary:
-    'border-amber-100/24 bg-[linear-gradient(180deg,rgba(255,169,122,0.22),rgba(40,20,16,0.88))] text-amber-50 shadow-[inset_0_1px_0_rgba(255,239,229,0.08),0_12px_24px_rgba(14,4,2,0.24)] hover:border-amber-100/40 hover:bg-[linear-gradient(180deg,rgba(255,180,139,0.28),rgba(52,27,22,0.9))]',
+    'text-amber-50',
   secondary:
-    'border-cyan-100/24 bg-[linear-gradient(180deg,rgba(79,107,200,0.22),rgba(8,17,33,0.84))] text-cyan-50 shadow-[inset_0_1px_0_rgba(239,244,255,0.08),0_12px_24px_rgba(1,4,12,0.22)] backdrop-blur-sm hover:border-cyan-100/38 hover:bg-[linear-gradient(180deg,rgba(96,124,221,0.28),rgba(10,20,38,0.88))]',
+    'text-cyan-50',
   ghost:
-    'border-cyan-100/16 bg-[linear-gradient(180deg,rgba(21,32,58,0.08),rgba(6,12,24,0.7))] text-cyan-50/92 hover:border-cyan-100/30 hover:bg-[linear-gradient(180deg,rgba(34,48,82,0.16),rgba(8,15,29,0.78))]',
+    'text-cyan-50/86',
   destructive:
-    'border-rose-300/28 bg-[linear-gradient(180deg,rgba(244,63,94,0.18),rgba(43,10,18,0.86))] text-rose-100 shadow-[inset_0_1px_0_rgba(255,234,240,0.06),0_12px_24px_rgba(14,2,5,0.24)] hover:border-rose-300/40 hover:bg-[linear-gradient(180deg,rgba(244,63,94,0.24),rgba(52,12,21,0.88))]'
+    'text-rose-100'
 };
 
 const pillVariantClass = (active: boolean) =>
   active
-    ? 'border-amber-100/32 bg-[linear-gradient(180deg,rgba(255,169,122,0.22),rgba(40,20,16,0.88))] text-amber-50 shadow-[inset_0_1px_0_rgba(255,239,229,0.08),0_12px_24px_rgba(14,4,2,0.24)] hover:border-amber-100/40'
-    : 'border-cyan-100/22 bg-[linear-gradient(180deg,rgba(79,107,200,0.18),rgba(8,17,33,0.8))] text-cyan-50/92 shadow-[inset_0_1px_0_rgba(239,244,255,0.06),0_10px_22px_rgba(1,4,12,0.18)] hover:border-cyan-100/34';
+    ? 'text-amber-50 after:scale-x-100 after:opacity-90'
+    : 'text-cyan-50/86';
 
 export default function ActionButton({
   variant = 'secondary',

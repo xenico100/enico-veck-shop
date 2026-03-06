@@ -104,7 +104,7 @@ export default function SideMenu({
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="block rounded-[0.95rem] border border-transparent bg-transparent px-3 py-2.5 text-base font-medium text-cyan-100/85 no-underline transition hover:border-cyan-300/18 hover:bg-[#0d1831] hover:text-white"
+                  className="block px-1 py-2.5 text-base font-medium text-cyan-100/85 no-underline transition hover:text-white"
                 >
                   {item.label}
                 </a>
@@ -132,7 +132,7 @@ export default function SideMenu({
 
             {isAuthenticated ? (
               <>
-                <div className="rounded-xl border border-cyan-300/18 bg-[#0d1628cc] px-3 py-2.5">
+                <div className="px-1 py-2.5">
                   <p className="truncate text-sm text-cyan-50">{user?.name ?? 'User'}</p>
                   <p className="truncate text-xs text-cyan-200/60">{user?.email ?? ''}</p>
                 </div>

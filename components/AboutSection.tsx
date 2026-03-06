@@ -31,7 +31,7 @@ export default function AboutSection() {
 
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.95fr]">
           <div className="tech-panel scanline animate-rise overflow-hidden p-2 [animation-delay:0.08s]">
-            <div className="relative overflow-hidden rounded-[1rem] border border-cyan-300/18 bg-[#060913]">
+            <div className="relative overflow-hidden">
               <img
                 src={studioImage}
                 alt="ZEUS Studio Control Room"
@@ -58,7 +58,7 @@ export default function AboutSection() {
               {featureRows.map((item) => (
                 <article
                   key={item.title}
-                  className="rounded-[0.95rem] border border-cyan-300/18 bg-[#0a1327cc] p-4"
+                  className="border-l border-cyan-300/14 pl-4"
                 >
                   <h3 className="display-font text-[1.02rem] font-medium tracking-[0.03em] text-cyan-50 md:text-[1.08rem]">
                     {item.title}
@@ -70,7 +70,7 @@ export default function AboutSection() {
               ))}
             </div>
 
-            <p className="rounded-[0.95rem] border border-orange-300/28 bg-orange-300/10 px-4 py-3 text-sm text-orange-100/88">
+            <p className="pt-2 text-sm text-orange-100/74">
               \"Visibility is controlled. Access is earned.\"
             </p>
           </div>

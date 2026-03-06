@@ -36,7 +36,7 @@ export default function AuthModal({
     `y2k-button y2k-button-ghost y2k-button-icon ${appleFontClass}`;
   const tabGroupClass =
     `y2k-tab-group inline-flex items-center gap-1 p-1 ${appleFontClass}`;
-  const tabButtonBase = `rounded-[0.8rem] px-4 py-2 text-sm font-medium tracking-[0.04em] no-underline transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const tabButtonBase = `relative px-0 py-2 pr-5 text-sm font-medium tracking-[0.08em] no-underline transition-colors duration-200 ease-in-out after:absolute after:bottom-0 after:left-0 after:h-px after:w-[calc(100%-1.25rem)] after:origin-left after:scale-x-0 after:bg-current after:opacity-70 after:transition-transform after:duration-200 focus-visible:outline-none focus-visible:ring-0 ${appleFontClass}`;
   const primaryButtonClass = `y2k-button y2k-button-primary w-full justify-center !min-h-12 !rounded-[1rem] !text-[0.8rem] disabled:opacity-50 ${appleFontClass}`;
   const secondaryButtonClass = `y2k-button y2k-button-accent w-full justify-center !min-h-12 !rounded-[1rem] !text-[0.8rem] disabled:opacity-50 ${appleFontClass}`;
 
@@ -121,17 +121,17 @@ export default function AuthModal({
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
         <div
-          className={`w-full max-w-md rounded-[1.35rem] border border-cyan-300/16 bg-[#060913]/96 shadow-[0_24px_80px_rgba(0,0,0,0.48)] ${appleFontClass}`}
+          className={`w-full max-w-md bg-[#060913]/92 shadow-[0_24px_80px_rgba(0,0,0,0.42)] ${appleFontClass}`}
         >
-          <div className="flex items-center justify-between border-b border-cyan-300/18 px-6 py-5">
+          <div className="flex items-center justify-between border-b border-cyan-300/12 px-6 py-5">
             <div className={tabGroupClass}>
               <button
                 type="button"
                 onClick={() => onSwitchMode('login')}
                 className={`${tabButtonBase} ${
                   mode === 'login'
-                    ? 'bg-[#dce6ff] text-[#0b1325] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] hover:bg-white'
-                    : 'border border-transparent bg-transparent text-cyan-100/80 hover:bg-[#0f1a34] hover:text-white'
+                    ? 'text-white after:scale-x-100'
+                    : 'text-cyan-100/62 hover:text-white'
                 }`}
               >
                 로그인
@@ -141,8 +141,8 @@ export default function AuthModal({
                 onClick={() => onSwitchMode('signup')}
                 className={`${tabButtonBase} ${
                   mode === 'signup'
-                    ? 'bg-[#dce6ff] text-[#0b1325] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] hover:bg-white'
-                    : 'border border-transparent bg-transparent text-cyan-100/80 hover:bg-[#0f1a34] hover:text-white'
+                    ? 'text-white after:scale-x-100'
+                    : 'text-cyan-100/62 hover:text-white'
                 }`}
               >
                 회원가입

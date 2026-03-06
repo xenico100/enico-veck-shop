@@ -57,7 +57,7 @@ export default function MainContent() {
               {statItems.map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-[1rem] border border-cyan-300/18 bg-[#091224c4] px-4 py-3 shadow-[inset_0_1px_0_rgba(234,240,255,0.08)]"
+                  className="border-l border-cyan-300/14 pl-4 py-1"
                 >
                   <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200/65">
                     {item.label}
@@ -70,7 +70,7 @@ export default function MainContent() {
             </div>
           </div>
 
-          <aside className="tech-panel scanline animate-rise relative overflow-hidden p-5 [animation-delay:0.15s] md:p-7">
+          <aside className="tech-panel scanline animate-rise relative overflow-hidden pt-4 [animation-delay:0.15s] lg:border-l lg:border-cyan-300/14 lg:pl-8 lg:pt-0">
             <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
             <p className="section-kicker">Signal</p>
             <h2 className="display-font mt-2 text-2xl font-medium tracking-[0.03em] md:text-3xl">
@@ -92,7 +92,7 @@ export default function MainContent() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-[0.95rem] border border-orange-300/28 bg-orange-300/10 px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-orange-100/90">
+            <div className="mt-6 text-[11px] uppercase tracking-[0.18em] text-orange-100/72">
               Access Protocol: Shadow Relay Enabled
             </div>
           </aside>
