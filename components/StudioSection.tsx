@@ -1023,13 +1023,13 @@ function StudioShortsModal({
   useEffect(() => {
     if (!open) return;
     setAutoplayMutedFallback(false);
-    setMuted(true);
+    setMuted(!isMobile);
     setVolume((prev) =>
       clampShortsVolume(prev) > 0
         ? clampShortsVolume(prev)
         : SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME
     );
-  }, [open]);
+  }, [isMobile, open]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -1383,7 +1383,7 @@ function StudioShortsModal({
             </div>
           ) : (
             <>
-              <div className="absolute right-4 top-20 z-20 flex flex-col gap-2 md:right-6">
+              <div className="absolute right-4 top-20 z-20 hidden flex-col gap-2 md:right-6 md:flex">
                 <button
                   type="button"
                   onClick={() => scrollToIndex(activeIndex - 1)}
@@ -1546,6 +1546,24 @@ function StudioShortsModal({
                                 }}
                                 onClick={(event) => {
                                   const video = event.currentTarget;
+                                  if (isMobile && muted) {
+                                    const nextVolume =
+                                      clampShortsVolume(volume) > 0
+                                        ? clampShortsVolume(volume)
+                                        : previousNonZeroVolumeRef.current;
+                                    if (nextVolume > 0) {
+                                      previousNonZeroVolumeRef.current =
+                                        nextVolume;
+                                    }
+                                    setVolume(nextVolume);
+                                    setMuted(false);
+                                    setAutoplayMutedFallback(false);
+                                    video.defaultMuted = false;
+                                    video.muted = false;
+                                    video.volume = nextVolume;
+                                    void video.play();
+                                    return;
+                                  }
                                   if (video.paused) {
                                     void playVideoWithAutoplayFallback(video);
                                     return;
