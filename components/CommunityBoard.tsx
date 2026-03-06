@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { isAdminUserLike } from '@/utils/service-posts';
 
@@ -246,7 +246,7 @@ function RichTextWithYouTube({
               href={block.sourceUrl}
               target="_blank"
               rel="noreferrer"
-              className="block truncate border-t border-white/10 px-3 py-2 text-xs text-white/65 hover:text-white/85"
+              className="block break-all border-t border-white/10 px-3 py-2 text-xs text-white/65 hover:text-white/85"
             >
               {block.sourceUrl}
             </a>
@@ -591,6 +591,22 @@ export default function CommunityBoard() {
     }
   }, [posts, selectedPostId]);
 
+  useEffect(() => {
+    if (!selectedPostId) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !submitting) {
+        setSelectedPostId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedPostId, submitting]);
+
   return (
     <section className="space-y-6">
       <div className="rounded-3xl border border-cyan-100/20 bg-cyan-200/10 p-5">
@@ -788,18 +804,27 @@ export default function CommunityBoard() {
       )}
 
       {selectedPost && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6">
-          <button
-            type="button"
-            aria-label="게시글 닫기"
+        <div className="fixed inset-0 z-[90] flex items-end justify-center p-2 pt-10 sm:items-center sm:p-6">
+          <div
+            className="absolute inset-0 bg-black/82 backdrop-blur-sm"
             onClick={() => {
               if (submitting) return;
               setSelectedPostId(null);
             }}
-            className="absolute inset-0 bg-black/80"
           />
-          <div className="relative z-[91] max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-cyan-100/25 bg-[#041221f2] p-3 sm:p-5">
-            <div className="mb-3 flex justify-end">
+          <div className="relative z-[91] flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.05rem] border border-cyan-100/25 bg-[#041221f2] shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
+            <div className="flex items-start justify-between gap-4 border-b border-cyan-100/15 bg-[#06101bf2] px-4 py-4 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-50/55">
+                  Community
+                </p>
+                <h3 className="mt-1 break-words text-base font-semibold text-white sm:text-lg">
+                  {selectedPost.title}
+                </h3>
+                <p className="mt-1 text-xs text-white/50">
+                  {selectedPost.authorName} · {formatDateTime(selectedPost.createdAt)}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -807,37 +832,40 @@ export default function CommunityBoard() {
                   setSelectedPostId(null);
                 }}
                 disabled={submitting}
-                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                aria-label="게시글 닫기"
               >
-                닫기
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <CommunityPostCard
-              post={selectedPost}
-              currentUserId={currentUserId}
-              isAdmin={isAdmin}
-              submitting={submitting}
-              editingPostId={editingPostId}
-              editTitle={editTitle}
-              editContent={editContent}
-              editNotice={editNotice}
-              commentDraft={commentDraftByPostId[selectedPost.id] || ''}
-              onOpenEdit={() => openEditForm(selectedPost)}
-              onCloseEdit={closeEditForm}
-              onEditTitleChange={setEditTitle}
-              onEditContentChange={setEditContent}
-              onEditNoticeChange={setEditNotice}
-              onUpdatePost={() => void handleUpdatePost(selectedPost.id)}
-              onDeletePost={() => void handleDeletePost(selectedPost.id)}
-              onReactPost={(reaction) => void handleReactPost(selectedPost.id, reaction)}
-              reactionPending={Boolean(reactionPendingByPostId[selectedPost.id])}
-              onCommentDraftChange={(value) =>
-                setCommentDraftByPostId((prev) => ({ ...prev, [selectedPost.id]: value }))
-              }
-              onCreateComment={() => void handleCreateComment(selectedPost.id)}
-              onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
-              isLoggedIn={isLoggedIn}
-            />
+            <div className="overflow-y-auto px-3 pb-3 pt-3 sm:px-5 sm:pb-5">
+              <CommunityPostCard
+                post={selectedPost}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                submitting={submitting}
+                editingPostId={editingPostId}
+                editTitle={editTitle}
+                editContent={editContent}
+                editNotice={editNotice}
+                commentDraft={commentDraftByPostId[selectedPost.id] || ''}
+                onOpenEdit={() => openEditForm(selectedPost)}
+                onCloseEdit={closeEditForm}
+                onEditTitleChange={setEditTitle}
+                onEditContentChange={setEditContent}
+                onEditNoticeChange={setEditNotice}
+                onUpdatePost={() => void handleUpdatePost(selectedPost.id)}
+                onDeletePost={() => void handleDeletePost(selectedPost.id)}
+                onReactPost={(reaction) => void handleReactPost(selectedPost.id, reaction)}
+                reactionPending={Boolean(reactionPendingByPostId[selectedPost.id])}
+                onCommentDraftChange={(value) =>
+                  setCommentDraftByPostId((prev) => ({ ...prev, [selectedPost.id]: value }))
+                }
+                onCreateComment={() => void handleCreateComment(selectedPost.id)}
+                onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
+                isLoggedIn={isLoggedIn}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -943,12 +971,12 @@ function CommunityPostCard({
     <article
       className={
         post.isNotice
-          ? 'rounded-3xl border border-amber-300/35 bg-amber-500/10 p-5'
-          : 'rounded-3xl border border-cyan-100/20 bg-cyan-200/10 p-5'
+          ? 'rounded-[1rem] border border-amber-300/35 bg-amber-500/10 p-4 sm:p-5'
+          : 'rounded-[1rem] border border-cyan-100/20 bg-cyan-200/10 p-4 sm:p-5'
       }
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {post.isNotice && (
               <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
@@ -960,7 +988,9 @@ function CommunityPostCard({
                 {featuredLabel}
               </span>
             )}
-            <h3 className="text-lg font-semibold text-white">{post.title}</h3>
+            <h3 className="break-words text-base font-semibold text-white sm:text-lg">
+              {post.title}
+            </h3>
           </div>
           <p className="mt-1 text-xs text-white/55">
             {post.authorName} · {formatDateTime(post.createdAt)}
@@ -968,7 +998,7 @@ function CommunityPostCard({
         </div>
 
         {canManagePost && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!isEditing ? (
               <button
                 type="button"
