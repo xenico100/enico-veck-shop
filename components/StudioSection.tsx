@@ -735,7 +735,8 @@ function StudioShortsModal({
   onOpenPost,
   viewerMembershipTierLevel,
   viewerMembershipTierLoading,
-  isAuthenticated
+  isAuthenticated,
+  isMobile
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -745,6 +746,7 @@ function StudioShortsModal({
   viewerMembershipTierLevel: number;
   viewerMembershipTierLoading: boolean;
   isAuthenticated: boolean;
+  isMobile: boolean;
 }) {
   const shortsPosts = useMemo(
     () => sortStudioShortsPosts(posts.filter((post) => !post.is_placeholder)),
@@ -2414,6 +2416,7 @@ export default function StudioSection({
         viewerMembershipTierLevel={viewerMembershipTierLevel}
         viewerMembershipTierLoading={viewerMembershipTierLoading}
         isAuthenticated={Boolean(user?.id)}
+        isMobile={isMobile}
       />
 
       <StudioWriteModal
