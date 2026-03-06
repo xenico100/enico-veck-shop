@@ -691,25 +691,29 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     Array.from({ length: count }).map((_, index) => (
       <div
         key={`service-skeleton-${mobile ? 'm' : 'd'}-${index}`}
-        className={`flex-shrink-0 ${mobile ? 'w-[min(18rem,calc(100vw-3rem))]' : 'w-[280px]'} overflow-hidden border-t border-white/10 pt-5 ${
+        className={`flex-shrink-0 ${mobile ? 'w-[calc((100vw-3.25rem)/3)] min-w-[6.6rem] max-w-[7.8rem]' : 'w-[280px]'} overflow-hidden border-t border-white/10 pt-5 ${
           mobile ? '' : 'min-h-[420px]'
         }`}
         aria-hidden="true"
       >
-        <div className={`${mobile ? 'h-56' : 'h-64'} w-full bg-white/5/40`} />
-        <div className="flex justify-center gap-2 py-4">
+        <div className={`${mobile ? 'h-24' : 'h-64'} w-full bg-white/5/40`} />
+        <div className={`${mobile ? 'hidden' : 'flex'} justify-center gap-2 py-4`}>
           <div className="h-3 w-3 rounded-full bg-white/10" />
           <div className="h-3 w-3 rounded-full bg-white/10" />
           <div className="h-3 w-3 rounded-full bg-white/10" />
         </div>
-        <div className="space-y-3 p-6">
-          <div className="h-6 w-3/4 rounded bg-white/10" />
-          <div className="h-4 w-1/2 rounded bg-white/10" />
-          <div className="h-4 w-full rounded bg-white/5" />
-          <div className="h-4 w-5/6 rounded bg-white/5" />
-          <div className="h-4 w-2/3 rounded bg-white/5" />
-          <div className="mt-2 h-5 w-24 rounded bg-white/10" />
-          <div className="flex gap-2.5 pt-1">
+        <div className={`${mobile ? 'space-y-2 px-0 pb-0 pt-3' : 'space-y-3 p-6'}`}>
+          <div className={`${mobile ? 'h-4 w-full' : 'h-6 w-3/4'} rounded bg-white/10`} />
+          <div className={`${mobile ? 'h-3 w-2/3' : 'h-4 w-1/2'} rounded bg-white/10`} />
+          {!mobile ? (
+            <>
+              <div className="h-4 w-full rounded bg-white/5" />
+              <div className="h-4 w-5/6 rounded bg-white/5" />
+              <div className="h-4 w-2/3 rounded bg-white/5" />
+            </>
+          ) : null}
+          <div className={`${mobile ? 'mt-1 h-4 w-3/5' : 'mt-2 h-5 w-24'} rounded bg-white/10`} />
+          <div className={`flex ${mobile ? 'flex-col gap-1.5' : 'gap-2.5 pt-1'}`}>
             <div className="h-11 flex-1 bg-white/10" />
             <div className="h-11 flex-1 bg-white/5" />
           </div>
@@ -801,8 +805,6 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 </div>
               )}
               {!servicesLoading && filteredServices.map((service, index) => {
-                const previewDescription =
-                  extractServiceContentText(service.description) || '상세 설명이 준비 중입니다.';
                 return (
                 <div 
                   key={index} 
@@ -879,8 +881,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           
           {/* Mobile: Simple Scroll */}
           <div className={`md:hidden overflow-x-auto pb-4 transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}>
-            <div className="flex gap-4">
-              {servicesLoading && renderServiceSkeletonCards(2, true)}
+            <div className="scrollbar-hide flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1">
+              {servicesLoading && renderServiceSkeletonCards(3, true)}
               {!servicesLoading && filteredServices.length === 0 && (
                 <div className="flex min-h-[280px] w-full items-center justify-center border-t border-cyan-100/12 py-6 text-center text-sm text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
@@ -892,12 +894,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 return (
                 <div 
                   key={index} 
-                  className={`flex-shrink-0 w-[min(18rem,calc(100vw-3rem))] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 ${
+                  className={`flex-shrink-0 snap-start w-[calc((100vw-3.25rem)/3)] min-w-[6.6rem] max-w-[7.8rem] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-3 transition-all duration-300 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
                   {/* Image */}
-                  <div className="relative flex h-56 w-full items-center justify-center bg-transparent p-0">
+                  <div className="relative flex h-24 w-full items-center justify-center bg-transparent p-0">
                     <img
                       src={service.image}
                       alt={service.title}
@@ -908,30 +910,28 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   </div>
                   
                   {/* Color Options */}
-                  <div className="flex justify-center gap-2 py-4">
+                  <div className="hidden justify-center gap-1.5 py-2">
                     {service.colors.map((color, idx) => (
                       <div
                         key={idx}
-                        className={`h-3 w-3 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
+                        className={`h-2.5 w-2.5 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
                       />
                     ))}
                   </div>
                   
                   {/* Content */}
-                  <div className="px-0 pb-0 pt-5">
-                    <h3 className="mb-1 break-words text-xl leading-tight tracking-tight text-white">{service.title}</h3>
-                    <p className="mb-3 break-words text-xs text-cyan-100/55">{service.subtitle}</p>
-                    <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line">
-                      {previewDescription}
-                    </p>
-                    <p className="mb-4 break-words text-sm text-white">{service.price}</p>
+                  <div className="px-0 pb-0 pt-3">
+                    <h3 className="mb-1 break-words text-[0.76rem] font-medium leading-tight tracking-tight text-white">
+                      {service.title}
+                    </h3>
+                    <p className="mb-3 break-words text-[0.68rem] text-white/84">{service.price}</p>
                     
                     {/* Buttons */}
-                    <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
+                    <div className="flex flex-col items-stretch gap-1.5">
                       <Button
                         type="button"
                         onClick={() => openServiceDetail(service)}
-                        className={servicePrimaryButtonClass}
+                        className={`${servicePrimaryButtonClass} !min-h-8 !px-1.5 !text-[0.58rem] !tracking-[0.03em]`}
                       >
                         더 알아보기
                       </Button>
@@ -939,7 +939,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                         type="button"
                         variant="outline"
                         onClick={() => handleAddToCart(service)}
-                        className={serviceSecondaryButtonClass}
+                        className={`${serviceSecondaryButtonClass} !min-h-8 !px-1.5 !text-[0.58rem] !tracking-[0.03em]`}
                       >
                         장바구니 담기
                       </Button>
