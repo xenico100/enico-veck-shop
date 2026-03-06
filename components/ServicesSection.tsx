@@ -227,9 +227,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           onClick={() => {
             onOpenCart();
           }}
-          className="rounded-[0.92rem]"
+          className="!text-[0.72rem]"
         >
-          View cart
+          장바구니 보기
         </ToastAction>
       ) : undefined
     });
@@ -539,9 +539,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           onClick={() => {
             onOpenCart();
           }}
-          className="rounded-[0.92rem]"
+          className="!text-[0.72rem]"
         >
-          View cart
+          장바구니 보기
         </ToastAction>
       ) : undefined
     });
