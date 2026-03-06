@@ -812,7 +812,7 @@ export default function CommunityBoard() {
               setSelectedPostId(null);
             }}
           />
-          <div className="relative z-[91] flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.05rem] border border-cyan-100/25 bg-[#041221f2] shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
+          <div className="relative z-[91] flex h-[min(100dvh-1rem,56rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.05rem] border border-cyan-100/25 bg-[#041221f2] shadow-[0_30px_100px_rgba(0,0,0,0.6)] sm:h-[min(100dvh-3rem,56rem)]">
             <div className="flex items-start justify-between gap-4 border-b border-cyan-100/15 bg-[#06101bf2] px-4 py-4 sm:px-5">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-50/55">
@@ -838,7 +838,7 @@ export default function CommunityBoard() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="overflow-y-auto px-3 pb-3 pt-3 sm:px-5 sm:pb-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-3 sm:px-5 sm:pb-8">
               <CommunityPostCard
                 post={selectedPost}
                 currentUserId={currentUserId}
@@ -864,6 +864,7 @@ export default function CommunityBoard() {
                 onCreateComment={() => void handleCreateComment(selectedPost.id)}
                 onDeleteComment={(commentId) => void handleDeleteComment(commentId)}
                 isLoggedIn={isLoggedIn}
+                inModal
               />
             </div>
           </div>
@@ -938,7 +939,8 @@ function CommunityPostCard({
   onCommentDraftChange,
   onCreateComment,
   onDeleteComment,
-  isLoggedIn
+  isLoggedIn,
+  inModal = false
 }: {
   post: CommunityPost;
   currentUserId: string | null;
@@ -963,6 +965,7 @@ function CommunityPostCard({
   onCreateComment: () => void;
   onDeleteComment: (commentId: string) => void;
   isLoggedIn: boolean;
+  inModal?: boolean;
 }) {
   const canManagePost = Boolean(currentUserId && (currentUserId === post.userId || isAdmin));
   const isEditing = editingPostId === post.id;
@@ -975,65 +978,82 @@ function CommunityPostCard({
           : 'rounded-[1rem] border border-cyan-100/20 bg-cyan-200/10 p-4 sm:p-5'
       }
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            {post.isNotice && (
-              <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
-                Notice
-              </span>
-            )}
-            {featuredLabel && (
-              <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">
-                {featuredLabel}
-              </span>
-            )}
-            <h3 className="break-words text-base font-semibold text-white sm:text-lg">
-              {post.title}
-            </h3>
-          </div>
-          <p className="mt-1 text-xs text-white/55">
-            {post.authorName} · {formatDateTime(post.createdAt)}
-          </p>
-        </div>
+      {(!inModal || canManagePost) && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          {!inModal ? (
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                {post.isNotice && (
+                  <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                    Notice
+                  </span>
+                )}
+                {featuredLabel && (
+                  <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">
+                    {featuredLabel}
+                  </span>
+                )}
+                <h3 className="break-words text-base font-semibold text-white sm:text-lg">
+                  {post.title}
+                </h3>
+              </div>
+              <p className="mt-1 text-xs text-white/55">
+                {post.authorName} · {formatDateTime(post.createdAt)}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {post.isNotice && (
+                <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                  Notice
+                </span>
+              )}
+              {featuredLabel && (
+                <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">
+                  {featuredLabel}
+                </span>
+              )}
+            </div>
+          )}
 
-        {canManagePost && (
-          <div className="flex flex-wrap items-center gap-2">
-            {!isEditing ? (
+          {canManagePost && (
+            <div className="flex flex-wrap items-center gap-2">
+              {!isEditing ? (
+                <button
+                  type="button"
+                  onClick={onOpenEdit}
+                  disabled={submitting}
+                  className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                >
+                  수정
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onCloseEdit}
+                  disabled={submitting}
+                  className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                >
+                  취소
+                </button>
+              )}
               <button
                 type="button"
-                onClick={onOpenEdit}
+                onClick={onDeletePost}
                 disabled={submitting}
-                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                className="rounded-full border border-rose-300/35 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/24 disabled:opacity-60"
               >
-                수정
+                삭제
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onCloseEdit}
-                disabled={submitting}
-                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
-              >
-                취소
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onDeletePost}
-              disabled={submitting}
-              className="rounded-full border border-rose-300/35 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/24 disabled:opacity-60"
-            >
-              삭제
-            </button>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {!isEditing ? (
         <RichTextWithYouTube
           content={post.content}
-          containerClassName="mt-3 space-y-3"
+          containerClassName={`${inModal ? 'mt-2' : 'mt-3'} space-y-3`}
           textClassName="whitespace-pre-wrap text-sm leading-relaxed text-white/85"
         />
       ) : (
@@ -1108,14 +1128,14 @@ function CommunityPostCard({
         {!isLoggedIn && <span className="text-xs text-white/45">로그인 후 반응을 남길 수 있습니다.</span>}
       </div>
 
-      <div className="mt-5 space-y-3 rounded-2xl border border-cyan-100/20 bg-[#041320b0] p-4">
+      <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-cyan-100/20 bg-[#041320b0] p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-50/60">
           댓글 {post.comments.length}
         </p>
         {post.comments.length === 0 ? (
           <p className="text-sm text-white/55">아직 댓글이 없습니다.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className={`${inModal ? 'max-h-[28vh] overflow-y-auto pr-1' : ''} space-y-2`}>
             {post.comments.map((comment) => {
               const canDeleteComment = Boolean(
                 currentUserId && (currentUserId === comment.userId || isAdmin)
@@ -1153,35 +1173,43 @@ function CommunityPostCard({
           </ul>
         )}
 
-        {!isLoggedIn ? (
-          <p className="text-sm text-white/60">
-            댓글 작성은 로그인 후 가능합니다.{' '}
-            <Link href="/signin" className="underline underline-offset-4">
-              로그인
-            </Link>
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={commentDraft}
-              onChange={(event) => onCommentDraftChange(event.target.value)}
-              rows={2}
-              maxLength={2000}
-              placeholder="댓글을 입력해 주세요."
-              className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-3 py-2 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
-            />
-            <div>
-              <button
-                type="button"
-                onClick={onCreateComment}
-                disabled={submitting}
-                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
-              >
-                댓글 등록
-              </button>
+        <div
+          className={
+            inModal
+              ? 'sticky bottom-0 z-10 -mx-4 mt-1 border-t border-cyan-100/10 bg-[#041320f2] px-4 pb-1 pt-3 sm:-mx-5 sm:px-5'
+              : ''
+          }
+        >
+          {!isLoggedIn ? (
+            <p className="text-sm text-white/60">
+              댓글 작성은 로그인 후 가능합니다.{' '}
+              <Link href="/signin" className="underline underline-offset-4">
+                로그인
+              </Link>
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={commentDraft}
+                onChange={(event) => onCommentDraftChange(event.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="댓글을 입력해 주세요."
+                className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-3 py-2 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
+              />
+              <div>
+                <button
+                  type="button"
+                  onClick={onCreateComment}
+                  disabled={submitting}
+                  className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                >
+                  댓글 등록
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </article>
   );
