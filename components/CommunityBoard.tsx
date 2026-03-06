@@ -804,7 +804,7 @@ export default function CommunityBoard() {
       )}
 
       {selectedPost && (
-        <div className="fixed inset-0 z-[90] flex items-end justify-center p-2 pt-10 sm:items-center sm:p-6">
+        <div className="fixed inset-0 z-[90] flex items-end justify-center p-1 pt-6 sm:items-center sm:p-4">
           <div
             className="absolute inset-0 bg-black/82 backdrop-blur-sm"
             onClick={() => {
@@ -812,8 +812,8 @@ export default function CommunityBoard() {
               setSelectedPostId(null);
             }}
           />
-          <div className="relative z-[91] flex h-[min(100dvh-1rem,56rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.05rem] border border-cyan-100/25 bg-[#041221f2] shadow-[0_30px_100px_rgba(0,0,0,0.6)] sm:h-[min(100dvh-3rem,56rem)]">
-            <div className="flex items-start justify-between gap-4 border-b border-cyan-100/15 bg-[#06101bf2] px-4 py-4 sm:px-5">
+          <div className="relative z-[91] flex h-[min(100dvh-0.25rem,64rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.05rem] border border-cyan-100/25 bg-[#041221f2] shadow-[0_30px_100px_rgba(0,0,0,0.6)] sm:h-[min(100dvh-1.5rem,64rem)]">
+            <div className="flex items-start justify-between gap-4 border-b border-cyan-100/15 bg-[#06101bf2] px-4 py-3 sm:px-6">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-50/55">
                   Community
@@ -838,7 +838,7 @@ export default function CommunityBoard() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6 pt-3 sm:px-5 sm:pb-8">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4 sm:px-6 sm:pb-10">
               <CommunityPostCard
                 post={selectedPost}
                 currentUserId={currentUserId}
@@ -974,8 +974,8 @@ function CommunityPostCard({
     <article
       className={
         post.isNotice
-          ? 'rounded-[1rem] border border-amber-300/35 bg-amber-500/10 p-4 sm:p-5'
-          : 'rounded-[1rem] border border-cyan-100/20 bg-cyan-200/10 p-4 sm:p-5'
+          ? `rounded-[1rem] border border-amber-300/35 bg-amber-500/10 ${inModal ? 'p-5 sm:p-6' : 'p-4 sm:p-5'}`
+          : `rounded-[1rem] border border-cyan-100/20 bg-cyan-200/10 ${inModal ? 'p-5 sm:p-6' : 'p-4 sm:p-5'}`
       }
     >
       {(!inModal || canManagePost) && (
@@ -1128,14 +1128,14 @@ function CommunityPostCard({
         {!isLoggedIn && <span className="text-xs text-white/45">로그인 후 반응을 남길 수 있습니다.</span>}
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-cyan-100/20 bg-[#041320b0] p-4">
+      <div className={`mt-5 flex flex-col gap-3 rounded-2xl border border-cyan-100/20 bg-[#041320b0] ${inModal ? 'p-5' : 'p-4'}`}>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-50/60">
           댓글 {post.comments.length}
         </p>
         {post.comments.length === 0 ? (
           <p className="text-sm text-white/55">아직 댓글이 없습니다.</p>
         ) : (
-          <ul className={`${inModal ? 'max-h-[28vh] overflow-y-auto pr-1' : ''} space-y-2`}>
+          <ul className={`${inModal ? 'max-h-[36vh] overflow-y-auto pr-1' : ''} space-y-2`}>
             {post.comments.map((comment) => {
               const canDeleteComment = Boolean(
                 currentUserId && (currentUserId === comment.userId || isAdmin)
@@ -1176,7 +1176,7 @@ function CommunityPostCard({
         <div
           className={
             inModal
-              ? 'sticky bottom-0 z-10 -mx-4 mt-1 border-t border-cyan-100/10 bg-[#041320f2] px-4 pb-1 pt-3 sm:-mx-5 sm:px-5'
+              ? 'sticky bottom-0 z-10 mt-2 rounded-xl border border-cyan-100/10 bg-[#041320f2] p-3 shadow-[0_-12px_30px_rgba(0,0,0,0.22)] sm:p-4'
               : ''
           }
         >
@@ -1192,7 +1192,7 @@ function CommunityPostCard({
               <textarea
                 value={commentDraft}
                 onChange={(event) => onCommentDraftChange(event.target.value)}
-                rows={3}
+                rows={4}
                 maxLength={2000}
                 placeholder="댓글을 입력해 주세요."
                 className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-3 py-2 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
