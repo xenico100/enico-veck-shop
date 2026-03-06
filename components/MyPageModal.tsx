@@ -193,7 +193,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const glassIconButtonClass =
     `y2k-button y2k-button-ghost y2k-button-icon ${appleFontClass}`;
-  const segmentedWrapClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
+  const segmentedWrapClass = `flex w-full flex-wrap items-center gap-2 sm:min-w-max sm:gap-3 ${appleFontClass}`;
   const inputClass =
     'y2k-input w-full px-4 py-3 text-white placeholder:text-white/40 focus:outline-none';
   const labelClass =
@@ -511,21 +511,21 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
     <>
       <div className="fixed inset-0 z-[70] bg-black/70" onClick={() => onOpenChange(false)} />
 
-      <div className="fixed inset-0 z-[71] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[71] flex items-end justify-center p-2 pt-10 sm:items-center sm:p-4">
         <div
           ref={modalRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="mypage-title"
-          className={`mypage-shell w-full max-w-3xl overflow-hidden rounded-[1.15rem] ${appleFontClass}`}
+          className={`mypage-shell max-h-[calc(100dvh-0.75rem)] w-full max-w-3xl overflow-hidden rounded-[1.15rem] ${appleFontClass}`}
           onKeyDown={handleKeyDown}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between border-b border-cyan-300/12 px-6 pb-5 pt-6 md:px-8">
+          <div className="flex items-start justify-between border-b border-cyan-300/12 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6 md:px-8">
             <div className="min-w-0 flex-1">
               <h2
                 id="mypage-title"
-                className="display-font text-[1.9rem] font-medium tracking-[0.04em] text-white"
+                className="display-font text-[1.45rem] font-medium tracking-[0.04em] text-white sm:text-[1.9rem]"
               >
                 마이페이지
               </h2>
@@ -551,24 +551,24 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
               ref={closeButtonRef}
               type="button"
               onClick={() => onOpenChange(false)}
-              className={`ml-4 shrink-0 ${glassIconButtonClass}`}
+              className={`ml-3 shrink-0 sm:ml-4 ${glassIconButtonClass}`}
               aria-label="마이페이지 닫기"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto px-6 pb-8 pt-6 md:px-8">
+          <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto px-4 pb-6 pt-5 sm:max-h-[70vh] sm:px-6 sm:pb-8 sm:pt-6 md:px-8">
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <div className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm md:p-6">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-lg font-semibold text-white">
                       {initial}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold text-white">{name}</p>
-                      <p className="truncate text-sm text-white/60">{email}</p>
+                      <p className="break-words text-lg font-semibold text-white">{name}</p>
+                      <p className="break-all text-sm text-white/60">{email}</p>
                     </div>
                   </div>
 
@@ -744,7 +744,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                                   {formatOrderDate(order.created_at)}
                                 </span>
                               </div>
-                              <p className="mt-2 truncate text-sm font-semibold text-white">
+                              <p className="mt-2 break-words text-sm font-semibold text-white">
                                 {firstItem?.title ?? '주문 항목'}
                                 {extraCount > 0 ? ` 외 ${extraCount}건` : ''}
                               </p>
@@ -960,7 +960,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
                                   공지
                                 </span>
                               )}
-                              <h4 className="truncate text-sm font-semibold text-white">{post.title}</h4>
+                              <h4 className="break-words text-sm font-semibold text-white">{post.title}</h4>
                             </div>
                             <p className="mt-1 text-xs text-white/55">
                               작성 {formatOrderDate(post.created_at)} · 댓글 {post.comment_count}개

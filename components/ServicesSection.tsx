@@ -132,9 +132,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const scrollLeft = useRef(0);
   const appleFontClass =
     '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
-  const segmentedContainerClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
-  const serviceSecondaryButtonClass = `y2k-button y2k-button-ghost h-11 flex-1 !min-h-11 !px-4 !text-[0.72rem] !tracking-[0.06em] ${appleFontClass}`;
-  const servicePrimaryButtonClass = `y2k-button y2k-button-primary h-11 flex-1 !min-h-11 !px-5 !text-[0.72rem] !tracking-[0.06em] ${appleFontClass}`;
+  const segmentedContainerClass = `flex w-full flex-wrap items-center gap-2 sm:min-w-max sm:gap-3 ${appleFontClass}`;
+  const serviceSecondaryButtonClass = `y2k-button y2k-button-ghost h-11 flex-1 !min-h-11 !px-4 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
+  const servicePrimaryButtonClass = `y2k-button y2k-button-primary h-11 flex-1 !min-h-11 !px-5 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
   const arrowButtonClass = 'y2k-button y2k-button-ghost y2k-button-icon size-11';
   const adminWriteButtonClass = `y2k-button y2k-button-ghost !min-h-10 !px-4 !text-[0.74rem] !tracking-[0.08em] ${appleFontClass}`;
   const createInputClass =
@@ -691,7 +691,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
     Array.from({ length: count }).map((_, index) => (
       <div
         key={`service-skeleton-${mobile ? 'm' : 'd'}-${index}`}
-        className={`flex-shrink-0 w-[280px] overflow-hidden border-t border-white/10 pt-5 ${
+        className={`flex-shrink-0 ${mobile ? 'w-[min(18rem,calc(100vw-3rem))]' : 'w-[280px]'} overflow-hidden border-t border-white/10 pt-5 ${
           mobile ? '' : 'min-h-[420px]'
         }`}
         aria-hidden="true"
@@ -720,9 +720,9 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   return (
     <section
       id="services"
-      className="relative px-4 py-16 text-white md:px-8 md:py-24"
+      className="relative px-4 py-14 text-white md:px-8 md:py-24"
     >
-      <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-5 md:p-8">
+      <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
         {/* Title */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -746,7 +746,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         </div>
         
         {/* Category Tabs */}
-        <div className="mb-12 overflow-x-auto pb-2">
+        <div className="mb-10 overflow-x-auto pb-2 md:mb-12">
           <div className={segmentedContainerClass}>
             {categories.map((category) => (
               <PillTab
@@ -834,15 +834,15 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   
                   {/* Content */}
                   <div className="flex flex-1 flex-col px-0 pb-0 pt-5">
-                    <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
-                    <p className="text-xs text-cyan-100/55 mb-3">{service.subtitle}</p>
+                    <h3 className="mb-1 break-words text-xl leading-tight tracking-tight text-white">{service.title}</h3>
+                    <p className="mb-3 break-words text-xs text-cyan-100/55">{service.subtitle}</p>
                     <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line flex-1">
                       {previewDescription}
                     </p>
-                    <p className="text-sm text-white mb-4">{service.price}</p>
+                    <p className="mb-4 break-words text-sm text-white">{service.price}</p>
                     
                     {/* Buttons */}
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
                       <Button
                         type="button"
                         onClick={() => openServiceDetail(service)}
@@ -892,7 +892,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 return (
                 <div 
                   key={index} 
-                  className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 ${
+                  className={`flex-shrink-0 w-[min(18rem,calc(100vw-3rem))] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 ${
                     !isChanging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                   }`}
                 >
@@ -919,15 +919,15 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   
                   {/* Content */}
                   <div className="px-0 pb-0 pt-5">
-                    <h3 className="text-xl mb-1 tracking-tight text-white">{service.title}</h3>
-                    <p className="text-xs text-cyan-100/55 mb-3">{service.subtitle}</p>
+                    <h3 className="mb-1 break-words text-xl leading-tight tracking-tight text-white">{service.title}</h3>
+                    <p className="mb-3 break-words text-xs text-cyan-100/55">{service.subtitle}</p>
                     <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line">
                       {previewDescription}
                     </p>
-                    <p className="text-sm text-white mb-4">{service.price}</p>
+                    <p className="mb-4 break-words text-sm text-white">{service.price}</p>
                     
                     {/* Buttons */}
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
                       <Button
                         type="button"
                         onClick={() => openServiceDetail(service)}
@@ -954,14 +954,14 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       </div>
       {isAdmin && isCreateModalOpen && (
         <div
-          className="fixed inset-0 z-[72] flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-[72] flex items-end justify-center bg-black/70 p-2 pt-10 sm:items-center sm:p-4"
           onClick={() => {
             if (createSubmitting || createContentUploading) return;
             setIsCreateModalOpen(false);
           }}
         >
           <div
-            className={`w-full max-w-2xl rounded-[1.35rem] border border-cyan-100/18 bg-[#041221ee] p-5 shadow-[0_26px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl md:p-6 ${appleFontClass}`}
+            className={`max-h-[calc(100dvh-1rem)] w-full max-w-2xl overflow-y-auto rounded-[1.35rem] border border-cyan-100/18 bg-[#041221ee] p-4 shadow-[0_26px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl sm:p-5 md:p-6 ${appleFontClass}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-start justify-between gap-4">

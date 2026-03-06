@@ -22,7 +22,7 @@ const featureRows = [
 
 export default function AboutSection() {
   return (
-    <section id="about" className="relative px-4 py-16 md:px-8 md:py-24">
+    <section id="about" className="relative px-4 py-14 md:px-8 md:py-24">
       <div className="section-shell">
         <div className="mb-8 animate-rise">
           <p className="section-kicker">About</p>
@@ -35,7 +35,7 @@ export default function AboutSection() {
               <img
                 src={studioImage}
                 alt="ZEUS Studio Control Room"
-                className="h-[300px] w-full object-cover opacity-84 grayscale md:h-[520px]"
+                className="h-[240px] w-full object-cover opacity-84 grayscale sm:h-[300px] md:h-[520px]"
                 loading="lazy"
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#030503] via-[#030503ac] to-transparent p-4 md:p-6">
@@ -47,7 +47,7 @@ export default function AboutSection() {
             </div>
           </div>
 
-          <div className="tech-panel animate-rise space-y-5 p-5 [animation-delay:0.14s] md:p-7">
+          <div className="tech-panel animate-rise space-y-5 p-4 [animation-delay:0.14s] sm:p-5 md:p-7">
             <p className="text-sm leading-relaxed text-cyan-50/82 md:text-base">
               이 플랫폼은 일반 공개 트래픽과 유료 멤버십 스트림을 동일 화면에서
               제어하기 위해 설계된 다크웹 톤 인터페이스입니다. 단순 전시가 아니라

@@ -477,14 +477,14 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
         <DialogPrimitive.Content
-          className={`fixed left-1/2 top-1/2 z-[81] w-[calc(100%-1.5rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-white/10 bg-black/70 shadow-2xl backdrop-blur-xl outline-none ${appleFontClass}`}
+          className={`fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-white/10 bg-black/70 shadow-2xl backdrop-blur-xl outline-none ${appleFontClass}`}
         >
-          <div className="flex items-start justify-between border-b border-white/10 px-5 py-4 md:px-6">
-            <div>
+          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-5 md:px-6">
+            <div className="min-w-0">
               <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-white">
                 {isCheckingOut ? 'Payment Options' : 'Cart'}
               </DialogPrimitive.Title>
-              <DialogPrimitive.Description className="mt-1 text-sm text-white/60">
+              <DialogPrimitive.Description className="mt-1 break-words text-sm text-white/60">
                 {isCheckingOut
                   ? '간편결제 수단을 선택해 결제를 진행하세요.'
                   : itemCount > 0
@@ -498,10 +498,10 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
             />
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto px-5 py-5 md:px-6">
+          <div className="max-h-[calc(100dvh-11rem)] overflow-y-auto px-4 py-4 sm:max-h-[70vh] sm:px-5 sm:py-5 md:px-6">
             {!isCheckingOut ? (
               items.length === 0 ? (
-                <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
+                <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-6 text-center sm:min-h-[280px] sm:p-8">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
                     <ShoppingBag className="h-5 w-5" />
                   </div>
@@ -522,9 +522,9 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                         key={item.key}
                         className="rounded-3xl border border-white/10 bg-white/[0.04] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm"
                       >
-                        <div className="flex gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row">
                           <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.09] to-white/[0.04] p-1 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm">
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07]">
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07] sm:h-16 sm:w-16">
                               {item.image ? (
                                 <img
                                   src={item.image}
@@ -536,7 +536,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-white">
+                              <p className="break-words text-sm font-medium leading-snug text-white">
                                 {item.title}
                               </p>
                               <p className="mt-1 text-xs text-white/65">
@@ -550,7 +550,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 flex-col items-end gap-2">
+                          <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
                             <QuantityStepper
                               value={item.quantity}
                               onDecrement={() =>
@@ -567,7 +567,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                               variant="destructive"
                               size="sm"
                               onClick={() => removeItem(item.key)}
-                              className="gap-1"
+                              className="gap-1 whitespace-nowrap"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               삭제
@@ -918,7 +918,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                             const file = event.target.files?.[0] ?? null;
                             setBankTransferProofFile(file);
                           }}
-                          className="w-full rounded-xl border border-emerald-200/30 bg-black/20 px-3 py-2 text-xs text-emerald-50 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-200/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-50 hover:file:bg-emerald-200/30"
+                          className="w-full rounded-xl border border-emerald-200/30 bg-black/20 px-3 py-2 text-xs text-emerald-50 file:mb-2 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-200/20 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-emerald-50 hover:file:bg-emerald-200/30 sm:file:mb-0"
                         />
                         {bankTransferProofFile ? (
                           <p className="mt-1 text-[11px] text-emerald-100/80">
@@ -956,7 +956,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
             )}
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-white/10 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between md:px-6">
             {!isCheckingOut ? (
               <>
                 <div>
@@ -973,7 +973,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     variant="secondary"
                     size="md"
                     onClick={() => clear()}
-                    className="px-5"
+                    className="w-full px-5 sm:w-auto"
                     disabled={items.length === 0 || isSavingOrder}
                   >
                     비우기
@@ -983,7 +983,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     variant="primary"
                     size="md"
                     onClick={handleOpenCheckout}
-                    className="px-5"
+                    className="w-full px-5 sm:w-auto"
                     disabled={items.length === 0 || isSavingOrder}
                   >
                     결제하기
@@ -1009,7 +1009,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     variant="secondary"
                     size="md"
                     onClick={handleBackToCart}
-                    className="px-5"
+                    className="w-full px-5 sm:w-auto"
                     disabled={isSavingOrder}
                   >
                     Back to Cart

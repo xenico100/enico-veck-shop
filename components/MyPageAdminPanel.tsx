@@ -352,7 +352,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
 
   const appleFontClass =
     '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
-  const segmentedWrapClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
+  const segmentedWrapClass = `flex w-full flex-wrap items-center gap-2 sm:min-w-max sm:gap-3 ${appleFontClass}`;
   const inputClass =
     'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:ring-2 focus:ring-white/25';
 
@@ -1896,7 +1896,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">{post.title}</p>
+                        <p className="break-words text-sm font-medium text-white">{post.title}</p>
                         <p className="mt-1 text-xs text-white/55">
                           작성자 ID: {post.user_id}
                         </p>
@@ -2083,7 +2083,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                               Notice
                             </span>
                           )}
-                          <p className="truncate text-sm font-medium text-white">{post.title}</p>
+                          <p className="break-words text-sm font-medium text-white">{post.title}</p>
                         </div>
                         <p className="mt-1 text-xs text-white/55">
                           작성자: {post.authorName} · 작성일 {formatDate(post.createdAt)}
@@ -2422,7 +2422,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                   <div key={post.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">{post.title}</p>
+                        <p className="break-words text-sm font-medium text-white">{post.title}</p>
                         <p className="mt-1 text-xs text-white/55">
                           {post.category || '카테고리 없음'} · {post.is_published ? '공개' : '비공개'} · 수정{' '}
                           {formatDate(post.updated_at)}
@@ -2615,12 +2615,12 @@ export default function MyPageAdminPanel({ enabled }: Props) {
         />
       )}
       {memberOrdersModalOpen && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[85] flex items-end justify-center p-2 pt-10 sm:items-center sm:p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-label="회원 주문 내역"
-            className="w-full max-w-3xl rounded-3xl border border-white/10 bg-black/75 p-5 shadow-2xl backdrop-blur-xl md:p-6"
+            className="max-h-[calc(100dvh-0.75rem)] w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-black/75 p-4 shadow-2xl backdrop-blur-xl sm:p-5 md:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -2680,7 +2680,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                 </PillTab>
               </div>
 
-	            <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+	            <div className="max-h-[calc(100dvh-12rem)] space-y-3 overflow-y-auto pr-1 sm:max-h-[60vh]">
 	              <p className="text-xs text-white/50">주문 카드를 누르면 주문 상세가 열립니다.</p>
                   {memberOrdersTab === 'shipping_done' && (
                     <p className="text-xs text-white/40">배송완료 탭에는 반송/취소 주문도 함께 표시됩니다.</p>
@@ -2727,7 +2727,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                               {formatOrderDate(order.created_at)}
                             </span>
                           </div>
-                          <p className="mt-2 truncate text-sm font-semibold text-white">
+                          <p className="mt-2 break-words text-sm font-semibold text-white">
                             {firstItem?.title ?? '주문 항목'}
                             {extraCount > 0 ? ` 외 ${extraCount}건` : ''}
                           </p>

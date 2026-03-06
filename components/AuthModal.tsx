@@ -119,11 +119,11 @@ export default function AuthModal({
       <div className="fixed inset-0 z-[60] bg-black/70" onClick={onClose} />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[61] flex items-end justify-center p-2 pt-12 sm:items-center sm:p-4">
         <div
-          className={`w-full max-w-md bg-[#060913]/92 shadow-[0_24px_80px_rgba(0,0,0,0.42)] ${appleFontClass}`}
+          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto border border-cyan-300/16 bg-[#060913]/92 shadow-[0_24px_80px_rgba(0,0,0,0.42)] ${appleFontClass}`}
         >
-          <div className="flex items-center justify-between border-b border-cyan-300/12 px-6 py-5">
+          <div className="flex items-center justify-between border-b border-cyan-300/12 px-4 py-4 sm:px-6 sm:py-5">
             <div className={tabGroupClass}>
               <button
                 type="button"
@@ -154,7 +154,7 @@ export default function AuthModal({
             </button>
           </div>
 
-          <div className="space-y-4 px-6 py-6">
+          <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
             {mode === 'signup' && (
               <div>
                 <label className="mb-2 block text-xs text-cyan-100/55">이름</label>

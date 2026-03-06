@@ -79,6 +79,7 @@ html {
   margin: 0;
   padding: 0;
   overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -86,6 +87,7 @@ body {
   min-height: 100vh;
   width: 100%;
   overflow-x: clip;
+  overflow-wrap: break-word;
   color: hsl(var(--foreground));
   font-family: var(--font-sans), "IBM Plex Sans KR", "Pretendard", sans-serif;
   background:
@@ -163,6 +165,20 @@ textarea,
 select,
 button {
   font: inherit;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+[role="button"] {
+  touch-action: manipulation;
 }
 
 ::-webkit-scrollbar {
@@ -264,8 +280,12 @@ button {
   font-size: 0.78rem;
   font-weight: 500;
   letter-spacing: 0.14em;
+  line-height: 1.3;
+  max-width: 100%;
+  text-align: center;
   text-decoration: none;
   text-transform: uppercase;
+  white-space: normal;
   transition:
     opacity 180ms ease,
     color 180ms ease,
@@ -335,6 +355,7 @@ button {
   min-height: 0;
   padding: 0.25rem 0;
   letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .y2k-input {
@@ -602,8 +623,28 @@ input[type="file"]::file-selector-button:hover {
 }
 
 @media (max-width: 767px) {
+  .section-shell {
+    padding-inline: 0.9rem;
+  }
+
   .section-title {
     letter-spacing: 0.01em;
+  }
+
+  .section-kicker,
+  .tech-chip {
+    letter-spacing: 0.18em;
+  }
+
+  .y2k-input,
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  .mypage-shell {
+    max-height: calc(100dvh - 0.75rem);
   }
 }
 

@@ -10,7 +10,7 @@ export default function MainContent() {
   return (
     <section
       id="home"
-      className="relative isolate flex min-h-screen items-center px-4 pb-16 pt-32 md:px-8 md:pb-20 md:pt-40"
+      className="relative isolate flex min-h-screen items-center px-4 pb-14 pt-28 md:px-8 md:pb-20 md:pt-40"
     >
       <div className="absolute inset-0 -z-20 overflow-hidden">
         <video
@@ -25,7 +25,7 @@ export default function MainContent() {
       </div>
 
       <div className="section-shell">
-        <div className="grid items-end gap-8 lg:grid-cols-[1.45fr_0.95fr]">
+        <div className="grid items-end gap-10 lg:grid-cols-[1.45fr_0.95fr]">
           <div className="animate-rise">
             <p className="section-kicker">Restricted Broadcast Channel</p>
             <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-medium leading-[0.88] tracking-[0.03em]">
@@ -38,26 +38,26 @@ export default function MainContent() {
               티어별 시청 권한을 실시간으로 재조립하는 다크웹 스타일 허브입니다.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-2.5">
+            <div className="mt-7 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
               <a
                 href="#services"
-                className="y2k-button y2k-button-primary no-underline"
+                className="y2k-button y2k-button-primary w-full no-underline sm:w-auto"
               >
                 OPEN NODE MAP
               </a>
               <a
                 href="#studio"
-                className="y2k-button y2k-button-accent no-underline"
+                className="y2k-button y2k-button-accent w-full no-underline sm:w-auto"
               >
                 WATCH FEED
               </a>
             </div>
 
-            <div className="mt-8 grid gap-2 sm:grid-cols-3 sm:gap-3">
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {statItems.map((item) => (
                 <div
                   key={item.label}
-                  className="border-l border-cyan-300/14 pl-4 py-1"
+                  className="min-w-0 border-l border-cyan-300/14 py-1 pl-4"
                 >
                   <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200/65">
                     {item.label}
@@ -70,17 +70,17 @@ export default function MainContent() {
             </div>
           </div>
 
-          <aside className="tech-panel scanline animate-rise relative overflow-hidden pt-4 [animation-delay:0.15s] lg:border-l lg:border-cyan-300/14 lg:pl-8 lg:pt-0">
+          <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden pt-2 [animation-delay:0.15s] lg:max-w-none lg:border-l lg:border-cyan-300/14 lg:pl-8 lg:pt-0">
             <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
             <p className="section-kicker">Signal</p>
-            <h2 className="display-font mt-2 text-2xl font-medium tracking-[0.03em] md:text-3xl">
+            <h2 className="display-font mt-2 text-xl font-medium tracking-[0.03em] sm:text-2xl md:text-3xl">
               Live Node Intel
             </h2>
 
             <div className="mt-6 space-y-4 text-sm text-cyan-50/80">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Node</p>
-                <p className="mt-1 leading-relaxed">
+                <p className="mt-1 break-words leading-relaxed">
                   서울 강남구 양재천로 551 4F
                   <br />
                   4F, 551, Yangjaecheon-ro, Gangnam-gu, Seoul
@@ -88,11 +88,11 @@ export default function MainContent() {
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Ping</p>
-                <p className="mt-1">070@zeus-studio.net</p>
+                <p className="mt-1 break-all">070@zeus-studio.net</p>
               </div>
             </div>
 
-            <div className="mt-6 text-[11px] uppercase tracking-[0.18em] text-orange-100/72">
+            <div className="mt-6 text-[11px] leading-relaxed uppercase tracking-[0.18em] text-orange-100/72">
               Access Protocol: Shadow Relay Enabled
             </div>
           </aside>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Barlow_Condensed,
   IBM_Plex_Sans_KR,
@@ -34,6 +34,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "ZEUS STUDIO",
   description: "Professional Sound Studio",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

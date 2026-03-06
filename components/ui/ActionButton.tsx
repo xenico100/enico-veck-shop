@@ -13,7 +13,7 @@ type ActionButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const baseClass =
-  'relative inline-flex items-center justify-center gap-2 border-0 bg-transparent px-0 font-medium uppercase tracking-[0.12em] transition-[transform,color,opacity] duration-200 ease-out after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-center after:scale-x-[0.72] after:bg-current after:opacity-40 after:transition-[transform,opacity] after:duration-200 hover:after:scale-x-100 hover:after:opacity-90 focus:outline-none focus:ring-0 active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-50';
+  'relative inline-flex items-center justify-center gap-2 border-0 bg-transparent px-0 text-center font-medium uppercase leading-tight tracking-[0.12em] transition-[transform,color,opacity] duration-200 ease-out after:absolute after:bottom-0 after:left-0 after:h-px after:w-full after:origin-center after:scale-x-[0.72] after:bg-current after:opacity-40 after:transition-[transform,opacity] after:duration-200 hover:after:scale-x-100 hover:after:opacity-90 focus:outline-none focus:ring-0 active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-50';
 
 const sizeClasses: Record<ActionButtonSize, string> = {
   sm: 'min-h-8 text-[0.74rem]',

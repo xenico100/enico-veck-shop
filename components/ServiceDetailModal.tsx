@@ -110,7 +110,7 @@ export function ServiceDetailModal({
 
       {/* Modal */}
       <div
-        className={`fixed left-1/2 top-1/2 z-50 h-[85vh] w-[95%] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-cyan-100/25 bg-[#041221f2] shadow-2xl transition-all duration-500 ease-out md:max-h-[85vh] md:w-[600px] md:rounded-3xl ${
+        className={`fixed left-1/2 top-1/2 z-50 h-[min(88dvh,54rem)] w-[calc(100%-1rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-cyan-100/25 bg-[#041221f2] shadow-2xl transition-all duration-500 ease-out md:h-[85vh] md:rounded-3xl ${
           isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}
       >
@@ -118,14 +118,14 @@ export function ServiceDetailModal({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 text-cyan-50 shadow-md backdrop-blur-md transition-all duration-200 ease-out hover:bg-cyan-200/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 md:right-5 md:top-5"
+            className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 text-cyan-50 shadow-md backdrop-blur-md transition-all duration-200 ease-out hover:bg-cyan-200/20 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 md:right-5 md:top-5 md:h-11 md:w-11"
             aria-label="닫기"
           >
             <X className="h-4 w-4 md:h-5 md:w-5" />
           </button>
 
           {isLoading && (
-            <div className="flex h-[70vh] items-center justify-center px-6 text-center">
+            <div className="flex min-h-[50vh] items-center justify-center px-5 text-center sm:px-6">
               <div className="space-y-3">
                 <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-cyan-100/25 border-t-cyan-50" />
                 <p className="text-sm text-cyan-50/72">서비스 정보를 불러오는 중입니다…</p>
@@ -134,7 +134,7 @@ export function ServiceDetailModal({
           )}
 
           {!isLoading && error && (
-            <div className="flex h-[70vh] items-center justify-center px-6 text-center">
+            <div className="flex min-h-[50vh] items-center justify-center px-5 text-center sm:px-6">
               <div className="space-y-2">
                 <p className="text-base font-medium text-white">불러오기에 실패했습니다</p>
                 <p className="text-sm text-red-300">{error}</p>
@@ -145,11 +145,11 @@ export function ServiceDetailModal({
           {!isLoading && !error && service && (
             <>
           {/* Image Carousel */}
-          <div className="group relative flex h-[250px] w-full items-center justify-center border-b border-cyan-100/15 bg-[#051423] md:h-[500px]">
+          <div className="group relative flex h-[min(42vh,20rem)] w-full items-center justify-center border-b border-cyan-100/15 bg-[#051423] sm:h-[360px] md:h-[500px]">
             <img
               src={images[currentImageIndex]}
               alt={service.title}
-              className="w-full h-full object-contain p-4 md:p-8 transition-opacity duration-300"
+              className="h-full w-full object-contain p-3 transition-opacity duration-300 sm:p-4 md:p-8"
             />
 
             {/* Navigation Arrows */}
@@ -157,14 +157,14 @@ export function ServiceDetailModal({
               <>
                 <button
                   onClick={handlePrevImage}
-                  className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/15 opacity-0 backdrop-blur-md transition-all hover:bg-cyan-200/25 group-hover:opacity-100 md:left-4 md:h-10 md:w-10"
+                  className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/15 opacity-100 backdrop-blur-md transition-all hover:bg-cyan-200/25 md:left-4 md:h-10 md:w-10 md:opacity-0 md:group-hover:opacity-100"
                   aria-label="이전 이미지"
                 >
                   <ChevronLeft className="h-4 w-4 text-cyan-50 md:h-5 md:w-5" />
                 </button>
                 <button
                   onClick={handleNextImage}
-                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/15 opacity-0 backdrop-blur-md transition-all hover:bg-cyan-200/25 group-hover:opacity-100 md:right-4 md:h-10 md:w-10"
+                  className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-cyan-100/25 bg-cyan-200/15 opacity-100 backdrop-blur-md transition-all hover:bg-cyan-200/25 md:right-4 md:h-10 md:w-10 md:opacity-0 md:group-hover:opacity-100"
                   aria-label="다음 이미지"
                 >
                   <ChevronRight className="h-4 w-4 text-cyan-50 md:h-5 md:w-5" />
@@ -190,17 +190,17 @@ export function ServiceDetailModal({
           </div>
 
           {/* Content */}
-          <div className="p-6 md:p-8">
+          <div className="p-4 sm:p-5 md:p-8">
             {/* Category */}
             <p className="mb-2 text-xs uppercase tracking-[0.2em] text-cyan-50/62">
               {service.category || '서비스'}
             </p>
 
             {/* Title */}
-            <h2 className="mb-2 text-3xl tracking-tight text-white md:text-4xl">{service.title}</h2>
+            <h2 className="mb-2 break-words text-2xl leading-none tracking-tight text-white sm:text-3xl md:text-4xl">{service.title}</h2>
 
             {/* Price */}
-            <p className="text-xl text-white mb-4">{service.price}</p>
+            <p className="mb-4 break-words text-lg text-white sm:text-xl">{service.price}</p>
 
             {/* Divider */}
             <div className="my-6 h-px w-full bg-cyan-100/20" />
@@ -247,7 +247,7 @@ export function ServiceDetailModal({
             {/* Color Selection */}
             <div className="mb-6">
               <p className="mb-3 text-sm text-cyan-50/62">색상</p>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 {(service.colors ?? []).map((color, idx) => (
                   <button
                     key={idx}
@@ -269,7 +269,7 @@ export function ServiceDetailModal({
                   type="button"
                   onClick={() => service && onPaidFileDownload?.(service)}
                   disabled={paidFileDownloadPending || !service.downloadFileObjectKey}
-                  className="h-11 w-full rounded-full border border-cyan-100/32 bg-cyan-200/12 px-5 text-sm font-semibold tracking-[0.2px] text-cyan-50 shadow-md transition-all duration-200 ease-out hover:bg-cyan-200/22 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-11 w-full rounded-full border border-cyan-100/32 bg-cyan-200/12 px-5 text-center text-sm font-semibold leading-tight tracking-[0.2px] text-cyan-50 shadow-md transition-all duration-200 ease-out hover:bg-cyan-200/22 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {paidFileDownloadPending ? '다운로드 링크 준비 중…' : '3D 파일 다운로드'}
                 </button>
@@ -277,7 +277,7 @@ export function ServiceDetailModal({
                 <button
                   type="button"
                   onClick={() => service && onPaidFileCheckout?.(service)}
-                  className="h-11 w-full rounded-full border border-amber-100/35 bg-amber-100/16 px-5 text-sm font-semibold tracking-[0.2px] text-amber-50 shadow-md transition-all duration-200 ease-out hover:bg-amber-100/26 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45"
+                  className="h-11 w-full rounded-full border border-amber-100/35 bg-amber-100/16 px-5 text-center text-sm font-semibold leading-tight tracking-[0.2px] text-amber-50 shadow-md transition-all duration-200 ease-out hover:bg-amber-100/26 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45"
                 >
                   {`결제하고 다운로드하기 (${paidFilePriceText ?? service.price})`}
                 </button>
@@ -286,7 +286,7 @@ export function ServiceDetailModal({
               <button
                 type="button"
                 onClick={() => service && onAddToCart?.(service)}
-                className="h-11 w-full rounded-full border border-amber-100/35 bg-amber-100/16 px-5 text-sm font-semibold tracking-[0.2px] text-amber-50 shadow-md transition-all duration-200 ease-out hover:bg-amber-100/26 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45"
+                className="h-11 w-full rounded-full border border-amber-100/35 bg-amber-100/16 px-5 text-center text-sm font-semibold leading-tight tracking-[0.2px] text-amber-50 shadow-md transition-all duration-200 ease-out hover:bg-amber-100/26 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100/45"
               >
                 장바구니에 담기
               </button>

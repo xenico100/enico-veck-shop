@@ -1473,10 +1473,10 @@ function StudioShortsModal({
                       ref={(element) => {
                         slideRefs.current[index] = element;
                       }}
-                      className="relative flex min-h-[100dvh] snap-start items-center justify-center px-4 py-16 md:px-8"
+                      className="relative flex min-h-[100dvh] snap-start items-center justify-center px-3 py-14 md:px-8 md:py-16"
                     >
-                      <div className="w-full max-w-[440px]">
-                        <div className="overflow-hidden rounded-[30px] border border-white/15 bg-black shadow-[0_28px_70px_rgba(0,0,0,0.55)]">
+                      <div className="w-full max-w-[min(100%,27.5rem)]">
+                        <div className="overflow-hidden rounded-[24px] border border-white/15 bg-black shadow-[0_28px_70px_rgba(0,0,0,0.55)] md:rounded-[30px]">
                           <div className="relative aspect-[9/16] bg-black">
                             {mediaState.loading ? (
                               previewPoster ? (
@@ -2172,7 +2172,7 @@ export default function StudioSection({
                   key={`${post.id}-${rowIndex}-${index}`}
                   type="button"
                   onClick={handleCardClick}
-                  className={`group relative h-[130px] w-[220px] flex-shrink-0 overflow-hidden rounded-xl border bg-white/[0.03] text-left shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:h-[240px] md:w-[400px] md:rounded-2xl ${
+                  className={`group relative h-[140px] w-[min(13.75rem,calc(100vw-3rem))] flex-shrink-0 overflow-hidden rounded-xl border bg-white/[0.03] text-left shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 md:h-[240px] md:w-[400px] md:rounded-2xl ${
                     isPlaceholder
                       ? 'border-dashed border-white/15'
                       : isRowLocked
@@ -2234,7 +2234,7 @@ export default function StudioSection({
                       <p className="text-[9px] uppercase tracking-[0.2em] text-white/60 md:text-[11px]">
                         {formatStudioDate(post.created_at)}
                       </p>
-                      <h3 className="truncate text-sm font-semibold tracking-tight text-white md:text-xl">
+                      <h3 className="break-words text-sm font-semibold leading-tight tracking-tight text-white md:text-xl">
                         {post.title?.trim() ||
                           (isPlaceholder ? '게시물 준비중' : 'Untitled Post')}
                       </h3>
@@ -2280,10 +2280,10 @@ export default function StudioSection({
 
       <section
         id="studio"
-        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-16 text-white md:px-8 md:py-24"
+        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-14 text-white md:px-8 md:py-24"
       >
-        <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-5 md:p-8">
-          <div className="mb-10 flex items-start justify-between gap-4">
+        <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
+          <div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
               <p className="section-kicker">
                 Studio
@@ -2305,12 +2305,12 @@ export default function StudioSection({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:self-start">
               <button
                 type="button"
                 onClick={() => handleOpenShorts(studioPostIdFromQuery)}
                 disabled={shortsPosts.length === 0}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 text-sm font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 text-sm font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
               >
                 <Clapperboard className="h-4 w-4" />
                 숏폼 보기
@@ -2330,7 +2330,7 @@ export default function StudioSection({
                       {Array.from({ length: 3 }).map((__, cardIndex) => (
                         <div
                           key={`studio-skeleton-${rowIndex}-${cardIndex}`}
-                          className="h-[130px] w-[220px] overflow-hidden rounded-xl border border-cyan-100/20 bg-cyan-200/[0.06] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
+                          className="h-[140px] w-[min(13.75rem,calc(100vw-3rem))] overflow-hidden rounded-xl border border-cyan-100/20 bg-cyan-200/[0.06] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
                         >
                           <div className="h-full w-full animate-pulse bg-cyan-100/[0.08]" />
                         </div>

@@ -75,7 +75,7 @@ export default function SideMenu({
       />
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 w-[20rem] max-w-[90vw] border-l border-cyan-300/25 bg-[#060a14f2] shadow-[-20px_0_70px_rgba(0,0,0,0.6)] backdrop-blur-2xl transition-transform duration-300 ${
+        className={`fixed inset-y-0 right-0 z-50 w-[18rem] max-w-[92vw] border-l border-cyan-300/25 bg-[#060a14f2] shadow-[-20px_0_70px_rgba(0,0,0,0.6)] backdrop-blur-2xl transition-transform duration-300 sm:w-[20rem] sm:max-w-[90vw] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         role="dialog"
@@ -133,8 +133,10 @@ export default function SideMenu({
             {isAuthenticated ? (
               <>
                 <div className="px-1 py-2.5">
-                  <p className="truncate text-sm text-cyan-50">{user?.name ?? 'User'}</p>
-                  <p className="truncate text-xs text-cyan-200/60">{user?.email ?? ''}</p>
+                  <p className="break-words text-sm leading-snug text-cyan-50">
+                    {user?.name ?? 'User'}
+                  </p>
+                  <p className="break-all text-xs text-cyan-200/60">{user?.email ?? ''}</p>
                 </div>
                 <button
                   onClick={handleLogout}

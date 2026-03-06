@@ -31,7 +31,7 @@ export default async function Account() {
 
   return (
     <section className="mypage-account min-h-screen pb-24">
-      <div className="mx-auto max-w-6xl px-4 pb-8 pt-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-16 sm:px-6 sm:pt-20 lg:px-8">
         <div className="flex flex-col gap-4 text-center">
           <p className="section-kicker !tracking-[0.3em]">
             회원정보
@@ -46,7 +46,7 @@ export default async function Account() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 sm:gap-10 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-2">
           <CustomerPortalForm subscription={subscription} />
           <div className="space-y-6">
@@ -55,7 +55,7 @@ export default async function Account() {
           </div>
         </div>
 
-        <section className="tech-panel border-t border-cyan-300/12 p-8">
+        <section className="tech-panel border-t border-cyan-300/12 p-4 sm:p-6 md:p-8">
           <div className="space-y-2">
             <p className="section-kicker">
               Studio
