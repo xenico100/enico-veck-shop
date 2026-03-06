@@ -190,14 +190,14 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const email = user?.email ?? 'admin@example.com';
   const initial = name.trim().charAt(0) || '관';
   const appleFontClass =
-    '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
+    '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const glassIconButtonClass =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.15] bg-white/[0.08] text-white/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30';
+    `y2k-button y2k-button-ghost y2k-button-icon ${appleFontClass}`;
   const segmentedWrapClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
   const inputClass =
-    'w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/25';
+    'y2k-input w-full px-4 py-3 text-white placeholder:text-white/40 focus:outline-none';
   const labelClass =
-    `text-xs uppercase tracking-[0.16em] text-white/50 ${appleFontClass}`;
+    `text-xs uppercase tracking-[0.18em] text-cyan-50/50 ${appleFontClass}`;
   const membershipRemainingDays = useMemo(
     () => getMembershipRemainingDays(membershipSummary),
     [membershipSummary]
@@ -517,13 +517,16 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="mypage-title"
-          className={`w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-black/60 shadow-2xl backdrop-blur-xl ${appleFontClass}`}
+          className={`mypage-shell w-full max-w-3xl overflow-hidden rounded-[1.15rem] ${appleFontClass}`}
           onKeyDown={handleKeyDown}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between border-b border-white/10 px-6 pb-5 pt-6 md:px-8">
+          <div className="flex items-start justify-between border-b border-cyan-300/12 px-6 pb-5 pt-6 md:px-8">
             <div className="min-w-0 flex-1">
-              <h2 id="mypage-title" className="text-xl font-semibold tracking-tight text-white">
+              <h2
+                id="mypage-title"
+                className="display-font text-[1.9rem] font-medium tracking-[0.04em] text-white"
+              >
                 마이페이지
               </h2>
               <div className="mt-4 overflow-x-auto pb-1">

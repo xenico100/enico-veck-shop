@@ -302,9 +302,9 @@ const getStudioPostCreatedAtMs = (post: StudioPost) => {
 };
 
 const SHORTS_PRIORITY_BY_TIER_LEVEL: Record<number, number> = {
-  2: 0,
-  0: 1,
-  1: 2,
+  0: 0,
+  1: 1,
+  2: 2,
   3: 3
 };
 
@@ -333,6 +333,7 @@ const buildInitialShortsMediaState = (): StudioShortsMediaState => ({
 
 const SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME = 0.35;
 const SHORTS_MEDIA_FETCH_MAX_RETRY = 3;
+const SHORTS_WARMUP_POST_LIMIT = 18;
 const clampShortsVolume = (value: number) =>
   Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
@@ -990,7 +991,7 @@ function StudioShortsModal({
   }, [open, initialPostId, shortsPosts]);
 
   useEffect(() => {
-    if (!open || shortsPosts.length === 0) return;
+    if (shortsPosts.length === 0) return;
     const freePosts = shortsPosts.filter(
       (post) =>
         normalizeRequiredMembershipLevel(post.required_membership_level) === 0
@@ -1001,10 +1002,23 @@ function StudioShortsModal({
     );
     const prioritized = [...freePosts, ...premiumPosts].slice(
       0,
-      Math.min(shortsPosts.length, 18)
+      Math.min(shortsPosts.length, SHORTS_WARMUP_POST_LIMIT)
     );
     void loadBatchMedia(prioritized.map((post) => post.id));
-  }, [loadBatchMedia, open, shortsPosts]);
+  }, [loadBatchMedia, shortsPosts]);
+
+  useEffect(() => {
+    if (!open || shortsPosts.length === 0) return;
+    const prioritizedIds = new Set<string>();
+    const normalizedInitialPostId = (initialPostId || '').trim();
+    if (normalizedInitialPostId) {
+      prioritizedIds.add(normalizedInitialPostId);
+    }
+    shortsPosts
+      .slice(0, Math.min(shortsPosts.length, 8))
+      .forEach((post) => prioritizedIds.add(post.id));
+    void loadBatchMedia(Array.from(prioritizedIds));
+  }, [initialPostId, loadBatchMedia, open, shortsPosts]);
 
   useEffect(() => {
     if (!open) return;
@@ -1434,6 +1448,8 @@ function StudioShortsModal({
                   );
                   const mediaState =
                     mediaByPostId[post.id] ?? buildInitialShortsMediaState();
+                  const previewPoster =
+                    mediaState.fallbackImageUrl || post.image_url || null;
                   const fallbackImage = mediaState.fallbackImageUrl;
                   const isRowLocked =
                     rowRule.requiredLevel > 0 &&
@@ -1463,16 +1479,34 @@ function StudioShortsModal({
                         <div className="overflow-hidden rounded-[30px] border border-white/15 bg-black shadow-[0_28px_70px_rgba(0,0,0,0.55)]">
                           <div className="relative aspect-[9/16] bg-black">
                             {mediaState.loading ? (
-                              <div className="flex h-full w-full items-center justify-center bg-white/[0.06] text-sm text-white/60">
-                                영상 준비 중...
-                              </div>
+                              previewPoster ? (
+                                <>
+                                  <img
+                                    src={previewPoster}
+                                    alt={post.title?.trim() || 'Studio shorts preview'}
+                                    className="h-full w-full object-cover"
+                                    loading="eager"
+                                    decoding="async"
+                                  />
+                                  <div className="absolute inset-0 bg-black/35" />
+                                  <div className="absolute inset-x-0 bottom-4 flex justify-center">
+                                    <div className="inline-flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-white/78 backdrop-blur">
+                                      영상 연결 중
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-white/[0.04] text-sm text-white/60">
+                                  영상 연결 중...
+                                </div>
+                              )
                             ) : mediaState.videoUrl ? (
                               <video
                                 ref={(element) => {
                                   videoRefs.current[index] = element;
                                 }}
                                 src={mediaState.videoUrl}
-                                poster={fallbackImage || undefined}
+                                poster={previewPoster || undefined}
                                 controls={false}
                                 controlsList="nodownload noplaybackrate noremoteplayback"
                                 disablePictureInPicture

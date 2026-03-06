@@ -360,6 +360,60 @@ button {
   box-shadow: none;
 }
 
+.mypage-shell,
+.mypage-account {
+  color: rgba(231, 238, 255, 0.94);
+}
+
+.mypage-shell {
+  border: 1px solid rgba(124, 147, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(5, 9, 20, 0.94), rgba(4, 8, 17, 0.92)),
+    radial-gradient(circle at top right, rgba(132, 156, 255, 0.08), transparent 36%);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+}
+
+.mypage-account {
+  background:
+    radial-gradient(circle at top left, rgba(132, 156, 255, 0.08), transparent 34%),
+    linear-gradient(180deg, #02030a 0%, #050915 48%, #030407 100%);
+}
+
+.mypage-shell [class*="rounded-3xl"],
+.mypage-shell [class*="rounded-2xl"],
+.mypage-account [class*="rounded-3xl"],
+.mypage-account [class*="rounded-2xl"] {
+  border-radius: 0 !important;
+}
+
+.mypage-shell [class*="border-white/10"],
+.mypage-shell [class*="border-white/15"],
+.mypage-shell [class*="border-white/20"],
+.mypage-account [class*="border-white/10"],
+.mypage-account [class*="border-white/15"],
+.mypage-account [class*="border-white/20"] {
+  border-color: rgba(124, 147, 255, 0.16) !important;
+}
+
+.mypage-shell [class*="bg-white/5"],
+.mypage-shell [class*="bg-white/10"],
+.mypage-shell [class*="bg-black/20"],
+.mypage-account [class*="bg-white/5"],
+.mypage-account [class*="bg-white/10"],
+.mypage-account [class*="bg-black/20"] {
+  background: transparent !important;
+}
+
+.mypage-shell [class*="shadow-"],
+.mypage-account [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.mypage-shell [class*="backdrop-blur"],
+.mypage-account [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+
 button.rounded-full,
 a.rounded-full,
 [data-slot="button"].rounded-full,
