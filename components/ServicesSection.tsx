@@ -805,6 +805,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                 </div>
               )}
               {!servicesLoading && filteredServices.map((service, index) => {
+                const previewDescription =
+                  extractServiceContentText(service.description) || '상세 설명이 준비 중입니다.';
                 return (
                 <div 
                   key={index} 
