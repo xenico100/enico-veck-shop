@@ -1,14 +1,40 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-    reactStrictMode: true,
-    eslint: {
-      ignoreDuringBuilds: true,
-    },
-    typescript: {
-      ignoreBuildErrors: true,
-    },
-  };
-  
-  module.exports = nextConfig;
+const securityHeaders = [
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff'
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY'
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin'
+  },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=()'
+  }
+];
 
-  
+const nextConfig = {
+  reactStrictMode: true,
+  poweredByHeader: false,
+  eslint: {
+    ignoreDuringBuilds: true
+  },
+  typescript: {
+    ignoreBuildErrors: true
+  },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders
+      }
+    ];
+  }
+};
+
+module.exports = nextConfig;

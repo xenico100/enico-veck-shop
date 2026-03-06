@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
+import { buildRateLimitKey, consumeRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -10,6 +11,8 @@ type CreateCommunityCommentBody = {
 };
 
 const COMMENT_MAX_LENGTH = 2000;
+const COMMENT_RATE_LIMIT_MAX = 60;
+const COMMENT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
@@ -29,6 +32,27 @@ export async function POST(request: Request) {
       return jsonError('로그인이 필요합니다.', 401);
     }
 
+    const rateLimit = consumeRateLimit({
+      key: buildRateLimitKey({
+        request,
+        scope: 'community-comment',
+        userId: user.id
+      }),
+      max: COMMENT_RATE_LIMIT_MAX,
+      windowMs: COMMENT_RATE_LIMIT_WINDOW_MS
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds)
+          }
+        }
+      );
+    }
+
     const body = (await request.json().catch(() => ({}))) as CreateCommunityCommentBody;
     const postId = typeof body.postId === 'string' ? body.postId.trim() : '';
     const content = normalizeContent(body.content);
@@ -45,7 +69,8 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (postError) {
-      return jsonError('게시글 확인에 실패했습니다.', 500, postError);
+      console.error('[community/comments POST] failed to load post', postError);
+      return jsonError('게시글 확인에 실패했습니다.', 500);
     }
     if (!postRow) {
       return jsonError('게시글을 찾을 수 없습니다.', 404);
@@ -62,7 +87,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !data) {
-      return jsonError('댓글 작성에 실패했습니다.', 500, error);
+      console.error('[community/comments POST] failed to insert comment', error);
+      return jsonError('댓글 작성에 실패했습니다.', 500);
     }
 
     const { data: userRow } = await (admin as any)

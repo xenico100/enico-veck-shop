@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import { isAdminUserLike } from '@/utils/service-posts';
+import { buildRateLimitKey, consumeRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +17,8 @@ type CommunityReactionValue = 'like' | 'dislike';
 const TITLE_MAX_LENGTH = 160;
 const CONTENT_MAX_LENGTH = 10000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const POST_RATE_LIMIT_MAX = 20;
+const POST_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
@@ -308,6 +311,27 @@ export async function POST(request: Request) {
 
     if (authError || !user) {
       return jsonError('로그인이 필요합니다.', 401);
+    }
+
+    const rateLimit = consumeRateLimit({
+      key: buildRateLimitKey({
+        request,
+        scope: 'community-post-create',
+        userId: user.id
+      }),
+      max: POST_RATE_LIMIT_MAX,
+      windowMs: POST_RATE_LIMIT_WINDOW_MS
+    });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds)
+          }
+        }
+      );
     }
 
     const body = (await request.json().catch(() => ({}))) as CommunityPostBody;

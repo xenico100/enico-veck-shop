@@ -1,8 +1,11 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { buildRateLimitKey, consumeRateLimit } from '@/utils/rate-limit';
 
 const MAX_UPLOAD_SIZE = 8 * 1024 * 1024;
+const RATE_LIMIT_MAX = 20;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 const IMAGE_EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -39,6 +42,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
   }
 
+  const rateLimit = consumeRateLimit({
+    key: buildRateLimitKey({
+      request,
+      scope: 'service-image-upload',
+      userId: user.id
+    }),
+    max: RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: '업로드 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds)
+        }
+      }
+    );
+  }
+
   const formData = await request.formData();
   const files = formData.getAll('files');
 
@@ -72,8 +96,9 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
+      console.error('[service-posts/upload] image upload failed', uploadError);
       return NextResponse.json(
-        { message: '이미지 업로드에 실패했습니다.', error: uploadError },
+        { message: '이미지 업로드에 실패했습니다.' },
         { status: 500 }
       );
     }

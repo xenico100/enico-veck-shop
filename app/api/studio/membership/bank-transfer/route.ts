@@ -9,8 +9,10 @@ import {
   getBankTransferInfo,
   hasBankTransferAccountConfigured
 } from '@/utils/bank-transfer';
+import { isTrustedBankTransferProofUrl } from '@/utils/bank-transfer-proof';
 import { sendAdminSalesNotification } from '@/utils/admin-sales-notifier';
 import { normalizeOrderRecord } from '@/utils/orders';
+import { buildRateLimitKey, consumeRateLimit } from '@/utils/rate-limit';
 import { getStudioMembershipSummaryForUser } from '@/utils/studio-membership-summary';
 
 export const runtime = 'nodejs';
@@ -32,6 +34,9 @@ type MembershipBankTransferRequest = {
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
+
+const MEMBERSHIP_ORDER_RATE_LIMIT_MAX = 20;
+const MEMBERSHIP_ORDER_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 
 const planMap = new Map(
   STUDIO_MEMBERSHIP_PLAN_OPTIONS.map((plan) => [plan.key, plan])
@@ -93,6 +98,7 @@ const normalizeBankTransferPayload = (
   const depositorName =
     normalizeText(value.depositorName) || fallbackDepositorName;
   const proofImageUrl = normalizeHttpUrl(value.proofImageUrl);
+  if (proofImageUrl && !isTrustedBankTransferProofUrl(proofImageUrl)) return null;
   if (!depositorName || !proofImageUrl) return null;
   return {
     depositorName,
@@ -205,6 +211,27 @@ export async function POST(request: Request) {
 
   if (authError || !user) {
     return jsonError('로그인이 필요합니다.', 401);
+  }
+
+  const rateLimit = consumeRateLimit({
+    key: buildRateLimitKey({
+      request,
+      scope: 'studio-membership-bank-transfer',
+      userId: user.id
+    }),
+    max: MEMBERSHIP_ORDER_RATE_LIMIT_MAX,
+    windowMs: MEMBERSHIP_ORDER_RATE_LIMIT_WINDOW_MS
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds)
+        }
+      }
+    );
   }
 
   const body = (await request

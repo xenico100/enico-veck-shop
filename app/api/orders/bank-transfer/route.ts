@@ -4,8 +4,10 @@ import {
   getBankTransferInfo,
   hasBankTransferAccountConfigured
 } from '@/utils/bank-transfer';
+import { isTrustedBankTransferProofUrl } from '@/utils/bank-transfer-proof';
 import { sendAdminSalesNotification } from '@/utils/admin-sales-notifier';
 import { normalizeOrderRecord } from '@/utils/orders';
+import { buildRateLimitKey, consumeRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -37,6 +39,10 @@ type BankTransferOrderRequest = {
 
 const jsonError = (message: string, status = 500, details?: unknown) =>
   NextResponse.json({ message, ...(details ? { details } : {}) }, { status });
+
+const ORDER_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const ORDER_RATE_LIMIT_MAX_AUTHENTICATED = 20;
+const ORDER_RATE_LIMIT_MAX_GUEST = 8;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -121,6 +127,9 @@ const normalizeBankTransferPayload = (
     typeof value.depositorName === 'string' ? value.depositorName.trim() : '';
   const depositorName = depositorNameRaw || fallbackDepositorName;
   const proofImageUrl = normalizeHttpUrl(value.proofImageUrl);
+  if (proofImageUrl && !isTrustedBankTransferProofUrl(proofImageUrl)) {
+    return null;
+  }
 
   if (!depositorName || !proofImageUrl) {
     return null;
@@ -158,6 +167,27 @@ export async function POST(request: Request) {
       '[orders/bank-transfer] auth lookup warning (continuing as guest)',
       {
         message: authError.message
+      }
+    );
+  }
+
+  const rateLimit = consumeRateLimit({
+    key: buildRateLimitKey({
+      request,
+      scope: 'order-bank-transfer',
+      userId: user?.id ?? null
+    }),
+    max: user ? ORDER_RATE_LIMIT_MAX_AUTHENTICATED : ORDER_RATE_LIMIT_MAX_GUEST,
+    windowMs: ORDER_RATE_LIMIT_WINDOW_MS
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: '주문 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds)
+        }
       }
     );
   }

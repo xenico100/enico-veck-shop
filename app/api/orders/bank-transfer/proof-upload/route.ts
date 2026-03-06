@@ -5,11 +5,15 @@ import {
   createAdminClient
 } from '@/utils/supabase/adminClient';
 import { createClient } from '@/utils/supabase/server';
+import { buildRateLimitKey, consumeRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
 const MAX_UPLOAD_SIZE = 8 * 1024 * 1024;
 const DEFAULT_PROOF_BUCKET = 'service-images';
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX_AUTHENTICATED = 20;
+const RATE_LIMIT_MAX_GUEST = 6;
 
 const IMAGE_EXT_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -46,6 +50,29 @@ export async function POST(request: Request) {
   const {
     data: { user }
   } = await supabase.auth.getUser();
+
+  const rateLimit = consumeRateLimit({
+    key: buildRateLimitKey({
+      request,
+      scope: 'bank-transfer-proof-upload',
+      userId: user?.id ?? null
+    }),
+    max: user ? RATE_LIMIT_MAX_AUTHENTICATED : RATE_LIMIT_MAX_GUEST,
+    windowMs: RATE_LIMIT_WINDOW_MS
+  });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {
+        message: '이미지 업로드 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.retryAfterSeconds)
+        }
+      }
+    );
+  }
 
   const formData = await request.formData();
   const entry = formData.get('file');
@@ -94,11 +121,8 @@ export async function POST(request: Request) {
       upsert: false
     });
   if (uploadError) {
-    return jsonError(
-      '이체인증 이미지 업로드에 실패했습니다.',
-      500,
-      uploadError
-    );
+    console.error('[orders/bank-transfer/proof-upload] upload failed', uploadError);
+    return jsonError('이체인증 이미지 업로드에 실패했습니다.', 500);
   }
 
   const { data: publicData } = storageClient.storage

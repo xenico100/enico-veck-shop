@@ -100,10 +100,8 @@ export async function GET(request: Request) {
     const { data, error } = await query;
 
     if (error) {
-      return NextResponse.json(
-        { message: '게시글 목록을 불러오지 못했습니다.', error },
-        { status: 500 }
-      );
+      console.error('[service-posts GET includeAll] failed to fetch posts', error);
+      return NextResponse.json({ message: '게시글 목록을 불러오지 못했습니다.' }, { status: 500 });
     }
 
     return NextResponse.json({ data: data ?? [] });
@@ -143,10 +141,8 @@ export async function GET(request: Request) {
   }
 
   if (error) {
-    return NextResponse.json(
-      { message: '서비스 게시글을 불러오지 못했습니다.', error },
-      { status: 500 }
-    );
+    console.error('[service-posts GET public] failed to fetch posts', error);
+    return NextResponse.json({ message: '서비스 게시글을 불러오지 못했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json(
@@ -257,11 +253,11 @@ export async function POST(request: Request) {
 
   if (error && hasMissingPaidFileColumnsError(error)) {
     if (isPaidFilePost) {
+      console.error('[service-posts POST] paid-file columns missing', error);
       return NextResponse.json(
         {
           message:
-            '현재 DB에 유료 파일 컬럼이 없어 유료 서비스 게시글 생성이 불가능합니다. 최신 SQL 마이그레이션을 적용해 주세요.',
-          error
+            '현재 DB에 유료 파일 컬럼이 없어 유료 서비스 게시글 생성이 불가능합니다. 최신 SQL 마이그레이션을 적용해 주세요.'
         },
         { status: 500 }
       );
@@ -273,10 +269,8 @@ export async function POST(request: Request) {
   }
 
   if (error) {
-    return NextResponse.json(
-      { message: '서비스 게시글 생성에 실패했습니다.', error },
-      { status: 500 }
-    );
+    console.error('[service-posts POST] failed to create post', error);
+    return NextResponse.json({ message: '서비스 게시글 생성에 실패했습니다.' }, { status: 500 });
   }
 
   return NextResponse.json({ data });
