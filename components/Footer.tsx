@@ -7,7 +7,9 @@ export default function Footer() {
         <div className="tech-panel grid gap-8 p-6 md:grid-cols-[1.1fr_0.8fr_0.8fr] md:p-8">
           <div>
             <p className="section-kicker">NEXUS ARCHIVE</p>
-            <h3 className="mt-3 text-2xl">Dark Relay Platform</h3>
+            <h3 className="display-font mt-3 text-[1.9rem] font-medium tracking-[0.03em]">
+              Dark Relay Platform
+            </h3>
             <p className="mt-3 text-sm leading-relaxed text-cyan-50/76">
               Tiered media distribution for long-form, shorts, and blog content
               under a single encrypted-style interface.
@@ -26,22 +28,13 @@ export default function Footer() {
           <div>
             <p className="section-kicker !tracking-[0.24em]">Network</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <a
-                href="#"
-                className="inline-flex rounded-full border border-cyan-300/28 bg-cyan-300/10 px-3 py-1.5 text-cyan-100/85 no-underline transition hover:bg-cyan-300/20"
-              >
+              <a href="#" className="y2k-button y2k-button-ghost min-h-9 px-3.5 !text-[0.68rem] no-underline">
                 Instagram
               </a>
-              <a
-                href="#"
-                className="inline-flex rounded-full border border-cyan-300/28 bg-cyan-300/10 px-3 py-1.5 text-cyan-100/85 no-underline transition hover:bg-cyan-300/20"
-              >
+              <a href="#" className="y2k-button y2k-button-ghost min-h-9 px-3.5 !text-[0.68rem] no-underline">
                 YouTube
               </a>
-              <a
-                href="#"
-                className="inline-flex rounded-full border border-cyan-300/28 bg-cyan-300/10 px-3 py-1.5 text-cyan-100/85 no-underline transition hover:bg-cyan-300/20"
-              >
+              <a href="#" className="y2k-button y2k-button-ghost min-h-9 px-3.5 !text-[0.68rem] no-underline">
                 Facebook
               </a>
             </div>

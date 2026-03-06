@@ -31,14 +31,14 @@ export default function AuthModal({
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const appleFontClass =
-    '[font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif]';
+    '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const closeButtonClass =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-cyan-300/20';
+    `y2k-button y2k-button-ghost y2k-button-icon ${appleFontClass}`;
   const tabGroupClass =
-    'inline-flex items-center gap-1 rounded-full border border-cyan-300/18 bg-cyan-300/8 p-1 backdrop-blur-md';
-  const tabButtonBase = `rounded-full px-4 py-2 text-sm font-medium tracking-[0.2px] no-underline transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
-  const primaryButtonClass = `w-full rounded-full bg-cyan-300/90 py-3 text-sm font-medium text-[#071022] transition-colors duration-200 ease-in-out hover:bg-cyan-200 disabled:opacity-50 ${appleFontClass}`;
-  const secondaryButtonClass = `w-full rounded-full border border-orange-300/35 bg-orange-300/12 py-3 text-sm font-medium text-orange-100 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-orange-300/22 disabled:opacity-50 ${appleFontClass}`;
+    `y2k-tab-group inline-flex items-center gap-1 p-1 ${appleFontClass}`;
+  const tabButtonBase = `rounded-[0.8rem] px-4 py-2 text-sm font-medium tracking-[0.04em] no-underline transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${appleFontClass}`;
+  const primaryButtonClass = `y2k-button y2k-button-primary w-full justify-center !min-h-12 !rounded-[1rem] !text-[0.8rem] disabled:opacity-50 ${appleFontClass}`;
+  const secondaryButtonClass = `y2k-button y2k-button-accent w-full justify-center !min-h-12 !rounded-[1rem] !text-[0.8rem] disabled:opacity-50 ${appleFontClass}`;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -120,7 +120,9 @@ export default function AuthModal({
 
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
-        <div className={`w-full max-w-md rounded-3xl border border-cyan-300/18 bg-[#060913]/95 shadow-[0_24px_80px_rgba(0,0,0,0.6)] ${appleFontClass}`}>
+        <div
+          className={`w-full max-w-md rounded-[1.35rem] border border-cyan-300/16 bg-[#060913]/96 shadow-[0_24px_80px_rgba(0,0,0,0.48)] ${appleFontClass}`}
+        >
           <div className="flex items-center justify-between border-b border-cyan-300/18 px-6 py-5">
             <div className={tabGroupClass}>
               <button
@@ -128,8 +130,8 @@ export default function AuthModal({
                 onClick={() => onSwitchMode('login')}
                 className={`${tabButtonBase} ${
                   mode === 'login'
-                    ? 'bg-cyan-300 text-[#08122a] hover:bg-cyan-200'
-                    : 'border border-transparent bg-transparent text-cyan-100/80 hover:bg-cyan-300/15 hover:text-white'
+                    ? 'bg-[#dce6ff] text-[#0b1325] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] hover:bg-white'
+                    : 'border border-transparent bg-transparent text-cyan-100/80 hover:bg-[#0f1a34] hover:text-white'
                 }`}
               >
                 로그인
@@ -139,8 +141,8 @@ export default function AuthModal({
                 onClick={() => onSwitchMode('signup')}
                 className={`${tabButtonBase} ${
                   mode === 'signup'
-                    ? 'bg-cyan-300 text-[#08122a] hover:bg-cyan-200'
-                    : 'border border-transparent bg-transparent text-cyan-100/80 hover:bg-cyan-300/15 hover:text-white'
+                    ? 'bg-[#dce6ff] text-[#0b1325] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] hover:bg-white'
+                    : 'border border-transparent bg-transparent text-cyan-100/80 hover:bg-[#0f1a34] hover:text-white'
                 }`}
               >
                 회원가입
@@ -152,14 +154,14 @@ export default function AuthModal({
             </button>
           </div>
 
-          <div className="px-6 py-6 space-y-4">
+          <div className="space-y-4 px-6 py-6">
             {mode === 'signup' && (
               <div>
                 <label className="mb-2 block text-xs text-cyan-100/55">이름</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-cyan-300/20 bg-cyan-300/7 px-4 py-3 text-sm text-cyan-100 outline-none focus:border-cyan-200/40"
+                  className="y2k-input w-full px-4 py-3 text-sm text-cyan-100 outline-none"
                   placeholder="홍길동"
                 />
               </div>
@@ -170,7 +172,7 @@ export default function AuthModal({
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-cyan-300/20 bg-cyan-300/7 px-4 py-3 text-sm text-cyan-100 outline-none focus:border-cyan-200/40"
+                className="y2k-input w-full px-4 py-3 text-sm text-cyan-100 outline-none"
                 placeholder="you@example.com"
               />
             </div>
@@ -181,7 +183,7 @@ export default function AuthModal({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
-                className="w-full rounded-xl border border-cyan-300/20 bg-cyan-300/7 px-4 py-3 text-sm text-cyan-100 outline-none focus:border-cyan-200/40"
+                className="y2k-input w-full px-4 py-3 text-sm text-cyan-100 outline-none"
                 placeholder="••••••••"
               />
             </div>
@@ -204,7 +206,7 @@ export default function AuthModal({
                   type="button"
                   onClick={handleForgotPassword}
                   disabled={loading || resetLoading}
-                  className={`inline-flex min-h-11 items-center rounded-full border border-cyan-300/18 bg-cyan-300/8 px-4 text-sm font-medium tracking-[0.2px] text-cyan-100/88 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-cyan-300/14 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35 ${appleFontClass}`}
+                  className={`y2k-button y2k-button-ghost !min-h-11 !text-[0.74rem] disabled:cursor-not-allowed disabled:opacity-50 ${appleFontClass}`}
                 >
                   {resetLoading ? '전송 중…' : '비밀번호 찾기'}
                 </button>

@@ -133,15 +133,15 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const appleFontClass =
     '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const segmentedContainerClass = `flex min-w-max flex-wrap items-center gap-3 ${appleFontClass}`;
-  const serviceSecondaryButtonClass = `h-11 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 text-sm font-semibold tracking-[0.2px] text-cyan-100 no-underline shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-cyan-300/20 hover:text-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40 ${appleFontClass}`;
-  const servicePrimaryButtonClass = `h-11 rounded-full border border-orange-300/35 bg-orange-300/16 px-5 text-sm font-semibold tracking-[0.2px] text-orange-100 no-underline shadow-md transition-all duration-200 ease-out hover:scale-[1.01] hover:bg-orange-300/24 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200/40 ${appleFontClass}`;
-  const arrowButtonClass = `size-11 rounded-full border border-cyan-300/28 bg-cyan-300/12 text-cyan-100 shadow-sm backdrop-blur-md transition-all duration-200 ease-out hover:bg-cyan-300/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/40`;
-  const adminWriteButtonClass = `inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-medium tracking-[0.2px] text-cyan-100 backdrop-blur-md transition-colors duration-200 ease-out hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35 ${appleFontClass}`;
+  const serviceSecondaryButtonClass = `y2k-button y2k-button-ghost h-11 flex-1 !min-h-11 !px-4 !text-[0.72rem] !tracking-[0.06em] ${appleFontClass}`;
+  const servicePrimaryButtonClass = `y2k-button y2k-button-primary h-11 flex-1 !min-h-11 !px-5 !text-[0.72rem] !tracking-[0.06em] ${appleFontClass}`;
+  const arrowButtonClass = 'y2k-button y2k-button-ghost y2k-button-icon size-11';
+  const adminWriteButtonClass = `y2k-button y2k-button-ghost !min-h-10 !px-4 !text-[0.74rem] !tracking-[0.08em] ${appleFontClass}`;
   const createInputClass =
-    'w-full rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.08] px-4 py-3 text-sm text-cyan-100 placeholder:text-cyan-100/40 outline-none focus:ring-2 focus:ring-cyan-200/35';
+    'y2k-input w-full px-4 py-3 text-sm text-cyan-100 placeholder:text-cyan-100/40 outline-none';
   const createLabelClass = `text-xs uppercase tracking-[0.18em] text-cyan-100/55 ${appleFontClass}`;
   const adminCloseButtonClass =
-    'flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10 text-cyan-100/90 backdrop-blur-md transition-colors duration-200 ease-in-out hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/35';
+    'y2k-button y2k-button-ghost y2k-button-icon';
   const isAdmin = isAdminUserLike(user);
 
   const getSwatchClass = (color: string) =>
@@ -227,7 +227,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           onClick={() => {
             onOpenCart();
           }}
-          className="rounded-full"
+          className="rounded-[0.92rem]"
         >
           View cart
         </ToastAction>
@@ -539,7 +539,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           onClick={() => {
             onOpenCart();
           }}
-          className="rounded-full"
+          className="rounded-[0.92rem]"
         >
           View cart
         </ToastAction>
@@ -961,13 +961,13 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           }}
         >
           <div
-            className={`w-full max-w-2xl rounded-3xl border border-cyan-100/25 bg-[#041221ee] p-5 shadow-2xl backdrop-blur-xl md:p-6 ${appleFontClass}`}
+            className={`w-full max-w-2xl rounded-[1.35rem] border border-cyan-100/18 bg-[#041221ee] p-5 shadow-[0_26px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl md:p-6 ${appleFontClass}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-cyan-50/55">Services</p>
-                <h3 className="mt-2 text-lg font-semibold tracking-tight text-white">
+                <h3 className="display-font mt-2 text-lg font-medium tracking-[0.04em] text-white">
                   게시물 작성
                 </h3>
                 <p className="mt-1 text-sm text-cyan-50/68">
@@ -1088,7 +1088,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                   multiple
                   onChange={handleCreateFilesChange}
                   disabled={createSubmitting}
-                  className="block w-full text-sm text-cyan-50/82 file:mr-3 file:rounded-full file:border file:border-cyan-100/25 file:bg-cyan-200/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-cyan-50/90 hover:file:bg-cyan-200/20"
+                  className="block w-full text-sm text-cyan-50/82"
                 />
                 {createForm.files.length > 0 && (
                   <p className="text-xs text-cyan-50/55">
@@ -1146,7 +1146,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
                         type="file"
                         onChange={handlePaidDownloadFileChange}
                         disabled={createSubmitting}
-                        className="block w-full text-sm text-cyan-50/82 file:mr-3 file:rounded-full file:border file:border-cyan-100/25 file:bg-cyan-200/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-cyan-50/90 hover:file:bg-cyan-200/20"
+                        className="block w-full text-sm text-cyan-50/82"
                       />
                       <p className="text-xs text-cyan-50/55">
                         {createForm.paid_download_file

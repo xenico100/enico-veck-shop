@@ -84,12 +84,14 @@ export default function SideMenu({
         <div className="flex items-center justify-between border-b border-cyan-300/18 px-5 py-4">
           <div>
             <p className="section-kicker !text-[0.58rem]">Navigation</p>
-            <p className="display-font text-base text-cyan-50">Shadow Index</p>
+            <p className="display-font text-base font-medium tracking-[0.12em] text-cyan-50">
+              Shadow Index
+            </p>
           </div>
           <button
             aria-label="메뉴 닫기"
             onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 transition hover:bg-cyan-300/20"
+            className="y2k-button y2k-button-ghost y2k-button-icon"
           >
             <X className="h-5 w-5" />
           </button>
@@ -102,7 +104,7 @@ export default function SideMenu({
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="block rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-base font-medium text-cyan-100/85 no-underline transition hover:border-cyan-300/22 hover:bg-cyan-300/12 hover:text-white"
+                  className="block rounded-[0.95rem] border border-transparent bg-transparent px-3 py-2.5 text-base font-medium text-cyan-100/85 no-underline transition hover:border-cyan-300/18 hover:bg-[#0d1831] hover:text-white"
                 >
                   {item.label}
                 </a>
@@ -114,7 +116,7 @@ export default function SideMenu({
             {isAuthenticated && (
               <button
                 onClick={handleMyPageClick}
-                className="inline-flex w-full items-center justify-center rounded-full border border-cyan-300/28 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold tracking-[0.12em] text-cyan-100 transition hover:bg-cyan-300/20"
+                className="y2k-button y2k-button-ghost w-full justify-center"
               >
                 MY PAGE
               </button>
@@ -122,7 +124,7 @@ export default function SideMenu({
 
             <button
               onClick={handleCartClick}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cyan-300/28 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold tracking-[0.12em] text-cyan-100 transition hover:bg-cyan-300/20"
+              className="y2k-button y2k-button-primary w-full justify-center"
             >
               <ShoppingCart className="h-4 w-4" />
               CART{totalItems > 0 ? ` (${totalItems})` : ''}
@@ -136,7 +138,7 @@ export default function SideMenu({
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-orange-300/35 bg-orange-300/10 px-4 py-2.5 text-sm font-semibold tracking-[0.1em] text-orange-100 transition hover:bg-orange-300/20"
+                  className="y2k-button y2k-button-accent w-full justify-center"
                 >
                   LOGOUT
                 </button>
@@ -144,7 +146,7 @@ export default function SideMenu({
             ) : (
               <button
                 onClick={handleLoginClick}
-                className="inline-flex w-full items-center justify-center rounded-full border border-orange-300/35 bg-orange-300/12 px-4 py-2.5 text-sm font-semibold tracking-[0.1em] text-orange-100 transition hover:bg-orange-300/20"
+                className="y2k-button y2k-button-accent w-full justify-center"
               >
                 LOGIN
               </button>

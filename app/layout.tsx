@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
-import { Do_Hyeon, Noto_Sans_KR, Share_Tech_Mono } from "next/font/google";
+import {
+  Barlow_Condensed,
+  IBM_Plex_Sans_KR,
+  Share_Tech_Mono,
+} from "next/font/google";
 
 import "./styles/tailwind.css";
 import "./styles/theme.css";
 import Providers from "./providers";
 
-const sansFont = Noto_Sans_KR({
+const sansFont = IBM_Plex_Sans_KR({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["300", "400", "500", "700"],
+  weight: ["300", "400", "500", "600"],
 });
 
-const displayFont = Do_Hyeon({
+const displayFont = Barlow_Condensed({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: "400",
+  weight: ["400", "500", "600"],
 });
 
 const monoFont = Share_Tech_Mono({

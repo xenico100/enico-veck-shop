@@ -21,14 +21,14 @@ export default function MainContent() {
           loop
           playsInline
         />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(4,6,4,0.94)_10%,rgba(7,10,8,0.76)_48%,rgba(6,5,5,0.92)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(3,5,10,0.96)_8%,rgba(7,12,22,0.78)_44%,rgba(4,5,9,0.94)_100%)]" />
       </div>
 
       <div className="section-shell">
         <div className="grid items-end gap-8 lg:grid-cols-[1.45fr_0.95fr]">
           <div className="animate-rise">
             <p className="section-kicker">Restricted Broadcast Channel</p>
-            <h1 className="text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] leading-[0.9]">
+            <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-medium leading-[0.88] tracking-[0.03em]">
               NEXUS
               <br />
               ARCHIVE
@@ -41,13 +41,13 @@ export default function MainContent() {
             <div className="mt-7 flex flex-wrap gap-2.5">
               <a
                 href="#services"
-                className="inline-flex items-center rounded-full border border-cyan-300/35 bg-cyan-300/12 px-5 py-2.5 text-xs font-semibold tracking-[0.18em] text-cyan-100 no-underline transition hover:bg-cyan-300/20"
+                className="y2k-button y2k-button-primary no-underline"
               >
                 OPEN NODE MAP
               </a>
               <a
                 href="#studio"
-                className="inline-flex items-center rounded-full border border-orange-300/35 bg-orange-300/10 px-5 py-2.5 text-xs font-semibold tracking-[0.18em] text-orange-100 no-underline transition hover:bg-orange-300/18"
+                className="y2k-button y2k-button-accent no-underline"
               >
                 WATCH FEED
               </a>
@@ -57,12 +57,14 @@ export default function MainContent() {
               {statItems.map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-cyan-300/25 bg-[#0a1120b8] px-4 py-3 shadow-[inset_0_1px_0_rgba(194,219,255,0.22)]"
+                  className="rounded-[1rem] border border-cyan-300/18 bg-[#091224c4] px-4 py-3 shadow-[inset_0_1px_0_rgba(234,240,255,0.08)]"
                 >
                   <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200/65">
                     {item.label}
                   </p>
-                  <p className="mt-2 display-font text-lg text-cyan-50 md:text-xl">{item.value}</p>
+                  <p className="mt-2 display-font text-lg font-medium tracking-[0.05em] text-cyan-50 md:text-xl">
+                    {item.value}
+                  </p>
                 </div>
               ))}
             </div>
@@ -71,7 +73,9 @@ export default function MainContent() {
           <aside className="tech-panel scanline animate-rise relative overflow-hidden p-5 [animation-delay:0.15s] md:p-7">
             <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
             <p className="section-kicker">Signal</p>
-            <h2 className="mt-2 text-2xl md:text-3xl">Live Node Intel</h2>
+            <h2 className="display-font mt-2 text-2xl font-medium tracking-[0.03em] md:text-3xl">
+              Live Node Intel
+            </h2>
 
             <div className="mt-6 space-y-4 text-sm text-cyan-50/80">
               <div>
@@ -88,7 +92,7 @@ export default function MainContent() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl border border-orange-300/35 bg-orange-300/10 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-orange-100/90">
+            <div className="mt-6 rounded-[0.95rem] border border-orange-300/28 bg-orange-300/10 px-3 py-2 text-[11px] uppercase tracking-[0.16em] text-orange-100/90">
               Access Protocol: Shadow Relay Enabled
             </div>
           </aside>
