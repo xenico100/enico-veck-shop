@@ -307,6 +307,24 @@ const getExcerpt = (value: string | null, maxLength = 72) => {
   return `${normalized.slice(0, maxLength).trimEnd()}...`;
 };
 
+const getStudioPostCreatedAtMs = (post: StudioPost) => {
+  const parsed = Date.parse(post.created_at || '');
+  if (!Number.isFinite(parsed)) return 0;
+  return parsed;
+};
+
+const sortStudioShortsPosts = (posts: StudioPost[]) =>
+  [...posts].sort((left, right) => {
+    const leftLevel = normalizeRequiredMembershipLevel(
+      left.required_membership_level
+    );
+    const rightLevel = normalizeRequiredMembershipLevel(
+      right.required_membership_level
+    );
+    if (leftLevel !== rightLevel) return leftLevel - rightLevel;
+    return getStudioPostCreatedAtMs(right) - getStudioPostCreatedAtMs(left);
+  });
+
 const buildInitialShortsMediaState = (): StudioShortsMediaState => ({
   loading: false,
   loaded: false,
@@ -731,7 +749,7 @@ function StudioShortsModal({
   isAuthenticated: boolean;
 }) {
   const shortsPosts = useMemo(
-    () => posts.filter((post) => !post.is_placeholder),
+    () => sortStudioShortsPosts(posts.filter((post) => !post.is_placeholder)),
     [posts]
   );
   const [activeIndex, setActiveIndex] = useState(0);
@@ -947,11 +965,24 @@ function StudioShortsModal({
     const preferredHasVideo = Boolean(
       mediaByPostIdRef.current[preferredPostId]?.videoUrl
     );
+    const cachedFreeVideoIndex = shortsPosts.findIndex((post) => {
+      const requiredLevel = normalizeRequiredMembershipLevel(
+        post.required_membership_level
+      );
+      if (requiredLevel !== 0) return false;
+      return Boolean(mediaByPostIdRef.current[post.id]?.videoUrl);
+    });
     const cachedVideoIndex = shortsPosts.findIndex((post) =>
       Boolean(mediaByPostIdRef.current[post.id]?.videoUrl)
     );
     const nextActiveIndex =
-      preferredHasVideo || cachedVideoIndex < 0 ? preferredIndex : cachedVideoIndex;
+      preferredHasVideo
+        ? preferredIndex
+        : cachedFreeVideoIndex >= 0
+          ? cachedFreeVideoIndex
+          : cachedVideoIndex >= 0
+            ? cachedVideoIndex
+            : preferredIndex;
     setActiveIndex(nextActiveIndex);
 
     const frameId = window.requestAnimationFrame(() => {
@@ -963,8 +994,19 @@ function StudioShortsModal({
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
-    const preloadTargets = shortsPosts.slice(0, Math.min(shortsPosts.length, 12));
-    void loadBatchMedia(preloadTargets.map((post) => post.id));
+    const freePosts = shortsPosts.filter(
+      (post) =>
+        normalizeRequiredMembershipLevel(post.required_membership_level) === 0
+    );
+    const premiumPosts = shortsPosts.filter(
+      (post) =>
+        normalizeRequiredMembershipLevel(post.required_membership_level) > 0
+    );
+    const prioritized = [...freePosts, ...premiumPosts].slice(
+      0,
+      Math.min(shortsPosts.length, 18)
+    );
+    void loadBatchMedia(prioritized.map((post) => post.id));
   }, [loadBatchMedia, open, shortsPosts]);
 
   useEffect(() => {
@@ -988,6 +1030,18 @@ function StudioShortsModal({
     if (currentMediaState.loading) return;
     if (!currentMediaState.loaded) return;
     if (currentMediaState.videoUrl) return;
+
+    const freePlayableIndex = shortsPosts.findIndex((post) => {
+      const requiredLevel = normalizeRequiredMembershipLevel(
+        post.required_membership_level
+      );
+      if (requiredLevel !== 0) return false;
+      return Boolean(mediaByPostId[post.id]?.videoUrl);
+    });
+    if (freePlayableIndex >= 0 && freePlayableIndex !== activeIndex) {
+      scrollToIndex(freePlayableIndex);
+      return;
+    }
 
     const nextVideoIndex = shortsPosts.findIndex((post, index) => {
       if (index <= activeIndex) return false;
@@ -1029,6 +1083,18 @@ function StudioShortsModal({
 
     const activeMediaState = mediaByPostId[activePost.id];
     if (activeMediaState?.videoUrl) return;
+
+    const cachedFreeVideoIndex = shortsPosts.findIndex((post) => {
+      const requiredLevel = normalizeRequiredMembershipLevel(
+        post.required_membership_level
+      );
+      if (requiredLevel !== 0) return false;
+      return Boolean(mediaByPostIdRef.current[post.id]?.videoUrl);
+    });
+    if (cachedFreeVideoIndex >= 0 && cachedFreeVideoIndex !== activeIndex) {
+      scrollToIndex(cachedFreeVideoIndex, 'auto');
+      return;
+    }
 
     const cachedVideoIndex = shortsPosts.findIndex((post) =>
       Boolean(mediaByPostIdRef.current[post.id]?.videoUrl)
@@ -1086,6 +1152,18 @@ function StudioShortsModal({
     const activeMediaState = mediaByPostId[activePost.id];
     if (!activeMediaState || !activeMediaState.loaded) return;
     if (activeMediaState.videoUrl) return;
+
+    const firstFreeVideoIndex = shortsPosts.findIndex((post) => {
+      const requiredLevel = normalizeRequiredMembershipLevel(
+        post.required_membership_level
+      );
+      if (requiredLevel !== 0) return false;
+      return Boolean(mediaByPostId[post.id]?.videoUrl);
+    });
+    if (firstFreeVideoIndex >= 0 && firstFreeVideoIndex !== activeIndex) {
+      scrollToIndex(firstFreeVideoIndex);
+      return;
+    }
 
     const firstVideoIndex = shortsPosts.findIndex((post) =>
       Boolean(mediaByPostId[post.id]?.videoUrl)
@@ -1398,15 +1476,15 @@ function StudioShortsModal({
                                 }}
                                 src={mediaState.videoUrl}
                                 poster={fallbackImage || undefined}
-                                controls
-                                controlsList="nodownload noplaybackrate"
+                                controls={false}
+                                controlsList="nodownload noplaybackrate noremoteplayback"
                                 disablePictureInPicture
                                 playsInline
                                 autoPlay={index === activeIndex}
                                 muted={muted}
                                 loop
                                 preload={
-                                  index === activeIndex ? 'auto' : 'metadata'
+                                  index <= activeIndex + 2 ? 'auto' : 'metadata'
                                 }
                                 onLoadedMetadata={(event) => {
                                   const video = event.currentTarget;
@@ -1423,16 +1501,30 @@ function StudioShortsModal({
                                     void playVideoWithAutoplayFallback(video);
                                   }
                                 }}
+                                onLoadedData={(event) => {
+                                  if (index !== activeIndex) return;
+                                  void playVideoWithAutoplayFallback(
+                                    event.currentTarget
+                                  );
+                                }}
                                 onCanPlay={(event) => {
                                   if (index !== activeIndex) return;
                                   void playVideoWithAutoplayFallback(
                                     event.currentTarget
                                   );
                                 }}
+                                onClick={(event) => {
+                                  const video = event.currentTarget;
+                                  if (video.paused) {
+                                    void playVideoWithAutoplayFallback(video);
+                                    return;
+                                  }
+                                  video.pause();
+                                }}
                                 onContextMenu={(event) =>
                                   event.preventDefault()
                                 }
-                                className={videoFitClass}
+                                className={`${videoFitClass} cursor-pointer`}
                               />
                             ) : fallbackImage &&
                               mediaState.retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY ? (
@@ -1610,7 +1702,7 @@ export default function StudioSection({
 
   const displayRows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
   const shortsPosts = useMemo(
-    () => studioPosts.filter((post) => !post.is_placeholder),
+    () => sortStudioShortsPosts(studioPosts.filter((post) => !post.is_placeholder)),
     [studioPosts]
   );
 
