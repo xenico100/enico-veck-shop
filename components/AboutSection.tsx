@@ -3,27 +3,9 @@
 import Link from 'next/link';
 
 import ArchitectureGraph from '@/components/architecture/ArchitectureGraph';
-import { BRAND_NAME, REPRESENTATIVE_NAME } from '@/utils/branding';
+import { REPRESENTATIVE_NAME } from '@/utils/branding';
 
 const CREATOR_NAME = REPRESENTATIVE_NAME;
-
-const roleCards = [
-  {
-    label: 'Coding',
-    title: '코딩',
-    detail: '웹사이트를 설계하고 구조를 잡고 직접 구현합니다.'
-  },
-  {
-    label: 'Designer Brand',
-    title: '디자이너 브랜드',
-    detail: '옷의 감도와 제작 흐름, 브랜드 운영을 직접 이어갑니다.'
-  },
-  {
-    label: 'Video Editing',
-    title: '영상편집 · 유튜브 운영',
-    detail: '편집으로 마무리한 결과물을 채널 운영까지 연결합니다.'
-  }
-];
 
 const garmentStages = [
   { label: 'Idea', value: '01' },
@@ -58,64 +40,7 @@ export default function AboutSection() {
   return (
     <section id="about" className="relative px-4 py-14 md:px-8 md:py-24">
       <div className="section-shell">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="animate-rise">
-            <p className="section-kicker">About</p>
-            <h2 className="section-title">
-              {CREATOR_NAME}은
-              <br />
-              3가지 일을 하는 사람입니다.
-            </h2>
-            <p className="mt-6 max-w-3xl text-sm leading-relaxed text-cyan-50/84 md:text-base">
-              이 섹션은 {CREATOR_NAME}이 어떤 사람인지, 그리고 코딩과 브랜드와
-              유튜브 운영이 하나의 흐름으로 어떻게 이어지는지를 보여주기 위한
-              스토리 구조로 짜두었습니다. 곧 보내주실 정보만 넣으면 바로 완성할
-              수 있도록 순서와 시각 요소를 먼저 정리해 둔 상태입니다.
-            </p>
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-cyan-50/68 md:text-base">
-              시작은 {CREATOR_NAME}이 3가지 일을 모두 직접 한다는 소개로 열고,
-              그다음에는 코딩과 디자이너 브랜드 웹사이트 아키텍처, 옷이 만들어지는
-              흐름과 그래프, 마지막으로 영상편집에서 유튜브 운영으로 이어지는
-              과정까지 자연스럽게 이어지도록 설계했습니다.
-            </p>
-          </div>
-
-          <div
-            className={`${sectionPanelClass} p-5 [animation-delay:0.08s] sm:p-6 md:p-7`}
-          >
-            <p className="section-kicker">Three Roles, One Person</p>
-            <h3 className="display-font mt-3 text-[clamp(1.45rem,3vw,2.3rem)] leading-[0.95] tracking-[0.03em] text-white">
-              몽상인의 소개는
-              <br />
-              세 갈래로 시작됩니다.
-            </h3>
-
-            <div className="mt-6 grid gap-3">
-              {roleCards.map((card) => (
-                <article
-                  key={card.label}
-                  className="rounded-[1.2rem] border border-cyan-100/10 bg-white/[0.03] p-4"
-                >
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-200/58">
-                    {card.label}
-                  </p>
-                  <h4 className="mt-2 display-font text-[1.2rem] tracking-[0.03em] text-white">
-                    {card.title}
-                  </h4>
-                  <p className="mt-2 text-sm leading-relaxed text-cyan-50/72">
-                    {card.detail}
-                  </p>
-                </article>
-              ))}
-            </div>
-
-            <p className="mt-5 text-sm text-orange-100/78">
-              "{BRAND_NAME}의 흐름은 한 사람이 여러 역할을 이어가며 만듭니다."
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-10 space-y-6">
+        <div className="space-y-6">
           <article
             className={`${sectionPanelClass} grid gap-0 lg:grid-cols-[0.9fr_1.1fr] [animation-delay:0.12s]`}
           >
