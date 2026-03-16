@@ -13,11 +13,32 @@ import {
   PROD_SVG_HEIGHT,
   PROD_SVG_WIDTH
 } from '@/components/dark-node/ProductionDiagram';
+import { BOARD } from '@/components/dark-node/board-theme';
 import { ZoomableCanvas } from '@/components/dark-node/ZoomableCanvas';
 
 type DarkNodeDiagramStackProps = {
   className?: string;
 };
+
+function LegendSwatch({
+  color,
+  label
+}: {
+  color: string;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className="block h-[2px] w-8"
+        style={{ background: color }}
+      />
+      <span className="text-[11px] font-medium tracking-[0.12em]" style={{ color: BOARD.inkSoft }}>
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export default function DarkNodeDiagramStack({
   className
@@ -25,233 +46,173 @@ export default function DarkNodeDiagramStack({
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   return (
-    <div className={cn('relative min-h-screen w-full overflow-hidden bg-black', className)}>
-      <div className="pointer-events-none absolute inset-0 z-20 opacity-10">
-        <div className="dark-node-scanlines h-full" />
-      </div>
+    <div
+      className={cn('relative w-full overflow-hidden', className)}
+      style={{
+        background:
+          `linear-gradient(180deg, ${BOARD.ink} 0%, #241d16 42%, ${BOARD.ink} 100%)`
+      }}
+    >
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          opacity: 0.14,
+          backgroundImage:
+            `repeating-linear-gradient(90deg, transparent 0, transparent 47px, rgba(255,255,255,0.02) 47px, rgba(255,255,255,0.02) 48px),
+             repeating-linear-gradient(180deg, transparent 0, transparent 47px, rgba(255,255,255,0.02) 47px, rgba(255,255,255,0.02) 48px)`
+        }}
+      />
 
-      <div className="dark-node-noise pointer-events-none absolute inset-0 z-10 opacity-5" />
-
-      <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
-        <div className="mb-4 md:mb-6">
-          <div
-            className="dark-node-glitch font-mono text-xs tracking-wider text-[#00ff41] opacity-70 md:text-sm"
-            data-text="REAL_ENICO :: SYSTEM ARCHITECTURE MAP"
-          >
-            REAL_ENICO :: SYSTEM ARCHITECTURE MAP
-          </div>
-          <div className="mt-1 font-mono text-[10px] tracking-wider text-[#00ff41] opacity-50 md:text-xs">
-            Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay ×
-            PayPal
-          </div>
-          <div className="mt-2 font-mono text-[9px] tracking-wider text-[#00ffff] opacity-30 md:text-[10px]">
-            [SYSTEM ONLINE] :: {currentDate}
-          </div>
-        </div>
-
-        <ZoomableCanvas svgWidth={ARCH_SVG_WIDTH} svgHeight={ARCH_SVG_HEIGHT}>
-          <ArchitectureDiagram />
-        </ZoomableCanvas>
-
-        <div className="mt-3 font-mono text-[10px] md:text-xs">
-          <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#1a1a1a] bg-[#0a0a0a] p-2 backdrop-blur-sm md:p-3">
-            <div className="mb-1 w-full tracking-wide text-[#00ff41] opacity-70">
-              FLOW TYPES:
+      <div className="relative mx-auto w-full max-w-[1480px] px-4 pb-8 pt-6 md:px-6 md:pb-12 md:pt-8">
+        <section
+          className="border p-4 md:p-6"
+          style={{
+            background: `linear-gradient(180deg, ${BOARD.paperSoft} 0%, ${BOARD.paperDeep} 100%)`,
+            borderColor: BOARD.wood,
+            boxShadow: `0 22px 44px rgba(35, 28, 20, 0.22)`
+          }}
+        >
+          <div className="mb-5 flex flex-col gap-4 md:mb-7 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
+              <p
+                className="text-[11px] tracking-[0.28em]"
+                style={{ color: BOARD.gold, textTransform: 'uppercase' }}
+              >
+                System Record
+              </p>
+              <h2
+                className="mt-3 text-[clamp(1.6rem,4vw,3rem)] font-semibold tracking-[0.04em]"
+                style={{ color: BOARD.ink }}
+              >
+                REAL_ENICO 구조도
+              </h2>
+              <p
+                className="mt-3 max-w-2xl text-sm leading-relaxed md:text-base"
+                style={{ color: BOARD.inkSoft }}
+              >
+                웹사이트 운영 구조를 전략판처럼 정리한 도식입니다. 사용자 요청,
+                관리자 입력, 저장소, 인증, 결제, 소스 구조가 서로 어떤 순서와
+                위계로 맞물리는지 한 장의 판으로 읽히도록 재구성했습니다.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-5 bg-[#00ffff] shadow-[0_0_4px_#00ffff]" />
-              <span className="text-[#00ffff] opacity-70">Data Flow</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-5 bg-[#00ff41] shadow-[0_0_4px_#00ff41]" />
-              <span className="text-[#00ff41] opacity-70">Image Flow</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-5 bg-[#ff9900] shadow-[0_0_4px_#ff9900]" />
-              <span className="text-[#ff9900] opacity-70">Auth Flow</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-5 bg-[#ffdd00] shadow-[0_0_4px_#ffdd00]" />
-              <span className="text-[#ffdd00] opacity-70">Payment Flow</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-5 bg-[#ff00ff] shadow-[0_0_4px_#ff00ff]" />
-              <span className="text-[#ff00ff] opacity-70">Admin Flow</span>
-            </div>
-          </div>
-        </div>
 
-        <div className="mt-2 font-mono text-[9px] text-[#00ff41] opacity-40 md:text-[10px]">
-          <div className="flex gap-3 md:gap-4">
-            <span>[NODES: 25]</span>
-            <span>[CONNECTIONS: 22]</span>
-            <span>[ZONES: 6]</span>
-            <span>[STATUS: ACTIVE]</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative my-4 h-px w-full">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent opacity-30" />
-      </div>
-
-      <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
-        <div className="mb-4 md:mb-6">
-          <div
-            className="dark-node-glitch font-mono text-xs tracking-wider md:text-sm"
-            style={{
-              color: '#00ffff',
-              textShadow: '0 0 5px #00ffff, 0 0 10px #00ffff',
-              opacity: 0.9
-            }}
-            data-text="PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처"
-          >
-            PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처
-          </div>
-          <div className="mt-1 font-mono text-[10px] tracking-wider text-[#ff00ff] opacity-70 md:text-xs">
-            CLO3D × CLO-SET × Handmade × enicoveck.com
-          </div>
-          <div className="mt-2 font-mono text-[9px] tracking-wider text-[#00ff41] opacity-50 md:text-[10px]">
-            [NODES: 19] :: [CONNECTIONS: 24] :: [PHASES: 4]
-          </div>
-        </div>
-
-        <ZoomableCanvas svgWidth={PROD_SVG_WIDTH} svgHeight={PROD_SVG_HEIGHT}>
-          <ProductionDiagram />
-        </ZoomableCanvas>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] md:text-[11px]">
-          <div className="flex items-center gap-2">
             <div
-              className="h-[2px] w-6 md:w-10"
+              className="border px-4 py-3 text-right"
               style={{
-                background: '#00ffff',
-                boxShadow: '0 0 6px #00ffff'
+                borderColor: BOARD.line,
+                background: BOARD.paper,
+                color: BOARD.inkSoft
               }}
-            />
-            <span style={{ color: '#00ffff' }} className="opacity-90">
-              디지털 플로우
-            </span>
+            >
+              <div className="text-[10px] tracking-[0.22em] uppercase">Current Record</div>
+              <div className="mt-2 text-sm font-medium">{currentDate}</div>
+              <div className="mt-2 text-[10px] tracking-[0.16em]">Next.js / Supabase / R2 / Pay</div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <ZoomableCanvas svgWidth={ARCH_SVG_WIDTH} svgHeight={ARCH_SVG_HEIGHT}>
+            <ArchitectureDiagram />
+          </ZoomableCanvas>
+
+          <div className="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <LegendSwatch color={BOARD.inkSoft} label="데이터 흐름" />
+              <LegendSwatch color={BOARD.wood} label="이미지 흐름" />
+              <LegendSwatch color={BOARD.gold} label="인증 · 결제" />
+              <LegendSwatch color={BOARD.rust} label="관리자 흐름" />
+              <LegendSwatch color={BOARD.line} label="저장소 · 소스 구조" />
+            </div>
+
             <div
-              className="h-[2px] w-6 md:w-10"
+              className="text-[11px] tracking-[0.18em]"
+              style={{ color: BOARD.wood }}
+            >
+              구성 25 / 연결 22 / 구획 6
+            </div>
+          </div>
+        </section>
+
+        <div
+          className="mx-auto my-6 h-px w-full max-w-[1260px]"
+          style={{
+            background: `linear-gradient(90deg, transparent 0%, ${BOARD.goldSoft} 18%, ${BOARD.goldSoft} 82%, transparent 100%)`
+          }}
+        />
+
+        <section
+          className="border p-4 md:p-6"
+          style={{
+            background: `linear-gradient(180deg, ${BOARD.paperSoft} 0%, ${BOARD.paperDeep} 100%)`,
+            borderColor: BOARD.wood,
+            boxShadow: `0 22px 44px rgba(35, 28, 20, 0.18)`
+          }}
+        >
+          <div className="mb-5 flex flex-col gap-4 md:mb-7 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
+              <p
+                className="text-[11px] tracking-[0.28em]"
+                style={{ color: BOARD.rustSoft, textTransform: 'uppercase' }}
+              >
+                Production Record
+              </p>
+              <h2
+                className="mt-3 text-[clamp(1.6rem,4vw,3rem)] font-semibold tracking-[0.04em]"
+                style={{ color: BOARD.ink }}
+              >
+                enicoveck 제작 수순도
+              </h2>
+              <p
+                className="mt-3 max-w-2xl text-sm leading-relaxed md:text-base"
+                style={{ color: BOARD.inkSoft }}
+              >
+                디지털 설계에서 자료 아카이브, 실물 제작, 이커머스 업로드까지의
+                수순을 하나의 판짜기 구조로 정리했습니다. 정보는 많지만 흐름은
+                단정하게 읽히도록 위계를 다시 잡았습니다.
+              </p>
+            </div>
+
+            <div
+              className="border px-4 py-3 text-right"
               style={{
-                background: '#00ff41',
-                boxShadow: '0 0 6px #00ff41'
+                borderColor: BOARD.line,
+                background: BOARD.paper,
+                color: BOARD.inkSoft
               }}
-            />
-            <span style={{ color: '#00ff41' }} className="opacity-90">
-              아카이브 / 데이터
-            </span>
+            >
+              <div className="text-[10px] tracking-[0.22em] uppercase">Production Scope</div>
+              <div className="mt-2 text-sm font-medium">CLO3D / CLO-SET / Handmade</div>
+              <div className="mt-2 text-[10px] tracking-[0.16em]">Archive / Physical / Commerce</div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <ZoomableCanvas svgWidth={PROD_SVG_WIDTH} svgHeight={PROD_SVG_HEIGHT}>
+            <ProductionDiagram />
+          </ZoomableCanvas>
+
+          <div className="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <LegendSwatch color={BOARD.inkSoft} label="디지털 설계" />
+              <LegendSwatch color={BOARD.wood} label="아카이브 / 데이터" />
+              <LegendSwatch color={BOARD.rust} label="실물 제작" />
+              <LegendSwatch color={BOARD.gold} label="이커머스 결과물" />
+            </div>
+
             <div
-              className="h-[2px] w-6 md:w-10"
-              style={{
-                background: '#ff00ff',
-                boxShadow: '0 0 6px #ff00ff'
-              }}
-            />
-            <span style={{ color: '#ff00ff' }} className="opacity-90">
-              실물 프로덕션
-            </span>
+              className="text-[11px] tracking-[0.18em]"
+              style={{ color: BOARD.wood }}
+            >
+              구성 19 / 연결 24 / 단계 4
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="h-[2px] w-6 md:w-10"
-              style={{
-                background: '#4499ff',
-                boxShadow: '0 0 6px #4499ff'
-              }}
-            />
-            <span style={{ color: '#4499ff' }} className="opacity-90">
-              이커머스 아웃풋
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="h-[2px] w-6 border-t-2 border-dashed md:w-10"
-              style={{ borderColor: '#00ff41' }}
-            />
-            <span style={{ color: '#00ff41' }} className="opacity-60">
-              데이터 재사용
-            </span>
-          </div>
+        </section>
+
+        <div
+          className="py-7 text-center text-[10px] tracking-[0.26em]"
+          style={{ color: BOARD.goldSoft, textTransform: 'uppercase', opacity: 0.72 }}
+        >
+          Real Enico Record Sheet · Structured Board Edition
         </div>
       </div>
-
-      <div className="relative flex w-full justify-center py-6">
-        <div className="px-4 text-center font-mono text-[9px] tracking-widest text-[#00ff41] opacity-25 md:text-[10px]">
-          [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
-        </div>
-      </div>
-
-      <style>{`
-        .dark-node-scanlines {
-          background: linear-gradient(
-            to bottom,
-            transparent 50%,
-            rgba(0, 255, 65, 0.1) 50%
-          );
-          background-size: 100% 4px;
-          animation: dark-node-scanline 8s linear infinite;
-        }
-
-        @keyframes dark-node-scanline {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(4px); }
-        }
-
-        .dark-node-noise {
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-
-        .dark-node-glitch {
-          position: relative;
-          text-shadow:
-            0 0 5px #00ff41,
-            0 0 10px #00ff41;
-        }
-
-        .dark-node-glitch::before {
-          content: attr(data-text);
-          position: absolute;
-          left: -2px;
-          top: 0;
-          overflow: hidden;
-          background: black;
-          color: #00ff41;
-          text-shadow: -2px 0 #ff00ff;
-          clip: rect(0, 900px, 0, 0);
-          animation: dark-node-glitch-anim 5s infinite linear alternate-reverse;
-          opacity: 0.8;
-        }
-
-        @keyframes dark-node-glitch-anim {
-          0% { clip: rect(42px, 9999px, 44px, 0); }
-          5% { clip: rect(12px, 9999px, 59px, 0); }
-          10% { clip: rect(48px, 9999px, 29px, 0); }
-          15% { clip: rect(42px, 9999px, 73px, 0); }
-          20% { clip: rect(63px, 9999px, 27px, 0); }
-          25% { clip: rect(34px, 9999px, 55px, 0); }
-          30% { clip: rect(86px, 9999px, 73px, 0); }
-          35% { clip: rect(20px, 9999px, 20px, 0); }
-          40% { clip: rect(26px, 9999px, 60px, 0); }
-          45% { clip: rect(25px, 9999px, 66px, 0); }
-          50% { clip: rect(57px, 9999px, 98px, 0); }
-          55% { clip: rect(5px, 9999px, 46px, 0); }
-          60% { clip: rect(82px, 9999px, 31px, 0); }
-          65% { clip: rect(54px, 9999px, 27px, 0); }
-          70% { clip: rect(28px, 9999px, 99px, 0); }
-          75% { clip: rect(45px, 9999px, 69px, 0); }
-          80% { clip: rect(23px, 9999px, 85px, 0); }
-          85% { clip: rect(54px, 9999px, 84px, 0); }
-          90% { clip: rect(45px, 9999px, 47px, 0); }
-          95% { clip: rect(37px, 9999px, 20px, 0); }
-          100% { clip: rect(4px, 9999px, 91px, 0); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import {
 } from 'react';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 
+import { BOARD } from '@/components/dark-node/board-theme';
+
 type ZoomableCanvasProps = {
   children: ReactNode;
   svgWidth: number;
@@ -34,7 +36,7 @@ export function ZoomableCanvas({
   const calcFitScale = useCallback(() => {
     if (!containerRef.current) return 1;
     const containerW = containerRef.current.clientWidth;
-    const padding = 16;
+    const padding = 22;
 
     return Math.min(1, (containerW - padding) / svgWidth);
   }, [svgWidth]);
@@ -53,7 +55,7 @@ export function ZoomableCanvas({
     return () => window.removeEventListener('resize', fit);
   }, [calcFitScale]);
 
-  const clampScale = (s: number) => Math.max(baseScale * 0.5, Math.min(3, s));
+  const clampScale = (s: number) => Math.max(baseScale * 0.55, Math.min(2.8, s));
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -156,36 +158,61 @@ export function ZoomableCanvas({
 
   return (
     <div className="relative w-full" style={{ touchAction: 'none' }}>
-      <div className="absolute right-2 top-2 z-20 flex items-center gap-1 font-mono">
+      <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
         <button
-          onClick={() => setScale((prev) => clampScale(prev * 0.85))}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#333] bg-[#0a0a0a] transition-colors hover:border-[#00ffff]"
+          onClick={() => setScale((prev) => clampScale(prev * 0.88))}
+          className="flex h-8 w-8 items-center justify-center border"
+          style={{
+            background: BOARD.paperSoft,
+            borderColor: BOARD.wood,
+            color: BOARD.ink
+          }}
         >
-          <ZoomOut size={14} color="#00ffff" />
+          <ZoomOut size={14} />
         </button>
-        <div className="min-w-[48px] rounded border border-[#333] bg-[#0a0a0a] px-2 py-1 text-center font-mono text-[10px] text-[#00ffff] opacity-80">
-          {zoomPercent}%
+        <div
+          className="min-w-[52px] border px-2 py-1 text-center text-[10px] font-semibold tracking-[0.18em]"
+          style={{
+            background: BOARD.paper,
+            borderColor: BOARD.line,
+            color: BOARD.inkSoft
+          }}
+        >
+          {zoomPercent}
         </div>
         <button
-          onClick={() => setScale((prev) => clampScale(prev * 1.15))}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#333] bg-[#0a0a0a] transition-colors hover:border-[#00ffff]"
+          onClick={() => setScale((prev) => clampScale(prev * 1.12))}
+          className="flex h-8 w-8 items-center justify-center border"
+          style={{
+            background: BOARD.paperSoft,
+            borderColor: BOARD.wood,
+            color: BOARD.ink
+          }}
         >
-          <ZoomIn size={14} color="#00ffff" />
+          <ZoomIn size={14} />
         </button>
         <button
           onClick={resetView}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#333] bg-[#0a0a0a] transition-colors hover:border-[#00ffff]"
+          className="flex h-8 w-8 items-center justify-center border"
+          style={{
+            background: BOARD.paperSoft,
+            borderColor: BOARD.wood,
+            color: BOARD.ink
+          }}
         >
-          <Maximize size={14} color="#00ffff" />
+          <Maximize size={14} />
         </button>
       </div>
 
       <div
         ref={containerRef}
-        className="w-full overflow-hidden rounded-sm border border-[#1a1a1a] bg-black"
+        className="w-full overflow-hidden border"
         style={{
-          height: Math.max(320, svgHeight * scale + 20),
-          cursor: isPanning ? 'grabbing' : 'grab'
+          height: Math.max(320, svgHeight * scale + 24),
+          cursor: isPanning ? 'grabbing' : 'grab',
+          background: `linear-gradient(180deg, ${BOARD.paperSoft} 0%, ${BOARD.paper} 100%)`,
+          borderColor: BOARD.wood,
+          boxShadow: `0 16px 30px rgba(35, 28, 20, 0.14), inset 0 0 0 1px ${BOARD.lineSoft}`
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -208,7 +235,10 @@ export function ZoomableCanvas({
         </div>
       </div>
 
-      <div className="mt-1 text-center font-mono text-[9px] text-[#00ffff] opacity-30 md:hidden">
+      <div
+        className="mt-2 text-center text-[10px] tracking-[0.16em] md:hidden"
+        style={{ color: BOARD.wood }}
+      >
         PINCH TO ZOOM · DRAG TO PAN
       </div>
     </div>
