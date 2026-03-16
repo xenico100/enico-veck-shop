@@ -10,15 +10,17 @@ import { useToast } from '@/components/ui/Toasts/use-toast';
 import { ToastAction } from '@/components/ui/Toasts/toast';
 import { ServiceDetailModal } from './ServiceDetailModal';
 import {
+  ALL_SERVICE_CATEGORIES_LABEL,
   SERVICE_CATEGORIES,
   categoryColorPresets,
   formatPriceFrom,
   isAdminUserLike,
+  normalizeServiceCategory,
   type ServicePost
 } from '@/utils/service-posts';
 import { extractServiceContentText } from '@/utils/service-content';
 
-const categories = ['모든 제품', '녹음', '믹스/마스터', '더빙/성우'];
+const categories = [ALL_SERVICE_CATEGORIES_LABEL, ...SERVICE_CATEGORIES];
 
 type ServiceCardItem = {
   id: string;
@@ -94,7 +96,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const { user } = useAuth();
   const { addItem } = useCart();
   const { toast } = useToast();
-  const [activeCategory, setActiveCategory] = useState('모든 제품');
+  const [activeCategory, setActiveCategory] = useState(ALL_SERVICE_CATEGORIES_LABEL);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
   const [isDraggingUi, setIsDraggingUi] = useState(false);
@@ -167,7 +169,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       Array.isArray(post.image_urls) && post.image_urls.length > 0
         ? post.image_urls.filter(Boolean)
         : ['https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'];
-    const category = (post.category?.trim() || '녹음') as string;
+    const category =
+      normalizeServiceCategory(post.category?.trim()) || SERVICE_CATEGORIES[0];
     const summary = post.summary?.trim() || category;
     const content = post.content?.trim() || post.summary?.trim() || '서비스 설명이 준비 중입니다.';
     const parsedFilePrice =
@@ -581,7 +584,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
 
   // 카테고리별 필터링
   const filteredServices = useMemo(() => {
-    if (activeCategory === '모든 제품') {
+    if (activeCategory === ALL_SERVICE_CATEGORIES_LABEL) {
       return serviceItems;
     }
     return serviceItems.filter(service => service.category === activeCategory);
@@ -730,8 +733,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
         {/* Title */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="section-kicker">Services</p>
-            <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">Service Matrix</h2>
+            <p className="section-kicker">Goods</p>
+            <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">Mongsangin Goods</h2>
           </div>
           {isAdmin && (
             <button
@@ -968,12 +971,12 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-cyan-50/55">Services</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-cyan-50/55">Goods</p>
                 <h3 className="display-font mt-2 text-lg font-medium tracking-[0.04em] text-white">
                   게시물 작성
                 </h3>
                 <p className="mt-1 text-sm text-cyan-50/68">
-                  Services 섹션용 새 게시글을 생성합니다.
+                  Goods 섹션용 새 게시글을 생성합니다.
                 </p>
               </div>
               <button

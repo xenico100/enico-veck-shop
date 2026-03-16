@@ -509,7 +509,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                     장바구니가 비어 있습니다
                   </p>
                   <p className="text-xs text-white/50">
-                    Services에서 항목을 추가해 보세요.
+                    Goods에서 항목을 추가해 보세요.
                   </p>
                 </div>
               ) : (

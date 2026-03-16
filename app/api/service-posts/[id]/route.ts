@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/adminClient';
 import {
   isAdminUserLike,
+  normalizeServiceCategory,
   normalizeImageUrls,
   slugifyServicePost,
   type ServicePostPayload
@@ -153,7 +154,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     ...(body.slug !== undefined
       ? { slug: body.slug?.trim() || slugifyServicePost(nextTitle) || null }
       : {}),
-    ...(body.category !== undefined ? { category: body.category?.trim() || null } : {}),
+    ...(body.category !== undefined
+      ? { category: normalizeServiceCategory(body.category?.trim()) || null }
+      : {}),
     ...(body.summary !== undefined ? { summary: body.summary?.trim() || null } : {}),
     ...(body.content !== undefined ? { content: body.content?.trim() || null } : {}),
     ...(body.price_from !== undefined

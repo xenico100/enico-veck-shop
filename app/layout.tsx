@@ -8,6 +8,7 @@ import {
 import "./styles/tailwind.css";
 import "./styles/theme.css";
 import Providers from "./providers";
+import { BRAND_NAME } from "@/utils/branding";
 
 const sansFont = IBM_Plex_Sans_KR({
   subsets: ["latin"],
@@ -32,8 +33,8 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "ZEUS STUDIO",
-  description: "Professional Sound Studio",
+  title: BRAND_NAME,
+  description: `${BRAND_NAME}은 코딩, 미디어, 패션에 대해 알려주는 커뮤니티 사이트입니다.`,
 };
 
 export const viewport: Viewport = {

@@ -32,10 +32,24 @@ export type ServicePostPayload = {
   is_published?: boolean;
 };
 
-export const SERVICE_CATEGORIES = ['녹음', '믹스/마스터', '더빙/성우'] as const;
+export const ALL_SERVICE_CATEGORIES_LABEL = '전체 굿즈';
+export const SERVICE_CATEGORIES = ['실물 의류', '디지털 의류', '웹사이트 스타터팩'] as const;
+export type ServiceCategory = (typeof SERVICE_CATEGORIES)[number];
 export const FORCED_ADMIN_EMAIL = 'morba9850@gmail.com';
 export const USER_ROLE_VALUES = ['admin', 'sub_admin', 'manager', 'user'] as const;
 export type UserRoleValue = (typeof USER_ROLE_VALUES)[number];
+
+const LEGACY_SERVICE_CATEGORY_MAP: Record<string, ServiceCategory> = {
+  녹음: '실물 의류',
+  '믹스/마스터': '디지털 의류',
+  '더빙/성우': '웹사이트 스타터팩'
+};
+
+const SERVICE_CATEGORY_ALIASES: Record<ServiceCategory, string[]> = {
+  '실물 의류': ['실물 의류', '녹음'],
+  '디지털 의류': ['디지털 의류', '믹스/마스터'],
+  '웹사이트 스타터팩': ['웹사이트 스타터팩', '더빙/성우']
+};
 
 const USER_ROLE_LEVEL: Record<UserRoleValue, number> = {
   admin: 3,
@@ -52,9 +66,9 @@ const USER_ROLE_LABEL: Record<UserRoleValue, string> = {
 };
 
 export const categoryColorPresets: Record<string, string[]> = {
-  녹음: ['#1a1a1a', '#4a4a4a', '#8a8a8a'],
-  '믹스/마스터': ['#2a3a5a', '#4a5a7a', '#6a7a9a'],
-  '더빙/성우': ['#3a2a4a', '#5a4a6a', '#7a6a8a'],
+  '실물 의류': ['#1a1a1a', '#4a4a4a', '#8a8a8a'],
+  '디지털 의류': ['#2a3a5a', '#4a5a7a', '#6a7a9a'],
+  '웹사이트 스타터팩': ['#3a2a4a', '#5a4a6a', '#7a6a8a'],
 };
 
 export const formatPriceFrom = (
@@ -79,6 +93,29 @@ export const normalizeImageUrls = (input: unknown): string[] => {
     .filter(Boolean);
 };
 
+export const normalizeServiceCategory = (value: string | null | undefined) => {
+  const normalized = value?.trim() || '';
+  if (!normalized) return null;
+  if (SERVICE_CATEGORIES.includes(normalized as ServiceCategory)) {
+    return normalized as ServiceCategory;
+  }
+  return LEGACY_SERVICE_CATEGORY_MAP[normalized] ?? normalized;
+};
+
+export const getServiceCategoryAliases = (value: string | null | undefined) => {
+  const normalized = normalizeServiceCategory(value);
+  if (!normalized) return [] as string[];
+  if (SERVICE_CATEGORIES.includes(normalized as ServiceCategory)) {
+    return SERVICE_CATEGORY_ALIASES[normalized as ServiceCategory];
+  }
+  return [normalized];
+};
+
+export const isAllServiceCategoryLabel = (value: string | null | undefined) => {
+  const normalized = value?.trim() || '';
+  return normalized === '' || normalized === ALL_SERVICE_CATEGORIES_LABEL || normalized === '모든 제품';
+};
+
 export const slugifyServicePost = (value: string) =>
   value
     .toLowerCase()
@@ -89,7 +126,12 @@ export const slugifyServicePost = (value: string) =>
     .replace(/^-|-$/g, '');
 
 export const isServiceCategory = (value: string | null | undefined) =>
-  Boolean(value && SERVICE_CATEGORIES.includes(value as (typeof SERVICE_CATEGORIES)[number]));
+  Boolean(
+    value &&
+      SERVICE_CATEGORIES.includes(
+        normalizeServiceCategory(value) as (typeof SERVICE_CATEGORIES)[number]
+      )
+  );
 
 export const parseAdminEmailEnv = () => {
   const raw = process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? '';

@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/utils/supabase/client';
+import { BRAND_MEMBER_LABEL } from '@/utils/branding';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -124,7 +125,7 @@ export default function LoginPage() {
       <div className="flex w-full max-w-sm flex-col gap-5 rounded-3xl border border-white/10 bg-neutral-950/80 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.6)] sm:gap-6 sm:p-8">
         <div className="text-center">
              <p className="text-sm uppercase tracking-[0.35em] text-neutral-400">
-               ZEUS STUDIO MEMBER
+               {BRAND_MEMBER_LABEL}
              </p>
              <h1 className="mt-3 text-2xl font-semibold tracking-[0.18em] sm:text-3xl">
                {isSignUp ? 'JOIN US' : 'LOGIN'}

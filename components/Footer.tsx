@@ -1,18 +1,20 @@
 'use client';
 
+import { BRAND_NAME } from '@/utils/branding';
+
 export default function Footer() {
   return (
     <footer className="relative border-t border-cyan-300/25 px-4 pb-10 pt-10 md:px-8 md:pt-16">
       <div className="section-shell">
         <div className="tech-panel grid gap-8 p-4 sm:p-6 md:grid-cols-[1.1fr_0.8fr_0.8fr] md:p-8">
           <div>
-            <p className="section-kicker">NEXUS ARCHIVE</p>
+            <p className="section-kicker">{BRAND_NAME}</p>
             <h3 className="display-font mt-3 text-[1.55rem] font-medium tracking-[0.03em] sm:text-[1.9rem]">
-              Dark Relay Platform
+              Community Archive
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-cyan-50/76">
-              Tiered media distribution for long-form, shorts, and blog content
-              under a single encrypted-style interface.
+              코딩, 미디어, 패션에 대한 정보와 레퍼런스를 함께 나누는 커뮤니티
+              사이트입니다.
             </p>
           </div>
 
@@ -42,7 +44,7 @@ export default function Footer() {
         </div>
 
         <p className="mt-6 text-center text-[11px] tracking-[0.12em] text-cyan-50/45 sm:text-xs">
-          © 2026 NEXUS ARCHIVE. Clearance required.
+          © 2026 {BRAND_NAME}. Clearance required.
         </p>
       </div>
     </footer>

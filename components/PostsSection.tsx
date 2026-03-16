@@ -1,3 +1,5 @@
+import { BRAND_NAME } from '@/utils/branding';
+
 type Post = {
   id: string;
   title: string;
@@ -30,7 +32,7 @@ export default function PostsSection({
                 Community
               </p>
               <h2 className="text-3xl font-semibold text-white md:text-4xl">
-                ZEUS Studio 게시판
+                {BRAND_NAME} 게시판
               </h2>
               <p className="text-base text-neutral-300">
                 작업 후기와 문의를 남겨주세요. 로그인한 사용자만 글쓰기가

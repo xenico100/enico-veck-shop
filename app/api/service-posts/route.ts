@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import {
+  getServiceCategoryAliases,
+  isAllServiceCategoryLabel,
   isAdminUserLike,
+  normalizeServiceCategory,
   normalizeImageUrls,
   slugifyServicePost,
   type ServicePostPayload
@@ -93,8 +96,8 @@ export async function GET(request: Request) {
       .select('*')
       .order('updated_at', { ascending: false });
 
-    if (category && category !== '모든 제품') {
-      query = query.eq('category', category);
+    if (category && !isAllServiceCategoryLabel(category)) {
+      query = query.in('category', getServiceCategoryAliases(category));
     }
 
     const { data, error } = await query;
@@ -113,8 +116,8 @@ export async function GET(request: Request) {
     .eq('is_published', true)
     .order('updated_at', { ascending: false });
 
-  if (category && category !== '모든 제품') {
-    query = query.eq('category', category);
+  if (category && !isAllServiceCategoryLabel(category)) {
+    query = query.in('category', getServiceCategoryAliases(category));
   }
 
   let { data, error } = await query;
@@ -131,8 +134,8 @@ export async function GET(request: Request) {
       .eq('is_published', true)
       .order('updated_at', { ascending: false });
 
-    if (category && category !== '모든 제품') {
-      fallbackQuery = fallbackQuery.eq('category', category);
+    if (category && !isAllServiceCategoryLabel(category)) {
+      fallbackQuery = fallbackQuery.in('category', getServiceCategoryAliases(category));
     }
 
     const fallbackResult = await fallbackQuery;
@@ -189,7 +192,7 @@ export async function POST(request: Request) {
   const baseSlug = requestedSlug || slugifyServicePost(title) || null;
   const basePayload = {
     title,
-    category: body.category?.trim() || null,
+    category: normalizeServiceCategory(body.category?.trim()) || null,
     summary: body.summary?.trim() || null,
     content: body.content?.trim() || null,
     price_from: typeof body.price_from === 'number' ? body.price_from : null,

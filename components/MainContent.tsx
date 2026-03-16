@@ -1,5 +1,7 @@
 'use client';
 
+import { BRAND_NAME } from '@/utils/branding';
+
 const statItems = [
   { label: 'Signal Drops', value: '1,200+' },
   { label: 'Network Uptime', value: '24/7' },
@@ -27,15 +29,15 @@ export default function MainContent() {
       <div className="section-shell">
         <div className="grid items-end gap-10 lg:grid-cols-[1.45fr_0.95fr]">
           <div className="animate-rise">
-            <p className="section-kicker">Restricted Broadcast Channel</p>
+            <p className="section-kicker">Coding · Media · Fashion Community</p>
             <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-medium leading-[0.88] tracking-[0.03em]">
-              NEXUS
-              <br />
-              ARCHIVE
+              {BRAND_NAME}
             </h1>
             <p className="mt-6 max-w-2xl text-sm leading-relaxed text-cyan-100/74 md:text-base">
-              폐쇄형 네트워크 인터페이스로 콘텐츠를 분산 배치하고,
-              티어별 시청 권한을 실시간으로 재조립하는 다크웹 스타일 허브입니다.
+              {BRAND_NAME}은 코딩, 미디어, 패션에 대한 정보와 인사이트를 함께
+              나누는 커뮤니티 사이트입니다. 트렌드 정리부터 작업 이야기,
+              실무 팁과 추천 콘텐츠까지 한곳에서 보고 소통할 수 있도록
+              구성했습니다.
             </p>
 
             <div className="mt-7 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">

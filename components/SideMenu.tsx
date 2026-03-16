@@ -16,7 +16,7 @@ interface SideMenuProps {
 const menuItems = [
   { label: 'Home', href: '#home' },
   { label: 'About', href: '#about' },
-  { label: 'Services', href: '#services' },
+  { label: 'Goods', href: '#services' },
   { label: 'Studio', href: '#studio' },
   { label: 'Community', href: '#community' }
 ];

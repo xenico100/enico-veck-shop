@@ -28,6 +28,7 @@ import {
   SERVICE_CATEGORIES,
   USER_ROLE_VALUES,
   getUserRoleLabel,
+  normalizeServiceCategory,
   normalizeUserRoleValue,
   type ServicePost,
   type UserRoleValue
@@ -487,7 +488,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           post.id,
           {
             title: post.title ?? '',
-            category: post.category ?? '',
+            category: normalizeServiceCategory(post.category) ?? SERVICE_CATEGORIES[0] ?? '',
             summary: post.summary ?? '',
             content: post.content ?? '',
             price_from: post.price_from != null ? String(post.price_from) : '',
@@ -1338,7 +1339,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           ...prev,
           [created.id]: {
             title: created.title ?? '',
-            category: created.category ?? '',
+            category:
+              normalizeServiceCategory(created.category) ?? SERVICE_CATEGORIES[0] ?? '',
             summary: created.summary ?? '',
             content: created.content ?? '',
             price_from: created.price_from != null ? String(created.price_from) : '',
@@ -1407,7 +1409,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
           ...prev,
           [updated.id]: {
             title: updated.title ?? '',
-            category: updated.category ?? '',
+            category:
+              normalizeServiceCategory(updated.category) ?? SERVICE_CATEGORIES[0] ?? '',
             summary: updated.summary ?? '',
             content: updated.content ?? '',
             price_from: updated.price_from != null ? String(updated.price_from) : '',
@@ -2191,7 +2194,7 @@ export default function MyPageAdminPanel({ enabled }: Props) {
             <div>
               <p className="text-sm font-medium text-white">서비스 섹션 관리</p>
               <p className="text-xs text-white/55">
-                Services 섹션 게시글 업로드/수정/삭제를 이 탭에서 처리합니다.
+                Goods 섹션 게시글 업로드/수정/삭제를 이 탭에서 처리합니다.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -2424,7 +2427,8 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                       <div className="min-w-0">
                         <p className="break-words text-sm font-medium text-white">{post.title}</p>
                         <p className="mt-1 text-xs text-white/55">
-                          {post.category || '카테고리 없음'} · {post.is_published ? '공개' : '비공개'} · 수정{' '}
+                          {normalizeServiceCategory(post.category) || '카테고리 없음'} ·{' '}
+                          {post.is_published ? '공개' : '비공개'} · 수정{' '}
                           {formatDate(post.updated_at)}
                         </p>
                         {post.summary && (
@@ -2478,14 +2482,20 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                             <label className="text-xs uppercase tracking-[0.18em] text-white/50">
                               카테고리
                             </label>
-                            <input
+                            <select
                               className={inputClass}
                               value={draft.category}
                               onChange={(e) =>
                                 handleServicePostDraftChange(post.id, 'category', e.target.value)
                               }
                               disabled={isBusy}
-                            />
+                            >
+                              {SERVICE_CATEGORIES.map((category) => (
+                                <option key={category} value={category} className="bg-neutral-900">
+                                  {category}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                           <div className="grid gap-2">
                             <label className="text-xs uppercase tracking-[0.18em] text-white/50">
