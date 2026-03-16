@@ -1,20 +1,20 @@
 'use client';
 
 export const BOARD = {
-  ink: '#1a1712',
-  inkSoft: '#4b4034',
-  paper: '#ebe1cf',
-  paperSoft: '#f4ecdf',
-  paperDeep: '#d9ccb6',
-  wood: '#7b6149',
-  woodSoft: '#a18970',
-  rust: '#6c4136',
-  rustSoft: '#8a5c4e',
-  gold: '#9b8558',
-  goldSoft: '#b9a47a',
-  line: '#b3a38d',
-  lineSoft: '#d2c6b3',
-  shadow: '#231c14'
+  ink: '#17120d',
+  inkSoft: '#3b2d1e',
+  paper: '#f6f2ea',
+  paperSoft: '#fffdf9',
+  paperDeep: '#e8dfd0',
+  wood: '#74573b',
+  woodSoft: '#9d8a74',
+  rust: '#7a4d34',
+  rustSoft: '#98715a',
+  gold: '#8f7442',
+  goldSoft: '#b59a65',
+  line: '#d3c7b8',
+  lineSoft: '#ece5db',
+  shadow: '#69553d'
 } as const;
 
 export type BoardTone = 'ink' | 'wood' | 'rust' | 'gold' | 'neutral';
@@ -40,7 +40,7 @@ export function toneColor(tone: BoardTone) {
       return BOARD.woodSoft;
     case 'ink':
     default:
-      return BOARD.inkSoft;
+      return BOARD.ink;
   }
 }
 
@@ -59,8 +59,8 @@ export function BoardMark({
   const common = {
     stroke,
     strokeWidth: 2,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
+    strokeLinecap: 'square' as const,
+    strokeLinejoin: 'miter' as const,
     fill: 'none'
   };
 
@@ -68,21 +68,22 @@ export function BoardMark({
     <svg viewBox="0 0 40 40" width={size} height={size} aria-hidden="true">
       {variant === 'stone' ? (
         <>
-          <circle cx="20" cy="20" r="11" {...common} />
-          <circle cx="20" cy="20" r="2.8" fill={stroke} />
+          <rect x="10" y="10" width="20" height="20" rx="1.5" {...common} />
+          <path d="M14 14L26 26" {...common} />
+          <path d="M26 14L14 26" {...common} />
         </>
       ) : null}
 
       {variant === 'hall' ? (
         <>
-          <rect x="10" y="9" width="20" height="22" rx="4" {...common} />
-          <path d="M16 31V20.5C16 18.5 17.8 17 20 17C22.2 17 24 18.5 24 20.5V31" {...common} />
+          <rect x="10" y="9" width="20" height="22" rx="1.5" {...common} />
+          <path d="M16 31V21H24V31" {...common} />
         </>
       ) : null}
 
       {variant === 'ledger' ? (
         <>
-          <rect x="10" y="8" width="20" height="24" rx="3" {...common} />
+          <rect x="10" y="8" width="20" height="24" rx="1.5" {...common} />
           <path d="M15 8V32" {...common} />
           <path d="M19 15H26" {...common} />
           <path d="M19 20H26" {...common} />
@@ -93,13 +94,13 @@ export function BoardMark({
       {variant === 'seal' ? (
         <>
           <path d="M20 8L31 20L20 32L9 20Z" {...common} />
-          <rect x="17" y="17" width="6" height="6" rx="1.2" fill={stroke} />
+          <rect x="17" y="17" width="6" height="6" fill={stroke} />
         </>
       ) : null}
 
       {variant === 'grid' ? (
         <>
-          <rect x="9" y="9" width="22" height="22" rx="3" {...common} />
+          <rect x="9" y="9" width="22" height="22" rx="1" {...common} />
           <path d="M20 9V31" {...common} />
           <path d="M9 20H31" {...common} />
         </>
@@ -115,7 +116,7 @@ export function BoardMark({
 
       {variant === 'loom' ? (
         <>
-          <rect x="10" y="10" width="20" height="20" rx="4" {...common} />
+          <rect x="10" y="10" width="20" height="20" rx="1.5" {...common} />
           <path d="M13 24L18 14L23 24L28 14" {...common} />
           <path d="M13 28H28" {...common} />
         </>
@@ -124,8 +125,8 @@ export function BoardMark({
       {variant === 'cart' ? (
         <>
           <path d="M12 15H28L25.5 24H15L12 15Z" {...common} />
-          <circle cx="17" cy="28" r="2.4" {...common} />
-          <circle cx="24" cy="28" r="2.4" {...common} />
+          <rect x="14.5" y="26" width="4" height="4" {...common} />
+          <rect x="21.5" y="26" width="4" height="4" {...common} />
         </>
       ) : null}
     </svg>

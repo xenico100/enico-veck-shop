@@ -166,7 +166,7 @@ export function ProductionDiagram() {
         </linearGradient>
         <pattern id="prod-grid" width="52" height="52" patternUnits="userSpaceOnUse">
           <path d="M 52 0 L 0 0 0 52" fill="none" stroke={BOARD.line} strokeWidth="1" strokeOpacity="0.28" />
-          <circle cx="0" cy="0" r="1.1" fill={BOARD.line} fillOpacity="0.34" />
+          <rect x="-1" y="-1" width="2" height="2" fill={BOARD.line} fillOpacity="0.34" />
         </pattern>
         {Object.entries(PHASE_TONES).map(([phase, tone]) => (
           <marker key={phase} id={`prod-end-${phase}`} markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
@@ -187,17 +187,17 @@ export function ProductionDiagram() {
               y={group.y}
               width={group.w}
               height={group.h}
-              rx="6"
+              rx="0"
               fill={BOARD.paperSoft}
-              fillOpacity="0.76"
+              fillOpacity="0.92"
               stroke={tone}
-              strokeWidth="1.2"
-              strokeOpacity="0.4"
+              strokeWidth="1.3"
+              strokeOpacity="0.5"
             />
-            <text x={group.x + 12} y={group.y - 8} fill={tone} fontSize="11" fontWeight="700" letterSpacing="1.8">
+            <text x={group.x + 12} y={group.y - 8} fill={BOARD.ink} fontSize="11" fontWeight="700" letterSpacing="1.8">
               {group.label}
             </text>
-            <text x={group.x + group.w - 12} y={group.y - 8} fill={BOARD.wood} fontSize="10" textAnchor="end">
+            <text x={group.x + group.w - 12} y={group.y - 8} fill={BOARD.inkSoft} fontSize="10" textAnchor="end">
               {group.sub}
             </text>
           </g>
@@ -216,16 +216,16 @@ export function ProductionDiagram() {
             <path
               d={path}
               fill="none"
-              stroke={BOARD.paperDeep}
-              strokeWidth={isHover ? 4.6 : 3.4}
-              strokeOpacity="0.88"
+              stroke={BOARD.lineSoft}
+              strokeWidth={isHover ? 3.7 : 2.8}
+              strokeOpacity="0.95"
             />
             <path
               d={path}
               fill="none"
               stroke={color}
-              strokeWidth={isHover ? 2.6 : 1.85}
-              strokeOpacity={isHover ? 1 : 0.88}
+              strokeWidth={isHover ? 2.1 : 1.45}
+              strokeOpacity={isHover ? 1 : 0.9}
               strokeDasharray={conn.dashed ? '6 6' : 'none'}
               markerEnd={`url(#prod-end-${conn.color})`}
               onMouseEnter={() => setHoverConn(idx)}
@@ -238,15 +238,15 @@ export function ProductionDiagram() {
                   y={labelPos.y - 12}
                   width={labelWidth}
                   height={18}
-                  rx="4"
+                  rx="0"
                   fill={BOARD.paperSoft}
                   stroke={color}
-                  strokeWidth="1"
+                  strokeWidth="1.2"
                 />
                 <text
                   x={labelPos.x}
                   y={labelPos.y}
-                  fill={color}
+                  fill={BOARD.ink}
                   fontSize="10"
                   fontWeight="600"
                   textAnchor="middle"
@@ -262,6 +262,20 @@ export function ProductionDiagram() {
       {nodes.map((node) => {
         const tone = toneColor(PHASE_TONES[node.phase]);
         const isHover = hoverNode === node.id;
+        const compact = node.w <= 180;
+        const phaseCode =
+          node.phase === 'digital'
+            ? 'D'
+            : node.phase === 'archive'
+              ? 'A'
+              : node.phase === 'physical'
+                ? 'P'
+                : 'E';
+        const markSize = compact ? 20 : 24;
+        const markBox = compact ? 24 : 30;
+        const titleX = node.x + (compact ? 38 : 50);
+        const titleY = node.y + 35;
+        const subY = node.y + 52;
 
         return (
           <g
@@ -275,11 +289,11 @@ export function ProductionDiagram() {
                 y={node.y - 4}
                 width={node.w + 8}
                 height={node.h + 8}
-                rx="8"
+                rx="0"
                 fill="none"
-                stroke={BOARD.shadow}
-                strokeOpacity="0.16"
-                strokeWidth="4"
+                stroke={tone}
+                strokeOpacity="0.2"
+                strokeWidth="2"
               />
             ) : null}
             <rect
@@ -287,50 +301,69 @@ export function ProductionDiagram() {
               y={node.y}
               width={node.w}
               height={node.h}
-              rx="6"
+              rx="0"
               fill={BOARD.paperSoft}
               stroke={tone}
-              strokeWidth={isHover ? 1.8 : 1.2}
+              strokeWidth={isHover ? 1.6 : 1.2}
             />
             <rect
               x={node.x}
               y={node.y}
-              width={node.w}
-              height="4"
-              rx="6"
+              width="6"
+              height={node.h}
               fill={tone}
-              fillOpacity="0.18"
+              fillOpacity="0.14"
+            />
+            <line
+              x1={node.x + (compact ? 32 : 42)}
+              y1={node.y}
+              x2={node.x + (compact ? 32 : 42)}
+              y2={node.y + node.h}
+              stroke={BOARD.line}
+              strokeWidth="1"
+              strokeOpacity="0.9"
             />
             <rect
-              x={node.x + node.w / 2 - 20}
-              y={node.y + 10}
-              width="40"
-              height="40"
-              rx="20"
+              x={node.x + 8}
+              y={node.y + 8}
+              width={markBox}
+              height={markBox}
+              rx="0"
               fill={BOARD.paper}
               stroke={tone}
               strokeWidth="1.1"
             />
-            <g transform={`translate(${node.x + node.w / 2 - 15}, ${node.y + 15})`}>
-              <BoardMark variant={node.mark} tone={PHASE_TONES[node.phase]} />
+            <g transform={`translate(${node.x + 8 + (markBox - markSize) / 2}, ${node.y + 8 + (markBox - markSize) / 2})`}>
+              <BoardMark variant={node.mark} tone={PHASE_TONES[node.phase]} size={markSize} />
             </g>
             <text
-              x={node.x + node.w / 2}
-              y={node.y + 67}
-              textAnchor="middle"
+              x={node.x + node.w - 16}
+              y={node.y + 19}
+              textAnchor="end"
               fill={BOARD.ink}
-              fontSize="12"
+              fontSize="8"
+              fontWeight="700"
+              letterSpacing="1.4"
+            >
+              {phaseCode}
+            </text>
+            <text
+              x={titleX}
+              y={titleY}
+              textAnchor="start"
+              fill={BOARD.ink}
+              fontSize={compact ? 10 : 11.5}
               fontWeight="700"
             >
               {node.label}
             </text>
             {node.sublabel ? (
               <text
-                x={node.x + node.w / 2}
-                y={node.y + 82}
-                textAnchor="middle"
+                x={titleX}
+                y={subY}
+                textAnchor="start"
                 fill={BOARD.inkSoft}
-                fontSize="9.5"
+                fontSize={compact ? 8 : 9}
               >
                 {node.sublabel}
               </text>

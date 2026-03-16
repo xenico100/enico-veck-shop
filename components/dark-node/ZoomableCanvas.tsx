@@ -164,7 +164,7 @@ export function ZoomableCanvas({
           className="flex h-8 w-8 items-center justify-center border"
           style={{
             background: BOARD.paperSoft,
-            borderColor: BOARD.wood,
+            borderColor: BOARD.ink,
             color: BOARD.ink
           }}
         >
@@ -173,19 +173,19 @@ export function ZoomableCanvas({
         <div
           className="min-w-[52px] border px-2 py-1 text-center text-[10px] font-semibold tracking-[0.18em]"
           style={{
-            background: BOARD.paper,
-            borderColor: BOARD.line,
-            color: BOARD.inkSoft
+            background: BOARD.paperSoft,
+            borderColor: BOARD.ink,
+            color: BOARD.ink
           }}
         >
-          {zoomPercent}
+          {zoomPercent}%
         </div>
         <button
           onClick={() => setScale((prev) => clampScale(prev * 1.12))}
           className="flex h-8 w-8 items-center justify-center border"
           style={{
             background: BOARD.paperSoft,
-            borderColor: BOARD.wood,
+            borderColor: BOARD.ink,
             color: BOARD.ink
           }}
         >
@@ -196,7 +196,7 @@ export function ZoomableCanvas({
           className="flex h-8 w-8 items-center justify-center border"
           style={{
             background: BOARD.paperSoft,
-            borderColor: BOARD.wood,
+            borderColor: BOARD.ink,
             color: BOARD.ink
           }}
         >
@@ -210,9 +210,9 @@ export function ZoomableCanvas({
         style={{
           height: Math.max(320, svgHeight * scale + 24),
           cursor: isPanning ? 'grabbing' : 'grab',
-          background: `linear-gradient(180deg, ${BOARD.paperSoft} 0%, ${BOARD.paper} 100%)`,
-          borderColor: BOARD.wood,
-          boxShadow: `0 16px 30px rgba(35, 28, 20, 0.14), inset 0 0 0 1px ${BOARD.lineSoft}`
+          background: BOARD.paperSoft,
+          borderColor: BOARD.ink,
+          boxShadow: `inset 0 0 0 1px ${BOARD.lineSoft}`
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -237,7 +237,7 @@ export function ZoomableCanvas({
 
       <div
         className="mt-2 text-center text-[10px] tracking-[0.16em] md:hidden"
-        style={{ color: BOARD.wood }}
+        style={{ color: BOARD.inkSoft }}
       >
         PINCH TO ZOOM · DRAG TO PAN
       </div>

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function ArchitecturePage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1a1712]">
+    <main className="min-h-screen overflow-hidden bg-white">
       <DarkNodeDiagramStack />
     </main>
   );

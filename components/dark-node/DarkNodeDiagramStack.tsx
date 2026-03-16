@@ -49,17 +49,16 @@ export default function DarkNodeDiagramStack({
     <div
       className={cn('relative w-full overflow-hidden', className)}
       style={{
-        background:
-          `linear-gradient(180deg, ${BOARD.ink} 0%, #241d16 42%, ${BOARD.ink} 100%)`
+        background: BOARD.paperSoft
       }}
     >
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          opacity: 0.14,
+          opacity: 0.42,
           backgroundImage:
-            `repeating-linear-gradient(90deg, transparent 0, transparent 47px, rgba(255,255,255,0.02) 47px, rgba(255,255,255,0.02) 48px),
-             repeating-linear-gradient(180deg, transparent 0, transparent 47px, rgba(255,255,255,0.02) 47px, rgba(255,255,255,0.02) 48px)`
+            `repeating-linear-gradient(90deg, transparent 0, transparent 71px, ${BOARD.lineSoft} 71px, ${BOARD.lineSoft} 72px),
+             repeating-linear-gradient(180deg, transparent 0, transparent 71px, ${BOARD.lineSoft} 71px, ${BOARD.lineSoft} 72px)`
         }}
       />
 
@@ -67,16 +66,16 @@ export default function DarkNodeDiagramStack({
         <section
           className="border p-4 md:p-6"
           style={{
-            background: `linear-gradient(180deg, ${BOARD.paperSoft} 0%, ${BOARD.paperDeep} 100%)`,
-            borderColor: BOARD.wood,
-            boxShadow: `0 22px 44px rgba(35, 28, 20, 0.22)`
+            background: BOARD.paperSoft,
+            borderColor: BOARD.ink,
+            boxShadow: 'none'
           }}
         >
           <div className="mb-5 flex flex-col gap-4 md:mb-7 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
               <p
                 className="text-[11px] tracking-[0.28em]"
-                style={{ color: BOARD.gold, textTransform: 'uppercase' }}
+                style={{ color: BOARD.inkSoft, textTransform: 'uppercase' }}
               >
                 System Record
               </p>
@@ -99,9 +98,9 @@ export default function DarkNodeDiagramStack({
             <div
               className="border px-4 py-3 text-right"
               style={{
-                borderColor: BOARD.line,
-                background: BOARD.paper,
-                color: BOARD.inkSoft
+                borderColor: BOARD.ink,
+                background: BOARD.paperSoft,
+                color: BOARD.ink
               }}
             >
               <div className="text-[10px] tracking-[0.22em] uppercase">Current Record</div>
@@ -114,9 +113,12 @@ export default function DarkNodeDiagramStack({
             <ArchitectureDiagram />
           </ZoomableCanvas>
 
-          <div className="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between">
+          <div
+            className="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between"
+            style={{ borderColor: BOARD.line }}
+          >
             <div className="flex flex-wrap gap-x-5 gap-y-2">
-              <LegendSwatch color={BOARD.inkSoft} label="데이터 흐름" />
+              <LegendSwatch color={BOARD.ink} label="데이터 흐름" />
               <LegendSwatch color={BOARD.wood} label="이미지 흐름" />
               <LegendSwatch color={BOARD.gold} label="인증 · 결제" />
               <LegendSwatch color={BOARD.rust} label="관리자 흐름" />
@@ -135,23 +137,23 @@ export default function DarkNodeDiagramStack({
         <div
           className="mx-auto my-6 h-px w-full max-w-[1260px]"
           style={{
-            background: `linear-gradient(90deg, transparent 0%, ${BOARD.goldSoft} 18%, ${BOARD.goldSoft} 82%, transparent 100%)`
+            background: BOARD.ink
           }}
         />
 
         <section
           className="border p-4 md:p-6"
           style={{
-            background: `linear-gradient(180deg, ${BOARD.paperSoft} 0%, ${BOARD.paperDeep} 100%)`,
-            borderColor: BOARD.wood,
-            boxShadow: `0 22px 44px rgba(35, 28, 20, 0.18)`
+            background: BOARD.paperSoft,
+            borderColor: BOARD.ink,
+            boxShadow: 'none'
           }}
         >
           <div className="mb-5 flex flex-col gap-4 md:mb-7 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
               <p
                 className="text-[11px] tracking-[0.28em]"
-                style={{ color: BOARD.rustSoft, textTransform: 'uppercase' }}
+                style={{ color: BOARD.inkSoft, textTransform: 'uppercase' }}
               >
                 Production Record
               </p>
@@ -174,9 +176,9 @@ export default function DarkNodeDiagramStack({
             <div
               className="border px-4 py-3 text-right"
               style={{
-                borderColor: BOARD.line,
-                background: BOARD.paper,
-                color: BOARD.inkSoft
+                borderColor: BOARD.ink,
+                background: BOARD.paperSoft,
+                color: BOARD.ink
               }}
             >
               <div className="text-[10px] tracking-[0.22em] uppercase">Production Scope</div>
@@ -189,9 +191,12 @@ export default function DarkNodeDiagramStack({
             <ProductionDiagram />
           </ZoomableCanvas>
 
-          <div className="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between">
+          <div
+            className="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between"
+            style={{ borderColor: BOARD.line }}
+          >
             <div className="flex flex-wrap gap-x-5 gap-y-2">
-              <LegendSwatch color={BOARD.inkSoft} label="디지털 설계" />
+              <LegendSwatch color={BOARD.ink} label="디지털 설계" />
               <LegendSwatch color={BOARD.wood} label="아카이브 / 데이터" />
               <LegendSwatch color={BOARD.rust} label="실물 제작" />
               <LegendSwatch color={BOARD.gold} label="이커머스 결과물" />
@@ -208,7 +213,7 @@ export default function DarkNodeDiagramStack({
 
         <div
           className="py-7 text-center text-[10px] tracking-[0.26em]"
-          style={{ color: BOARD.goldSoft, textTransform: 'uppercase', opacity: 0.72 }}
+          style={{ color: BOARD.inkSoft, textTransform: 'uppercase', opacity: 0.72 }}
         >
           Real Enico Record Sheet · Structured Board Edition
         </div>
