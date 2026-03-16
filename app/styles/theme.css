@@ -448,22 +448,22 @@ button,
 }
 
 .y2k-button-service-fade {
-  --button-fade-opacity: 0.5;
-  --button-core-opacity: 0.42;
-  --button-hover-fade-opacity: 0.62;
-  --button-hover-core-opacity: 0.5;
+  --button-fade-opacity: 0.34;
+  --button-core-opacity: 0.28;
+  --button-hover-fade-opacity: 0.44;
+  --button-hover-core-opacity: 0.34;
 }
 
 .y2k-button-service-fade::before {
-  inset: -0.04rem -0.12rem;
-  clip-path: ellipse(54% 46% at 50% 50%);
-  filter: blur(2.2px);
+  inset: 0.04rem 0.06rem;
+  clip-path: ellipse(46% 38% at 50% 50%);
+  filter: blur(0.9px);
 }
 
 .y2k-button-service-fade::after {
-  inset: 0.08rem 0.28rem;
-  clip-path: ellipse(44% 34% at 50% 50%);
-  filter: blur(1.1px);
+  inset: 0.14rem 0.42rem;
+  clip-path: ellipse(34% 24% at 50% 50%);
+  filter: blur(0.4px);
 }
 
 .y2k-button-fade-micro {

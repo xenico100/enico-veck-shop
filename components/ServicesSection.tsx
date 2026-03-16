@@ -138,7 +138,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const serviceSecondaryButtonClass = `y2k-button y2k-button-ghost y2k-button-service-fade h-11 flex-1 !min-h-11 !px-4 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
   const servicePrimaryButtonClass = `y2k-button y2k-button-primary y2k-button-service-fade h-11 flex-1 !min-h-11 !px-5 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
   const arrowButtonClass = 'y2k-button y2k-button-ghost y2k-button-icon size-11';
-  const adminWriteButtonClass = `y2k-button y2k-button-ghost !min-h-10 !px-4 !text-[0.74rem] !tracking-[0.08em] ${appleFontClass}`;
+  const adminWriteButtonClass = `y2k-button y2k-button-ghost y2k-button-fade-micro !min-h-10 !px-4 !text-[0.74rem] !tracking-[0.08em] ${appleFontClass}`;
   const createInputClass =
     'y2k-input w-full px-4 py-3 text-sm text-cyan-100 placeholder:text-cyan-100/40 outline-none';
   const createLabelClass = `text-xs uppercase tracking-[0.18em] text-cyan-100/55 ${appleFontClass}`;
