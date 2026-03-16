@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { BRAND_NAME, BRAND_SYMBOL } from "@/utils/branding";
+import { BRAND_NAME } from "@/utils/branding";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -11,10 +11,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-4 sm:pt-4 md:px-8 md:pt-6">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 border-b border-stone-900/10 px-1 py-3 md:px-0 md:py-4">
-        <a href="#home" className="group flex min-w-0 items-center gap-2.5 no-underline">
-          <span className="display-font text-[0.78rem] tracking-[0.28em] text-stone-700">
-            {BRAND_SYMBOL}
-          </span>
+        <a href="#home" className="group flex min-w-0 items-center no-underline">
           <div className="min-w-0">
             <p className="section-kicker !text-[0.58rem] !tracking-[0.22em]">Wayfinder Archive</p>
             <p className="display-font text-[0.82rem] tracking-[0.12em] text-stone-950 sm:text-sm md:text-base">

@@ -403,6 +403,23 @@ button,
   white-space: nowrap;
 }
 
+.y2k-button-tight {
+  min-height: 1.95rem;
+  padding: 0.38rem 0.72rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.y2k-button-tight::before {
+  inset: -0.28rem -0.55rem;
+  filter: blur(8px);
+}
+
+.y2k-button-tight::after {
+  inset: -0.04rem 0.12rem;
+  filter: blur(4px);
+}
+
 .y2k-input {
   border-radius: 0.15rem;
   border: 1px solid rgba(18, 7, 8, 0.18);
