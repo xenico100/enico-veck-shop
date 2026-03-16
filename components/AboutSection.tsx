@@ -1,10 +1,8 @@
 'use client';
 
-import { BRAND_NAME } from '@/utils/branding';
+import { BRAND_NAME, REPRESENTATIVE_NAME } from '@/utils/branding';
 
-const CREATOR_NAME = '몽상인';
-const DESIGNER_BRAND_URL = 'https://enicoveck.com';
-const YOUTUBE_URL = 'https://www.youtube.com/@FancyVeck';
+const CREATOR_NAME = REPRESENTATIVE_NAME;
 
 const handmadeTracks = [
   {
@@ -46,9 +44,6 @@ const handmadeProof = [
 ];
 
 export default function AboutSection() {
-  const linkClass =
-    'underline decoration-cyan-300/50 underline-offset-4 transition hover:text-white hover:decoration-cyan-100';
-
   return (
     <section id="about" className="relative px-4 py-14 md:px-8 md:py-24">
       <div className="section-shell">
@@ -67,45 +62,8 @@ export default function AboutSection() {
               {BRAND_NAME}은 그 결과물만 모아 놓은 공간이 아니라, {CREATOR_NAME}
               이 어떻게 만들고 운영하고 쌓아가는지를 보여주는 커뮤니티
               아카이브입니다. 코딩도, 채널 운영도, 브랜드도 외주가 아니라 직접
-              만든다는 점이 이 공간의 가장 큰 특징입니다. 디자이너 브랜드는{' '}
-              <a
-                href={DESIGNER_BRAND_URL}
-                target="_blank"
-                rel="noreferrer"
-                className={linkClass}
-              >
-                enicoveck.com
-              </a>
-              에서, 몽상인 유튜브는{' '}
-              <a
-                href={YOUTUBE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className={linkClass}
-              >
-                FancyVeck
-              </a>
-              에서 확인할 수 있습니다.
+              만든다는 점이 이 공간의 가장 큰 특징입니다.
             </p>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href={DESIGNER_BRAND_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="y2k-button y2k-button-primary min-h-10 px-4 no-underline"
-              >
-                Visit Designer Brand
-              </a>
-              <a
-                href={YOUTUBE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="y2k-button y2k-button-ghost min-h-10 px-4 no-underline"
-              >
-                Watch YouTube
-              </a>
-            </div>
           </div>
 
           <div className="tech-panel scanline animate-rise overflow-hidden border border-cyan-200/16 bg-[linear-gradient(180deg,rgba(9,18,35,0.96)_0%,rgba(4,12,24,0.9)_100%)] p-5 [animation-delay:0.08s] sm:p-6 md:p-7">

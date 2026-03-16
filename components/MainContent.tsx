@@ -1,6 +1,12 @@
 'use client';
 
-import { BRAND_NAME } from '@/utils/branding';
+import {
+  BRAND_NAME,
+  CONTACT_EMAIL,
+  DESIGNER_BRAND_URL,
+  REPRESENTATIVE_NAME,
+  YOUTUBE_URL
+} from '@/utils/branding';
 
 const statItems = [
   { label: 'Signal Drops', value: '1,200+' },
@@ -33,6 +39,24 @@ export default function MainContent() {
             <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-medium leading-[0.88] tracking-[0.03em]">
               {BRAND_NAME}
             </h1>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-cyan-100/78 md:text-[0.95rem]">
+              <a
+                href={DESIGNER_BRAND_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-cyan-300/45 underline-offset-4 transition hover:text-white hover:decoration-cyan-100"
+              >
+                enicoveck.com
+              </a>
+              <a
+                href={YOUTUBE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-cyan-300/45 underline-offset-4 transition hover:text-white hover:decoration-cyan-100"
+              >
+                YouTube / FancyVeck
+              </a>
+            </div>
             <p className="mt-6 max-w-2xl text-sm leading-relaxed text-cyan-100/74 md:text-base">
               {BRAND_NAME}은 코딩, 미디어, 패션에 대한 정보와 인사이트를 함께
               나누는 커뮤니티 사이트입니다. 트렌드 정리부터 작업 이야기,
@@ -81,21 +105,20 @@ export default function MainContent() {
 
             <div className="mt-6 space-y-4 text-sm text-cyan-50/80">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Node</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Representative</p>
                 <p className="mt-1 break-words leading-relaxed">
-                  서울 강남구 양재천로 551 4F
-                  <br />
-                  4F, 551, Yangjaecheon-ro, Gangnam-gu, Seoul
+                  대표: {REPRESENTATIVE_NAME}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Ping</p>
-                <p className="mt-1 break-all">070@zeus-studio.net</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Email</p>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="mt-1 block break-all leading-relaxed underline decoration-cyan-300/35 underline-offset-4 transition hover:text-white hover:decoration-cyan-100"
+                >
+                  {CONTACT_EMAIL}
+                </a>
               </div>
-            </div>
-
-            <div className="mt-6 text-[11px] leading-relaxed uppercase tracking-[0.18em] text-orange-100/72">
-              Access Protocol: Shadow Relay Enabled
             </div>
           </aside>
         </div>
