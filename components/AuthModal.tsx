@@ -116,12 +116,12 @@ export default function AuthModal({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[60] bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px]" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] bg-[rgba(0,0,0,0.08)] backdrop-blur-[1px]" onClick={onClose} />
 
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-end justify-center p-2 pt-12 sm:items-center sm:p-4">
         <div
-          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-[0.9rem] border border-stone-900/10 bg-[rgba(248,248,243,0.96)] shadow-[0_24px_70px_rgba(58,52,45,0.06)] ${appleFontClass}`}
+          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-[0.2rem] border border-stone-900/10 bg-[rgba(255,252,248,0.98)] shadow-none ${appleFontClass}`}
         >
           <div className="flex items-center justify-between border-b border-stone-900/10 px-4 py-4 sm:px-6 sm:py-5">
             <div className={tabGroupClass}>

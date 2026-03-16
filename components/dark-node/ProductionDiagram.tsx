@@ -1,17 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-
+import { useState, type ReactNode } from 'react';
 import {
-  BOARD,
-  BoardMark,
-  type BoardMarkVariant,
-  type BoardTone
-} from '@/components/dark-node/board-theme';
+  Scissors,
+  Box,
+  Layers,
+  Ruler,
+  FileText,
+  Archive,
+  Database,
+  Printer,
+  Truck,
+  Hand,
+  BarChart3,
+  Upload,
+  CheckCircle,
+  Palette,
+  Grid3X3,
+  Cpu,
+  Pen
+} from 'lucide-react';
 
 type Phase = 'digital' | 'archive' | 'physical' | 'ecommerce';
-
-type PhaseTone = Record<Phase, BoardTone>;
 
 type ProdNode = {
   id: string;
@@ -21,61 +31,309 @@ type ProdNode = {
   y: number;
   w: number;
   h: number;
-  mark: BoardMarkVariant;
+  color: string;
+  glow: string;
+  icon: ReactNode;
+  iconSize: number;
   phase: Phase;
 };
 
 type ProdConnection = {
-  color: Phase;
+  from: string;
+  to: string;
+  color: string;
   label?: string;
+  flowType: Phase;
   dashed?: boolean;
   waypoints: [number, number][];
 };
 
-const PHASE_TONES: PhaseTone = {
-  digital: 'ink',
-  archive: 'wood',
-  physical: 'rust',
-  ecommerce: 'gold'
-};
-
-export const PROD_PHASE_COLORS: Record<Phase, string> = {
-  digital: '#4f7daa',
-  archive: '#5d7460',
-  physical: '#b52930',
-  ecommerce: '#b69143'
-};
+const C = {
+  digital: '#00ffff',
+  archive: '#00ff41',
+  physical: '#ff00ff',
+  ecommerce: '#4499ff'
+} as const;
 
 export const PROD_SVG_WIDTH = 1360;
 export const PROD_SVG_HEIGHT = 820;
 
 export function ProductionDiagram() {
-  const [hoverNode, setHoverNode] = useState<string | null>(null);
-  const [hoverConn, setHoverConn] = useState<number | null>(null);
+  const [hNode, setHNode] = useState<string | null>(null);
+  const [hConn, setHConn] = useState<number | null>(null);
+
+  const I = 32;
 
   const nodes: ProdNode[] = [
-    { id: 'pattern', label: '패턴 제작', sublabel: 'Pattern Drafting', x: 30, y: 55, w: 170, h: 90, mark: 'loom', phase: 'digital' },
-    { id: 'clo3d-sample', label: 'CLO3D 가상 샘플', sublabel: 'Virtual Prototype', x: 240, y: 55, w: 185, h: 90, mark: 'branch', phase: 'digital' },
-    { id: 'fabric-texture', label: '원단 텍스쳐 적용', sublabel: 'Fabric Texture Map', x: 465, y: 55, w: 185, h: 90, mark: 'loom', phase: 'digital' },
-    { id: 'digital-sample-2', label: '2차 디지털 샘플', sublabel: 'Digital Review v2', x: 690, y: 55, w: 180, h: 90, mark: 'branch', phase: 'digital' },
-    { id: 'bom', label: 'BOM 야드수 측정', sublabel: 'Bill of Materials', x: 910, y: 55, w: 180, h: 90, mark: 'ledger', phase: 'digital' },
-    { id: 'closet-techpack', label: 'CLO-SET 테크팩', sublabel: 'Tech Pack Export', x: 1135, y: 55, w: 180, h: 90, mark: 'ledger', phase: 'digital' },
-    { id: 'material-archive', label: '부자재 아카이브', sublabel: 'Materials Archive DB', x: 80, y: 270, w: 195, h: 90, mark: 'ledger', phase: 'archive' },
-    { id: 'digital-archive', label: '디지털 패션 아카이브', sublabel: 'Digital Fashion Archive', x: 350, y: 270, w: 210, h: 90, mark: 'grid', phase: 'archive' },
-    { id: 'clo-size-data', label: 'CLO 사이즈 데이터', sublabel: 'CLO Size Data v1', x: 640, y: 270, w: 195, h: 90, mark: 'ledger', phase: 'archive' },
-    { id: 'real-measure', label: '실물 실측 저장', sublabel: 'Physical Measure v2', x: 920, y: 270, w: 185, h: 90, mark: 'ledger', phase: 'archive' },
-    { id: 'seam-notch', label: '시접 / 너치 추가', sublabel: 'Seam & Notch', x: 30, y: 480, w: 180, h: 90, mark: 'seal', phase: 'physical' },
-    { id: 'print-layout', label: 'Print Layout / 마카', sublabel: 'Marker Layout', x: 260, y: 480, w: 185, h: 90, mark: 'grid', phase: 'physical' },
-    { id: 'pattern-print', label: '실물 패턴 출력', sublabel: 'Pattern Print', x: 495, y: 480, w: 175, h: 90, mark: 'seal', phase: 'physical' },
-    { id: 'material-order', label: '원단/부자재 발주', sublabel: 'Fabric & Trim Order', x: 720, y: 480, w: 185, h: 90, mark: 'cart', phase: 'physical' },
-    { id: 'handmade', label: '핸드메이드 실물 제작', sublabel: 'Handmade Production', x: 955, y: 480, w: 200, h: 90, mark: 'loom', phase: 'physical' },
-    { id: 'clo3d-flat', label: 'CLO3D 3D 도식화', sublabel: '3D Technical Drawing', x: 200, y: 690, w: 190, h: 90, mark: 'branch', phase: 'ecommerce' },
-    { id: 'size-chart', label: '사이즈표 기재', sublabel: 'Size Chart Spec', x: 470, y: 690, w: 175, h: 90, mark: 'ledger', phase: 'ecommerce' },
-    { id: 'upload-auto', label: 'enicoveck.com 업로드', sublabel: 'Upload Automation', x: 725, y: 690, w: 210, h: 90, mark: 'hall', phase: 'ecommerce' },
-    { id: 'product-complete', label: '상품등록 완료', sublabel: 'Product Live', x: 1015, y: 690, w: 175, h: 90, mark: 'seal', phase: 'ecommerce' }
+    {
+      id: 'pattern',
+      label: '패턴 제작',
+      sublabel: 'Pattern Drafting',
+      x: 30,
+      y: 55,
+      w: 170,
+      h: 90,
+      color: '#0a1518',
+      glow: C.digital,
+      icon: <Scissors size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'digital'
+    },
+    {
+      id: 'clo3d-sample',
+      label: 'CLO3D 가상 샘플',
+      sublabel: 'Virtual Prototype',
+      x: 240,
+      y: 55,
+      w: 185,
+      h: 90,
+      color: '#0a1518',
+      glow: C.digital,
+      icon: <Cpu size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'digital'
+    },
+    {
+      id: 'fabric-texture',
+      label: '원단 텍스쳐 적용',
+      sublabel: 'Fabric Texture Map',
+      x: 465,
+      y: 55,
+      w: 185,
+      h: 90,
+      color: '#0a1518',
+      glow: C.digital,
+      icon: <Palette size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'digital'
+    },
+    {
+      id: 'digital-sample-2',
+      label: '2차 디지털 샘플',
+      sublabel: 'Digital Review v2',
+      x: 690,
+      y: 55,
+      w: 180,
+      h: 90,
+      color: '#0a1518',
+      glow: C.digital,
+      icon: <Layers size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'digital'
+    },
+    {
+      id: 'bom',
+      label: 'BOM 야드수 측정',
+      sublabel: 'Bill of Materials',
+      x: 910,
+      y: 55,
+      w: 180,
+      h: 90,
+      color: '#0a1518',
+      glow: C.digital,
+      icon: <Ruler size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'digital'
+    },
+    {
+      id: 'closet-techpack',
+      label: 'CLO-SET 테크팩',
+      sublabel: 'Tech Pack Export',
+      x: 1135,
+      y: 55,
+      w: 180,
+      h: 90,
+      color: '#0a1518',
+      glow: C.digital,
+      icon: <FileText size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'digital'
+    },
+    {
+      id: 'material-archive',
+      label: '부자재 아카이브',
+      sublabel: 'Materials Archive DB',
+      x: 80,
+      y: 270,
+      w: 195,
+      h: 90,
+      color: '#081408',
+      glow: C.archive,
+      icon: <Archive size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'archive'
+    },
+    {
+      id: 'digital-archive',
+      label: '디지털 패션 아카이브',
+      sublabel: 'Digital Fashion Archive',
+      x: 350,
+      y: 270,
+      w: 210,
+      h: 90,
+      color: '#081408',
+      glow: C.archive,
+      icon: <Database size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'archive'
+    },
+    {
+      id: 'clo-size-data',
+      label: 'CLO 사이즈 데이터',
+      sublabel: 'CLO Size Data v1',
+      x: 640,
+      y: 270,
+      w: 195,
+      h: 90,
+      color: '#081408',
+      glow: C.archive,
+      icon: <BarChart3 size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'archive'
+    },
+    {
+      id: 'real-measure',
+      label: '실물 실측 저장',
+      sublabel: 'Physical Measure v2',
+      x: 920,
+      y: 270,
+      w: 185,
+      h: 90,
+      color: '#081408',
+      glow: C.archive,
+      icon: <Ruler size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'archive'
+    },
+    {
+      id: 'seam-notch',
+      label: '시접 / 너치 추가',
+      sublabel: 'Seam & Notch',
+      x: 30,
+      y: 480,
+      w: 180,
+      h: 90,
+      color: '#180a18',
+      glow: C.physical,
+      icon: <Pen size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'physical'
+    },
+    {
+      id: 'print-layout',
+      label: 'Print Layout / 마카',
+      sublabel: 'Marker Layout',
+      x: 260,
+      y: 480,
+      w: 185,
+      h: 90,
+      color: '#180a18',
+      glow: C.physical,
+      icon: <Grid3X3 size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'physical'
+    },
+    {
+      id: 'pattern-print',
+      label: '실물 패턴 출력',
+      sublabel: 'Pattern Print',
+      x: 495,
+      y: 480,
+      w: 175,
+      h: 90,
+      color: '#180a18',
+      glow: C.physical,
+      icon: <Printer size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'physical'
+    },
+    {
+      id: 'material-order',
+      label: '원단/부자재 발주',
+      sublabel: 'Fabric & Trim Order',
+      x: 720,
+      y: 480,
+      w: 185,
+      h: 90,
+      color: '#180a18',
+      glow: C.physical,
+      icon: <Truck size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'physical'
+    },
+    {
+      id: 'handmade',
+      label: '핸드메이드 실물 제작',
+      sublabel: 'Handmade Production',
+      x: 955,
+      y: 480,
+      w: 200,
+      h: 90,
+      color: '#180a18',
+      glow: C.physical,
+      icon: <Hand size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'physical'
+    },
+    {
+      id: 'clo3d-flat',
+      label: 'CLO3D 3D 도식화',
+      sublabel: '3D Technical Drawing',
+      x: 200,
+      y: 690,
+      w: 190,
+      h: 90,
+      color: '#0a0a1a',
+      glow: C.ecommerce,
+      icon: <Box size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'ecommerce'
+    },
+    {
+      id: 'size-chart',
+      label: '사이즈표 기재',
+      sublabel: 'Size Chart Spec',
+      x: 470,
+      y: 690,
+      w: 175,
+      h: 90,
+      color: '#0a0a1a',
+      glow: C.ecommerce,
+      icon: <FileText size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'ecommerce'
+    },
+    {
+      id: 'upload-auto',
+      label: 'enicoveck.com 업로드',
+      sublabel: 'Upload Automation',
+      x: 725,
+      y: 690,
+      w: 210,
+      h: 90,
+      color: '#0a0a1a',
+      glow: C.ecommerce,
+      icon: <Upload size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'ecommerce'
+    },
+    {
+      id: 'product-complete',
+      label: '상품등록 완료',
+      sublabel: 'Product Live',
+      x: 1015,
+      y: 690,
+      w: 175,
+      h: 90,
+      color: '#0a0a1a',
+      glow: C.ecommerce,
+      icon: <CheckCircle size={I} strokeWidth={1.5} />,
+      iconSize: I,
+      phase: 'ecommerce'
+    }
   ];
 
-  const nd = (id: string) => nodes.find((node) => node.id === id)!;
+  const nd = (id: string) => nodes.find((n) => n.id === id)!;
   const r = (id: string): [number, number] => {
     const n = nd(id);
     return [n.x + n.w, n.y + n.h / 2];
@@ -94,36 +352,127 @@ export function ProductionDiagram() {
   };
 
   const connections: ProdConnection[] = [
-    { color: 'digital', waypoints: [r('pattern'), l('clo3d-sample')] },
-    { color: 'digital', waypoints: [r('clo3d-sample'), l('fabric-texture')] },
-    { color: 'digital', waypoints: [r('fabric-texture'), l('digital-sample-2')] },
-    { color: 'digital', waypoints: [r('digital-sample-2'), l('bom')] },
-    { color: 'digital', waypoints: [r('bom'), l('closet-techpack')] },
-    { color: 'archive', label: '부자재 데이터', waypoints: [b('closet-techpack'), [1225, 200], [178, 200], [178, 270]] },
-    { color: 'archive', label: '디지털 아카이브', waypoints: [b('closet-techpack'), [1225, 220], [455, 220], [455, 270]] },
-    { color: 'archive', dashed: true, label: '사이즈 데이터', waypoints: [b('clo3d-sample'), [333, 195], [738, 195], [738, 270]] },
-    { color: 'archive', dashed: true, waypoints: [b('material-archive'), [178, 420], [120, 420], [120, 480]] },
-    { color: 'archive', dashed: true, waypoints: [b('digital-archive'), [455, 420], [353, 420], [353, 480]] },
-    { color: 'archive', dashed: true, label: '부자재 참조', waypoints: [b('material-archive'), [178, 435], [813, 435], [813, 480]] },
-    { color: 'physical', waypoints: [r('seam-notch'), l('print-layout')] },
-    { color: 'physical', waypoints: [r('print-layout'), l('pattern-print')] },
-    { color: 'physical', waypoints: [r('pattern-print'), l('material-order')] },
-    { color: 'physical', waypoints: [r('material-order'), l('handmade')] },
-    { color: 'archive', label: '실측 데이터', waypoints: [t('handmade'), [1055, 420], [1013, 420], [1013, 360]] },
-    { color: 'ecommerce', label: '3D 데이터', waypoints: [b('clo-size-data'), [738, 630], [295, 630], [295, 690]] },
-    { color: 'ecommerce', label: '실측 -> 사이즈표', waypoints: [b('real-measure'), [1013, 645], [558, 645], [558, 690]] },
-    { color: 'archive', dashed: true, waypoints: [b('digital-archive'), [455, 395], [260, 395], [260, 630], [260, 690]] },
-    { color: 'ecommerce', waypoints: [r('clo3d-flat'), l('size-chart')] },
-    { color: 'ecommerce', waypoints: [r('size-chart'), l('upload-auto')] },
-    { color: 'ecommerce', waypoints: [r('upload-auto'), l('product-complete')] },
-    { color: 'archive', dashed: true, label: '아카이브 자산', waypoints: [[560, 315], [600, 315], [600, 660], [830, 660], [830, 690]] },
-    { color: 'archive', dashed: true, waypoints: [[835, 315], [870, 315], [870, 660], [558, 660], [558, 690]] }
+    { from: 'pattern', to: 'clo3d-sample', color: C.digital, flowType: 'digital', waypoints: [r('pattern'), l('clo3d-sample')] },
+    { from: 'clo3d-sample', to: 'fabric-texture', color: C.digital, flowType: 'digital', waypoints: [r('clo3d-sample'), l('fabric-texture')] },
+    { from: 'fabric-texture', to: 'digital-sample-2', color: C.digital, flowType: 'digital', waypoints: [r('fabric-texture'), l('digital-sample-2')] },
+    { from: 'digital-sample-2', to: 'bom', color: C.digital, flowType: 'digital', waypoints: [r('digital-sample-2'), l('bom')] },
+    { from: 'bom', to: 'closet-techpack', color: C.digital, flowType: 'digital', waypoints: [r('bom'), l('closet-techpack')] },
+    {
+      from: 'closet-techpack',
+      to: 'material-archive',
+      color: C.archive,
+      flowType: 'archive',
+      label: '부자재 데이터',
+      waypoints: [b('closet-techpack'), [1225, 200], [178, 200], [178, 270]]
+    },
+    {
+      from: 'closet-techpack',
+      to: 'digital-archive',
+      color: C.archive,
+      flowType: 'archive',
+      label: '디지털 아카이브',
+      waypoints: [b('closet-techpack'), [1225, 220], [455, 220], [455, 270]]
+    },
+    {
+      from: 'clo3d-sample',
+      to: 'clo-size-data',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      label: '사이즈 데이터',
+      waypoints: [b('clo3d-sample'), [333, 195], [738, 195], [738, 270]]
+    },
+    {
+      from: 'material-archive',
+      to: 'seam-notch',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      waypoints: [b('material-archive'), [178, 420], [120, 420], [120, 480]]
+    },
+    {
+      from: 'digital-archive',
+      to: 'print-layout',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      waypoints: [b('digital-archive'), [455, 420], [353, 420], [353, 480]]
+    },
+    {
+      from: 'material-archive',
+      to: 'material-order',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      label: '부자재 참조',
+      waypoints: [b('material-archive'), [178, 435], [813, 435], [813, 480]]
+    },
+    { from: 'seam-notch', to: 'print-layout', color: C.physical, flowType: 'physical', waypoints: [r('seam-notch'), l('print-layout')] },
+    { from: 'print-layout', to: 'pattern-print', color: C.physical, flowType: 'physical', waypoints: [r('print-layout'), l('pattern-print')] },
+    { from: 'pattern-print', to: 'material-order', color: C.physical, flowType: 'physical', waypoints: [r('pattern-print'), l('material-order')] },
+    { from: 'material-order', to: 'handmade', color: C.physical, flowType: 'physical', waypoints: [r('material-order'), l('handmade')] },
+    {
+      from: 'handmade',
+      to: 'real-measure',
+      color: C.archive,
+      flowType: 'archive',
+      label: '실측 데이터',
+      waypoints: [t('handmade'), [1055, 420], [1013, 420], [1013, 360]]
+    },
+    {
+      from: 'clo-size-data',
+      to: 'clo3d-flat',
+      color: C.ecommerce,
+      flowType: 'ecommerce',
+      label: '3D 데이터',
+      waypoints: [b('clo-size-data'), [738, 630], [295, 630], [295, 690]]
+    },
+    {
+      from: 'real-measure',
+      to: 'size-chart',
+      color: C.ecommerce,
+      flowType: 'ecommerce',
+      label: '실측 → 사이즈표',
+      waypoints: [b('real-measure'), [1013, 645], [558, 645], [558, 690]]
+    },
+    {
+      from: 'digital-archive',
+      to: 'clo3d-flat',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      waypoints: [b('digital-archive'), [455, 395], [260, 395], [260, 630], [260, 690]]
+    },
+    { from: 'clo3d-flat', to: 'size-chart', color: C.ecommerce, flowType: 'ecommerce', waypoints: [r('clo3d-flat'), l('size-chart')] },
+    { from: 'size-chart', to: 'upload-auto', color: C.ecommerce, flowType: 'ecommerce', waypoints: [r('size-chart'), l('upload-auto')] },
+    { from: 'upload-auto', to: 'product-complete', color: C.ecommerce, flowType: 'ecommerce', waypoints: [r('upload-auto'), l('product-complete')] },
+    {
+      from: 'digital-archive',
+      to: 'upload-auto',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      label: '아카이브 자산',
+      waypoints: [[560, 315], [600, 315], [600, 660], [830, 660], [830, 690]]
+    },
+    {
+      from: 'clo-size-data',
+      to: 'size-chart',
+      color: C.archive,
+      flowType: 'archive',
+      dashed: true,
+      waypoints: [[835, 315], [870, 315], [870, 660], [558, 660], [558, 690]]
+    }
   ];
 
-  const buildPath = (pts: [number, number][], r = 12) => {
+  const buildSmoothPath = (pts: [number, number][], rad = 12) => {
     if (pts.length < 2) return '';
-    if (pts.length === 2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+    if (pts.length === 2) {
+      return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+    }
+
     let d = `M ${pts[0][0]} ${pts[0][1]}`;
+
     for (let i = 1; i < pts.length - 1; i++) {
       const prev = pts[i - 1];
       const curr = pts[i];
@@ -134,13 +483,14 @@ export function ProductionDiagram() {
       const d2y = next[1] - curr[1];
       const len1 = Math.sqrt(d1x * d1x + d1y * d1y);
       const len2 = Math.sqrt(d2x * d2x + d2y * d2y);
-      const cr = Math.min(r, len1 / 2, len2 / 2);
+      const cr = Math.min(rad, len1 / 2, len2 / 2);
       const sx = curr[0] - (d1x / len1) * cr;
       const sy = curr[1] - (d1y / len1) * cr;
       const ex = curr[0] + (d2x / len2) * cr;
       const ey = curr[1] + (d2y / len2) * cr;
       d += ` L ${sx} ${sy} Q ${curr[0]} ${curr[1]} ${ex} ${ey}`;
     }
+
     d += ` L ${pts[pts.length - 1][0]} ${pts[pts.length - 1][1]}`;
     return d;
   };
@@ -153,10 +503,42 @@ export function ProductionDiagram() {
   };
 
   const phaseRows = [
-    { label: 'Digital Design', sub: '디지털 설계 구획', phase: 'digital' as const, x: 20, y: 40, w: 1310, h: 120 },
-    { label: 'Archive / Data', sub: '아카이브와 기록 레이어', phase: 'archive' as const, x: 65, y: 255, w: 1060, h: 120 },
-    { label: 'Physical Production', sub: '실물 제작 수순', phase: 'physical' as const, x: 20, y: 465, w: 1150, h: 120 },
-    { label: 'Ecommerce Output', sub: '이커머스 정리판', phase: 'ecommerce' as const, x: 185, y: 675, w: 1020, h: 120 }
+    {
+      label: 'DIGITAL DESIGN',
+      sub: '디지털 디자인 페이즈',
+      phase: 'digital' as const,
+      x: 20,
+      y: 40,
+      w: 1310,
+      h: 120
+    },
+    {
+      label: 'ARCHIVE / DATA',
+      sub: '아카이브 · 데이터 레이어',
+      phase: 'archive' as const,
+      x: 65,
+      y: 255,
+      w: 1060,
+      h: 120
+    },
+    {
+      label: 'PHYSICAL PRODUCTION',
+      sub: '실물 프로덕션',
+      phase: 'physical' as const,
+      x: 20,
+      y: 465,
+      w: 1150,
+      h: 120
+    },
+    {
+      label: 'ECOMMERCE OUTPUT',
+      sub: '이커머스 아웃풋',
+      phase: 'ecommerce' as const,
+      x: 185,
+      y: 675,
+      w: 1020,
+      h: 120
+    }
   ];
 
   return (
@@ -164,98 +546,138 @@ export function ProductionDiagram() {
       viewBox={`0 0 ${PROD_SVG_WIDTH} ${PROD_SVG_HEIGHT}`}
       width={PROD_SVG_WIDTH}
       height={PROD_SVG_HEIGHT}
+      style={{ background: 'radial-gradient(circle at 50% 50%, #080808 0%, #000 100%)' }}
     >
       <defs>
-        <linearGradient id="prod-board-bg" x1="0%" x2="0%" y1="0%" y2="100%">
-          <stop offset="0%" stopColor={BOARD.paperSoft} />
-          <stop offset="100%" stopColor={BOARD.paper} />
-        </linearGradient>
-        <pattern id="prod-grid" width="52" height="52" patternUnits="userSpaceOnUse">
-          <path d="M 52 0 L 0 0 0 52" fill="none" stroke={BOARD.line} strokeWidth="1" strokeOpacity="0.28" />
-          <rect x="-1" y="-1" width="2" height="2" fill={BOARD.line} fillOpacity="0.34" />
-        </pattern>
-        {Object.entries(PHASE_TONES).map(([phase, tone]) => (
-          <marker key={phase} id={`prod-end-${phase}`} markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-            <path d="M4 0L8 4L4 8L0 4Z" fill={PROD_PHASE_COLORS[phase as Phase]} />
+        <filter id="p-gc">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ffff" floodOpacity="0.7" />
+        </filter>
+        <filter id="p-gg">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ff41" floodOpacity="0.7" />
+        </filter>
+        <filter id="p-gm">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff00ff" floodOpacity="0.7" />
+        </filter>
+        <filter id="p-gb">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#4499ff" floodOpacity="0.7" />
+        </filter>
+
+        {(['digital', 'physical', 'ecommerce', 'archive'] as const).map((ph) => (
+          <marker
+            key={ph}
+            id={`p-a-${ph}`}
+            markerWidth="10"
+            markerHeight="8"
+            refX="9"
+            refY="4"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 4, 0 8" fill={C[ph]} />
           </marker>
         ))}
+
+        <pattern id="p-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+          <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
+        </pattern>
+
+        <style>{`
+          @keyframes p-dash { to { stroke-dashoffset: -24; } }
+          .p-dash { animation: p-dash 1.2s linear infinite; }
+        `}</style>
       </defs>
 
-      <rect width="100%" height="100%" fill="url(#prod-board-bg)" />
-      <rect width="100%" height="100%" fill="url(#prod-grid)" opacity="0.52" />
+      <rect width="100%" height="100%" fill="url(#p-grid)" opacity="0.35" />
 
-      {phaseRows.map((group) => {
-        const tone = PROD_PHASE_COLORS[group.phase];
-        return (
-          <g key={group.label}>
-            <rect
-              x={group.x}
-              y={group.y}
-              width={group.w}
-              height={group.h}
-              rx="0"
-              fill={BOARD.paperSoft}
-              fillOpacity="0.92"
-              stroke={tone}
-              strokeWidth="1.3"
-              strokeOpacity="0.5"
-            />
-            <text x={group.x + 12} y={group.y - 8} fill={tone} fontSize="11" fontWeight="700" letterSpacing="1.8">
-              {group.label}
-            </text>
-            <text x={group.x + group.w - 12} y={group.y - 8} fill={BOARD.inkSoft} fontSize="10" textAnchor="end">
-              {group.sub}
-            </text>
-          </g>
-        );
-      })}
+      {phaseRows.map((g) => (
+        <g key={g.phase}>
+          <rect
+            x={g.x}
+            y={g.y}
+            width={g.w}
+            height={g.h}
+            fill={C[g.phase]}
+            fillOpacity="0.03"
+            stroke={C[g.phase]}
+            strokeWidth="1"
+            strokeOpacity="0.2"
+            rx="3"
+          />
+          <text
+            x={g.x + 10}
+            y={g.y - 5}
+            fill={C[g.phase]}
+            fontSize="9"
+            fontFamily="monospace"
+            opacity="0.45"
+            letterSpacing="2"
+          >
+            {g.label}
+          </text>
+          <text
+            x={g.x + g.w - 10}
+            y={g.y - 5}
+            fill={C[g.phase]}
+            fontSize="8"
+            fontFamily="monospace"
+            opacity="0.35"
+            textAnchor="end"
+          >
+            {g.sub}
+          </text>
+        </g>
+      ))}
 
       {connections.map((conn, idx) => {
-        const color = PROD_PHASE_COLORS[conn.color];
-        const isHover = hoverConn === idx;
-        const path = buildPath(conn.waypoints, 14);
+        const path = buildSmoothPath(conn.waypoints, 14);
+        const isH = hConn === idx;
+        const marker = `url(#p-a-${conn.flowType})`;
         const labelPos = conn.label ? getLabelPos(conn.waypoints) : null;
-        const labelWidth = conn.label ? conn.label.length * 7.4 + 18 : 0;
 
         return (
           <g key={`c-${idx}`}>
             <path
               d={path}
               fill="none"
-              stroke={BOARD.lineSoft}
-              strokeWidth={isHover ? 3.7 : 2.8}
-              strokeOpacity="0.95"
+              stroke={conn.color}
+              strokeWidth={isH ? 6 : 2.5}
+              strokeOpacity={isH ? 0.15 : 0.04}
             />
             <path
               d={path}
               fill="none"
-              stroke={color}
-              strokeWidth={isHover ? 2.1 : 1.45}
-              strokeOpacity={isHover ? 1 : 0.9}
-              strokeDasharray={conn.dashed ? '6 6' : 'none'}
-              markerEnd={`url(#prod-end-${conn.color})`}
-              onMouseEnter={() => setHoverConn(idx)}
-              onMouseLeave={() => setHoverConn(null)}
+              stroke={conn.color}
+              strokeWidth={isH ? 2.5 : 1.8}
+              strokeOpacity={isH ? 1 : conn.dashed ? 0.35 : 0.65}
+              strokeDasharray={conn.dashed ? '6 4' : 'none'}
+              className={conn.dashed ? 'p-dash' : ''}
+              markerEnd={marker}
+              onMouseEnter={() => setHConn(idx)}
+              onMouseLeave={() => setHConn(null)}
+              style={{
+                cursor: 'pointer',
+                filter: isH ? `drop-shadow(0 0 5px ${conn.color})` : 'none',
+                transition: 'all 0.15s'
+              }}
             />
             {labelPos && conn.label ? (
               <g>
                 <rect
-                  x={labelPos.x - labelWidth / 2}
-                  y={labelPos.y - 12}
-                  width={labelWidth}
-                  height={18}
-                  rx="0"
-                  fill={BOARD.paperSoft}
-                  stroke={color}
-                  strokeWidth="1.2"
+                  x={labelPos.x - conn.label.length * 3.2 - 4}
+                  y={labelPos.y - 10}
+                  width={conn.label.length * 6.4 + 8}
+                  height={14}
+                  fill="#000"
+                  fillOpacity="0.85"
+                  rx="2"
                 />
                 <text
                   x={labelPos.x}
                   y={labelPos.y}
-                  fill={BOARD.ink}
-                  fontSize="10"
-                  fontWeight="600"
+                  fill={conn.color}
+                  fontSize="9"
+                  fontFamily="monospace"
                   textAnchor="middle"
+                  opacity={isH ? 1 : 0.65}
                 >
                   {conn.label}
                 </text>
@@ -266,111 +688,155 @@ export function ProductionDiagram() {
       })}
 
       {nodes.map((node) => {
-        const tone = PROD_PHASE_COLORS[node.phase];
-        const isHover = hoverNode === node.id;
-        const compact = node.w <= 180;
-        const phaseCode =
-          node.phase === 'digital'
-            ? 'D'
-            : node.phase === 'archive'
-              ? 'A'
-              : node.phase === 'physical'
-                ? 'P'
-                : 'E';
-        const markSize = compact ? 28 : 36;
-        const markBox = compact ? 36 : 46;
-        const dividerX = node.x + (compact ? 44 : 58);
-        const titleX = node.x + (compact ? 54 : 70);
-        const titleY = node.y + 34;
-        const subY = node.y + 52;
+        const isH = hNode === node.id;
+        const gc = node.glow;
+        const icoArea = node.iconSize + 10;
+
+        let iconFilter = 'p-gc';
+        if (node.phase === 'archive') iconFilter = 'p-gg';
+        else if (node.phase === 'physical') iconFilter = 'p-gm';
+        else if (node.phase === 'ecommerce') iconFilter = 'p-gb';
 
         return (
           <g
             key={node.id}
-            onMouseEnter={() => setHoverNode(node.id)}
-            onMouseLeave={() => setHoverNode(null)}
+            onMouseEnter={() => setHNode(node.id)}
+            onMouseLeave={() => setHNode(null)}
+            style={{ cursor: 'pointer' }}
           >
-            {isHover ? (
+            {isH ? (
               <rect
-                x={node.x - 4}
-                y={node.y - 4}
-                width={node.w + 8}
-                height={node.h + 8}
-                rx="0"
+                x={node.x - 3}
+                y={node.y - 3}
+                width={node.w + 6}
+                height={node.h + 6}
                 fill="none"
-                stroke={tone}
-                strokeOpacity="0.2"
-                strokeWidth="2"
+                stroke={gc}
+                strokeWidth="1.5"
+                strokeOpacity="0.35"
+                rx="5"
               />
             ) : null}
+
             <rect
               x={node.x}
               y={node.y}
               width={node.w}
               height={node.h}
-              rx="0"
-              fill={BOARD.paperSoft}
-              stroke={tone}
-              strokeWidth={isHover ? 1.6 : 1.2}
+              fill={node.color}
+              stroke={gc}
+              strokeWidth={isH ? 1.8 : 1}
+              strokeOpacity={isH ? 0.9 : 0.5}
+              rx="3"
+              style={{
+                filter: isH ? `drop-shadow(0 0 10px ${gc}50)` : 'none',
+                transition: 'all 0.15s'
+              }}
             />
+
             <rect
               x={node.x}
               y={node.y}
-              width="6"
-              height={node.h}
-              fill={tone}
-              fillOpacity="0.14"
+              width={node.w}
+              height="2"
+              fill={gc}
+              opacity={isH ? 0.6 : 0.3}
+              rx="3"
             />
-            <line
-              x1={dividerX}
-              y1={node.y}
-              x2={dividerX}
-              y2={node.y + node.h}
-              stroke={BOARD.line}
+
+            <circle
+              cx={node.x}
+              cy={node.y + node.h / 2}
+              r="3"
+              fill="#000"
+              stroke={gc}
               strokeWidth="1"
-              strokeOpacity="0.9"
+              strokeOpacity="0.5"
             />
-            <rect
-              x={node.x + 8}
-              y={node.y + 8}
-              width={markBox}
-              height={markBox}
-              rx="0"
-              fill={BOARD.paper}
-              stroke={tone}
-              strokeWidth="1.1"
+            <circle
+              cx={node.x + node.w}
+              cy={node.y + node.h / 2}
+              r="3"
+              fill="#000"
+              stroke={gc}
+              strokeWidth="1"
+              strokeOpacity="0.5"
             />
-            <g transform={`translate(${node.x + 8 + (markBox - markSize) / 2}, ${node.y + 8 + (markBox - markSize) / 2})`}>
-              <BoardMark variant={node.mark} tone={PHASE_TONES[node.phase]} size={markSize} color={tone} />
-            </g>
-            <text
-              x={node.x + node.w - 16}
-              y={node.y + 19}
-              textAnchor="end"
-              fill={BOARD.ink}
-              fontSize="8"
-              fontWeight="700"
-              letterSpacing="1.4"
+
+            <foreignObject
+              x={node.x + node.w / 2 - icoArea / 2}
+              y={node.y + 5}
+              width={icoArea}
+              height={icoArea}
             >
-              {phaseCode}
-            </text>
+              <div
+                style={{
+                  color: gc,
+                  filter: isH ? `url(#${iconFilter})` : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                  opacity: isH ? 1 : 0.9
+                }}
+              >
+                {node.icon}
+              </div>
+            </foreignObject>
+
+            <rect
+              x={node.x + node.w - 38}
+              y={node.y + 6}
+              width="32"
+              height="13"
+              fill={gc}
+              fillOpacity="0.1"
+              stroke={gc}
+              strokeWidth="0.5"
+              strokeOpacity="0.3"
+              rx="2"
+            />
             <text
-              x={titleX}
-              y={titleY}
-              textAnchor="start"
-              fill={BOARD.ink}
-              fontSize={compact ? 10 : 11.5}
-              fontWeight="700"
+              x={node.x + node.w - 22}
+              y={node.y + 16}
+              fill={gc}
+              fontSize="7"
+              fontFamily="monospace"
+              textAnchor="middle"
+              opacity="0.6"
+            >
+              {node.phase === 'digital'
+                ? 'DGT'
+                : node.phase === 'archive'
+                  ? 'ARC'
+                  : node.phase === 'physical'
+                    ? 'PHY'
+                    : 'ECM'}
+            </text>
+
+            <text
+              x={node.x + node.w / 2}
+              y={node.y + 5 + icoArea + 14}
+              textAnchor="middle"
+              fill={gc}
+              fontSize="11"
+              fontFamily="monospace"
+              fontWeight="600"
+              opacity={isH ? 1 : 0.9}
             >
               {node.label}
             </text>
+
             {node.sublabel ? (
               <text
-                x={titleX}
-                y={subY}
-                textAnchor="start"
-                fill={BOARD.inkSoft}
-                fontSize={compact ? 8 : 9}
+                x={node.x + node.w / 2}
+                y={node.y + 5 + icoArea + 27}
+                textAnchor="middle"
+                fill={gc}
+                fontSize="8"
+                fontFamily="monospace"
+                opacity={isH ? 0.75 : 0.45}
               >
                 {node.sublabel}
               </text>
@@ -378,6 +844,11 @@ export function ProductionDiagram() {
           </g>
         );
       })}
+
+      <pattern id="p-sl" width="4" height="4" patternUnits="userSpaceOnUse">
+        <rect width="4" height="2" fill="#000" opacity="0.03" />
+      </pattern>
+      <rect width="100%" height="100%" fill="url(#p-sl)" />
     </svg>
   );
 }

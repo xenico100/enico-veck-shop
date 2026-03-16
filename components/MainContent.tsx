@@ -31,8 +31,8 @@ export default function MainContent() {
           loop
           playsInline
         />
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(250,250,245,0.98)_0%,rgba(242,242,236,0.92)_48%,rgba(236,236,230,0.96)_100%)]" />
-        <div className="absolute inset-y-0 right-0 w-[24vw] bg-[linear-gradient(180deg,rgba(205,190,142,0.1),rgba(205,190,142,0.02))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,253,250,0.98)_0%,rgba(252,247,241,0.96)_58%,rgba(247,232,236,0.97)_100%)]" />
+        <div className="absolute inset-y-0 right-0 w-[24vw] bg-[linear-gradient(180deg,rgba(177,7,30,0.16),rgba(177,7,30,0.03))]" />
       </div>
 
       <div className="section-shell">

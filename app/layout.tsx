@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import {
-  Black_Han_Sans,
+  Cinzel,
   IBM_Plex_Mono,
   Noto_Sans_KR,
-  Teko,
+  Noto_Serif_KR,
 } from "next/font/google";
 
 import "./styles/tailwind.css";
@@ -17,16 +17,16 @@ const sansFont = Noto_Sans_KR({
   weight: ["300", "400", "500", "700"],
 });
 
-const displayFont = Teko({
+const displayFont = Cinzel({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "600", "700"],
+  weight: ["600", "700"],
 });
 
-const displayKrFont = Black_Han_Sans({
+const displayKrFont = Noto_Serif_KR({
   subsets: ["latin"],
   variable: "--font-display-kr",
-  weight: "400",
+  weight: ["500", "600", "700"],
 });
 
 const monoFont = IBM_Plex_Mono({

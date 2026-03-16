@@ -1,135 +1,684 @@
 'use client';
 
-import { useState } from 'react';
-
+import { useState, type ReactNode } from 'react';
 import {
-  BOARD,
-  BoardMark,
-  type BoardMarkVariant,
-  type BoardTone
-} from '@/components/dark-node/board-theme';
+  Monitor,
+  Database,
+  Cloud,
+  Upload,
+  Server,
+  Folder,
+  Code,
+  HardDrive,
+  Settings,
+  Image,
+  FileCode,
+  Package,
+  Wrench,
+  FolderOpen,
+  CreditCard,
+  ShieldCheck,
+  UserCheck,
+  LogIn,
+  DollarSign
+} from 'lucide-react';
 
-type FlowType = 'data' | 'image' | 'auth' | 'payment' | 'admin' | 'repo';
+type FlowType =
+  | 'data'
+  | 'image'
+  | 'auth'
+  | 'payment'
+  | 'admin'
+  | 'internal'
+  | 'repo';
 
 type NodeSpec = {
   id: string;
   label: string;
   sublabel?: string;
-  tag: string;
   x: number;
   y: number;
   w: number;
   h: number;
-  tone: BoardTone;
-  mark: BoardMarkVariant;
+  bg: string;
+  glow: string;
+  icon: ReactNode;
+  iconSz: number;
+  group?: string;
 };
 
 type ConnectionSpec = {
+  from: string;
+  to: string;
   flow: FlowType;
   label?: string;
   wp: [number, number][];
 };
 
-const NODE_COLORS: Record<BoardTone, string> = {
-  ink: '#4f7daa',
-  wood: '#5d7460',
-  rust: '#b52930',
-  gold: '#b69143',
-  neutral: '#7f8b97'
-};
-
-export const ARCH_FLOW_COLORS: Record<FlowType, string> = {
-  data: '#4f7daa',
-  image: '#5d7460',
-  auth: '#b69143',
-  payment: '#d07f44',
-  admin: '#b52930',
-  repo: '#7f8b97'
+const FLOW_COLORS: Record<FlowType, string> = {
+  data: '#00ffff',
+  image: '#00ff41',
+  auth: '#ff9900',
+  payment: '#ffdd00',
+  admin: '#ff00ff',
+  internal: '#00ffff',
+  repo: '#888888'
 };
 
 export const ARCH_SVG_WIDTH = 1300;
 export const ARCH_SVG_HEIGHT = 840;
 
+const I = { lg: 32, md: 24, sm: 18 };
+
 export function ArchitectureDiagram() {
-  const [hoverNode, setHoverNode] = useState<string | null>(null);
-  const [hoverConn, setHoverConn] = useState<number | null>(null);
+  const [hNode, setHNode] = useState<string | null>(null);
+  const [hConn, setHConn] = useState<number | null>(null);
 
   const nodes: NodeSpec[] = [
-    { id: 'admin', label: '관리자 업로드', sublabel: '운영 입력', tag: '운영', x: 30, y: 45, w: 170, h: 85, tone: 'rust', mark: 'seal' },
-    { id: 'google', label: 'Google 로그인', sublabel: '외부 인증', tag: '인증', x: 305, y: 45, w: 178, h: 85, tone: 'gold', mark: 'hall' },
-    { id: 'user', label: '사용자', sublabel: '브라우저 진입', tag: '주체', x: 30, y: 240, w: 160, h: 88, tone: 'ink', mark: 'stone' },
-    { id: 'nextjs', label: 'Next.js 웹사이트', sublabel: '앱 라우터', tag: '핵심', x: 260, y: 240, w: 185, h: 88, tone: 'ink', mark: 'branch' },
-    { id: 'vercel', label: 'Vercel 배포', sublabel: '실행 환경', tag: '배포', x: 520, y: 240, w: 170, h: 88, tone: 'neutral', mark: 'hall' },
-    { id: 'supa', label: 'Supabase', sublabel: '백엔드 기둥', tag: '데이터', x: 762, y: 170, w: 200, h: 78, tone: 'wood', mark: 'ledger' },
-    { id: 'supa-auth', label: 'Auth 인증', sublabel: '사용자 식별', tag: '인증', x: 772, y: 266, w: 180, h: 62, tone: 'gold', mark: 'hall' },
-    { id: 'supa-session', label: '세션 / 사용자', sublabel: '상태 보관', tag: '기록', x: 772, y: 342, w: 180, h: 62, tone: 'wood', mark: 'ledger' },
-    { id: 'supa-db', label: '상품/주문 데이터', sublabel: '핵심 행 자료', tag: '기록', x: 772, y: 418, w: 180, h: 62, tone: 'wood', mark: 'ledger' },
-    { id: 'supa-admin', label: '관리자 데이터', sublabel: '메타 정보', tag: '기록', x: 772, y: 494, w: 180, h: 62, tone: 'wood', mark: 'ledger' },
-    { id: 'r2', label: 'Cloudflare R2', sublabel: '이미지 저장소', tag: '저장', x: 1042, y: 170, w: 195, h: 78, tone: 'gold', mark: 'seal' },
-    { id: 'r2-prod', label: 'Product Images', sublabel: '상품 자산', tag: '자산', x: 1052, y: 266, w: 175, h: 62, tone: 'gold', mark: 'grid' },
-    { id: 'r2-coll', label: 'Collection Images', sublabel: '컬렉션 자산', tag: '자산', x: 1052, y: 342, w: 175, h: 62, tone: 'gold', mark: 'grid' },
-    { id: 'r2-pub', label: 'Public Assets', sublabel: '정적 배포', tag: '자산', x: 1052, y: 418, w: 175, h: 62, tone: 'gold', mark: 'grid' },
-    { id: 'nice', label: 'Nice Payments 결제', sublabel: '국내 결제', tag: '결제', x: 110, y: 450, w: 200, h: 85, tone: 'gold', mark: 'cart' },
-    { id: 'paypal', label: 'PayPal 결제', sublabel: '해외 결제', tag: '결제', x: 375, y: 450, w: 175, h: 85, tone: 'gold', mark: 'cart' },
-    { id: 'repo', label: '개발 소스 구조', sublabel: 'real_enico', tag: '원본', x: 30, y: 640, w: 190, h: 75, tone: 'neutral', mark: 'grid' },
-    { id: 'r-src', label: 'src/', sublabel: '앱 소스', tag: '폴더', x: 40, y: 735, w: 95, h: 55, tone: 'neutral', mark: 'grid' },
-    { id: 'r-pub', label: 'public/', sublabel: '정적 자산', tag: '폴더', x: 150, y: 735, w: 95, h: 55, tone: 'neutral', mark: 'grid' },
-    { id: 'r-sql', label: 'sql/', sublabel: '스키마', tag: '폴더', x: 260, y: 735, w: 95, h: 55, tone: 'neutral', mark: 'ledger' },
-    { id: 'r-supa', label: 'supabase/', sublabel: '설정', tag: '폴더', x: 370, y: 735, w: 95, h: 55, tone: 'neutral', mark: 'ledger' },
-    { id: 'r-tool', label: 'tools/', sublabel: '도구', tag: '폴더', x: 480, y: 735, w: 95, h: 55, tone: 'neutral', mark: 'branch' },
-    { id: 'r-up', label: 'upload/', sublabel: '자산 입력', tag: '폴더', x: 590, y: 735, w: 95, h: 55, tone: 'neutral', mark: 'seal' }
+    {
+      id: 'admin',
+      label: '관리자 업로드',
+      sublabel: 'Content Mgmt',
+      x: 30,
+      y: 45,
+      w: 170,
+      h: 85,
+      bg: '#1a0a20',
+      glow: '#ff00ff',
+      icon: <Upload size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'google',
+      label: 'Google 로그인',
+      sublabel: 'OAuth Provider',
+      x: 305,
+      y: 45,
+      w: 178,
+      h: 85,
+      bg: '#1a1208',
+      glow: '#ff9900',
+      icon: <LogIn size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'user',
+      label: '사용자',
+      sublabel: 'Browser Client',
+      x: 30,
+      y: 240,
+      w: 160,
+      h: 88,
+      bg: '#0a1520',
+      glow: '#00ffff',
+      icon: <Monitor size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'nextjs',
+      label: 'Next.js 웹사이트',
+      sublabel: 'App Router',
+      x: 260,
+      y: 240,
+      w: 185,
+      h: 88,
+      bg: '#0a1520',
+      glow: '#00ffff',
+      icon: <Code size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'vercel',
+      label: 'Vercel 배포',
+      sublabel: 'Production Host',
+      x: 520,
+      y: 240,
+      w: 170,
+      h: 88,
+      bg: '#0a1025',
+      glow: '#4488ff',
+      icon: <Server size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'supa',
+      label: 'Supabase',
+      sublabel: 'Backend Services',
+      x: 762,
+      y: 170,
+      w: 200,
+      h: 78,
+      bg: '#081a0a',
+      glow: '#00ff41',
+      icon: <Database size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg,
+      group: 'supabase'
+    },
+    {
+      id: 'supa-auth',
+      label: 'Auth 인증',
+      sublabel: 'User Management',
+      x: 772,
+      y: 266,
+      w: 180,
+      h: 62,
+      bg: '#0d1a06',
+      glow: '#ff9900',
+      icon: <ShieldCheck size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'supabase'
+    },
+    {
+      id: 'supa-session',
+      label: '세션 / 사용자',
+      sublabel: 'Session & Profile',
+      x: 772,
+      y: 342,
+      w: 180,
+      h: 62,
+      bg: '#0d1a06',
+      glow: '#ff9900',
+      icon: <UserCheck size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'supabase'
+    },
+    {
+      id: 'supa-db',
+      label: '상품/주문 데이터',
+      sublabel: 'PostgreSQL',
+      x: 772,
+      y: 418,
+      w: 180,
+      h: 62,
+      bg: '#061406',
+      glow: '#00ff41',
+      icon: <HardDrive size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'supabase'
+    },
+    {
+      id: 'supa-admin',
+      label: '관리자 데이터',
+      sublabel: 'Admin / App Meta',
+      x: 772,
+      y: 494,
+      w: 180,
+      h: 62,
+      bg: '#061406',
+      glow: '#00ff41',
+      icon: <Settings size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'supabase'
+    },
+    {
+      id: 'r2',
+      label: 'Cloudflare R2',
+      sublabel: '이미지 저장소',
+      x: 1042,
+      y: 170,
+      w: 195,
+      h: 78,
+      bg: '#141a06',
+      glow: '#00ff41',
+      icon: <Cloud size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg,
+      group: 'r2'
+    },
+    {
+      id: 'r2-prod',
+      label: 'Product Images',
+      sublabel: 'Asset CDN',
+      x: 1052,
+      y: 266,
+      w: 175,
+      h: 62,
+      bg: '#101406',
+      glow: '#00ff41',
+      icon: <Image size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'r2'
+    },
+    {
+      id: 'r2-coll',
+      label: 'Collection Images',
+      sublabel: 'Gallery Storage',
+      x: 1052,
+      y: 342,
+      w: 175,
+      h: 62,
+      bg: '#101406',
+      glow: '#00ff41',
+      icon: <Image size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'r2'
+    },
+    {
+      id: 'r2-pub',
+      label: 'Public Assets',
+      sublabel: 'Static Delivery',
+      x: 1052,
+      y: 418,
+      w: 175,
+      h: 62,
+      bg: '#101406',
+      glow: '#00ff41',
+      icon: <Package size={I.md} strokeWidth={1.5} />,
+      iconSz: I.md,
+      group: 'r2'
+    },
+    {
+      id: 'nice',
+      label: 'Nice Payments 결제',
+      sublabel: 'KRW Checkout',
+      x: 110,
+      y: 450,
+      w: 200,
+      h: 85,
+      bg: '#1a1a06',
+      glow: '#ffdd00',
+      icon: <CreditCard size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'paypal',
+      label: 'PayPal 결제',
+      sublabel: 'Global Checkout',
+      x: 375,
+      y: 450,
+      w: 175,
+      h: 85,
+      bg: '#1a1a06',
+      glow: '#ffdd00',
+      icon: <DollarSign size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg
+    },
+    {
+      id: 'repo',
+      label: '개발 소스 구조',
+      sublabel: 'real_enico',
+      x: 30,
+      y: 640,
+      w: 190,
+      h: 75,
+      bg: '#141414',
+      glow: '#888',
+      icon: <Folder size={I.lg} strokeWidth={1.5} />,
+      iconSz: I.lg,
+      group: 'repo'
+    },
+    {
+      id: 'r-src',
+      label: 'src/',
+      sublabel: 'App Source',
+      x: 40,
+      y: 735,
+      w: 95,
+      h: 55,
+      bg: '#111',
+      glow: '#888',
+      icon: <FileCode size={I.sm} strokeWidth={1.5} />,
+      iconSz: I.sm,
+      group: 'repo'
+    },
+    {
+      id: 'r-pub',
+      label: 'public/',
+      sublabel: 'Static',
+      x: 150,
+      y: 735,
+      w: 95,
+      h: 55,
+      bg: '#111',
+      glow: '#888',
+      icon: <FolderOpen size={I.sm} strokeWidth={1.5} />,
+      iconSz: I.sm,
+      group: 'repo'
+    },
+    {
+      id: 'r-sql',
+      label: 'sql/',
+      sublabel: 'Schema',
+      x: 260,
+      y: 735,
+      w: 95,
+      h: 55,
+      bg: '#111',
+      glow: '#888',
+      icon: <Database size={I.sm} strokeWidth={1.5} />,
+      iconSz: I.sm,
+      group: 'repo'
+    },
+    {
+      id: 'r-supa',
+      label: 'supabase/',
+      sublabel: 'Config',
+      x: 370,
+      y: 735,
+      w: 95,
+      h: 55,
+      bg: '#111',
+      glow: '#888',
+      icon: <Settings size={I.sm} strokeWidth={1.5} />,
+      iconSz: I.sm,
+      group: 'repo'
+    },
+    {
+      id: 'r-tool',
+      label: 'tools/',
+      sublabel: 'Scripts',
+      x: 480,
+      y: 735,
+      w: 95,
+      h: 55,
+      bg: '#111',
+      glow: '#888',
+      icon: <Wrench size={I.sm} strokeWidth={1.5} />,
+      iconSz: I.sm,
+      group: 'repo'
+    },
+    {
+      id: 'r-up',
+      label: 'upload/',
+      sublabel: 'Assets',
+      x: 590,
+      y: 735,
+      w: 95,
+      h: 55,
+      bg: '#111',
+      glow: '#888',
+      icon: <Upload size={I.sm} strokeWidth={1.5} />,
+      iconSz: I.sm,
+      group: 'repo'
+    }
   ];
+
+  const nd = (id: string) => nodes.find((n) => n.id === id)!;
+  const R = (id: string): [number, number] => {
+    const n = nd(id);
+    return [n.x + n.w, n.y + n.h / 2];
+  };
+  const L = (id: string): [number, number] => {
+    const n = nd(id);
+    return [n.x, n.y + n.h / 2];
+  };
 
   const conns: ConnectionSpec[] = [
-    { flow: 'data', label: '페이지 요청', wp: [[190, 284], [260, 284]] },
-    { flow: 'data', label: '배포 반영', wp: [[445, 284], [520, 284]] },
-    { flow: 'data', label: '상품 자료 조회', wp: [[690, 284], [726, 284], [726, 209], [762, 209]] },
-    { flow: 'data', wp: [[862, 248], [862, 266]] },
-    { flow: 'data', wp: [[862, 328], [862, 342]] },
-    { flow: 'data', wp: [[862, 404], [862, 418]] },
-    { flow: 'image', label: '이미지 수급', wp: [[605, 240], [605, 152], [1139, 152], [1139, 170]] },
-    { flow: 'image', wp: [[1139, 248], [1139, 266]] },
-    { flow: 'image', wp: [[1139, 328], [1139, 342]] },
-    { flow: 'image', wp: [[1139, 404], [1139, 418]] },
-    { flow: 'auth', label: '외부 인증 요청', wp: [[352, 240], [352, 168], [394, 168], [394, 130]] },
-    { flow: 'auth', label: '인증 회신', wp: [[483, 87], [722, 87], [722, 297], [772, 297]] },
-    { flow: 'auth', label: '인증 상태', wp: [[772, 365], [706, 365], [706, 275], [690, 275]] },
-    { flow: 'payment', label: '결제 요청', wp: [[318, 328], [318, 395], [210, 395], [210, 450]] },
-    { flow: 'payment', label: '결제 요청', wp: [[388, 328], [388, 395], [462, 395], [462, 450]] },
-    { flow: 'payment', label: '주문 기록', wp: [[310, 485], [618, 485], [618, 440], [772, 440]] },
-    { flow: 'payment', label: '확인 기록', wp: [[550, 500], [648, 500], [648, 458], [772, 458]] },
-    { flow: 'admin', label: '이미지 등록', wp: [[200, 62], [200, 22], [1002, 22], [1002, 209], [1042, 209]] },
-    { flow: 'admin', label: '메타 갱신', wp: [[115, 130], [115, 145], [862, 145], [862, 170]] },
-    { flow: 'repo', label: '빌드 원본', wp: [[87, 735], [87, 400], [352, 400], [352, 328]] },
-    { flow: 'repo', label: '스키마 근거', wp: [[417, 735], [417, 600], [710, 600], [710, 218], [762, 218]] },
-    { flow: 'repo', label: '업로드 도구', wp: [[637, 735], [637, 185], [115, 185], [115, 130]] }
+    {
+      from: 'user',
+      to: 'nextjs',
+      flow: 'data',
+      label: 'Page Request',
+      wp: [R('user'), L('nextjs')]
+    },
+    {
+      from: 'nextjs',
+      to: 'vercel',
+      flow: 'data',
+      label: 'Deploy',
+      wp: [R('nextjs'), L('vercel')]
+    },
+    {
+      from: 'vercel',
+      to: 'supa',
+      flow: 'data',
+      label: '상품 데이터',
+      wp: [
+        [690, 284],
+        [726, 284],
+        [726, 209],
+        [762, 209]
+      ]
+    },
+    {
+      from: 'supa',
+      to: 'supa-auth',
+      flow: 'internal',
+      wp: [
+        [862, 248],
+        [862, 266]
+      ]
+    },
+    {
+      from: 'supa-auth',
+      to: 'supa-session',
+      flow: 'internal',
+      wp: [
+        [862, 328],
+        [862, 342]
+      ]
+    },
+    {
+      from: 'supa-session',
+      to: 'supa-db',
+      flow: 'internal',
+      wp: [
+        [862, 404],
+        [862, 418]
+      ]
+    },
+    {
+      from: 'supa-db',
+      to: 'supa-admin',
+      flow: 'internal',
+      wp: [
+        [862, 480],
+        [862, 494]
+      ]
+    },
+    {
+      from: 'vercel',
+      to: 'r2',
+      flow: 'image',
+      label: '이미지 렌더링',
+      wp: [
+        [605, 240],
+        [605, 152],
+        [1139, 152],
+        [1139, 170]
+      ]
+    },
+    {
+      from: 'r2',
+      to: 'r2-prod',
+      flow: 'image',
+      wp: [
+        [1139, 248],
+        [1139, 266]
+      ]
+    },
+    {
+      from: 'r2-prod',
+      to: 'r2-coll',
+      flow: 'image',
+      wp: [
+        [1139, 328],
+        [1139, 342]
+      ]
+    },
+    {
+      from: 'r2-coll',
+      to: 'r2-pub',
+      flow: 'image',
+      wp: [
+        [1139, 404],
+        [1139, 418]
+      ]
+    },
+    {
+      from: 'nextjs',
+      to: 'google',
+      flow: 'auth',
+      label: 'OAuth 요청',
+      wp: [
+        [352, 240],
+        [352, 168],
+        [394, 168],
+        [394, 130]
+      ]
+    },
+    {
+      from: 'google',
+      to: 'supa-auth',
+      flow: 'auth',
+      label: '인증 콜백',
+      wp: [
+        [483, 87],
+        [722, 87],
+        [722, 297],
+        [772, 297]
+      ]
+    },
+    {
+      from: 'supa-session',
+      to: 'vercel',
+      flow: 'auth',
+      label: '인증 상태',
+      wp: [
+        [772, 365],
+        [706, 365],
+        [706, 275],
+        [690, 275]
+      ]
+    },
+    {
+      from: 'nextjs',
+      to: 'nice',
+      flow: 'payment',
+      label: '결제 요청',
+      wp: [
+        [318, 328],
+        [318, 395],
+        [210, 395],
+        [210, 450]
+      ]
+    },
+    {
+      from: 'nextjs',
+      to: 'paypal',
+      flow: 'payment',
+      label: '결제 요청',
+      wp: [
+        [388, 328],
+        [388, 395],
+        [462, 395],
+        [462, 450]
+      ]
+    },
+    {
+      from: 'nice',
+      to: 'supa-db',
+      flow: 'payment',
+      label: '주문 데이터',
+      wp: [
+        [310, 485],
+        [618, 485],
+        [618, 440],
+        [772, 440]
+      ]
+    },
+    {
+      from: 'paypal',
+      to: 'supa-db',
+      flow: 'payment',
+      label: '결제 확인',
+      wp: [
+        [550, 500],
+        [648, 500],
+        [648, 458],
+        [772, 458]
+      ]
+    },
+    {
+      from: 'admin',
+      to: 'r2',
+      flow: 'admin',
+      label: 'Upload Images',
+      wp: [
+        [200, 62],
+        [200, 22],
+        [1002, 22],
+        [1002, 209],
+        [1042, 209]
+      ]
+    },
+    {
+      from: 'admin',
+      to: 'supa',
+      flow: 'admin',
+      label: 'Update Meta',
+      wp: [
+        [115, 130],
+        [115, 145],
+        [862, 145],
+        [862, 170]
+      ]
+    },
+    {
+      from: 'r-src',
+      to: 'nextjs',
+      flow: 'repo',
+      label: 'Build',
+      wp: [
+        [87, 735],
+        [87, 400],
+        [352, 400],
+        [352, 328]
+      ]
+    },
+    {
+      from: 'r-supa',
+      to: 'supa',
+      flow: 'repo',
+      label: 'Schema',
+      wp: [
+        [417, 735],
+        [417, 600],
+        [710, 600],
+        [710, 218],
+        [762, 218]
+      ]
+    },
+    {
+      from: 'r-up',
+      to: 'admin',
+      flow: 'repo',
+      label: 'Tools',
+      wp: [
+        [637, 735],
+        [637, 185],
+        [115, 185],
+        [115, 130]
+      ]
+    }
   ];
 
-  const buildPath = (pts: [number, number][], r = 12) => {
+  const smooth = (pts: [number, number][], r = 13) => {
     if (pts.length < 2) return '';
     if (pts.length === 2) {
       return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
     }
+
     let d = `M ${pts[0][0]} ${pts[0][1]}`;
+
     for (let i = 1; i < pts.length - 1; i++) {
-      const prev = pts[i - 1];
-      const curr = pts[i];
-      const next = pts[i + 1];
-      const d1x = curr[0] - prev[0];
-      const d1y = curr[1] - prev[1];
-      const d2x = next[0] - curr[0];
-      const d2y = next[1] - curr[1];
-      const len1 = Math.sqrt(d1x * d1x + d1y * d1y);
-      const len2 = Math.sqrt(d2x * d2x + d2y * d2y);
-      const cr = Math.min(r, len1 / 2, len2 / 2);
-      const sx = curr[0] - (d1x / len1) * cr;
-      const sy = curr[1] - (d1y / len1) * cr;
-      const ex = curr[0] + (d2x / len2) * cr;
-      const ey = curr[1] + (d2y / len2) * cr;
-      d += ` L ${sx} ${sy} Q ${curr[0]} ${curr[1]} ${ex} ${ey}`;
+      const [px, py] = pts[i - 1];
+      const [cx, cy] = pts[i];
+      const [nx, ny] = pts[i + 1];
+      const d1x = cx - px;
+      const d1y = cy - py;
+      const d2x = nx - cx;
+      const d2y = ny - cy;
+      const l1 = Math.sqrt(d1x * d1x + d1y * d1y);
+      const l2 = Math.sqrt(d2x * d2x + d2y * d2y);
+      const cr = Math.min(r, l1 / 2, l2 / 2);
+
+      d += ` L ${cx - (d1x / l1) * cr} ${cy - (d1y / l1) * cr}`;
+      d += ` Q ${cx} ${cy} ${cx + (d2x / l2) * cr} ${cy + (d2y / l2) * cr}`;
     }
+
     const last = pts[pts.length - 1];
     d += ` L ${last[0]} ${last[1]}`;
+
     return d;
   };
 
@@ -137,125 +686,246 @@ export function ArchitectureDiagram() {
     const m = Math.floor(pts.length / 2);
     const a = pts[m - 1];
     const b = pts[m];
-    return { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2 - 9 };
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const isVert = Math.abs(dy) > Math.abs(dx);
+
+    return {
+      x: (a[0] + b[0]) / 2 + (isVert ? 8 : 0),
+      y: (a[1] + b[1]) / 2 + (isVert ? 0 : -9)
+    };
   };
 
-  const groups = [
-    { x: 750, y: 158, w: 218, h: 412, title: 'Supabase 묶음', note: '인증과 자료 기록', tone: 'wood' as const },
-    { x: 1030, y: 158, w: 212, h: 335, title: 'Cloudflare R2', note: '이미지 저장', tone: 'gold' as const },
-    { x: 98, y: 438, w: 468, h: 110, title: '결제 구획', note: '국내 / 해외 결제', tone: 'gold' as const },
-    { x: 20, y: 628, w: 680, h: 175, title: '원본 저장소', note: 'repo 구조', tone: 'neutral' as const },
-    { x: 293, y: 33, w: 200, h: 110, title: '인증 창구', note: '외부 로그인', tone: 'gold' as const }
-  ];
+  const glowId = (color: string) => {
+    if (color === '#00ffff') return 'ag-c';
+    if (color === '#00ff41') return 'ag-g';
+    if (color === '#ff00ff') return 'ag-m';
+    if (color === '#ff9900') return 'ag-o';
+    if (color === '#ffdd00') return 'ag-y';
+    if (color === '#4488ff') return 'ag-b';
+    return 'ag-x';
+  };
 
   return (
     <svg
       viewBox={`0 0 ${ARCH_SVG_WIDTH} ${ARCH_SVG_HEIGHT}`}
       width={ARCH_SVG_WIDTH}
       height={ARCH_SVG_HEIGHT}
+      style={{ background: 'radial-gradient(circle at center, #080808 0%, #000 100%)' }}
     >
       <defs>
-        <linearGradient id="arch-board-bg" x1="0%" x2="0%" y1="0%" y2="100%">
-          <stop offset="0%" stopColor={BOARD.paperSoft} />
-          <stop offset="100%" stopColor={BOARD.paper} />
-        </linearGradient>
-        <pattern id="arch-grid" width="48" height="48" patternUnits="userSpaceOnUse">
-          <path d="M 48 0 L 0 0 0 48" fill="none" stroke={BOARD.line} strokeWidth="1" strokeOpacity="0.32" />
-          <rect x="-1" y="-1" width="2" height="2" fill={BOARD.line} fillOpacity="0.38" />
-        </pattern>
-        {Object.entries(ARCH_FLOW_COLORS).map(([key, color]) => (
-          <marker key={key} id={`arch-end-${key}`} markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-            <path d="M4 0L8 4L4 8L0 4Z" fill={color} />
+        <filter id="ag-c">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ffff" floodOpacity="0.7" />
+        </filter>
+        <filter id="ag-g">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ff41" floodOpacity="0.7" />
+        </filter>
+        <filter id="ag-m">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff00ff" floodOpacity="0.7" />
+        </filter>
+        <filter id="ag-o">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff9900" floodOpacity="0.7" />
+        </filter>
+        <filter id="ag-y">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ffdd00" floodOpacity="0.7" />
+        </filter>
+        <filter id="ag-b">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#4488ff" floodOpacity="0.7" />
+        </filter>
+        <filter id="ag-x">
+          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#888" floodOpacity="0.5" />
+        </filter>
+
+        {Object.entries(FLOW_COLORS).map(([key, color]) => (
+          <marker
+            key={key}
+            id={`aa-${key}`}
+            markerWidth="10"
+            markerHeight="8"
+            refX="9"
+            refY="4"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 4, 0 8" fill={color} />
           </marker>
         ))}
+
+        <pattern id="ag" width="24" height="24" patternUnits="userSpaceOnUse">
+          <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
+        </pattern>
       </defs>
 
-      <rect width="100%" height="100%" fill="url(#arch-board-bg)" />
-      <rect width="100%" height="100%" fill="url(#arch-grid)" opacity="0.55" />
+      <rect width="100%" height="100%" fill="url(#ag)" opacity="0.4" />
 
-      {groups.map((group) => (
-        <g key={group.title}>
-          <rect
-            x={group.x}
-            y={group.y}
-            width={group.w}
-            height={group.h}
-            rx="0"
-            fill={BOARD.paperSoft}
-            fillOpacity="0.92"
-            stroke={NODE_COLORS[group.tone]}
-            strokeWidth="1.3"
-            strokeOpacity="0.62"
-          />
-          <text
-            x={group.x + 12}
-            y={group.y - 8}
-            fill={NODE_COLORS[group.tone]}
-            fontSize="11"
-            letterSpacing="2"
-            fontWeight="600"
-          >
-            {group.title}
-          </text>
-          <text
-            x={group.x + group.w - 12}
-            y={group.y - 8}
-            fill={BOARD.inkSoft}
-            fontSize="10"
-            textAnchor="end"
-          >
-            {group.note}
-          </text>
-        </g>
-      ))}
+      <rect
+        x="750"
+        y="158"
+        width="218"
+        height="412"
+        fill="#00ff4105"
+        stroke="#00ff41"
+        strokeWidth="1"
+        strokeOpacity="0.22"
+        rx="4"
+      />
+      <text
+        x="760"
+        y="152"
+        fill="#00ff41"
+        fontSize="9"
+        fontFamily="monospace"
+        opacity="0.4"
+        letterSpacing="2"
+      >
+        SUPABASE CLUSTER
+      </text>
 
-      {conns.map((conn, idx) => {
-        const color = ARCH_FLOW_COLORS[conn.flow];
-        const isHover = hoverConn === idx;
-        const path = buildPath(conn.wp, 12);
-        const pos = conn.label ? labelPos(conn.wp) : null;
-        const labelWidth = conn.label ? conn.label.length * 7.2 + 18 : 0;
+      <rect
+        x="1030"
+        y="158"
+        width="212"
+        height="335"
+        fill="#00ff4105"
+        stroke="#00ff41"
+        strokeWidth="1"
+        strokeOpacity="0.22"
+        rx="4"
+      />
+      <text
+        x="1040"
+        y="152"
+        fill="#00ff41"
+        fontSize="9"
+        fontFamily="monospace"
+        opacity="0.4"
+        letterSpacing="2"
+      >
+        CLOUDFLARE R2
+      </text>
+
+      <rect
+        x="98"
+        y="438"
+        width="468"
+        height="110"
+        fill="#ffdd0005"
+        stroke="#ffdd00"
+        strokeWidth="1"
+        strokeOpacity="0.18"
+        rx="4"
+      />
+      <text
+        x="108"
+        y="432"
+        fill="#ffdd00"
+        fontSize="9"
+        fontFamily="monospace"
+        opacity="0.35"
+        letterSpacing="2"
+      >
+        PAYMENT GATEWAY
+      </text>
+
+      <rect
+        x="20"
+        y="628"
+        width="680"
+        height="175"
+        fill="#88888805"
+        stroke="#888"
+        strokeWidth="1"
+        strokeOpacity="0.18"
+        rx="4"
+      />
+      <text
+        x="30"
+        y="622"
+        fill="#888"
+        fontSize="9"
+        fontFamily="monospace"
+        opacity="0.35"
+        letterSpacing="2"
+      >
+        REPOSITORY
+      </text>
+
+      <rect
+        x="293"
+        y="33"
+        width="200"
+        height="110"
+        fill="#ff990005"
+        stroke="#ff9900"
+        strokeWidth="1"
+        strokeOpacity="0.18"
+        rx="4"
+      />
+      <text
+        x="303"
+        y="27"
+        fill="#ff9900"
+        fontSize="9"
+        fontFamily="monospace"
+        opacity="0.35"
+        letterSpacing="2"
+      >
+        AUTH PROVIDER
+      </text>
+
+      {conns.map((c, idx) => {
+        if (c.wp.length < 2) return null;
+        const path = smooth(c.wp, 13);
+        const isH = hConn === idx;
+        const color = FLOW_COLORS[c.flow];
+        const lp = c.label ? labelPos(c.wp) : null;
+        const charW = c.label ? c.label.length * 3.5 + 5 : 0;
 
         return (
-          <g key={`conn-${idx}`}>
+          <g key={`c-${idx}`}>
             <path
               d={path}
               fill="none"
-              stroke={BOARD.lineSoft}
-              strokeWidth={isHover ? 3.6 : 2.6}
-              strokeOpacity="0.95"
+              stroke={color}
+              strokeWidth={isH ? 6 : 2.5}
+              strokeOpacity={isH ? 0.18 : 0.04}
             />
             <path
               d={path}
               fill="none"
               stroke={color}
-              strokeWidth={isHover ? 2.1 : 1.4}
-              strokeOpacity={isHover ? 1 : 0.92}
-              markerEnd={`url(#arch-end-${conn.flow})`}
-              onMouseEnter={() => setHoverConn(idx)}
-              onMouseLeave={() => setHoverConn(null)}
+              strokeWidth={isH ? 2.5 : 1.8}
+              strokeOpacity={isH ? 1 : 0.6}
+              markerEnd={`url(#aa-${c.flow})`}
+              onMouseEnter={() => setHConn(idx)}
+              onMouseLeave={() => setHConn(null)}
+              style={{
+                cursor: 'pointer',
+                filter: isH ? `drop-shadow(0 0 6px ${color})` : 'none',
+                transition: 'all 0.15s'
+              }}
             />
-            {pos && conn.label ? (
+            {lp && c.label ? (
               <g>
                 <rect
-                  x={pos.x - labelWidth / 2}
-                  y={pos.y - 12}
-                  width={labelWidth}
-                  height={18}
-                  rx="0"
-                  fill={BOARD.paperSoft}
-                  stroke={color}
-                  strokeWidth="1.2"
+                  x={lp.x - charW}
+                  y={lp.y - 10}
+                  width={charW * 2}
+                  height={14}
+                  fill="#000"
+                  fillOpacity="0.88"
+                  rx="2"
                 />
                 <text
-                  x={pos.x}
-                  y={pos.y}
+                  x={lp.x}
+                  y={lp.y}
+                  fill={color}
+                  fontSize="9"
+                  fontFamily="monospace"
                   textAnchor="middle"
-                  fill={BOARD.ink}
-                  fontSize="10"
-                  fontWeight="600"
+                  opacity={isH ? 1 : 0.7}
+                  style={{ transition: 'opacity 0.15s' }}
                 >
-                  {conn.label}
+                  {c.label}
                 </text>
               </g>
             ) : null}
@@ -263,117 +933,104 @@ export function ArchitectureDiagram() {
         );
       })}
 
-      {nodes.map((node) => {
-        const tone = NODE_COLORS[node.tone];
-        const isHover = hoverNode === node.id;
-        const compact = node.h <= 62 || node.w <= 110;
-        const markSize = compact ? 28 : 36;
-        const markBox = compact ? 36 : 46;
-        const dividerX = node.x + (compact ? 44 : 58);
-        const titleX = node.x + (compact ? 54 : 70);
-        const titleY = node.y + (compact ? 27 : 34);
-        const subY = node.y + (compact ? 43 : 52);
+      {nodes.map((n) => {
+        const isH = hNode === n.id;
+        const gc = n.glow;
+        const icoA = n.iconSz + 10;
+        const fId = glowId(gc);
 
         return (
           <g
-            key={node.id}
-            onMouseEnter={() => setHoverNode(node.id)}
-            onMouseLeave={() => setHoverNode(null)}
+            key={n.id}
+            onMouseEnter={() => setHNode(n.id)}
+            onMouseLeave={() => setHNode(null)}
+            style={{ cursor: 'pointer' }}
           >
-            {isHover ? (
+            {isH ? (
               <rect
-                x={node.x - 4}
-                y={node.y - 4}
-                width={node.w + 8}
-                height={node.h + 8}
-                rx="0"
+                x={n.x - 3}
+                y={n.y - 3}
+                width={n.w + 6}
+                height={n.h + 6}
                 fill="none"
-                stroke={tone}
-                strokeOpacity="0.22"
-                strokeWidth="2"
+                stroke={gc}
+                strokeWidth="1.5"
+                strokeOpacity="0.35"
+                rx="5"
               />
             ) : null}
 
             <rect
-              x={node.x}
-              y={node.y}
-              width={node.w}
-              height={node.h}
-              rx="0"
-              fill={BOARD.paperSoft}
-              stroke={tone}
-              strokeWidth={isHover ? 1.6 : 1.2}
+              x={n.x}
+              y={n.y}
+              width={n.w}
+              height={n.h}
+              fill={n.bg}
+              stroke={gc}
+              strokeWidth={isH ? 1.8 : 1}
+              strokeOpacity={isH ? 0.9 : 0.5}
+              rx="3"
+              style={{
+                filter: isH ? `drop-shadow(0 0 10px ${gc}50)` : 'none',
+                transition: 'all 0.15s'
+              }}
             />
             <rect
-              x={node.x}
-              y={node.y}
-              width="6"
-              height={node.h}
-              fill={tone}
-              fillOpacity="0.14"
+              x={n.x}
+              y={n.y}
+              width={n.w}
+              height="2.5"
+              fill={gc}
+              opacity={isH ? 0.65 : 0.3}
+              rx="3"
             />
-            <line
-              x1={dividerX}
-              y1={node.y}
-              x2={dividerX}
-              y2={node.y + node.h}
-              stroke={BOARD.line}
-              strokeWidth="1"
-              strokeOpacity="0.9"
-            />
-            <rect
-              x={node.x + node.w - 40}
-              y={node.y + 8}
-              width="30"
-              height="14"
-              rx="0"
-              fill={BOARD.paperSoft}
-              stroke={tone}
-              strokeWidth="1.1"
-            />
-            <text
-              x={node.x + node.w - 25}
-              y={node.y + 18}
-              textAnchor="middle"
-              fill={BOARD.ink}
-              fontSize="7"
-              fontWeight="700"
-              letterSpacing="1.2"
+
+            <foreignObject
+              x={n.x + n.w / 2 - icoA / 2}
+              y={n.y + 5}
+              width={icoA}
+              height={icoA}
             >
-              {node.tag}
-            </text>
-            <rect
-              x={node.x + 8}
-              y={node.y + 8}
-              width={markBox}
-              height={markBox}
-              rx="0"
-              fill={BOARD.paper}
-              stroke={tone}
-              strokeWidth="1.1"
-            />
-            <g transform={`translate(${node.x + 8 + (markBox - markSize) / 2}, ${node.y + 8 + (markBox - markSize) / 2})`}>
-              <BoardMark variant={node.mark} tone={node.tone} size={markSize} color={tone} />
-            </g>
-            <text
-              x={titleX}
-              y={titleY}
-              textAnchor="start"
-              fill={BOARD.ink}
-              fontSize={compact ? 9.2 : 11.5}
-              fontWeight="700"
-            >
-              {node.label}
-            </text>
-            {node.sublabel ? (
-              <text
-                x={titleX}
-                y={subY}
-                textAnchor="start"
-                fill={BOARD.inkSoft}
-                fontSize={compact ? 7.5 : 9}
+              <div
+                style={{
+                  color: gc,
+                  filter: isH ? `url(#${fId})` : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                  opacity: isH ? 1 : 0.9
+                }}
               >
-                {node.sublabel}
+                {n.icon}
+              </div>
+            </foreignObject>
+
+            <text
+              x={n.x + n.w / 2}
+              y={n.y + 5 + icoA + 13}
+              textAnchor="middle"
+              fill={gc}
+              fontSize="11"
+              fontFamily="monospace"
+              fontWeight="600"
+              opacity={isH ? 1 : 0.92}
+            >
+              {n.label}
+            </text>
+
+            {n.sublabel ? (
+              <text
+                x={n.x + n.w / 2}
+                y={n.y + 5 + icoA + 26}
+                textAnchor="middle"
+                fill={gc}
+                fontSize="8"
+                fontFamily="monospace"
+                opacity={isH ? 0.75 : 0.42}
+              >
+                {n.sublabel}
               </text>
             ) : null}
           </g>
