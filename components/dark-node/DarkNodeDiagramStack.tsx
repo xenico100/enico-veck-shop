@@ -23,7 +23,13 @@ export default function DarkNodeDiagramStack({
   className
 }: DarkNodeDiagramStackProps) {
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const archiveRed = '#c10024';
+  const archiveRed = '#8e001b';
+  const dataInk = '#0b5c61';
+  const imageInk = '#17652f';
+  const authInk = '#865114';
+  const paymentInk = '#776109';
+  const adminInk = '#6b135c';
+  const statusInk = '#1b5c2c';
 
   return (
     <div className={cn('relative min-h-screen w-full overflow-hidden bg-[#f8fbff]', className)}>
@@ -66,33 +72,43 @@ export default function DarkNodeDiagramStack({
 
         <div className="mt-3 font-mono text-[10px] md:text-xs">
           <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#d2d2d2] bg-[#f8fbff] p-2 backdrop-blur-sm md:p-3">
-            <div className="mb-1 w-full tracking-wide text-[#00ff41] opacity-70">
+            <div className="mb-1 w-full tracking-wide opacity-75" style={{ color: statusInk }}>
               FLOW TYPES:
             </div>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-5 bg-[#00ffff] shadow-[0_0_4px_#00ffff]" />
-              <span className="text-[#00ffff] opacity-70">Data Flow</span>
+              <span className="opacity-80" style={{ color: dataInk }}>
+                Data Flow
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-5 bg-[#00ff41] shadow-[0_0_4px_#00ff41]" />
-              <span className="text-[#00ff41] opacity-70">Image Flow</span>
+              <span className="opacity-80" style={{ color: imageInk }}>
+                Image Flow
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-5 bg-[#ff9900] shadow-[0_0_4px_#ff9900]" />
-              <span className="text-[#ff9900] opacity-70">Auth Flow</span>
+              <span className="opacity-80" style={{ color: authInk }}>
+                Auth Flow
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-5 bg-[#ffdd00] shadow-[0_0_4px_#ffdd00]" />
-              <span className="text-[#ffdd00] opacity-70">Payment Flow</span>
+              <span className="opacity-80" style={{ color: paymentInk }}>
+                Payment Flow
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-0.5 w-5 bg-[#ff00ff] shadow-[0_0_4px_#ff00ff]" />
-              <span className="text-[#ff00ff] opacity-70">Admin Flow</span>
+              <span className="opacity-80" style={{ color: adminInk }}>
+                Admin Flow
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="mt-2 font-mono text-[9px] text-[#00ff41] opacity-40 md:text-[10px]">
+        <div className="mt-2 font-mono text-[9px] opacity-50 md:text-[10px]" style={{ color: statusInk }}>
           <div className="flex gap-3 md:gap-4">
             <span>[NODES: 25]</span>
             <span>[CONNECTIONS: 22]</span>
@@ -199,7 +215,10 @@ export default function DarkNodeDiagramStack({
       </div>
 
       <div className="relative flex w-full justify-center py-6">
-        <div className="px-4 text-center font-mono text-[9px] tracking-widest text-[#00ff41] opacity-25 md:text-[10px]">
+        <div
+          className="px-4 text-center font-mono text-[9px] tracking-widest opacity-30 md:text-[10px]"
+          style={{ color: statusInk }}
+        >
           [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
         </div>
       </div>

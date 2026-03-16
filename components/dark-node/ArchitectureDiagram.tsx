@@ -73,9 +73,27 @@ const FLOW_COLORS: Record<FlowType, string> = {
 
 export const ARCH_SVG_WIDTH = 1300;
 export const ARCH_SVG_HEIGHT = 840;
-const LABEL_FILL = 'rgba(150, 150, 150, 0.34)';
+const LABEL_FILL = 'rgba(48, 48, 48, 0.14)';
 
 const I = { lg: 32, md: 24, sm: 18 };
+
+const mixWithBlack = (hex: string, amount = 0.42) => {
+  const normalized = hex.replace('#', '');
+  const value = normalized.length === 3
+    ? normalized
+        .split('')
+        .map((char) => char + char)
+        .join('')
+    : normalized;
+
+  const parts = value.match(/.{2}/g);
+  if (!parts) return hex;
+
+  const [r, g, b] = parts.map((part) => parseInt(part, 16));
+  const blend = (channel: number) => Math.round(channel * (1 - amount));
+
+  return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
+};
 
 export function ArchitectureDiagram() {
   const [hNode, setHNode] = useState<string | null>(null);
@@ -769,6 +787,12 @@ export function ArchitectureDiagram() {
         <pattern id="ag" width="24" height="24" patternUnits="userSpaceOnUse">
           <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
         </pattern>
+        <pattern id="ag-mosaic" width="12" height="12" patternUnits="userSpaceOnUse">
+          <rect width="12" height="12" fill="rgba(255,255,255,0.62)" />
+          <rect width="6" height="6" fill="rgba(0,0,0,0.1)" />
+          <rect x="6" y="6" width="6" height="6" fill="rgba(0,0,0,0.08)" />
+          <path d="M 6 0 V 12 M 0 6 H 12" stroke="rgba(0,0,0,0.09)" strokeWidth="0.7" />
+        </pattern>
         <radialGradient id="ag-node-fade" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
           <stop offset="62%" stopColor="#ffffff" stopOpacity="0.95" />
@@ -802,7 +826,7 @@ export function ArchitectureDiagram() {
       <text
         x="760"
         y="152"
-        fill="#00ff41"
+        fill={mixWithBlack('#00ff41', 0.58)}
         fontSize="9"
         fontFamily="monospace"
         opacity="0.4"
@@ -825,7 +849,7 @@ export function ArchitectureDiagram() {
       <text
         x="1040"
         y="152"
-        fill="#00ff41"
+        fill={mixWithBlack('#00ff41', 0.58)}
         fontSize="9"
         fontFamily="monospace"
         opacity="0.4"
@@ -848,7 +872,7 @@ export function ArchitectureDiagram() {
       <text
         x="108"
         y="432"
-        fill="#ffdd00"
+        fill={mixWithBlack('#ffdd00', 0.58)}
         fontSize="9"
         fontFamily="monospace"
         opacity="0.35"
@@ -871,7 +895,7 @@ export function ArchitectureDiagram() {
       <text
         x="30"
         y="622"
-        fill="#888"
+        fill={mixWithBlack('#888888', 0.38)}
         fontSize="9"
         fontFamily="monospace"
         opacity="0.35"
@@ -894,7 +918,7 @@ export function ArchitectureDiagram() {
       <text
         x="303"
         y="27"
-        fill="#ff9900"
+        fill={mixWithBlack('#ff9900', 0.58)}
         fontSize="9"
         fontFamily="monospace"
         opacity="0.35"
@@ -948,7 +972,7 @@ export function ArchitectureDiagram() {
                 <text
                   x={lp.x}
                   y={lp.y}
-                  fill={color}
+                  fill={mixWithBlack(color, 0.56)}
                   fontSize="9"
                   fontFamily="monospace"
                   textAnchor="middle"
@@ -966,6 +990,8 @@ export function ArchitectureDiagram() {
       {nodes.map((n) => {
         const isH = hNode === n.id;
         const gc = n.glow;
+        const tc = mixWithBlack(gc, 0.54);
+        const sc = mixWithBlack(gc, 0.68);
         const iconSize = Math.max(
           n.iconSz + 18,
           Math.min(n.w * 0.42, n.h * 0.72)
@@ -990,6 +1016,40 @@ export function ArchitectureDiagram() {
               fill="url(#ag-node-fade)"
               opacity={isH ? 1 : 0.9}
               style={{ transition: 'opacity 0.15s' }}
+            />
+
+            <rect
+              x={iconCx - iconSize * 0.64}
+              y={iconCy - iconSize * 0.64}
+              width={iconSize * 1.28}
+              height={iconSize * 1.28}
+              fill={n.bg}
+              fillOpacity={0.16}
+              stroke={mixWithBlack(gc, 0.38)}
+              strokeOpacity={isH ? 0.5 : 0.34}
+              strokeWidth="1"
+              rx="4"
+              style={{
+                transition: 'all 0.15s'
+              }}
+            />
+            <rect
+              x={iconCx - iconSize * 0.64}
+              y={iconCy - iconSize * 0.64}
+              width={iconSize * 1.28}
+              height={iconSize * 1.28}
+              fill="url(#ag-mosaic)"
+              opacity={isH ? 0.88 : 0.72}
+              rx="4"
+            />
+            <rect
+              x={iconCx - iconSize * 0.64}
+              y={iconCy - iconSize * 0.64}
+              width={iconSize * 1.28}
+              height="2"
+              fill={gc}
+              opacity={isH ? 0.72 : 0.42}
+              rx="4"
             />
 
             <foreignObject
@@ -1018,7 +1078,7 @@ export function ArchitectureDiagram() {
               x={iconCx}
               y={iconCy + iconSize / 2 + 21}
               textAnchor="middle"
-              fill={gc}
+              fill={tc}
               fontSize="12"
               fontFamily="monospace"
               fontWeight="600"
@@ -1032,7 +1092,7 @@ export function ArchitectureDiagram() {
                 x={iconCx}
                 y={iconCy + iconSize / 2 + 35}
                 textAnchor="middle"
-                fill={gc}
+                fill={sc}
                 fontSize="8.5"
                 fontFamily="monospace"
                 opacity={isH ? 0.8 : 0.5}
