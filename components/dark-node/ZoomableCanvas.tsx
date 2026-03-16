@@ -153,30 +153,40 @@ export function ZoomableCanvas({
   };
 
   const zoomPercent = Math.round((scale / baseScale) * 100);
+  const controlRed = '#7d002d';
 
   return (
     <div className="relative w-full" style={{ touchAction: 'none' }}>
       <div className="absolute right-2 top-2 z-20 flex items-center gap-1 font-mono">
         <button
           onClick={() => setScale((prev) => clampScale(prev * 0.85))}
-        className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-[#f8fbff] transition-colors hover:border-[#00ffff]"
+          className="flex h-8 w-8 items-center justify-center rounded border bg-[#f8fbff] transition-colors"
+          style={{ borderColor: 'rgba(125, 0, 45, 0.28)' }}
         >
-          <ZoomOut size={14} color="#00ffff" />
+          <ZoomOut size={14} color={controlRed} />
         </button>
-        <div className="min-w-[48px] rounded border border-[#b9b9b9] bg-[#f8fbff] px-2 py-1 text-center font-mono text-[10px] text-[#00ffff] opacity-80">
+        <div
+          className="min-w-[48px] rounded border bg-[#f8fbff] px-2 py-1 text-center font-mono text-[10px] opacity-85"
+          style={{
+            borderColor: 'rgba(125, 0, 45, 0.28)',
+            color: controlRed
+          }}
+        >
           {zoomPercent}%
         </div>
         <button
           onClick={() => setScale((prev) => clampScale(prev * 1.15))}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-[#f8fbff] transition-colors hover:border-[#00ffff]"
+          className="flex h-8 w-8 items-center justify-center rounded border bg-[#f8fbff] transition-colors"
+          style={{ borderColor: 'rgba(125, 0, 45, 0.28)' }}
         >
-          <ZoomIn size={14} color="#00ffff" />
+          <ZoomIn size={14} color={controlRed} />
         </button>
         <button
           onClick={resetView}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-[#f8fbff] transition-colors hover:border-[#00ffff]"
+          className="flex h-8 w-8 items-center justify-center rounded border bg-[#f8fbff] transition-colors"
+          style={{ borderColor: 'rgba(125, 0, 45, 0.28)' }}
         >
-          <Maximize size={14} color="#00ffff" />
+          <Maximize size={14} color={controlRed} />
         </button>
       </div>
 

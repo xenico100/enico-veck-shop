@@ -798,6 +798,9 @@ export function ArchitectureDiagram() {
           <stop offset="72%" stopColor="#0c0003" stopOpacity="0.28" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
+        <filter id="ag-spill" x="-120%" y="-120%" width="340%" height="340%">
+          <feGaussianBlur stdDeviation="8.5" />
+        </filter>
         <linearGradient id="ag-board-fade" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
           <stop offset="45%" stopColor="#ffffff" stopOpacity="0.12" />
@@ -1018,17 +1021,39 @@ export function ArchitectureDiagram() {
               style={{ transition: 'opacity 0.15s' }}
             />
 
-            <ellipse
-              cx={iconCx}
-              cy={iconCy}
-              rx={iconSize * 0.88}
-              ry={iconSize * 0.88}
-              fill="url(#ag-icon-fade)"
-              opacity={isH ? 0.98 : 0.9}
+            <g
+              filter="url(#ag-spill)"
+              opacity={isH ? 1 : 0.92}
               style={{
                 transition: 'all 0.15s'
               }}
-            />
+            >
+              <ellipse
+                cx={iconCx - iconSize * 0.08}
+                cy={iconCy + iconSize * 0.02}
+                rx={iconSize * 0.9}
+                ry={iconSize * 0.68}
+                fill="url(#ag-icon-fade)"
+                transform={`rotate(-18 ${iconCx - iconSize * 0.08} ${iconCy + iconSize * 0.02})`}
+              />
+              <ellipse
+                cx={iconCx + iconSize * 0.18}
+                cy={iconCy - iconSize * 0.14}
+                rx={iconSize * 0.58}
+                ry={iconSize * 0.82}
+                fill="url(#ag-icon-fade)"
+                opacity="0.78"
+                transform={`rotate(22 ${iconCx + iconSize * 0.18} ${iconCy - iconSize * 0.14})`}
+              />
+              <ellipse
+                cx={iconCx}
+                cy={iconCy + iconSize * 0.18}
+                rx={iconSize * 0.82}
+                ry={iconSize * 0.4}
+                fill="url(#ag-icon-fade)"
+                opacity="0.62"
+              />
+            </g>
 
             <foreignObject
               x={iconCx - iconBox / 2}

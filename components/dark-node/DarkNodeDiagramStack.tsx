@@ -30,6 +30,11 @@ export default function DarkNodeDiagramStack({
   const paymentInk = '#776109';
   const adminInk = '#6b135c';
   const statusInk = '#1b5c2c';
+  const prodDigitalInk = '#0a4f57';
+  const prodArchiveInk = '#1c5a28';
+  const prodPhysicalInk = '#6e1768';
+  const prodCommerceInk = '#33599a';
+  const prodReuseInk = '#27572e';
 
   return (
     <div className={cn('relative min-h-screen w-full overflow-hidden bg-[#f8fbff]', className)}>
@@ -162,7 +167,7 @@ export default function DarkNodeDiagramStack({
                 boxShadow: '0 0 6px #00ffff'
               }}
             />
-            <span style={{ color: '#00ffff' }} className="opacity-90">
+            <span style={{ color: prodDigitalInk }} className="opacity-95">
               디지털 플로우
             </span>
           </div>
@@ -174,7 +179,7 @@ export default function DarkNodeDiagramStack({
                 boxShadow: '0 0 6px #00ff41'
               }}
             />
-            <span style={{ color: '#00ff41' }} className="opacity-90">
+            <span style={{ color: prodArchiveInk }} className="opacity-95">
               아카이브 / 데이터
             </span>
           </div>
@@ -186,7 +191,7 @@ export default function DarkNodeDiagramStack({
                 boxShadow: '0 0 6px #ff00ff'
               }}
             />
-            <span style={{ color: '#ff00ff' }} className="opacity-90">
+            <span style={{ color: prodPhysicalInk }} className="opacity-95">
               실물 프로덕션
             </span>
           </div>
@@ -198,7 +203,7 @@ export default function DarkNodeDiagramStack({
                 boxShadow: '0 0 6px #4499ff'
               }}
             />
-            <span style={{ color: '#4499ff' }} className="opacity-90">
+            <span style={{ color: prodCommerceInk }} className="opacity-95">
               이커머스 아웃풋
             </span>
           </div>
@@ -207,7 +212,7 @@ export default function DarkNodeDiagramStack({
               className="h-[2px] w-6 border-t-2 border-dashed md:w-10"
               style={{ borderColor: '#00ff41' }}
             />
-            <span style={{ color: '#00ff41' }} className="opacity-60">
+            <span style={{ color: prodReuseInk }} className="opacity-85">
               데이터 재사용
             </span>
           </div>
@@ -216,8 +221,8 @@ export default function DarkNodeDiagramStack({
 
       <div className="relative flex w-full justify-center py-6">
         <div
-          className="px-4 text-center font-mono text-[9px] tracking-widest opacity-30 md:text-[10px]"
-          style={{ color: statusInk }}
+          className="px-4 text-center font-mono text-[9px] tracking-widest opacity-55 md:text-[10px]"
+          style={{ color: '#38523e' }}
         >
           [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
         </div>
