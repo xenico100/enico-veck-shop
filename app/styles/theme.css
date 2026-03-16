@@ -1,86 +1,86 @@
 :root {
   --font-size: 16px;
-  --background: 35 46% 97%;
+  --background: 215 100% 98%;
   --foreground: 354 32% 6%;
-  --card: 35 46% 98%;
+  --card: 215 100% 99%;
   --card-foreground: 354 32% 6%;
-  --popover: 35 46% 98%;
+  --popover: 215 100% 99%;
   --popover-foreground: 354 32% 6%;
-  --primary: 352 88% 36%;
+  --primary: 350 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 35 24% 93%;
+  --secondary: 214 46% 96%;
   --secondary-foreground: 354 32% 6%;
-  --muted: 35 24% 93%;
+  --muted: 214 46% 96%;
   --muted-foreground: 354 16% 22%;
-  --accent: 352 88% 36%;
+  --accent: 350 100% 50%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 352 88% 36%;
+  --destructive: 350 100% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 354 16% 84%;
-  --input: 35 46% 98%;
-  --input-background: rgba(255, 255, 255, 0.96);
-  --switch-background: 35 12% 84%;
-  --ring: 352 88% 36%;
-  --chart-1: 352 88% 36%;
+  --border: 214 28% 86%;
+  --input: 215 100% 99%;
+  --input-background: rgba(247, 250, 255, 0.96);
+  --switch-background: 214 18% 86%;
+  --ring: 350 100% 50%;
+  --chart-1: 350 100% 50%;
   --chart-2: 354 32% 6%;
   --chart-3: 34 30% 42%;
   --chart-4: 0 0% 72%;
   --chart-5: 0 0% 42%;
   --radius: 0.6rem;
-  --sidebar: 35 46% 98%;
+  --sidebar: 215 100% 99%;
   --sidebar-foreground: 354 32% 6%;
-  --sidebar-primary: 352 88% 36%;
+  --sidebar-primary: 350 100% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 35 24% 93%;
+  --sidebar-accent: 214 46% 96%;
   --sidebar-accent-foreground: 354 32% 6%;
-  --sidebar-border: 354 16% 84%;
-  --sidebar-ring: 352 88% 36%;
-  --tone-paper: #ffffff;
-  --tone-paper-deep: #ffffff;
+  --sidebar-border: 214 28% 86%;
+  --sidebar-ring: 350 100% 50%;
+  --tone-paper: #f7faff;
+  --tone-paper-deep: #eef4ff;
   --tone-ink: #120708;
   --tone-ink-soft: #352220;
   --tone-line: rgba(18, 7, 8, 0.14);
   --tone-line-strong: rgba(18, 7, 8, 0.3);
-  --tone-olive: #b1071e;
-  --tone-olive-soft: rgba(177, 7, 30, 0.08);
+  --tone-olive: #ff002b;
+  --tone-olive-soft: rgba(255, 0, 43, 0.08);
   --tone-sun: #8a6a49;
   --tone-sun-soft: rgba(138, 106, 73, 0.08);
   --tone-mist: #d8cec3;
   --tone-stone: rgba(18, 7, 8, 0.05);
-  --tone-blood: #b1071e;
-  --tone-blood-deep: #5d0010;
-  --tone-horror-white: #ffffff;
-  --tone-horror-white-deep: #ffffff;
+  --tone-blood: #ff002b;
+  --tone-blood-deep: #c00022;
+  --tone-horror-white: #f8fbff;
+  --tone-horror-white-deep: #f1f6ff;
 }
 
 .dark {
-  --background: 35 46% 97%;
+  --background: 215 100% 98%;
   --foreground: 354 32% 6%;
-  --card: 35 46% 98%;
+  --card: 215 100% 99%;
   --card-foreground: 354 32% 6%;
-  --popover: 35 46% 98%;
+  --popover: 215 100% 99%;
   --popover-foreground: 354 32% 6%;
-  --primary: 352 88% 36%;
+  --primary: 350 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 35 24% 93%;
+  --secondary: 214 46% 96%;
   --secondary-foreground: 354 32% 6%;
-  --muted: 35 24% 93%;
+  --muted: 214 46% 96%;
   --muted-foreground: 354 16% 22%;
-  --accent: 352 88% 36%;
+  --accent: 350 100% 50%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 352 88% 36%;
+  --destructive: 350 100% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 354 16% 84%;
-  --input: 35 46% 98%;
-  --ring: 352 88% 36%;
-  --sidebar: 35 46% 98%;
+  --border: 214 28% 86%;
+  --input: 215 100% 99%;
+  --ring: 350 100% 50%;
+  --sidebar: 215 100% 99%;
   --sidebar-foreground: 354 32% 6%;
-  --sidebar-primary: 352 88% 36%;
+  --sidebar-primary: 350 100% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 35 24% 93%;
+  --sidebar-accent: 214 46% 96%;
   --sidebar-accent-foreground: 354 32% 6%;
-  --sidebar-border: 354 16% 84%;
-  --sidebar-ring: 352 88% 36%;
+  --sidebar-border: 214 28% 86%;
+  --sidebar-ring: 350 100% 50%;
 }
 
 *,
@@ -106,7 +106,7 @@ body {
   overflow-wrap: break-word;
   color: hsl(var(--foreground));
   font-family: var(--font-sans), "Noto Sans KR", "Pretendard", sans-serif;
-  background: #ffffff;
+  background: #f8fbff;
   letter-spacing: 0.004em;
   line-height: 1.6;
 }
@@ -117,7 +117,7 @@ body::after {
 }
 
 ::selection {
-  background: rgba(177, 7, 30, 0.18);
+  background: rgba(255, 0, 43, 0.18);
   color: var(--tone-ink);
 }
 
@@ -166,12 +166,12 @@ button,
 
 ::-webkit-scrollbar-thumb {
   border-radius: 0.6rem;
-  border: 2px solid rgba(255, 252, 248, 0.96);
-  background: linear-gradient(180deg, rgba(18, 7, 8, 0.86), rgba(177, 7, 30, 0.82));
+  border: 2px solid rgba(247, 250, 255, 0.96);
+  background: linear-gradient(180deg, rgba(18, 7, 8, 0.9), rgba(255, 0, 43, 0.88));
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(241, 246, 255, 0.98);
 }
 
 .display-font {
@@ -196,7 +196,7 @@ button,
 .tech-panel {
   border: 1px solid var(--tone-line);
   border-radius: 0.15rem;
-  background: #ffffff;
+  background: rgba(247, 250, 255, 0.98);
   box-shadow: none;
   backdrop-filter: none;
   position: relative;
@@ -261,7 +261,7 @@ button,
   padding: 0.58rem 0.95rem;
   border: 1px solid rgba(5, 5, 5, 0.18);
   border-radius: 0.15rem;
-  background: #ffffff;
+  background: rgba(247, 250, 255, 0.98);
   box-shadow: none;
   color: var(--tone-ink);
   font-family: var(--font-display), var(--font-display-kr), serif;
@@ -426,7 +426,7 @@ button,
 }
 
 .cart-sheet {
-  background: #ffffff !important;
+  background: rgba(247, 250, 255, 0.98) !important;
 }
 
 .cart-sheet [class*="border-white/"] {
@@ -434,11 +434,11 @@ button,
 }
 
 .cart-sheet [class*="bg-white/"] {
-  background: #ffffff !important;
+  background: rgba(247, 250, 255, 0.98) !important;
 }
 
 .cart-sheet [class*="bg-black/20"] {
-  background: #ffffff !important;
+  background: rgba(242, 247, 255, 0.98) !important;
 }
 
 .cart-sheet [class*="from-white/"] {
@@ -532,7 +532,7 @@ input[type="file"]::file-selector-button {
   margin-right: 0.75rem;
   border-radius: 0.55rem;
   border: 1px solid var(--tone-line);
-  background: #ffffff;
+  background: rgba(247, 250, 255, 0.98);
   padding: 0.6rem 1rem;
   color: var(--tone-ink);
   font-weight: 600;
@@ -544,7 +544,7 @@ input[type="file"]::file-selector-button {
 
 input[type="file"]::file-selector-button:hover {
   border-color: var(--tone-line-strong);
-  background: #ffffff;
+  background: rgba(242, 247, 255, 0.98);
 }
 
 .ambient-orb {
@@ -593,7 +593,7 @@ input[type="file"]::file-selector-button:hover {
 }
 
 [class*="bg-white/"] {
-  background-color: #ffffff !important;
+  background-color: rgba(247, 250, 255, 0.98) !important;
 }
 
 [class*="text-neutral-"],

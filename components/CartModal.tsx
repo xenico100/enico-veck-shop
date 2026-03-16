@@ -477,7 +477,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
         <DialogPrimitive.Content
-          className={`cart-sheet fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[0.2rem] border border-stone-900/10 bg-white shadow-none backdrop-blur-xl outline-none ${appleFontClass}`}
+          className={`cart-sheet fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] shadow-none backdrop-blur-xl outline-none ${appleFontClass}`}
         >
           <div className="flex items-start justify-between gap-4 border-b border-stone-900/10 px-4 py-4 sm:px-5 md:px-6">
             <div className="min-w-0">

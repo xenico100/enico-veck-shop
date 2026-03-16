@@ -67,6 +67,8 @@ const FLOW_COLORS: Record<FlowType, string> = {
 
 export const ARCH_SVG_WIDTH = 1300;
 export const ARCH_SVG_HEIGHT = 840;
+const NODE_FILL = 'rgba(150, 150, 150, 0.26)';
+const LABEL_FILL = 'rgba(150, 150, 150, 0.34)';
 
 const I = { lg: 32, md: 24, sm: 18 };
 
@@ -755,7 +757,7 @@ export function ArchitectureDiagram() {
         </pattern>
       </defs>
 
-      <rect width="100%" height="100%" fill="#ffffff" />
+      <rect width="100%" height="100%" fill="#f8fbff" />
       <rect width="100%" height="100%" fill="url(#ag)" opacity="0.4" />
 
       <rect
@@ -912,8 +914,7 @@ export function ArchitectureDiagram() {
                   y={lp.y - 10}
                   width={charW * 2}
                   height={14}
-                  fill="#000"
-                  fillOpacity="0.88"
+                  fill={LABEL_FILL}
                   rx="2"
                 />
                 <text
@@ -966,7 +967,7 @@ export function ArchitectureDiagram() {
               y={n.y}
               width={n.w}
               height={n.h}
-              fill={n.bg}
+              fill={NODE_FILL}
               stroke={gc}
               strokeWidth={isH ? 1.8 : 1}
               strokeOpacity={isH ? 0.9 : 0.5}

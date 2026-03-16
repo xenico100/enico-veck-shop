@@ -159,22 +159,22 @@ export function ZoomableCanvas({
       <div className="absolute right-2 top-2 z-20 flex items-center gap-1 font-mono">
         <button
           onClick={() => setScale((prev) => clampScale(prev * 0.85))}
-        className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-white transition-colors hover:border-[#00ffff]"
+        className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-[#f8fbff] transition-colors hover:border-[#00ffff]"
         >
           <ZoomOut size={14} color="#00ffff" />
         </button>
-        <div className="min-w-[48px] rounded border border-[#b9b9b9] bg-white px-2 py-1 text-center font-mono text-[10px] text-[#00ffff] opacity-80">
+        <div className="min-w-[48px] rounded border border-[#b9b9b9] bg-[#f8fbff] px-2 py-1 text-center font-mono text-[10px] text-[#00ffff] opacity-80">
           {zoomPercent}%
         </div>
         <button
           onClick={() => setScale((prev) => clampScale(prev * 1.15))}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-white transition-colors hover:border-[#00ffff]"
+          className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-[#f8fbff] transition-colors hover:border-[#00ffff]"
         >
           <ZoomIn size={14} color="#00ffff" />
         </button>
         <button
           onClick={resetView}
-          className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-white transition-colors hover:border-[#00ffff]"
+          className="flex h-8 w-8 items-center justify-center rounded border border-[#b9b9b9] bg-[#f8fbff] transition-colors hover:border-[#00ffff]"
         >
           <Maximize size={14} color="#00ffff" />
         </button>
@@ -182,7 +182,7 @@ export function ZoomableCanvas({
 
       <div
         ref={containerRef}
-        className="w-full overflow-hidden rounded-sm border border-[#d5d5d5] bg-white"
+        className="w-full overflow-hidden rounded-sm border border-[#d5d5d5] bg-[#f8fbff]"
         style={{
           height: Math.max(320, svgHeight * scale + 20),
           cursor: isPanning ? 'grabbing' : 'grab'

@@ -25,7 +25,7 @@ export default function DarkNodeDiagramStack({
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   return (
-    <div className={cn('relative min-h-screen w-full overflow-hidden bg-white', className)}>
+    <div className={cn('relative min-h-screen w-full overflow-hidden bg-[#f8fbff]', className)}>
       <div className="pointer-events-none absolute inset-0 z-20 opacity-10">
         <div className="dark-node-scanlines h-full" />
       </div>
@@ -54,7 +54,7 @@ export default function DarkNodeDiagramStack({
         </ZoomableCanvas>
 
         <div className="mt-3 font-mono text-[10px] md:text-xs">
-          <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#d2d2d2] bg-white p-2 backdrop-blur-sm md:p-3">
+          <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#d2d2d2] bg-[#f8fbff] p-2 backdrop-blur-sm md:p-3">
             <div className="mb-1 w-full tracking-wide text-[#00ff41] opacity-70">
               FLOW TYPES:
             </div>
@@ -220,7 +220,7 @@ export default function DarkNodeDiagramStack({
           left: -2px;
           top: 0;
           overflow: hidden;
-          background: white;
+          background: #f8fbff;
           color: #00ff41;
           text-shadow: -2px 0 #ff00ff;
           clip: rect(0, 900px, 0, 0);

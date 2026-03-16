@@ -57,6 +57,8 @@ const C = {
 
 export const PROD_SVG_WIDTH = 1360;
 export const PROD_SVG_HEIGHT = 820;
+const NODE_FILL = 'rgba(150, 150, 150, 0.26)';
+const LABEL_FILL = 'rgba(150, 150, 150, 0.34)';
 
 export function ProductionDiagram() {
   const [hNode, setHNode] = useState<string | null>(null);
@@ -586,7 +588,7 @@ export function ProductionDiagram() {
         `}</style>
       </defs>
 
-      <rect width="100%" height="100%" fill="#ffffff" />
+      <rect width="100%" height="100%" fill="#f8fbff" />
       <rect width="100%" height="100%" fill="url(#p-grid)" opacity="0.35" />
 
       {phaseRows.map((g) => (
@@ -667,8 +669,7 @@ export function ProductionDiagram() {
                   y={labelPos.y - 10}
                   width={conn.label.length * 6.4 + 8}
                   height={14}
-                  fill="#000"
-                  fillOpacity="0.85"
+                  fill={LABEL_FILL}
                   rx="2"
                 />
                 <text
@@ -724,7 +725,7 @@ export function ProductionDiagram() {
               y={node.y}
               width={node.w}
               height={node.h}
-              fill={node.color}
+              fill={NODE_FILL}
               stroke={gc}
               strokeWidth={isH ? 1.8 : 1}
               strokeOpacity={isH ? 0.9 : 0.5}
@@ -791,8 +792,7 @@ export function ProductionDiagram() {
               y={node.y + 6}
               width="32"
               height="13"
-              fill={gc}
-              fillOpacity="0.1"
+              fill={LABEL_FILL}
               stroke={gc}
               strokeWidth="0.5"
               strokeOpacity="0.3"
