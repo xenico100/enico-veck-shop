@@ -30,13 +30,13 @@ export default function Footer() {
           <div>
             <p className="section-kicker !tracking-[0.24em]">Network</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <a href="#" className="y2k-button y2k-button-ghost min-h-9 px-3 !text-[0.68rem] no-underline">
+              <a href="#" className="y2k-button y2k-button-ghost y2k-button-fade-tight min-h-9 px-3 !text-[0.68rem] no-underline">
                 Instagram
               </a>
-              <a href="#" className="y2k-button y2k-button-ghost min-h-9 px-3 !text-[0.68rem] no-underline">
+              <a href="#" className="y2k-button y2k-button-ghost y2k-button-fade-tight min-h-9 px-3 !text-[0.68rem] no-underline">
                 YouTube
               </a>
-              <a href="#" className="y2k-button y2k-button-ghost min-h-9 px-3 !text-[0.68rem] no-underline">
+              <a href="#" className="y2k-button y2k-button-ghost y2k-button-fade-tight min-h-9 px-3 !text-[0.68rem] no-underline">
                 Facebook
               </a>
             </div>
