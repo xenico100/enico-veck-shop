@@ -23,6 +23,7 @@ export default function DarkNodeDiagramStack({
   className
 }: DarkNodeDiagramStackProps) {
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const archiveRed = '#c10024';
 
   return (
     <div className={cn('relative min-h-screen w-full overflow-hidden bg-[#f8fbff]', className)}>
@@ -38,16 +39,23 @@ export default function DarkNodeDiagramStack({
             className="dark-node-glitch font-mono text-xs tracking-wider text-[#ff002b] opacity-70 md:text-sm"
             data-text="REAL_ENICO :: SYSTEM ARCHITECTURE MAP"
             style={{
-              textShadow: '0 0 5px #ff002b, 0 0 10px #ff002b'
+              color: archiveRed,
+              textShadow: '0 0 4px rgba(90, 0, 16, 0.18)'
             }}
           >
             REAL_ENICO :: SYSTEM ARCHITECTURE MAP
           </div>
-          <div className="mt-1 font-mono text-[10px] tracking-wider text-[#ff002b] opacity-50 md:text-xs">
+          <div
+            className="mt-1 font-mono text-[10px] tracking-wider opacity-60 md:text-xs"
+            style={{ color: archiveRed }}
+          >
             Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay ×
             PayPal
           </div>
-          <div className="mt-2 font-mono text-[9px] tracking-wider text-[#ff002b] opacity-30 md:text-[10px]">
+          <div
+            className="mt-2 font-mono text-[9px] tracking-wider opacity-45 md:text-[10px]"
+            style={{ color: archiveRed }}
+          >
             [SYSTEM ONLINE] :: {currentDate}
           </div>
         </div>
@@ -103,18 +111,24 @@ export default function DarkNodeDiagramStack({
           <div
             className="dark-node-glitch font-mono text-xs tracking-wider md:text-sm"
             style={{
-              color: '#00ffff',
-              textShadow: '0 0 5px #00ffff, 0 0 10px #00ffff',
+              color: archiveRed,
+              textShadow: '0 0 4px rgba(90, 0, 16, 0.18)',
               opacity: 0.9
             }}
             data-text="PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처"
           >
             PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처
           </div>
-          <div className="mt-1 font-mono text-[10px] tracking-wider text-[#ff00ff] opacity-70 md:text-xs">
+          <div
+            className="mt-1 font-mono text-[10px] tracking-wider opacity-65 md:text-xs"
+            style={{ color: archiveRed }}
+          >
             CLO3D × CLO-SET × Handmade × enicoveck.com
           </div>
-          <div className="mt-2 font-mono text-[9px] tracking-wider text-[#00ff41] opacity-50 md:text-[10px]">
+          <div
+            className="mt-2 font-mono text-[9px] tracking-wider opacity-50 md:text-[10px]"
+            style={{ color: archiveRed }}
+          >
             [NODES: 19] :: [CONNECTIONS: 24] :: [PHASES: 4]
           </div>
         </div>

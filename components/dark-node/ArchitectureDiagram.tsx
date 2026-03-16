@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useState,
+  type ReactElement,
+  type ReactNode
+} from 'react';
 import {
   Monitor,
   Database,
@@ -67,7 +73,6 @@ const FLOW_COLORS: Record<FlowType, string> = {
 
 export const ARCH_SVG_WIDTH = 1300;
 export const ARCH_SVG_HEIGHT = 840;
-const NODE_FILL = 'rgba(150, 150, 150, 0.26)';
 const LABEL_FILL = 'rgba(150, 150, 150, 0.34)';
 
 const I = { lg: 32, md: 24, sm: 18 };
@@ -708,12 +713,21 @@ export function ArchitectureDiagram() {
     return 'ag-x';
   };
 
+  const renderIcon = (icon: ReactNode, size: number) => {
+    if (!isValidElement(icon)) return icon;
+
+    return cloneElement(icon as ReactElement<{ size?: number; strokeWidth?: number }>, {
+      size,
+      strokeWidth: size >= 56 ? 1.25 : 1.4
+    });
+  };
+
   return (
     <svg
       viewBox={`0 0 ${ARCH_SVG_WIDTH} ${ARCH_SVG_HEIGHT}`}
       width={ARCH_SVG_WIDTH}
       height={ARCH_SVG_HEIGHT}
-      style={{ background: 'radial-gradient(circle at center, #080808 0%, #000 100%)' }}
+      style={{ background: '#ffffff' }}
     >
       <defs>
         <filter id="ag-c">
@@ -755,10 +769,24 @@ export function ArchitectureDiagram() {
         <pattern id="ag" width="24" height="24" patternUnits="userSpaceOnUse">
           <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
         </pattern>
+        <radialGradient id="ag-node-fade" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="62%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="ag-board-fade" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
+          <stop offset="45%" stopColor="#ffffff" stopOpacity="0.12" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.28" />
+        </linearGradient>
       </defs>
 
       <rect width="100%" height="100%" fill="#f8fbff" />
-      <rect width="100%" height="100%" fill="url(#ag)" opacity="0.4" />
+      <rect width="100%" height="100%" fill="url(#ag)" opacity="0.22" />
+      <rect width="100%" height="100%" fill="url(#ag-board-fade)" />
+      <ellipse cx="318" cy="266" rx="315" ry="195" fill="url(#ag-node-fade)" opacity="0.95" />
+      <ellipse cx="905" cy="284" rx="348" ry="235" fill="url(#ag-node-fade)" opacity="0.92" />
+      <ellipse cx="316" cy="710" rx="330" ry="125" fill="url(#ag-node-fade)" opacity="0.88" />
 
       <rect
         x="750"
@@ -938,7 +966,13 @@ export function ArchitectureDiagram() {
       {nodes.map((n) => {
         const isH = hNode === n.id;
         const gc = n.glow;
-        const icoA = n.iconSz + 10;
+        const iconSize = Math.max(
+          n.iconSz + 18,
+          Math.min(n.w * 0.42, n.h * 0.72)
+        );
+        const iconBox = iconSize + 12;
+        const iconCx = n.x + n.w / 2;
+        const iconCy = n.y + Math.min(n.h * 0.44, 34);
         const fId = glowId(gc);
 
         return (
@@ -948,50 +982,21 @@ export function ArchitectureDiagram() {
             onMouseLeave={() => setHNode(null)}
             style={{ cursor: 'pointer' }}
           >
-            {isH ? (
-              <rect
-                x={n.x - 3}
-                y={n.y - 3}
-                width={n.w + 6}
-                height={n.h + 6}
-                fill="none"
-                stroke={gc}
-                strokeWidth="1.5"
-                strokeOpacity="0.35"
-                rx="5"
-              />
-            ) : null}
-
-            <rect
-              x={n.x}
-              y={n.y}
-              width={n.w}
-              height={n.h}
-              fill={NODE_FILL}
-              stroke={gc}
-              strokeWidth={isH ? 1.8 : 1}
-              strokeOpacity={isH ? 0.9 : 0.5}
-              rx="3"
-              style={{
-                filter: isH ? `drop-shadow(0 0 10px ${gc}50)` : 'none',
-                transition: 'all 0.15s'
-              }}
-            />
-            <rect
-              x={n.x}
-              y={n.y}
-              width={n.w}
-              height="2.5"
-              fill={gc}
-              opacity={isH ? 0.65 : 0.3}
-              rx="3"
+            <ellipse
+              cx={iconCx}
+              cy={iconCy + 8}
+              rx={Math.max(iconSize * 1.1, n.w * 0.33)}
+              ry={Math.max(iconSize * 0.92, n.h * 0.46)}
+              fill="url(#ag-node-fade)"
+              opacity={isH ? 1 : 0.9}
+              style={{ transition: 'opacity 0.15s' }}
             />
 
             <foreignObject
-              x={n.x + n.w / 2 - icoA / 2}
-              y={n.y + 5}
-              width={icoA}
-              height={icoA}
+              x={iconCx - iconBox / 2}
+              y={iconCy - iconBox / 2}
+              width={iconBox}
+              height={iconBox}
             >
               <div
                 style={{
@@ -1002,35 +1007,35 @@ export function ArchitectureDiagram() {
                   justifyContent: 'center',
                   width: '100%',
                   height: '100%',
-                  opacity: isH ? 1 : 0.9
+                  opacity: isH ? 1 : 0.95
                 }}
               >
-                {n.icon}
+                {renderIcon(n.icon, iconSize)}
               </div>
             </foreignObject>
 
             <text
-              x={n.x + n.w / 2}
-              y={n.y + 5 + icoA + 13}
+              x={iconCx}
+              y={iconCy + iconSize / 2 + 21}
               textAnchor="middle"
               fill={gc}
-              fontSize="11"
+              fontSize="12"
               fontFamily="monospace"
               fontWeight="600"
-              opacity={isH ? 1 : 0.92}
+              opacity={isH ? 1 : 0.95}
             >
               {n.label}
             </text>
 
             {n.sublabel ? (
               <text
-                x={n.x + n.w / 2}
-                y={n.y + 5 + icoA + 26}
+                x={iconCx}
+                y={iconCy + iconSize / 2 + 35}
                 textAnchor="middle"
                 fill={gc}
-                fontSize="8"
+                fontSize="8.5"
                 fontFamily="monospace"
-                opacity={isH ? 0.75 : 0.42}
+                opacity={isH ? 0.8 : 0.5}
               >
                 {n.sublabel}
               </text>
