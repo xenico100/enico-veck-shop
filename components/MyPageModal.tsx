@@ -192,7 +192,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
   const appleFontClass =
     '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const glassIconButtonClass =
-    `y2k-button y2k-button-ghost y2k-button-icon ${appleFontClass}`;
+    `y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-pin ${appleFontClass}`;
   const segmentedWrapClass = `flex w-full flex-wrap items-center gap-2 sm:min-w-max sm:gap-3 ${appleFontClass}`;
   const inputClass =
     'y2k-input w-full px-4 py-3 text-white placeholder:text-white/40 focus:outline-none';
