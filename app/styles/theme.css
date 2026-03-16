@@ -252,28 +252,28 @@ button,
 .y2k-button:link,
 .y2k-button:visited {
   --button-line: rgba(177, 7, 30, 0.42);
-  --button-border: rgba(5, 5, 5, 0.18);
-  --button-text: var(--tone-ink);
-  --button-bg:
-    radial-gradient(140% 240% at 18% 50%, rgba(10, 0, 3, 0.86) 0%, rgba(22, 0, 8, 0.54) 22%, rgba(255, 255, 255, 0) 60%),
-    radial-gradient(95% 125% at 76% 48%, rgba(88, 0, 31, 0.1) 0%, rgba(255, 255, 255, 0) 62%),
-    linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(243, 247, 255, 0.95));
-  --button-hover-border: rgba(5, 5, 5, 0.58);
+  --button-text: #ffffff;
+  --button-fade-opacity: 0.72;
+  --button-core-opacity: 0.58;
+  --button-fade:
+    radial-gradient(138% 228% at 18% 50%, rgba(8, 0, 2, 0.84) 0%, rgba(22, 0, 8, 0.48) 22%, rgba(255, 255, 255, 0) 62%),
+    radial-gradient(104% 126% at 78% 46%, rgba(112, 0, 38, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+  --button-core:
+    radial-gradient(72% 58% at 50% 50%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 72%);
   --button-hover-text: #ffffff;
-  --button-hover-bg:
-    radial-gradient(138% 235% at 18% 50%, rgba(7, 0, 2, 0.98) 0%, rgba(24, 0, 8, 0.82) 24%, rgba(70, 0, 25, 0.36) 52%, rgba(255, 255, 255, 0) 74%),
-    radial-gradient(110% 130% at 82% 45%, rgba(167, 0, 55, 0.26) 0%, rgba(255, 255, 255, 0) 68%),
-    linear-gradient(180deg, rgba(19, 7, 10, 0.94), rgba(12, 2, 5, 0.96));
+  --button-hover-fade-opacity: 0.9;
+  --button-hover-core-opacity: 0.72;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
   position: relative;
+  isolation: isolate;
   min-height: 2.35rem;
   padding: 0.58rem 0.95rem;
-  border: 1px solid var(--button-border);
+  border: 0;
   border-radius: 0.15rem;
-  background: var(--button-bg);
+  background: transparent;
   box-shadow: none;
   color: var(--button-text);
   font-family: var(--font-display), var(--font-display-kr), serif;
@@ -286,49 +286,65 @@ button,
   text-decoration: none;
   text-transform: uppercase;
   white-space: normal;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
   transition:
     opacity 180ms ease,
     color 180ms ease,
     transform 180ms ease;
 }
 
+.y2k-button::before {
+  content: "";
+  position: absolute;
+  inset: -0.45rem -0.9rem;
+  background: var(--button-fade);
+  clip-path: ellipse(68% 58% at 50% 50%);
+  filter: blur(11px);
+  opacity: var(--button-fade-opacity);
+  pointer-events: none;
+  z-index: -2;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    filter 180ms ease;
+}
+
 .y2k-button::after {
   content: "";
   position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.42rem;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, var(--button-line) 12%, var(--button-line) 88%, transparent 100%);
-  opacity: 0.7;
-  transform: scaleX(1);
-  transform-origin: center;
+  inset: -0.08rem 0.2rem;
+  background: var(--button-core);
+  clip-path: ellipse(54% 42% at 50% 50%);
+  filter: blur(6px);
+  opacity: var(--button-core-opacity);
+  pointer-events: none;
+  z-index: -1;
   transition:
+    opacity 180ms ease,
     transform 180ms ease,
-    opacity 180ms ease;
+    filter 180ms ease;
 }
 
 .y2k-button:hover {
   transform: translateY(-1px);
   color: var(--button-hover-text);
-  border-color: var(--button-hover-border);
-  background: var(--button-hover-bg);
+}
+
+.y2k-button:hover::before {
+  opacity: var(--button-hover-fade-opacity);
+  transform: scale(1.04);
+  filter: blur(13px);
 }
 
 .y2k-button:hover::after {
-  opacity: 1;
-  transform: scaleX(1);
+  opacity: var(--button-hover-core-opacity);
+  transform: scale(1.02);
+  filter: blur(7px);
 }
 
 .y2k-button:focus-visible {
   outline: none;
-  color: #050505;
-  box-shadow: 0 0 0 3px rgba(177, 7, 30, 0.14);
-}
-
-.y2k-button:focus-visible::after {
-  opacity: 1;
-  transform: scaleX(1);
+  box-shadow: 0 0 0 3px rgba(167, 0, 55, 0.14);
 }
 
 .y2k-button:disabled,
@@ -339,41 +355,43 @@ button,
 }
 
 .y2k-button-primary {
-  --button-line: rgba(255, 255, 255, 0.7);
-  --button-border: rgba(86, 0, 30, 0.46);
   --button-text: #ffffff;
-  --button-bg:
-    radial-gradient(138% 235% at 18% 50%, rgba(7, 0, 2, 0.98) 0%, rgba(24, 0, 8, 0.82) 24%, rgba(70, 0, 25, 0.36) 52%, rgba(255, 255, 255, 0) 74%),
-    radial-gradient(110% 130% at 82% 45%, rgba(167, 0, 55, 0.28) 0%, rgba(255, 255, 255, 0) 68%),
-    linear-gradient(180deg, rgba(167, 0, 55, 0.96), rgba(125, 0, 45, 0.94));
-  --button-hover-border: rgba(8, 0, 3, 0.72);
-  --button-hover-text: #ffffff;
-  --button-hover-bg:
-    radial-gradient(142% 238% at 18% 50%, rgba(5, 0, 2, 1) 0%, rgba(22, 0, 7, 0.88) 24%, rgba(62, 0, 21, 0.42) 52%, rgba(255, 255, 255, 0) 75%),
-    radial-gradient(108% 128% at 82% 44%, rgba(167, 0, 55, 0.34) 0%, rgba(255, 255, 255, 0) 70%),
-    linear-gradient(180deg, rgba(122, 0, 43, 0.98), rgba(88, 0, 31, 0.98));
+  --button-fade-opacity: 0.86;
+  --button-core-opacity: 0.72;
+  --button-fade:
+    radial-gradient(142% 236% at 18% 50%, rgba(8, 0, 2, 0.98) 0%, rgba(24, 0, 8, 0.78) 24%, rgba(72, 0, 26, 0.34) 54%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(106% 128% at 82% 44%, rgba(167, 0, 55, 0.32) 0%, rgba(255, 255, 255, 0) 70%);
+  --button-core:
+    radial-gradient(70% 54% at 48% 50%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 72%);
+  --button-hover-fade-opacity: 0.98;
+  --button-hover-core-opacity: 0.82;
 }
 
 .y2k-button-accent {
-  --button-line: rgba(255, 255, 255, 0.4);
-  --button-border: rgba(16, 6, 8, 0.56);
   --button-text: #ffffff;
-  --button-bg:
-    radial-gradient(140% 235% at 20% 50%, rgba(4, 0, 1, 0.98) 0%, rgba(18, 0, 6, 0.78) 26%, rgba(58, 0, 20, 0.24) 52%, rgba(255, 255, 255, 0) 74%),
-    radial-gradient(100% 126% at 80% 44%, rgba(119, 0, 41, 0.18) 0%, rgba(255, 255, 255, 0) 70%),
-    linear-gradient(180deg, rgba(18, 7, 8, 0.96), rgba(8, 2, 4, 0.98));
+  --button-fade-opacity: 0.84;
+  --button-core-opacity: 0.64;
+  --button-fade:
+    radial-gradient(140% 234% at 18% 50%, rgba(4, 0, 1, 0.98) 0%, rgba(18, 0, 6, 0.78) 26%, rgba(58, 0, 20, 0.24) 52%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(102% 126% at 80% 44%, rgba(119, 0, 41, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+  --button-core:
+    radial-gradient(68% 52% at 50% 50%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 74%);
+  --button-hover-fade-opacity: 0.94;
+  --button-hover-core-opacity: 0.74;
 }
 
 .y2k-button-ghost {
-  --button-line: rgba(83, 73, 60, 0.24);
-  --button-border: rgba(10, 6, 7, 0.16);
-  --button-text: #1b1415;
-  --button-bg:
-    radial-gradient(138% 235% at 18% 50%, rgba(8, 0, 2, 0.72) 0%, rgba(19, 0, 7, 0.44) 22%, rgba(255, 255, 255, 0) 60%),
-    radial-gradient(96% 124% at 78% 48%, rgba(112, 0, 38, 0.08) 0%, rgba(255, 255, 255, 0) 64%),
-    linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(243, 247, 255, 0.95));
-  --button-hover-border: rgba(8, 0, 3, 0.54);
+  --button-text: #150f10;
+  --button-fade-opacity: 0.52;
+  --button-core-opacity: 0.82;
+  --button-fade:
+    radial-gradient(138% 230% at 18% 50%, rgba(8, 0, 2, 0.58) 0%, rgba(19, 0, 7, 0.3) 22%, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(96% 124% at 78% 48%, rgba(112, 0, 38, 0.08) 0%, rgba(255, 255, 255, 0) 64%);
+  --button-core:
+    radial-gradient(74% 56% at 50% 50%, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0) 70%);
   --button-hover-text: #ffffff;
+  --button-hover-fade-opacity: 0.84;
+  --button-hover-core-opacity: 0.52;
 }
 
 .y2k-button-icon {
