@@ -82,8 +82,8 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fffefb_0%,#f8f4ed_100%)] px-4 text-stone-900">
-      <div className="w-full max-w-md rounded-[1rem] border border-stone-900/10 bg-[rgba(255,253,249,0.94)] p-6 shadow-[0_24px_60px_rgba(58,43,26,0.08)] md:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fafaf5_0%,#efefe8_100%)] px-4 text-stone-900">
+      <div className="w-full max-w-md rounded-[1rem] border border-stone-900/10 bg-[rgba(248,248,243,0.94)] p-6 shadow-[0_24px_60px_rgba(58,52,45,0.06)] md:p-8">
         <div className="mb-6 text-center">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">Account Recovery</p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950 md:text-3xl">
@@ -95,17 +95,17 @@ export default function ResetPasswordPage() {
         </div>
 
         {checkingSession ? (
-          <div className="rounded-2xl border border-stone-900/10 bg-stone-50 p-4 text-sm text-stone-600">
+            <div className="rounded-2xl border border-stone-900/10 bg-stone-50 p-4 text-sm text-stone-600">
             세션을 확인하는 중…
           </div>
         ) : !hasSession ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-100">
+            <div className="rounded-2xl border border-red-400/20 bg-red-100 p-4 text-sm text-red-800">
               재설정 세션을 찾을 수 없습니다. 이메일의 링크를 다시 눌러주세요.
             </div>
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4efe6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#ecece5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >
               로그인으로 돌아가기
             </Link>
@@ -143,7 +143,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {error && (
-              <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
+              <div className="rounded-2xl border border-red-400/20 bg-red-100 p-3 text-sm text-red-800">
                 {error}
               </div>
             )}
@@ -163,7 +163,7 @@ export default function ResetPasswordPage() {
 
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4efe6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#ecece5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >
               로그인 페이지로 이동
             </Link>

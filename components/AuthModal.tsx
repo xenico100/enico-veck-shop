@@ -121,7 +121,7 @@ export default function AuthModal({
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-end justify-center p-2 pt-12 sm:items-center sm:p-4">
         <div
-          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-[0.9rem] border border-stone-900/10 bg-[rgba(255,253,249,0.96)] shadow-[0_24px_70px_rgba(59,44,27,0.08)] ${appleFontClass}`}
+          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-[0.9rem] border border-stone-900/10 bg-[rgba(248,248,243,0.96)] shadow-[0_24px_70px_rgba(58,52,45,0.06)] ${appleFontClass}`}
         >
           <div className="flex items-center justify-between border-b border-stone-900/10 px-4 py-4 sm:px-6 sm:py-5">
             <div className={tabGroupClass}>
@@ -190,7 +190,7 @@ export default function AuthModal({
 
             {error && <div className="text-sm text-red-400">{error}</div>}
             {mode === 'login' && resetError && (
-              <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
+              <div className="rounded-2xl border border-red-400/20 bg-red-100 p-3 text-sm text-red-800">
                 {resetError}
               </div>
             )}

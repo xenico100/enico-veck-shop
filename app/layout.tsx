@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import {
-  Archivo,
+  Black_Han_Sans,
   IBM_Plex_Mono,
   Noto_Sans_KR,
+  Teko,
 } from "next/font/google";
 
 import "./styles/tailwind.css";
@@ -16,10 +17,16 @@ const sansFont = Noto_Sans_KR({
   weight: ["300", "400", "500", "700"],
 });
 
-const displayFont = Archivo({
+const displayFont = Teko({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["500", "600", "700"],
+});
+
+const displayKrFont = Black_Han_Sans({
+  subsets: ["latin"],
+  variable: "--font-display-kr",
+  weight: "400",
 });
 
 const monoFont = IBM_Plex_Mono({
@@ -51,7 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${sansFont.variable} ${displayFont.variable} ${monoFont.variable}`}
+      className={`${sansFont.variable} ${displayFont.variable} ${displayKrFont.variable} ${monoFont.variable}`}
     >
       <body className="bg-background text-foreground antialiased">
         <Providers>{children}</Providers>

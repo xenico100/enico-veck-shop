@@ -76,7 +76,7 @@ function GlassCloseButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/90 shadow-sm backdrop-blur-md transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
     >
       <X className="h-4 w-4" />
     </button>
@@ -477,7 +477,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
         <DialogPrimitive.Content
-          className={`fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1rem] border border-stone-900/10 bg-[rgba(255,253,249,0.96)] shadow-[0_24px_70px_rgba(59,44,27,0.08)] backdrop-blur-xl outline-none ${appleFontClass}`}
+          className={`cart-sheet fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1rem] border border-stone-900/10 bg-[rgba(248,248,243,0.98)] shadow-[0_24px_70px_rgba(58,52,45,0.06)] backdrop-blur-xl outline-none ${appleFontClass}`}
         >
           <div className="flex items-start justify-between gap-4 border-b border-stone-900/10 px-4 py-4 sm:px-5 md:px-6">
             <div className="min-w-0">
@@ -725,7 +725,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                   </div>
 
                   {hasUnpricedItems ? (
-                    <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
+                    <div className="rounded-2xl border border-red-400/20 bg-red-100 p-3 text-sm text-red-800">
                       가격 정보가 없는 항목이 있어 결제를 진행할 수 없습니다.
                     </div>
                   ) : totalKRW <= 0 ? (
@@ -948,7 +948,7 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
                 </div>
 
                 {checkoutError && (
-                  <div className="rounded-2xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-100">
+                  <div className="rounded-2xl border border-red-400/20 bg-red-100 p-3 text-sm text-red-800">
                     {checkoutError}
                   </div>
                 )}

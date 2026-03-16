@@ -5,7 +5,6 @@ import { useState } from 'react';
 import {
   BOARD,
   BoardMark,
-  toneColor,
   type BoardMarkVariant,
   type BoardTone
 } from '@/components/dark-node/board-theme';
@@ -31,13 +30,21 @@ type ConnectionSpec = {
   wp: [number, number][];
 };
 
-const FLOW_COLORS: Record<FlowType, string> = {
-  data: BOARD.ink,
-  image: BOARD.wood,
-  auth: BOARD.gold,
-  payment: BOARD.goldSoft,
-  admin: BOARD.rust,
-  repo: BOARD.woodSoft
+const NODE_COLORS: Record<BoardTone, string> = {
+  ink: '#4f7daa',
+  wood: '#5d7460',
+  rust: '#b52930',
+  gold: '#b69143',
+  neutral: '#7f8b97'
+};
+
+export const ARCH_FLOW_COLORS: Record<FlowType, string> = {
+  data: '#4f7daa',
+  image: '#5d7460',
+  auth: '#b69143',
+  payment: '#d07f44',
+  admin: '#b52930',
+  repo: '#7f8b97'
 };
 
 export const ARCH_SVG_WIDTH = 1300;
@@ -156,7 +163,7 @@ export function ArchitectureDiagram() {
           <path d="M 48 0 L 0 0 0 48" fill="none" stroke={BOARD.line} strokeWidth="1" strokeOpacity="0.32" />
           <rect x="-1" y="-1" width="2" height="2" fill={BOARD.line} fillOpacity="0.38" />
         </pattern>
-        {Object.entries(FLOW_COLORS).map(([key, color]) => (
+        {Object.entries(ARCH_FLOW_COLORS).map(([key, color]) => (
           <marker key={key} id={`arch-end-${key}`} markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
             <path d="M4 0L8 4L4 8L0 4Z" fill={color} />
           </marker>
@@ -176,14 +183,14 @@ export function ArchitectureDiagram() {
             rx="0"
             fill={BOARD.paperSoft}
             fillOpacity="0.92"
-            stroke={toneColor(group.tone)}
+            stroke={NODE_COLORS[group.tone]}
             strokeWidth="1.3"
-            strokeOpacity="0.55"
+            strokeOpacity="0.62"
           />
           <text
             x={group.x + 12}
             y={group.y - 8}
-            fill={BOARD.ink}
+            fill={NODE_COLORS[group.tone]}
             fontSize="11"
             letterSpacing="2"
             fontWeight="600"
@@ -203,7 +210,7 @@ export function ArchitectureDiagram() {
       ))}
 
       {conns.map((conn, idx) => {
-        const color = FLOW_COLORS[conn.flow];
+        const color = ARCH_FLOW_COLORS[conn.flow];
         const isHover = hoverConn === idx;
         const path = buildPath(conn.wp, 12);
         const pos = conn.label ? labelPos(conn.wp) : null;
@@ -257,14 +264,15 @@ export function ArchitectureDiagram() {
       })}
 
       {nodes.map((node) => {
-        const tone = toneColor(node.tone);
+        const tone = NODE_COLORS[node.tone];
         const isHover = hoverNode === node.id;
         const compact = node.h <= 62 || node.w <= 110;
-        const markSize = compact ? 20 : 24;
-        const markBox = compact ? 24 : 30;
-        const titleX = node.x + (compact ? 38 : 50);
-        const titleY = node.y + (compact ? 28 : 35);
-        const subY = node.y + (compact ? 42 : 52);
+        const markSize = compact ? 28 : 36;
+        const markBox = compact ? 36 : 46;
+        const dividerX = node.x + (compact ? 44 : 58);
+        const titleX = node.x + (compact ? 54 : 70);
+        const titleY = node.y + (compact ? 27 : 34);
+        const subY = node.y + (compact ? 43 : 52);
 
         return (
           <g
@@ -305,9 +313,9 @@ export function ArchitectureDiagram() {
               fillOpacity="0.14"
             />
             <line
-              x1={node.x + (compact ? 32 : 42)}
+              x1={dividerX}
               y1={node.y}
-              x2={node.x + (compact ? 32 : 42)}
+              x2={dividerX}
               y2={node.y + node.h}
               stroke={BOARD.line}
               strokeWidth="1"
@@ -345,7 +353,7 @@ export function ArchitectureDiagram() {
               strokeWidth="1.1"
             />
             <g transform={`translate(${node.x + 8 + (markBox - markSize) / 2}, ${node.y + 8 + (markBox - markSize) / 2})`}>
-              <BoardMark variant={node.mark} tone={node.tone} size={markSize} />
+              <BoardMark variant={node.mark} tone={node.tone} size={markSize} color={tone} />
             </g>
             <text
               x={titleX}

@@ -5,10 +5,12 @@ import { useState } from 'react';
 import { cn } from '@/utils/cn';
 import {
   ArchitectureDiagram,
+  ARCH_FLOW_COLORS,
   ARCH_SVG_HEIGHT,
   ARCH_SVG_WIDTH
 } from '@/components/dark-node/ArchitectureDiagram';
 import {
+  PROD_PHASE_COLORS,
   ProductionDiagram,
   PROD_SVG_HEIGHT,
   PROD_SVG_WIDTH
@@ -118,11 +120,11 @@ export default function DarkNodeDiagramStack({
             style={{ borderColor: BOARD.line }}
           >
             <div className="flex flex-wrap gap-x-5 gap-y-2">
-              <LegendSwatch color={BOARD.ink} label="데이터 흐름" />
-              <LegendSwatch color={BOARD.wood} label="이미지 흐름" />
-              <LegendSwatch color={BOARD.gold} label="인증 · 결제" />
-              <LegendSwatch color={BOARD.rust} label="관리자 흐름" />
-              <LegendSwatch color={BOARD.line} label="저장소 · 소스 구조" />
+              <LegendSwatch color={ARCH_FLOW_COLORS.data} label="데이터 흐름" />
+              <LegendSwatch color={ARCH_FLOW_COLORS.image} label="이미지 흐름" />
+              <LegendSwatch color={ARCH_FLOW_COLORS.auth} label="인증 · 결제" />
+              <LegendSwatch color={ARCH_FLOW_COLORS.admin} label="관리자 흐름" />
+              <LegendSwatch color={ARCH_FLOW_COLORS.repo} label="저장소 · 소스 구조" />
             </div>
 
             <div
@@ -196,10 +198,10 @@ export default function DarkNodeDiagramStack({
             style={{ borderColor: BOARD.line }}
           >
             <div className="flex flex-wrap gap-x-5 gap-y-2">
-              <LegendSwatch color={BOARD.ink} label="디지털 설계" />
-              <LegendSwatch color={BOARD.wood} label="아카이브 / 데이터" />
-              <LegendSwatch color={BOARD.rust} label="실물 제작" />
-              <LegendSwatch color={BOARD.gold} label="이커머스 결과물" />
+              <LegendSwatch color={PROD_PHASE_COLORS.digital} label="디지털 설계" />
+              <LegendSwatch color={PROD_PHASE_COLORS.archive} label="아카이브 / 데이터" />
+              <LegendSwatch color={PROD_PHASE_COLORS.physical} label="실물 제작" />
+              <LegendSwatch color={PROD_PHASE_COLORS.ecommerce} label="이커머스 결과물" />
             </div>
 
             <div

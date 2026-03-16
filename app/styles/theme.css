@@ -18,7 +18,7 @@
   --destructive-foreground: 40 24% 98%;
   --border: 30 16% 80%;
   --input: 40 22% 97%;
-  --input-background: rgba(255, 253, 249, 0.88);
+  --input-background: rgba(250, 250, 245, 0.88);
   --switch-background: 36 12% 76%;
   --ring: 84 12% 42%;
   --chart-1: 84 12% 42%;
@@ -35,8 +35,8 @@
   --sidebar-accent-foreground: 26 18% 14%;
   --sidebar-border: 30 16% 80%;
   --sidebar-ring: 84 12% 42%;
-  --tone-paper: #fffdf9;
-  --tone-paper-deep: #f2ece3;
+  --tone-paper: #fafaf5;
+  --tone-paper-deep: #ecebe6;
   --tone-ink: #19130e;
   --tone-ink-soft: #574d42;
   --tone-line: rgba(83, 73, 60, 0.16);
@@ -47,6 +47,10 @@
   --tone-sun-soft: rgba(198, 173, 121, 0.14);
   --tone-mist: #c7ccd1;
   --tone-stone: rgba(102, 92, 79, 0.08);
+  --tone-blood: #b31924;
+  --tone-blood-deep: #7e141d;
+  --tone-horror-white: #fafaf5;
+  --tone-horror-white-deep: #efefe8;
 }
 
 .dark {
@@ -103,9 +107,9 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-sans), "Noto Sans KR", "Pretendard", sans-serif;
   background:
-    radial-gradient(circle at 86% 14%, rgba(198, 173, 121, 0.16), transparent 22%),
-    radial-gradient(circle at 14% 8%, rgba(199, 204, 209, 0.14), transparent 20%),
-    linear-gradient(180deg, #fffefb 0%, #faf7f1 38%, #f4efe6 100%);
+    radial-gradient(circle at 86% 14%, rgba(188, 176, 136, 0.1), transparent 20%),
+    radial-gradient(circle at 14% 8%, rgba(188, 191, 192, 0.1), transparent 18%),
+    linear-gradient(180deg, var(--tone-horror-white) 0%, #f4f4ee 42%, var(--tone-horror-white-deep) 100%);
   letter-spacing: 0.004em;
   line-height: 1.6;
 }
@@ -142,12 +146,12 @@ body::before {
 body::after {
   opacity: 1;
   background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.54), transparent 18%, transparent 82%, rgba(80, 68, 52, 0.03) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 18%, transparent 82%, rgba(92, 92, 84, 0.04) 100%);
   mix-blend-mode: normal;
 }
 
 ::selection {
-  background: rgba(198, 173, 121, 0.28);
+  background: rgba(179, 25, 36, 0.2);
   color: var(--tone-ink);
 }
 
@@ -158,10 +162,10 @@ h4,
 h5,
 h6 {
   margin: 0;
-  font-family: var(--font-display), var(--font-sans), "Noto Sans KR", sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.012em;
-  color: var(--tone-ink);
+  font-family: var(--font-display), var(--font-display-kr), var(--font-sans), "Noto Sans KR", sans-serif !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.035em !important;
+  color: var(--tone-blood) !important;
 }
 
 a {
@@ -205,9 +209,9 @@ button,
 }
 
 .display-font {
-  font-family: var(--font-display), var(--font-sans), "Noto Sans KR", sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display), var(--font-display-kr), var(--font-sans), "Noto Sans KR", sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.035em;
 }
 
 .section-shell {
@@ -227,11 +231,11 @@ button,
   border: 1px solid var(--tone-line);
   border-radius: 0.8rem;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 243, 236, 0.92)),
-    var(--tone-paper);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 244, 238, 0.96)),
+    var(--tone-horror-white);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 18px 40px rgba(73, 57, 38, 0.05);
+    0 18px 40px rgba(63, 49, 37, 0.05);
   backdrop-filter: blur(8px);
 }
 
@@ -257,17 +261,18 @@ button,
   font-weight: 400;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(87, 77, 66, 0.76);
+  color: rgba(126, 20, 29, 0.8);
 }
 
 .section-title {
   margin-top: 0.8rem;
   font-size: clamp(1.8rem, 4.3vw, 3.5rem);
   line-height: 0.94;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-wrap: balance;
   text-shadow: none;
+  color: var(--tone-blood);
 }
 
 .y2k-button,
@@ -378,9 +383,9 @@ button,
   border-radius: 0.7rem;
   border: 1px solid var(--tone-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 241, 232, 0.94)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(239, 239, 232, 0.96)),
     var(--tone-paper);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
   color: var(--tone-ink);
 }
 
@@ -406,7 +411,7 @@ button,
 .mypage-shell {
   border: 1px solid var(--tone-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 243, 236, 0.9)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(240, 240, 233, 0.92)),
     radial-gradient(circle at top right, rgba(198, 173, 121, 0.08), transparent 36%);
   box-shadow: 0 22px 50px rgba(63, 46, 28, 0.06);
 }
@@ -414,7 +419,7 @@ button,
 .mypage-account {
   background:
     radial-gradient(circle at top left, rgba(198, 173, 121, 0.08), transparent 34%),
-    linear-gradient(180deg, #fffefb 0%, #faf7f1 48%, #f4efe6 100%);
+    linear-gradient(180deg, #fafaf5 0%, #f3f3ed 48%, #ecece5 100%);
 }
 
 .mypage-shell [class*="rounded-3xl"],
@@ -439,7 +444,7 @@ button,
 .mypage-account [class*="bg-white/5"],
 .mypage-account [class*="bg-white/10"],
 .mypage-account [class*="bg-black/20"] {
-  background: rgba(255, 253, 249, 0.74) !important;
+  background: rgba(248, 248, 243, 0.78) !important;
 }
 
 .mypage-shell [class*="shadow-"],
@@ -449,6 +454,76 @@ button,
 
 .mypage-shell [class*="backdrop-blur"],
 .mypage-account [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+
+.cart-sheet {
+  background:
+    linear-gradient(180deg, rgba(251, 251, 247, 0.98), rgba(240, 240, 233, 0.98)),
+    var(--tone-horror-white) !important;
+}
+
+.cart-sheet [class*="border-white/"] {
+  border-color: var(--tone-line) !important;
+}
+
+.cart-sheet [class*="bg-white/"] {
+  background: rgba(255, 255, 255, 0.7) !important;
+}
+
+.cart-sheet [class*="bg-black/20"] {
+  background: rgba(236, 236, 229, 0.92) !important;
+}
+
+.cart-sheet [class*="from-white/"] {
+  --tw-gradient-from: rgba(255, 255, 255, 0.82) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(255, 255, 255, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.cart-sheet [class*="to-white/"] {
+  --tw-gradient-to: rgba(241, 241, 236, 0.88) var(--tw-gradient-to-position) !important;
+}
+
+.cart-sheet [class*="text-white"] {
+  color: rgba(25, 19, 17, 0.94) !important;
+}
+
+.cart-sheet [class*="text-white/95"] {
+  color: rgba(25, 19, 17, 0.95) !important;
+}
+
+.cart-sheet [class*="text-white/90"] {
+  color: rgba(25, 19, 17, 0.9) !important;
+}
+
+.cart-sheet [class*="text-white/80"] {
+  color: rgba(25, 19, 17, 0.8) !important;
+}
+
+.cart-sheet [class*="text-white/70"],
+.cart-sheet [class*="text-white/65"],
+.cart-sheet [class*="text-white/60"],
+.cart-sheet [class*="text-white/55"] {
+  color: rgba(25, 19, 17, 0.66) !important;
+}
+
+.cart-sheet [class*="text-white/50"],
+.cart-sheet [class*="text-white/45"],
+.cart-sheet [class*="text-white/40"],
+.cart-sheet [class*="text-white/35"] {
+  color: rgba(25, 19, 17, 0.48) !important;
+}
+
+.cart-sheet input[class*="placeholder:text-white/35"]::placeholder {
+  color: rgba(25, 19, 17, 0.35) !important;
+}
+
+.cart-sheet [class*="shadow-"] {
+  box-shadow: 0 12px 24px rgba(72, 54, 39, 0.05) !important;
+}
+
+.cart-sheet [class*="backdrop-blur"] {
   backdrop-filter: none !important;
 }
 

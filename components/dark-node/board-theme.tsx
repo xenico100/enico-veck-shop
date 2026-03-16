@@ -1,20 +1,20 @@
 'use client';
 
 export const BOARD = {
-  ink: '#17120d',
-  inkSoft: '#3b2d1e',
-  paper: '#f6f2ea',
-  paperSoft: '#fffdf9',
-  paperDeep: '#e8dfd0',
-  wood: '#74573b',
-  woodSoft: '#9d8a74',
-  rust: '#7a4d34',
-  rustSoft: '#98715a',
-  gold: '#8f7442',
-  goldSoft: '#b59a65',
-  line: '#d3c7b8',
-  lineSoft: '#ece5db',
-  shadow: '#69553d'
+  ink: '#181311',
+  inkSoft: '#524746',
+  paper: '#fafaf5',
+  paperSoft: '#ffffff',
+  paperDeep: '#ecebe6',
+  wood: '#5d7460',
+  woodSoft: '#7f8b97',
+  rust: '#b52930',
+  rustSoft: '#8d3539',
+  gold: '#b69143',
+  goldSoft: '#d0a55a',
+  line: '#d7d3cc',
+  lineSoft: '#efede8',
+  shadow: '#6b605a'
 } as const;
 
 export type BoardTone = 'ink' | 'wood' | 'rust' | 'gold' | 'neutral';
@@ -48,17 +48,19 @@ type BoardMarkProps = {
   variant: BoardMarkVariant;
   tone: BoardTone;
   size?: number;
+  color?: string;
 };
 
 export function BoardMark({
   variant,
   tone,
-  size = 30
+  size = 30,
+  color
 }: BoardMarkProps) {
-  const stroke = toneColor(tone);
+  const stroke = color ?? toneColor(tone);
   const common = {
     stroke,
-    strokeWidth: 2,
+    strokeWidth: 2.4,
     strokeLinecap: 'square' as const,
     strokeLinejoin: 'miter' as const,
     fill: 'none'

@@ -5,7 +5,6 @@ import { useState } from 'react';
 import {
   BOARD,
   BoardMark,
-  toneColor,
   type BoardMarkVariant,
   type BoardTone
 } from '@/components/dark-node/board-theme';
@@ -38,6 +37,13 @@ const PHASE_TONES: PhaseTone = {
   archive: 'wood',
   physical: 'rust',
   ecommerce: 'gold'
+};
+
+export const PROD_PHASE_COLORS: Record<Phase, string> = {
+  digital: '#4f7daa',
+  archive: '#5d7460',
+  physical: '#b52930',
+  ecommerce: '#b69143'
 };
 
 export const PROD_SVG_WIDTH = 1360;
@@ -170,7 +176,7 @@ export function ProductionDiagram() {
         </pattern>
         {Object.entries(PHASE_TONES).map(([phase, tone]) => (
           <marker key={phase} id={`prod-end-${phase}`} markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-            <path d="M4 0L8 4L4 8L0 4Z" fill={toneColor(tone)} />
+            <path d="M4 0L8 4L4 8L0 4Z" fill={PROD_PHASE_COLORS[phase as Phase]} />
           </marker>
         ))}
       </defs>
@@ -179,7 +185,7 @@ export function ProductionDiagram() {
       <rect width="100%" height="100%" fill="url(#prod-grid)" opacity="0.52" />
 
       {phaseRows.map((group) => {
-        const tone = toneColor(PHASE_TONES[group.phase]);
+        const tone = PROD_PHASE_COLORS[group.phase];
         return (
           <g key={group.label}>
             <rect
@@ -194,7 +200,7 @@ export function ProductionDiagram() {
               strokeWidth="1.3"
               strokeOpacity="0.5"
             />
-            <text x={group.x + 12} y={group.y - 8} fill={BOARD.ink} fontSize="11" fontWeight="700" letterSpacing="1.8">
+            <text x={group.x + 12} y={group.y - 8} fill={tone} fontSize="11" fontWeight="700" letterSpacing="1.8">
               {group.label}
             </text>
             <text x={group.x + group.w - 12} y={group.y - 8} fill={BOARD.inkSoft} fontSize="10" textAnchor="end">
@@ -205,7 +211,7 @@ export function ProductionDiagram() {
       })}
 
       {connections.map((conn, idx) => {
-        const color = toneColor(PHASE_TONES[conn.color]);
+        const color = PROD_PHASE_COLORS[conn.color];
         const isHover = hoverConn === idx;
         const path = buildPath(conn.waypoints, 14);
         const labelPos = conn.label ? getLabelPos(conn.waypoints) : null;
@@ -260,7 +266,7 @@ export function ProductionDiagram() {
       })}
 
       {nodes.map((node) => {
-        const tone = toneColor(PHASE_TONES[node.phase]);
+        const tone = PROD_PHASE_COLORS[node.phase];
         const isHover = hoverNode === node.id;
         const compact = node.w <= 180;
         const phaseCode =
@@ -271,10 +277,11 @@ export function ProductionDiagram() {
               : node.phase === 'physical'
                 ? 'P'
                 : 'E';
-        const markSize = compact ? 20 : 24;
-        const markBox = compact ? 24 : 30;
-        const titleX = node.x + (compact ? 38 : 50);
-        const titleY = node.y + 35;
+        const markSize = compact ? 28 : 36;
+        const markBox = compact ? 36 : 46;
+        const dividerX = node.x + (compact ? 44 : 58);
+        const titleX = node.x + (compact ? 54 : 70);
+        const titleY = node.y + 34;
         const subY = node.y + 52;
 
         return (
@@ -315,9 +322,9 @@ export function ProductionDiagram() {
               fillOpacity="0.14"
             />
             <line
-              x1={node.x + (compact ? 32 : 42)}
+              x1={dividerX}
               y1={node.y}
-              x2={node.x + (compact ? 32 : 42)}
+              x2={dividerX}
               y2={node.y + node.h}
               stroke={BOARD.line}
               strokeWidth="1"
@@ -334,7 +341,7 @@ export function ProductionDiagram() {
               strokeWidth="1.1"
             />
             <g transform={`translate(${node.x + 8 + (markBox - markSize) / 2}, ${node.y + 8 + (markBox - markSize) / 2})`}>
-              <BoardMark variant={node.mark} tone={PHASE_TONES[node.phase]} size={markSize} />
+              <BoardMark variant={node.mark} tone={PHASE_TONES[node.phase]} size={markSize} color={tone} />
             </g>
             <text
               x={node.x + node.w - 16}

@@ -24,7 +24,7 @@ function PaypalButtonInner({ buttonProps }: PaypalButtonProps) {
 
   if (isRejected) {
     return (
-      <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
+      <div className="rounded-xl border border-red-400/20 bg-red-100 px-3 py-3 text-sm text-red-800">
         PayPal SDK 로드에 실패했습니다. 개발 서버를 재시작하고(환경변수 반영), 광고 차단기/추적 차단을 잠시 끈 뒤 다시 시도해 주세요.
       </div>
     );
@@ -43,7 +43,7 @@ export default function PaypalButton({ buttonProps }: PaypalButtonProps) {
 
   if (!clientId) {
     return (
-      <div className="rounded-xl border border-red-300/20 bg-red-300/10 px-3 py-3 text-sm text-red-100">
+      <div className="rounded-xl border border-red-400/20 bg-red-100 px-3 py-3 text-sm text-red-800">
         Missing NEXT_PUBLIC_PAYPAL_CLIENT_ID (PayPal JS SDK client env)
       </div>
     );
