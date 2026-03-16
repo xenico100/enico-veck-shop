@@ -24,7 +24,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <span className="tech-chip hidden md:inline-flex">Board Index</span>
           <button
             onClick={onMenuClick}
-            className="y2k-button y2k-button-ghost group px-3 sm:px-4 !text-[0.7rem] !tracking-[0.16em]"
+            className="y2k-button y2k-button-ghost y2k-button-fade-micro group px-3 sm:px-4 !text-[0.7rem] !tracking-[0.16em]"
             aria-label="메뉴 열기"
           >
             <span>ACCESS</span>

@@ -91,7 +91,7 @@ export default function SideMenu({
           <button
             aria-label="메뉴 닫기"
             onClick={onClose}
-            className="y2k-button y2k-button-ghost y2k-button-icon"
+            className="y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-micro"
           >
             <X className="h-5 w-5" />
           </button>
@@ -116,7 +116,7 @@ export default function SideMenu({
             {isAuthenticated && (
               <button
                 onClick={handleMyPageClick}
-                className="y2k-button y2k-button-ghost w-full justify-center"
+                className="y2k-button y2k-button-ghost y2k-button-fade-micro w-full justify-center"
               >
                 MY PAGE
               </button>
@@ -124,7 +124,7 @@ export default function SideMenu({
 
             <button
               onClick={handleCartClick}
-              className="y2k-button y2k-button-primary w-full justify-center"
+              className="y2k-button y2k-button-primary y2k-button-fade-micro w-full justify-center"
             >
               <ShoppingCart className="h-4 w-4" />
               CART{totalItems > 0 ? ` (${totalItems})` : ''}
@@ -140,7 +140,7 @@ export default function SideMenu({
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="y2k-button y2k-button-accent w-full justify-center"
+                  className="y2k-button y2k-button-accent y2k-button-fade-micro w-full justify-center"
                 >
                   LOGOUT
                 </button>
@@ -148,7 +148,7 @@ export default function SideMenu({
             ) : (
               <button
                 onClick={handleLoginClick}
-                className="y2k-button y2k-button-accent w-full justify-center"
+                className="y2k-button y2k-button-accent y2k-button-fade-micro w-full justify-center"
               >
                 LOGIN
               </button>
