@@ -25,7 +25,7 @@ export default function DarkNodeDiagramStack({
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   return (
-    <div className={cn('relative min-h-screen w-full overflow-hidden bg-black', className)}>
+    <div className={cn('relative min-h-screen w-full overflow-hidden bg-white', className)}>
       <div className="pointer-events-none absolute inset-0 z-20 opacity-10">
         <div className="dark-node-scanlines h-full" />
       </div>
@@ -220,7 +220,7 @@ export default function DarkNodeDiagramStack({
           left: -2px;
           top: 0;
           overflow: hidden;
-          background: black;
+          background: white;
           color: #00ff41;
           text-shadow: -2px 0 #ff00ff;
           clip: rect(0, 900px, 0, 0);
