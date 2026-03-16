@@ -35,16 +35,19 @@ export default function DarkNodeDiagramStack({
       <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
         <div className="mb-4 md:mb-6">
           <div
-            className="dark-node-glitch font-mono text-xs tracking-wider text-[#00ff41] opacity-70 md:text-sm"
+            className="dark-node-glitch font-mono text-xs tracking-wider text-[#ff002b] opacity-70 md:text-sm"
             data-text="REAL_ENICO :: SYSTEM ARCHITECTURE MAP"
+            style={{
+              textShadow: '0 0 5px #ff002b, 0 0 10px #ff002b'
+            }}
           >
             REAL_ENICO :: SYSTEM ARCHITECTURE MAP
           </div>
-          <div className="mt-1 font-mono text-[10px] tracking-wider text-[#00ff41] opacity-50 md:text-xs">
+          <div className="mt-1 font-mono text-[10px] tracking-wider text-[#ff002b] opacity-50 md:text-xs">
             Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay ×
             PayPal
           </div>
-          <div className="mt-2 font-mono text-[9px] tracking-wider text-[#00ffff] opacity-30 md:text-[10px]">
+          <div className="mt-2 font-mono text-[9px] tracking-wider text-[#ff002b] opacity-30 md:text-[10px]">
             [SYSTEM ONLINE] :: {currentDate}
           </div>
         </div>
