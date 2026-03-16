@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import {
-  Cinzel,
   IBM_Plex_Mono,
+  Libre_Bodoni,
   Noto_Sans_KR,
   Noto_Serif_KR,
 } from "next/font/google";
@@ -17,7 +17,7 @@ const sansFont = Noto_Sans_KR({
   weight: ["300", "400", "500", "700"],
 });
 
-const displayFont = Cinzel({
+const displayFont = Libre_Bodoni({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["600", "700"],
