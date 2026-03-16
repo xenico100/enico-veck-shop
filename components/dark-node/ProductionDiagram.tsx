@@ -619,11 +619,25 @@ export function ProductionDiagram() {
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="p-icon-fade" cx="50%" cy="46%" r="66%">
-          <stop offset="0%" stopColor="#170007" stopOpacity="0.94" />
-          <stop offset="40%" stopColor="#120005" stopOpacity="0.76" />
-          <stop offset="72%" stopColor="#0c0003" stopOpacity="0.28" />
+          <stop offset="0%" stopColor="#140005" stopOpacity="0.58" />
+          <stop offset="36%" stopColor="#110004" stopOpacity="0.44" />
+          <stop offset="68%" stopColor="#0a0003" stopOpacity="0.16" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id="p-icon-core" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#050001" stopOpacity="0.72" />
+          <stop offset="42%" stopColor="#0b0003" stopOpacity="0.36" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="p-icon-ring" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000000" stopOpacity="0" />
+          <stop offset="46%" stopColor="#000000" stopOpacity="0" />
+          <stop offset="68%" stopColor="#140005" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
+        <filter id="p-singularity" x="-140%" y="-140%" width="380%" height="380%">
+          <feGaussianBlur stdDeviation="11" />
+        </filter>
         <linearGradient id="p-board-fade" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
           <stop offset="45%" stopColor="#ffffff" stopOpacity="0.12" />
@@ -778,17 +792,39 @@ export function ProductionDiagram() {
               style={{ transition: 'opacity 0.15s' }}
             />
 
-            <ellipse
-              cx={iconCx}
-              cy={iconCy}
-              rx={iconSize * 0.88}
-              ry={iconSize * 0.88}
-              fill="url(#p-icon-fade)"
-              opacity={isH ? 0.98 : 0.9}
+            <g
+              filter="url(#p-singularity)"
+              opacity={isH ? 0.88 : 0.72}
               style={{
                 transition: 'all 0.15s'
               }}
-            />
+            >
+              <ellipse
+                cx={iconCx - iconSize * 0.08}
+                cy={iconCy + iconSize * 0.04}
+                rx={iconSize * 1.02}
+                ry={iconSize * 0.5}
+                fill="url(#p-icon-fade)"
+                transform={`rotate(-12 ${iconCx - iconSize * 0.08} ${iconCy + iconSize * 0.04})`}
+              />
+              <ellipse
+                cx={iconCx + iconSize * 0.1}
+                cy={iconCy - iconSize * 0.08}
+                rx={iconSize * 0.74}
+                ry={iconSize * 0.34}
+                fill="url(#p-icon-ring)"
+                opacity="0.72"
+                transform={`rotate(16 ${iconCx + iconSize * 0.1} ${iconCy - iconSize * 0.08})`}
+              />
+              <ellipse
+                cx={iconCx}
+                cy={iconCy}
+                rx={iconSize * 0.42}
+                ry={iconSize * 0.42}
+                fill="url(#p-icon-core)"
+                opacity="0.7"
+              />
+            </g>
 
             <foreignObject
               x={iconCx - iconBox / 2}
