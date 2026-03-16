@@ -135,8 +135,8 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
   const appleFontClass =
     '[font-family:var(--font-sans),"IBM Plex Sans KR","Pretendard",sans-serif]';
   const segmentedContainerClass = `flex w-full flex-wrap items-center gap-2 sm:min-w-max sm:gap-3 ${appleFontClass}`;
-  const serviceSecondaryButtonClass = `y2k-button y2k-button-ghost h-11 flex-1 !min-h-11 !px-4 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
-  const servicePrimaryButtonClass = `y2k-button y2k-button-primary h-11 flex-1 !min-h-11 !px-5 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
+  const serviceSecondaryButtonClass = `y2k-button y2k-button-ghost y2k-button-service-fade h-11 flex-1 !min-h-11 !px-4 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
+  const servicePrimaryButtonClass = `y2k-button y2k-button-primary y2k-button-service-fade h-11 flex-1 !min-h-11 !px-5 !text-[0.72rem] !tracking-[0.06em] !leading-tight !whitespace-normal ${appleFontClass}`;
   const arrowButtonClass = 'y2k-button y2k-button-ghost y2k-button-icon size-11';
   const adminWriteButtonClass = `y2k-button y2k-button-ghost !min-h-10 !px-4 !text-[0.74rem] !tracking-[0.08em] ${appleFontClass}`;
   const createInputClass =

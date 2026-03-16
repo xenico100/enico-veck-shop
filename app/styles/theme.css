@@ -447,6 +447,25 @@ button,
   filter: blur(1.8px);
 }
 
+.y2k-button-service-fade {
+  --button-fade-opacity: 0.5;
+  --button-core-opacity: 0.42;
+  --button-hover-fade-opacity: 0.62;
+  --button-hover-core-opacity: 0.5;
+}
+
+.y2k-button-service-fade::before {
+  inset: -0.04rem -0.12rem;
+  clip-path: ellipse(54% 46% at 50% 50%);
+  filter: blur(2.2px);
+}
+
+.y2k-button-service-fade::after {
+  inset: 0.08rem 0.28rem;
+  clip-path: ellipse(44% 34% at 50% 50%);
+  filter: blur(1.1px);
+}
+
 .y2k-input {
   border-radius: 0.15rem;
   border: 1px solid rgba(18, 7, 8, 0.18);
