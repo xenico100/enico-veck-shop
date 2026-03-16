@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useState,
+  type ReactElement,
+  type ReactNode
+} from 'react';
 import {
   Scissors,
   Box,
@@ -57,14 +63,40 @@ const C = {
 
 export const PROD_SVG_WIDTH = 1360;
 export const PROD_SVG_HEIGHT = 820;
-const NODE_FILL = 'rgba(150, 150, 150, 0.26)';
-const LABEL_FILL = 'rgba(150, 150, 150, 0.34)';
+const LABEL_FILL = 'rgba(0, 0, 0, 0.18)';
+
+const mixWithBlack = (hex: string, amount = 0.42) => {
+  const normalized = hex.replace('#', '');
+  const value = normalized.length === 3
+    ? normalized
+        .split('')
+        .map((char) => char + char)
+        .join('')
+    : normalized;
+
+  const parts = value.match(/.{2}/g);
+  if (!parts) return hex;
+
+  const [r, g, b] = parts.map((part) => parseInt(part, 16));
+  const blend = (channel: number) => Math.round(channel * (1 - amount));
+
+  return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
+};
 
 export function ProductionDiagram() {
   const [hNode, setHNode] = useState<string | null>(null);
   const [hConn, setHConn] = useState<number | null>(null);
 
   const I = 32;
+
+  const renderIcon = (icon: ReactNode, size: number) => {
+    if (!isValidElement(icon)) return icon;
+
+    return cloneElement(icon as ReactElement<{ size?: number; strokeWidth?: number }>, {
+      size,
+      strokeWidth: size >= 56 ? 1.25 : 1.4
+    });
+  };
 
   const nodes: ProdNode[] = [
     {
@@ -548,7 +580,7 @@ export function ProductionDiagram() {
       viewBox={`0 0 ${PROD_SVG_WIDTH} ${PROD_SVG_HEIGHT}`}
       width={PROD_SVG_WIDTH}
       height={PROD_SVG_HEIGHT}
-      style={{ background: 'radial-gradient(circle at 50% 50%, #080808 0%, #000 100%)' }}
+      style={{ background: '#ffffff' }}
     >
       <defs>
         <filter id="p-gc">
@@ -581,6 +613,22 @@ export function ProductionDiagram() {
         <pattern id="p-grid" width="24" height="24" patternUnits="userSpaceOnUse">
           <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
         </pattern>
+        <radialGradient id="p-node-fade" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="62%" stopColor="#ffffff" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="p-icon-fade" cx="50%" cy="46%" r="66%">
+          <stop offset="0%" stopColor="#000000" stopOpacity="0.94" />
+          <stop offset="40%" stopColor="#000000" stopOpacity="0.76" />
+          <stop offset="72%" stopColor="#000000" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="p-board-fade" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
+          <stop offset="45%" stopColor="#ffffff" stopOpacity="0.12" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0.28" />
+        </linearGradient>
 
         <style>{`
           @keyframes p-dash { to { stroke-dashoffset: -24; } }
@@ -589,7 +637,12 @@ export function ProductionDiagram() {
       </defs>
 
       <rect width="100%" height="100%" fill="#f8fbff" />
-      <rect width="100%" height="100%" fill="url(#p-grid)" opacity="0.35" />
+      <rect width="100%" height="100%" fill="url(#p-grid)" opacity="0.22" />
+      <rect width="100%" height="100%" fill="url(#p-board-fade)" />
+      <ellipse cx="675" cy="104" rx="630" ry="115" fill="url(#p-node-fade)" opacity="0.92" />
+      <ellipse cx="680" cy="310" rx="640" ry="132" fill="url(#p-node-fade)" opacity="0.88" />
+      <ellipse cx="680" cy="520" rx="640" ry="132" fill="url(#p-node-fade)" opacity="0.88" />
+      <ellipse cx="680" cy="728" rx="640" ry="118" fill="url(#p-node-fade)" opacity="0.9" />
 
       {phaseRows.map((g) => (
         <g key={g.phase}>
@@ -608,8 +661,8 @@ export function ProductionDiagram() {
           <text
             x={g.x + 10}
             y={g.y - 5}
-            fill={C[g.phase]}
-            fontSize="9"
+            fill={mixWithBlack(C[g.phase], 0.56)}
+            fontSize="10"
             fontFamily="monospace"
             opacity="0.45"
             letterSpacing="2"
@@ -619,8 +672,8 @@ export function ProductionDiagram() {
           <text
             x={g.x + g.w - 10}
             y={g.y - 5}
-            fill={C[g.phase]}
-            fontSize="8"
+            fill={mixWithBlack(C[g.phase], 0.68)}
+            fontSize="9"
             fontFamily="monospace"
             opacity="0.35"
             textAnchor="end"
@@ -665,18 +718,18 @@ export function ProductionDiagram() {
             {labelPos && conn.label ? (
               <g>
                 <rect
-                  x={labelPos.x - conn.label.length * 3.2 - 4}
-                  y={labelPos.y - 10}
-                  width={conn.label.length * 6.4 + 8}
-                  height={14}
+                  x={labelPos.x - conn.label.length * 4.2 - 6}
+                  y={labelPos.y - 12}
+                  width={conn.label.length * 8.4 + 12}
+                  height={18}
                   fill={LABEL_FILL}
                   rx="2"
                 />
                 <text
                   x={labelPos.x}
-                  y={labelPos.y}
-                  fill={conn.color}
-                  fontSize="9"
+                  y={labelPos.y + 1}
+                  fill={mixWithBlack(conn.color, 0.56)}
+                  fontSize="10.5"
                   fontFamily="monospace"
                   textAnchor="middle"
                   opacity={isH ? 1 : 0.65}
@@ -692,7 +745,15 @@ export function ProductionDiagram() {
       {nodes.map((node) => {
         const isH = hNode === node.id;
         const gc = node.glow;
-        const icoArea = node.iconSize + 10;
+        const tc = mixWithBlack(gc, 0.54);
+        const sc = mixWithBlack(gc, 0.68);
+        const iconSize = Math.max(
+          node.iconSize + 18,
+          Math.min(node.w * 0.42, node.h * 0.72)
+        );
+        const iconBox = iconSize + 12;
+        const iconCx = node.x + node.w / 2;
+        const iconCy = node.y + Math.min(node.h * 0.44, 34);
 
         let iconFilter = 'p-gc';
         if (node.phase === 'archive') iconFilter = 'p-gg';
@@ -706,70 +767,45 @@ export function ProductionDiagram() {
             onMouseLeave={() => setHNode(null)}
             style={{ cursor: 'pointer' }}
           >
-            {isH ? (
-              <rect
-                x={node.x - 3}
-                y={node.y - 3}
-                width={node.w + 6}
-                height={node.h + 6}
-                fill="none"
-                stroke={gc}
-                strokeWidth="1.5"
-                strokeOpacity="0.35"
-                rx="5"
-              />
-            ) : null}
+            <ellipse
+              cx={iconCx}
+              cy={iconCy + 8}
+              rx={Math.max(iconSize * 1.1, node.w * 0.33)}
+              ry={Math.max(iconSize * 0.92, node.h * 0.46)}
+              fill="url(#p-node-fade)"
+              opacity={isH ? 1 : 0.9}
+              style={{ transition: 'opacity 0.15s' }}
+            />
 
             <rect
-              x={node.x}
-              y={node.y}
-              width={node.w}
-              height={node.h}
-              fill={NODE_FILL}
-              stroke={gc}
-              strokeWidth={isH ? 1.8 : 1}
-              strokeOpacity={isH ? 0.9 : 0.5}
-              rx="3"
+              x={iconCx - iconSize * 0.64}
+              y={iconCy - iconSize * 0.64}
+              width={iconSize * 1.28}
+              height={iconSize * 1.28}
+              fill="url(#p-icon-fade)"
+              stroke={mixWithBlack(gc, 0.38)}
+              strokeOpacity={isH ? 0.38 : 0.24}
+              strokeWidth="1"
+              rx="4"
               style={{
-                filter: isH ? `drop-shadow(0 0 10px ${gc}50)` : 'none',
                 transition: 'all 0.15s'
               }}
             />
-
             <rect
-              x={node.x}
-              y={node.y}
-              width={node.w}
+              x={iconCx - iconSize * 0.64}
+              y={iconCy - iconSize * 0.64}
+              width={iconSize * 1.28}
               height="2"
               fill={gc}
-              opacity={isH ? 0.6 : 0.3}
+              opacity={isH ? 0.72 : 0.42}
               rx="3"
             />
 
-            <circle
-              cx={node.x}
-              cy={node.y + node.h / 2}
-              r="3"
-              fill="#000"
-              stroke={gc}
-              strokeWidth="1"
-              strokeOpacity="0.5"
-            />
-            <circle
-              cx={node.x + node.w}
-              cy={node.y + node.h / 2}
-              r="3"
-              fill="#000"
-              stroke={gc}
-              strokeWidth="1"
-              strokeOpacity="0.5"
-            />
-
             <foreignObject
-              x={node.x + node.w / 2 - icoArea / 2}
-              y={node.y + 5}
-              width={icoArea}
-              height={icoArea}
+              x={iconCx - iconBox / 2}
+              y={iconCy - iconBox / 2}
+              width={iconBox}
+              height={iconBox}
             >
               <div
                 style={{
@@ -783,61 +819,32 @@ export function ProductionDiagram() {
                   opacity: isH ? 1 : 0.9
                 }}
               >
-                {node.icon}
+                {renderIcon(node.icon, iconSize)}
               </div>
             </foreignObject>
 
-            <rect
-              x={node.x + node.w - 38}
-              y={node.y + 6}
-              width="32"
-              height="13"
-              fill={LABEL_FILL}
-              stroke={gc}
-              strokeWidth="0.5"
-              strokeOpacity="0.3"
-              rx="2"
-            />
             <text
-              x={node.x + node.w - 22}
-              y={node.y + 16}
-              fill={gc}
-              fontSize="7"
-              fontFamily="monospace"
+              x={iconCx}
+              y={iconCy + iconSize / 2 + 21}
               textAnchor="middle"
-              opacity="0.6"
-            >
-              {node.phase === 'digital'
-                ? 'DGT'
-                : node.phase === 'archive'
-                  ? 'ARC'
-                  : node.phase === 'physical'
-                    ? 'PHY'
-                    : 'ECM'}
-            </text>
-
-            <text
-              x={node.x + node.w / 2}
-              y={node.y + 5 + icoArea + 14}
-              textAnchor="middle"
-              fill={gc}
-              fontSize="11"
+              fill={tc}
+              fontSize="14.5"
               fontFamily="monospace"
               fontWeight="600"
-              opacity={isH ? 1 : 0.9}
+              opacity={isH ? 1 : 0.95}
             >
               {node.label}
             </text>
 
             {node.sublabel ? (
               <text
-                x={node.x + node.w / 2}
-                y={node.y + 5 + icoArea + 27}
+                x={iconCx}
+                y={iconCy + iconSize / 2 + 40}
                 textAnchor="middle"
-                fill={gc}
-                fontSize="8"
+                fill={sc}
+                fontSize="10"
                 fontFamily="monospace"
-                opacity={isH ? 0.75 : 0.45}
+                opacity={isH ? 0.8 : 0.5}
               >
                 {node.sublabel}
               </text>

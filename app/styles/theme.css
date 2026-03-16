@@ -6,22 +6,22 @@
   --card-foreground: 354 32% 6%;
   --popover: 215 100% 99%;
   --popover-foreground: 354 32% 6%;
-  --primary: 350 100% 50%;
+  --primary: 341 100% 33%;
   --primary-foreground: 0 0% 100%;
   --secondary: 214 46% 96%;
   --secondary-foreground: 354 32% 6%;
   --muted: 214 46% 96%;
   --muted-foreground: 354 16% 22%;
-  --accent: 350 100% 50%;
+  --accent: 341 100% 33%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 350 100% 50%;
+  --destructive: 341 100% 33%;
   --destructive-foreground: 0 0% 100%;
   --border: 214 28% 86%;
   --input: 215 100% 99%;
   --input-background: rgba(247, 250, 255, 0.96);
   --switch-background: 214 18% 86%;
-  --ring: 350 100% 50%;
-  --chart-1: 350 100% 50%;
+  --ring: 341 100% 33%;
+  --chart-1: 341 100% 33%;
   --chart-2: 354 32% 6%;
   --chart-3: 34 30% 42%;
   --chart-4: 0 0% 72%;
@@ -29,26 +29,26 @@
   --radius: 0.6rem;
   --sidebar: 215 100% 99%;
   --sidebar-foreground: 354 32% 6%;
-  --sidebar-primary: 350 100% 50%;
+  --sidebar-primary: 341 100% 33%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 214 46% 96%;
   --sidebar-accent-foreground: 354 32% 6%;
   --sidebar-border: 214 28% 86%;
-  --sidebar-ring: 350 100% 50%;
+  --sidebar-ring: 341 100% 33%;
   --tone-paper: #f7faff;
   --tone-paper-deep: #eef4ff;
   --tone-ink: #120708;
   --tone-ink-soft: #352220;
   --tone-line: rgba(18, 7, 8, 0.14);
   --tone-line-strong: rgba(18, 7, 8, 0.3);
-  --tone-olive: #ff002b;
-  --tone-olive-soft: rgba(255, 0, 43, 0.08);
+  --tone-olive: #a70037;
+  --tone-olive-soft: rgba(167, 0, 55, 0.08);
   --tone-sun: #8a6a49;
   --tone-sun-soft: rgba(138, 106, 73, 0.08);
   --tone-mist: #d8cec3;
   --tone-stone: rgba(18, 7, 8, 0.05);
-  --tone-blood: #ff002b;
-  --tone-blood-deep: #c00022;
+  --tone-blood: #a70037;
+  --tone-blood-deep: #730023;
   --tone-horror-white: #f8fbff;
   --tone-horror-white-deep: #f1f6ff;
 }
@@ -60,27 +60,27 @@
   --card-foreground: 354 32% 6%;
   --popover: 215 100% 99%;
   --popover-foreground: 354 32% 6%;
-  --primary: 350 100% 50%;
+  --primary: 341 100% 33%;
   --primary-foreground: 0 0% 100%;
   --secondary: 214 46% 96%;
   --secondary-foreground: 354 32% 6%;
   --muted: 214 46% 96%;
   --muted-foreground: 354 16% 22%;
-  --accent: 350 100% 50%;
+  --accent: 341 100% 33%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 350 100% 50%;
+  --destructive: 341 100% 33%;
   --destructive-foreground: 0 0% 100%;
   --border: 214 28% 86%;
   --input: 215 100% 99%;
-  --ring: 350 100% 50%;
+  --ring: 341 100% 33%;
   --sidebar: 215 100% 99%;
   --sidebar-foreground: 354 32% 6%;
-  --sidebar-primary: 350 100% 50%;
+  --sidebar-primary: 341 100% 33%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 214 46% 96%;
   --sidebar-accent-foreground: 354 32% 6%;
   --sidebar-border: 214 28% 86%;
-  --sidebar-ring: 350 100% 50%;
+  --sidebar-ring: 341 100% 33%;
 }
 
 *,
@@ -117,7 +117,7 @@ body::after {
 }
 
 ::selection {
-  background: rgba(255, 0, 43, 0.18);
+  background: rgba(167, 0, 55, 0.18);
   color: var(--tone-ink);
 }
 
@@ -167,7 +167,7 @@ button,
 ::-webkit-scrollbar-thumb {
   border-radius: 0.6rem;
   border: 2px solid rgba(247, 250, 255, 0.96);
-  background: linear-gradient(180deg, rgba(18, 7, 8, 0.9), rgba(255, 0, 43, 0.88));
+  background: linear-gradient(180deg, rgba(18, 7, 8, 0.9), rgba(167, 0, 55, 0.84));
 }
 
 ::-webkit-scrollbar-track {

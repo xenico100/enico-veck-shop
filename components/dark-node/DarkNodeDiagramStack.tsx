@@ -23,7 +23,7 @@ export default function DarkNodeDiagramStack({
   className
 }: DarkNodeDiagramStackProps) {
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const archiveRed = '#8e001b';
+  const archiveRed = '#7d002d';
   const dataInk = '#0b5c61';
   const imageInk = '#17652f';
   const authInk = '#865114';
@@ -42,7 +42,7 @@ export default function DarkNodeDiagramStack({
       <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
         <div className="mb-4 md:mb-6">
           <div
-            className="dark-node-glitch font-mono text-xs tracking-wider text-[#ff002b] opacity-70 md:text-sm"
+            className="dark-node-glitch font-mono text-xs tracking-wider opacity-70 md:text-sm"
             data-text="REAL_ENICO :: SYSTEM ARCHITECTURE MAP"
             style={{
               color: archiveRed,

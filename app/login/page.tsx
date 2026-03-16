@@ -163,7 +163,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={loading || resetLoading}
-                className="inline-flex min-h-11 items-center rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#edf3ff] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
+                className="inline-flex min-h-11 items-center rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#edf3ff] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a70037]/20"
               >
                 {resetLoading ? '전송 중…' : '비밀번호 찾기'}
               </button>
@@ -172,7 +172,7 @@ export default function LoginPage() {
 
           <button 
             type="submit" disabled={loading || resetLoading}
-            className="rounded-[0.2rem] border border-[#ff002b]/80 bg-[#ff002b] px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:border-stone-900/8 disabled:bg-stone-100 disabled:text-stone-400"
+            className="rounded-[0.2rem] border border-[#a70037]/80 bg-[#a70037] px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:border-stone-900/8 disabled:bg-stone-100 disabled:text-stone-400"
           >
             {loading ? '처리 중...' : (isSignUp ? '이메일로 회원가입' : '이메일로 로그인')}
           </button>

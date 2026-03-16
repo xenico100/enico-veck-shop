@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
             </div>
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#edf3ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#edf3ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a70037]/20"
             >
               로그인으로 돌아가기
             </Link>
@@ -156,14 +156,14 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-[#ff002b]/80 bg-[#ff002b] px-5 text-sm font-semibold tracking-[0.1px] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff002b]/20"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-[#a70037]/80 bg-[#a70037] px-5 text-sm font-semibold tracking-[0.1px] text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a70037]/20"
             >
               {loading ? '변경 중…' : '새 비밀번호 저장'}
             </button>
 
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#edf3ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-[#f8fbff] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#edf3ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a70037]/20"
             >
               로그인 페이지로 이동
             </Link>
