@@ -252,6 +252,18 @@ button,
 .y2k-button:link,
 .y2k-button:visited {
   --button-line: rgba(177, 7, 30, 0.42);
+  --button-border: rgba(5, 5, 5, 0.18);
+  --button-text: var(--tone-ink);
+  --button-bg:
+    radial-gradient(140% 240% at 18% 50%, rgba(10, 0, 3, 0.86) 0%, rgba(22, 0, 8, 0.54) 22%, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(95% 125% at 76% 48%, rgba(88, 0, 31, 0.1) 0%, rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(243, 247, 255, 0.95));
+  --button-hover-border: rgba(5, 5, 5, 0.58);
+  --button-hover-text: #ffffff;
+  --button-hover-bg:
+    radial-gradient(138% 235% at 18% 50%, rgba(7, 0, 2, 0.98) 0%, rgba(24, 0, 8, 0.82) 24%, rgba(70, 0, 25, 0.36) 52%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(110% 130% at 82% 45%, rgba(167, 0, 55, 0.26) 0%, rgba(255, 255, 255, 0) 68%),
+    linear-gradient(180deg, rgba(19, 7, 10, 0.94), rgba(12, 2, 5, 0.96));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -259,11 +271,11 @@ button,
   position: relative;
   min-height: 2.35rem;
   padding: 0.58rem 0.95rem;
-  border: 1px solid rgba(5, 5, 5, 0.18);
+  border: 1px solid var(--button-border);
   border-radius: 0.15rem;
-  background: rgba(247, 250, 255, 0.98);
+  background: var(--button-bg);
   box-shadow: none;
-  color: var(--tone-ink);
+  color: var(--button-text);
   font-family: var(--font-display), var(--font-display-kr), serif;
   font-size: 0.82rem;
   font-weight: 700;
@@ -298,9 +310,9 @@ button,
 
 .y2k-button:hover {
   transform: translateY(-1px);
-  color: #ffffff;
-  border-color: rgba(5, 5, 5, 0.92);
-  background: #120708;
+  color: var(--button-hover-text);
+  border-color: var(--button-hover-border);
+  background: var(--button-hover-bg);
 }
 
 .y2k-button:hover::after {
@@ -328,20 +340,40 @@ button,
 
 .y2k-button-primary {
   --button-line: rgba(255, 255, 255, 0.7);
-  border-color: rgba(177, 7, 30, 0.92);
-  background: var(--tone-blood);
-  color: #ffffff;
+  --button-border: rgba(86, 0, 30, 0.46);
+  --button-text: #ffffff;
+  --button-bg:
+    radial-gradient(138% 235% at 18% 50%, rgba(7, 0, 2, 0.98) 0%, rgba(24, 0, 8, 0.82) 24%, rgba(70, 0, 25, 0.36) 52%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(110% 130% at 82% 45%, rgba(167, 0, 55, 0.28) 0%, rgba(255, 255, 255, 0) 68%),
+    linear-gradient(180deg, rgba(167, 0, 55, 0.96), rgba(125, 0, 45, 0.94));
+  --button-hover-border: rgba(8, 0, 3, 0.72);
+  --button-hover-text: #ffffff;
+  --button-hover-bg:
+    radial-gradient(142% 238% at 18% 50%, rgba(5, 0, 2, 1) 0%, rgba(22, 0, 7, 0.88) 24%, rgba(62, 0, 21, 0.42) 52%, rgba(255, 255, 255, 0) 75%),
+    radial-gradient(108% 128% at 82% 44%, rgba(167, 0, 55, 0.34) 0%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, rgba(122, 0, 43, 0.98), rgba(88, 0, 31, 0.98));
 }
 
 .y2k-button-accent {
   --button-line: rgba(255, 255, 255, 0.4);
-  border-color: rgba(18, 7, 8, 0.96);
-  background: #120708;
-  color: #ffffff;
+  --button-border: rgba(16, 6, 8, 0.56);
+  --button-text: #ffffff;
+  --button-bg:
+    radial-gradient(140% 235% at 20% 50%, rgba(4, 0, 1, 0.98) 0%, rgba(18, 0, 6, 0.78) 26%, rgba(58, 0, 20, 0.24) 52%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(100% 126% at 80% 44%, rgba(119, 0, 41, 0.18) 0%, rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, rgba(18, 7, 8, 0.96), rgba(8, 2, 4, 0.98));
 }
 
 .y2k-button-ghost {
   --button-line: rgba(83, 73, 60, 0.24);
+  --button-border: rgba(10, 6, 7, 0.16);
+  --button-text: #1b1415;
+  --button-bg:
+    radial-gradient(138% 235% at 18% 50%, rgba(8, 0, 2, 0.72) 0%, rgba(19, 0, 7, 0.44) 22%, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(96% 124% at 78% 48%, rgba(112, 0, 38, 0.08) 0%, rgba(255, 255, 255, 0) 64%),
+    linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(243, 247, 255, 0.95));
+  --button-hover-border: rgba(8, 0, 3, 0.54);
+  --button-hover-text: #ffffff;
 }
 
 .y2k-button-icon {
