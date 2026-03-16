@@ -780,7 +780,7 @@ export function ArchitectureDiagram() {
             refY="4"
             orient="auto"
           >
-            <polygon points="0 0, 10 4, 0 8" fill={color} />
+            <polygon points="0 0, 10 4, 0 8" fill={mixWithBlack(color, 0.34)} />
           </marker>
         ))}
 
@@ -935,6 +935,7 @@ export function ArchitectureDiagram() {
         const path = smooth(c.wp, 13);
         const isH = hConn === idx;
         const color = FLOW_COLORS[c.flow];
+        const lineColor = mixWithBlack(color, 0.34);
         const lp = c.label ? labelPos(c.wp) : null;
         const charW = c.label ? c.label.length * 4.2 + 7 : 0;
 
@@ -943,14 +944,14 @@ export function ArchitectureDiagram() {
             <path
               d={path}
               fill="none"
-              stroke={color}
+              stroke={lineColor}
               strokeWidth={isH ? 6 : 2.5}
               strokeOpacity={isH ? 0.18 : 0.04}
             />
             <path
               d={path}
               fill="none"
-              stroke={color}
+              stroke={lineColor}
               strokeWidth={isH ? 2.5 : 1.8}
               strokeOpacity={isH ? 1 : 0.6}
               markerEnd={`url(#aa-${c.flow})`}
@@ -958,7 +959,7 @@ export function ArchitectureDiagram() {
               onMouseLeave={() => setHConn(null)}
               style={{
                 cursor: 'pointer',
-                filter: isH ? `drop-shadow(0 0 6px ${color})` : 'none',
+                filter: isH ? `drop-shadow(0 0 6px ${lineColor})` : 'none',
                 transition: 'all 0.15s'
               }}
             />

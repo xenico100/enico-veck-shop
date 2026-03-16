@@ -606,7 +606,7 @@ export function ProductionDiagram() {
             refY="4"
             orient="auto"
           >
-            <polygon points="0 0, 10 4, 0 8" fill={C[ph]} />
+            <polygon points="0 0, 10 4, 0 8" fill={mixWithBlack(C[ph], 0.34)} />
           </marker>
         ))}
 
@@ -686,6 +686,7 @@ export function ProductionDiagram() {
       {connections.map((conn, idx) => {
         const path = buildSmoothPath(conn.waypoints, 14);
         const isH = hConn === idx;
+        const lineColor = mixWithBlack(conn.color, 0.34);
         const marker = `url(#p-a-${conn.flowType})`;
         const labelPos = conn.label ? getLabelPos(conn.waypoints) : null;
 
@@ -694,14 +695,14 @@ export function ProductionDiagram() {
             <path
               d={path}
               fill="none"
-              stroke={conn.color}
+              stroke={lineColor}
               strokeWidth={isH ? 6 : 2.5}
               strokeOpacity={isH ? 0.15 : 0.04}
             />
             <path
               d={path}
               fill="none"
-              stroke={conn.color}
+              stroke={lineColor}
               strokeWidth={isH ? 2.5 : 1.8}
               strokeOpacity={isH ? 1 : conn.dashed ? 0.35 : 0.65}
               strokeDasharray={conn.dashed ? '6 4' : 'none'}
@@ -711,7 +712,7 @@ export function ProductionDiagram() {
               onMouseLeave={() => setHConn(null)}
               style={{
                 cursor: 'pointer',
-                filter: isH ? `drop-shadow(0 0 5px ${conn.color})` : 'none',
+                filter: isH ? `drop-shadow(0 0 5px ${lineColor})` : 'none',
                 transition: 'all 0.15s'
               }}
             />
