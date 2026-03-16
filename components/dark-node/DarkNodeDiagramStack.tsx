@@ -54,7 +54,7 @@ export default function DarkNodeDiagramStack({
         </ZoomableCanvas>
 
         <div className="mt-3 font-mono text-[10px] md:text-xs">
-          <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#1a1a1a] bg-[#0a0a0a] p-2 backdrop-blur-sm md:p-3">
+          <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#d2d2d2] bg-white p-2 backdrop-blur-sm md:p-3">
             <div className="mb-1 w-full tracking-wide text-[#00ff41] opacity-70">
               FLOW TYPES:
             </div>

@@ -75,7 +75,7 @@ export default function SideMenu({
       />
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 w-[18rem] max-w-[92vw] border-l border-stone-900/10 bg-[rgba(255,252,248,0.98)] shadow-none backdrop-blur-xl transition-transform duration-300 sm:w-[20rem] sm:max-w-[90vw] ${
+        className={`fixed inset-y-0 right-0 z-50 w-[18rem] max-w-[92vw] border-l border-stone-900/10 bg-white shadow-none backdrop-blur-xl transition-transform duration-300 sm:w-[20rem] sm:max-w-[90vw] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         role="dialog"

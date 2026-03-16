@@ -82,8 +82,8 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fffdfa_0%,#f7efe5_100%)] px-4 text-stone-900">
-      <div className="w-full max-w-md rounded-[0.2rem] border border-stone-900/10 bg-[rgba(255,252,248,0.96)] p-6 shadow-none md:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-white px-4 text-stone-900">
+      <div className="w-full max-w-md rounded-[0.2rem] border border-stone-900/10 bg-white p-6 shadow-none md:p-8">
         <div className="mb-6 text-center">
           <p className="text-xs uppercase tracking-[0.32em] text-stone-500">Account Recovery</p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950 md:text-3xl">
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
             </div>
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-[rgba(255,252,248,0.98)] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4ebe1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-white px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
             >
               로그인으로 돌아가기
             </Link>
@@ -163,7 +163,7 @@ export default function ResetPasswordPage() {
 
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-[rgba(255,252,248,0.98)] px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4ebe1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-[0.2rem] border border-stone-900/10 bg-white px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
             >
               로그인 페이지로 이동
             </Link>

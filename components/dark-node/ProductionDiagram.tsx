@@ -586,6 +586,7 @@ export function ProductionDiagram() {
         `}</style>
       </defs>
 
+      <rect width="100%" height="100%" fill="#ffffff" />
       <rect width="100%" height="100%" fill="url(#p-grid)" opacity="0.35" />
 
       {phaseRows.map((g) => (

@@ -755,6 +755,7 @@ export function ArchitectureDiagram() {
         </pattern>
       </defs>
 
+      <rect width="100%" height="100%" fill="#ffffff" />
       <rect width="100%" height="100%" fill="url(#ag)" opacity="0.4" />
 
       <rect
