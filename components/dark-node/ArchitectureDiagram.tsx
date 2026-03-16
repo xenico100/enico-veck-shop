@@ -793,9 +793,9 @@ export function ArchitectureDiagram() {
           <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="ag-icon-fade" cx="50%" cy="46%" r="66%">
-          <stop offset="0%" stopColor="#000000" stopOpacity="0.94" />
-          <stop offset="40%" stopColor="#000000" stopOpacity="0.76" />
-          <stop offset="72%" stopColor="#000000" stopOpacity="0.28" />
+          <stop offset="0%" stopColor="#170007" stopOpacity="0.94" />
+          <stop offset="40%" stopColor="#120005" stopOpacity="0.76" />
+          <stop offset="72%" stopColor="#0c0003" stopOpacity="0.28" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="ag-board-fade" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1018,28 +1018,16 @@ export function ArchitectureDiagram() {
               style={{ transition: 'opacity 0.15s' }}
             />
 
-            <rect
-              x={iconCx - iconSize * 0.64}
-              y={iconCy - iconSize * 0.64}
-              width={iconSize * 1.28}
-              height={iconSize * 1.28}
+            <ellipse
+              cx={iconCx}
+              cy={iconCy}
+              rx={iconSize * 0.88}
+              ry={iconSize * 0.88}
               fill="url(#ag-icon-fade)"
-              stroke={mixWithBlack(gc, 0.38)}
-              strokeOpacity={isH ? 0.38 : 0.24}
-              strokeWidth="1"
-              rx="4"
+              opacity={isH ? 0.98 : 0.9}
               style={{
                 transition: 'all 0.15s'
               }}
-            />
-            <rect
-              x={iconCx - iconSize * 0.64}
-              y={iconCy - iconSize * 0.64}
-              width={iconSize * 1.28}
-              height="2"
-              fill={gc}
-              opacity={isH ? 0.72 : 0.42}
-              rx="4"
             />
 
             <foreignObject
