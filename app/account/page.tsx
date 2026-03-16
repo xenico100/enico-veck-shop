@@ -39,7 +39,7 @@ export default async function Account() {
           <h1 className="section-title !mt-0 !text-[clamp(2.6rem,6vw,4.6rem)]">
             마이페이지
           </h1>
-          <p className="mx-auto max-w-2xl text-base text-cyan-50/68">
+          <p className="mx-auto max-w-2xl text-base text-stone-600">
             계정 정보와 Studio 게시물을 한 곳에서 관리하세요. 변경 사항은
             실시간으로 Studio 게시판에 반영됩니다.
           </p>
@@ -55,15 +55,15 @@ export default async function Account() {
           </div>
         </div>
 
-        <section className="tech-panel border-t border-cyan-300/12 p-4 sm:p-6 md:p-8">
+        <section className="tech-panel border-t border-stone-900/10 p-4 sm:p-6 md:p-8">
           <div className="space-y-2">
             <p className="section-kicker">
               Studio
             </p>
-            <h2 className="display-font text-2xl font-medium tracking-[0.03em] text-white md:text-3xl">
+            <h2 className="display-font text-2xl font-semibold tracking-[0.02em] text-stone-950 md:text-3xl">
               게시물 작성
             </h2>
-            <p className="text-base text-cyan-50/64">
+            <p className="text-base text-stone-600">
               작업 스토리와 이미지를 등록하면 Studio 섹션에 바로
               노출됩니다.
             </p>

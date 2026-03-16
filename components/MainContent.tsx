@@ -24,29 +24,30 @@ export default function MainContent() {
     >
       <div className="absolute inset-0 -z-20 overflow-hidden">
         <video
-          className="h-full w-full object-cover opacity-28 saturate-[0.45] contrast-125"
+          className="h-full w-full object-cover opacity-[0.14] grayscale saturate-0 contrast-105"
           src="/images/hero-bg.mp4"
           autoPlay
           muted
           loop
           playsInline
         />
-        <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(3,5,10,0.96)_8%,rgba(7,12,22,0.78)_44%,rgba(4,5,9,0.94)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,253,249,0.96)_0%,rgba(248,244,237,0.88)_48%,rgba(240,233,222,0.94)_100%)]" />
+        <div className="absolute inset-y-0 right-0 w-[24vw] bg-[linear-gradient(180deg,rgba(198,173,121,0.14),rgba(198,173,121,0.03))]" />
       </div>
 
       <div className="section-shell">
         <div className="grid items-end gap-10 lg:grid-cols-[1.45fr_0.95fr]">
           <div className="animate-rise">
             <p className="section-kicker">Coding · Media · Fashion Community</p>
-            <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-medium leading-[0.88] tracking-[0.03em]">
+            <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-semibold leading-[0.9] tracking-[0.01em] text-stone-950">
               {BRAND_NAME}
             </h1>
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-cyan-100/78 md:text-[0.95rem]">
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-stone-600 md:text-[0.95rem]">
               <a
                 href={DESIGNER_BRAND_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="underline decoration-cyan-300/45 underline-offset-4 transition hover:text-white hover:decoration-cyan-100"
+                className="underline decoration-stone-900/25 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/55"
               >
                 enicoveck.com
               </a>
@@ -54,12 +55,12 @@ export default function MainContent() {
                 href={YOUTUBE_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="underline decoration-cyan-300/45 underline-offset-4 transition hover:text-white hover:decoration-cyan-100"
+                className="underline decoration-stone-900/25 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/55"
               >
                 YouTube / FancyVeck
               </a>
             </div>
-            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-cyan-100/74 md:text-base">
+            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-stone-700 md:text-base">
               {BRAND_NAME}은 코딩, 미디어, 패션에 대한 정보와 인사이트를 함께
               나누는 커뮤니티 사이트입니다. 트렌드 정리부터 작업 이야기,
               실무 팁과 추천 콘텐츠까지 한곳에서 보고 소통할 수 있도록
@@ -85,12 +86,12 @@ export default function MainContent() {
               {statItems.map((item) => (
                 <div
                   key={item.label}
-                  className="min-w-0 border-l border-cyan-300/14 py-1 pl-4"
+                  className="min-w-0 border-l border-stone-900/12 py-1 pl-4"
                 >
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-200/65">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
                     {item.label}
                   </p>
-                  <p className="mt-2 display-font text-lg font-medium tracking-[0.05em] text-cyan-50 md:text-xl">
+                  <p className="mt-2 display-font text-lg font-semibold tracking-[0.03em] text-stone-950 md:text-xl">
                     {item.value}
                   </p>
                 </div>
@@ -98,25 +99,24 @@ export default function MainContent() {
             </div>
           </div>
 
-          <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden pt-2 [animation-delay:0.15s] lg:max-w-none lg:border-l lg:border-cyan-300/14 lg:pl-8 lg:pt-0">
-            <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
+          <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden p-5 [animation-delay:0.15s] lg:max-w-none lg:ml-auto lg:max-w-[30rem]">
             <p className="section-kicker">Signal</p>
-            <h2 className="display-font mt-2 text-xl font-medium tracking-[0.03em] sm:text-2xl md:text-3xl">
-              Live Node Intel
+            <h2 className="display-font mt-2 text-xl font-semibold tracking-[0.02em] text-stone-950 sm:text-2xl md:text-3xl">
+              Board Notes
             </h2>
 
-            <div className="mt-6 space-y-4 text-sm text-cyan-50/80">
+            <div className="mt-6 space-y-4 text-sm text-stone-700">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Representative</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Representative</p>
                 <p className="mt-1 break-words leading-relaxed">
                   대표: {REPRESENTATIVE_NAME}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-200/65">Email</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Email</p>
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
-                  className="mt-1 block break-all leading-relaxed underline decoration-cyan-300/35 underline-offset-4 transition hover:text-white hover:decoration-cyan-100"
+                  className="mt-1 block break-all leading-relaxed underline decoration-stone-900/20 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/50"
                 >
                   {CONTACT_EMAIL}
                 </a>

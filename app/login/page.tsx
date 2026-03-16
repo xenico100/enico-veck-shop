@@ -121,40 +121,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black px-4 text-white">
-      <div className="flex w-full max-w-sm flex-col gap-5 rounded-3xl border border-white/10 bg-neutral-950/80 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.6)] sm:gap-6 sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fffefb_0%,#f8f4ed_100%)] px-4 text-stone-900">
+      <div className="flex w-full max-w-sm flex-col gap-5 rounded-[1rem] border border-stone-900/10 bg-[rgba(255,253,249,0.94)] p-5 shadow-[0_24px_60px_rgba(58,43,26,0.08)] sm:gap-6 sm:p-8">
         <div className="text-center">
-             <p className="text-sm uppercase tracking-[0.35em] text-neutral-400">
+             <p className="text-sm uppercase tracking-[0.35em] text-stone-500">
                {BRAND_MEMBER_LABEL}
              </p>
-             <h1 className="mt-3 text-2xl font-semibold tracking-[0.18em] sm:text-3xl">
+             <h1 className="mt-3 text-2xl font-semibold tracking-[0.12em] text-stone-950 sm:text-3xl">
                {isSignUp ? 'JOIN US' : 'LOGIN'}
              </h1>
         </div>
 
         <button 
           onClick={handleGoogleLogin}
-          className="flex min-h-12 items-center justify-center gap-3 rounded-full border border-white/20 bg-white px-4 py-3 text-center text-sm font-semibold text-black transition hover:bg-neutral-200 sm:text-base"
+          className="flex min-h-12 items-center justify-center gap-3 rounded-xl border border-stone-900/10 bg-stone-50 px-4 py-3 text-center text-sm font-semibold text-stone-900 transition hover:bg-[#f4efe6] sm:text-base"
         >
           {/* 구글 G 로고 SVG */}
           <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
           Google로 계속하기
         </button>
 
-        <div className="flex items-center gap-3 text-sm uppercase tracking-[0.3em] text-neutral-500">
-            <div className="h-px flex-1 bg-white/10"></div>
+        <div className="flex items-center gap-3 text-sm uppercase tracking-[0.3em] text-stone-400">
+            <div className="h-px flex-1 bg-stone-900/10"></div>
             <span>OR</span>
-            <div className="h-px flex-1 bg-white/10"></div>
+            <div className="h-px flex-1 bg-stone-900/10"></div>
         </div>
 
         <form onSubmit={handleAuth} className="flex flex-col gap-4">
           <input 
             type="email" placeholder="Email" value={email} onChange={(e)=>setEmail(e.target.value)} required
-            className="rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="y2k-input px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:outline-none"
           />
           <input 
             type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} required
-            className="rounded-xl border border-white/10 bg-black/60 px-4 py-3 text-base text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/10"
+            className="y2k-input px-4 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:outline-none"
           />
           
           {!isSignUp && (
@@ -163,7 +163,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={loading || resetLoading}
-                className="inline-flex min-h-11 items-center rounded-full border border-white/20 bg-white/10 px-4 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                className="inline-flex min-h-11 items-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4efe6] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
               >
                 {resetLoading ? '전송 중…' : '비밀번호 찾기'}
               </button>
@@ -172,7 +172,7 @@ export default function LoginPage() {
 
           <button 
             type="submit" disabled={loading || resetLoading}
-            className="rounded-full border border-white/30 bg-white/10 px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:border-white/60 hover:bg-white/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-neutral-800 disabled:text-neutral-500"
+            className="rounded-xl border border-stone-900/12 bg-[rgba(111,117,95,0.1)] px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.18em] text-stone-900 transition hover:bg-[rgba(111,117,95,0.16)] disabled:cursor-not-allowed disabled:border-stone-900/8 disabled:bg-stone-100 disabled:text-stone-400"
           >
             {loading ? '처리 중...' : (isSignUp ? '이메일로 회원가입' : '이메일로 로그인')}
           </button>
@@ -183,21 +183,21 @@ export default function LoginPage() {
             className={`rounded-2xl border p-3 text-sm ${
               resetError
                 ? 'border-red-300/20 bg-red-300/10 text-red-100'
-                : 'border-white/10 bg-white/5 text-white/85'
+                : 'border-stone-900/10 bg-stone-50 text-stone-700'
             }`}
           >
             {resetError ?? resetMessage}
           </div>
         )}
 
-        <p className="text-center text-sm leading-relaxed text-neutral-400">
+        <p className="text-center text-sm leading-relaxed text-stone-500">
           {isSignUp ? '이미 계정이 있으신가요?' : '계정이 없으신가요?'} 
-          <span onClick={() => setIsSignUp(!isSignUp)} className="ml-2 cursor-pointer font-semibold text-white underline">
+          <span onClick={() => setIsSignUp(!isSignUp)} className="ml-2 cursor-pointer font-semibold text-stone-900 underline">
             {isSignUp ? '로그인하기' : '회원가입하기'}
           </span>
         </p>
 
-        <button type="button" onClick={() => router.push('/')} className="text-sm uppercase tracking-[0.2em] text-neutral-500 transition hover:text-white">
+        <button type="button" onClick={() => router.push('/')} className="text-sm uppercase tracking-[0.2em] text-stone-500 transition hover:text-stone-900">
             ← 메인으로 돌아가기
         </button>
       </div>

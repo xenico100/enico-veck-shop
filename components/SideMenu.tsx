@@ -68,24 +68,24 @@ export default function SideMenu({
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-[#020402d4] backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px] transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={onClose}
       />
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 w-[18rem] max-w-[92vw] border-l border-cyan-300/25 bg-[#060a14f2] shadow-[-20px_0_70px_rgba(0,0,0,0.6)] backdrop-blur-2xl transition-transform duration-300 sm:w-[20rem] sm:max-w-[90vw] ${
+        className={`fixed inset-y-0 right-0 z-50 w-[18rem] max-w-[92vw] border-l border-stone-900/10 bg-[rgba(255,253,249,0.96)] shadow-[-20px_0_50px_rgba(55,42,27,0.08)] backdrop-blur-xl transition-transform duration-300 sm:w-[20rem] sm:max-w-[90vw] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-center justify-between border-b border-cyan-300/18 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-stone-900/10 px-5 py-4">
           <div>
             <p className="section-kicker !text-[0.58rem]">Navigation</p>
-            <p className="display-font text-base font-medium tracking-[0.12em] text-cyan-50">
-              Shadow Index
+            <p className="display-font text-base font-semibold tracking-[0.08em] text-stone-950">
+              Wayfinder Index
             </p>
           </div>
           <button
@@ -104,7 +104,7 @@ export default function SideMenu({
                 <a
                   href={item.href}
                   onClick={onClose}
-                  className="block px-1 py-2.5 text-base font-medium text-cyan-100/85 no-underline transition hover:text-white"
+                  className="block px-1 py-2.5 text-base font-medium text-stone-800 no-underline transition hover:text-stone-950"
                 >
                   {item.label}
                 </a>
@@ -112,7 +112,7 @@ export default function SideMenu({
             ))}
           </ul>
 
-          <div className="mt-5 space-y-2 border-t border-cyan-300/18 pt-5">
+          <div className="mt-5 space-y-2 border-t border-stone-900/10 pt-5">
             {isAuthenticated && (
               <button
                 onClick={handleMyPageClick}
@@ -133,10 +133,10 @@ export default function SideMenu({
             {isAuthenticated ? (
               <>
                 <div className="px-1 py-2.5">
-                  <p className="break-words text-sm leading-snug text-cyan-50">
+                  <p className="break-words text-sm leading-snug text-stone-900">
                     {user?.name ?? 'User'}
                   </p>
-                  <p className="break-all text-xs text-cyan-200/60">{user?.email ?? ''}</p>
+                  <p className="break-all text-xs text-stone-500">{user?.email ?? ''}</p>
                 </div>
                 <button
                   onClick={handleLogout}

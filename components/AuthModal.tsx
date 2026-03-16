@@ -116,22 +116,22 @@ export default function AuthModal({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[60] bg-black/70" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px]" onClick={onClose} />
 
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-end justify-center p-2 pt-12 sm:items-center sm:p-4">
         <div
-          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto border border-cyan-300/16 bg-[#060913]/92 shadow-[0_24px_80px_rgba(0,0,0,0.42)] ${appleFontClass}`}
+          className={`max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-[0.9rem] border border-stone-900/10 bg-[rgba(255,253,249,0.96)] shadow-[0_24px_70px_rgba(59,44,27,0.08)] ${appleFontClass}`}
         >
-          <div className="flex items-center justify-between border-b border-cyan-300/12 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex items-center justify-between border-b border-stone-900/10 px-4 py-4 sm:px-6 sm:py-5">
             <div className={tabGroupClass}>
               <button
                 type="button"
                 onClick={() => onSwitchMode('login')}
                 className={`${tabButtonBase} ${
                   mode === 'login'
-                    ? 'text-white after:scale-x-100'
-                    : 'text-cyan-100/62 hover:text-white'
+                    ? 'text-stone-950 after:scale-x-100'
+                    : 'text-stone-500 hover:text-stone-900'
                 }`}
               >
                 로그인
@@ -141,8 +141,8 @@ export default function AuthModal({
                 onClick={() => onSwitchMode('signup')}
                 className={`${tabButtonBase} ${
                   mode === 'signup'
-                    ? 'text-white after:scale-x-100'
-                    : 'text-cyan-100/62 hover:text-white'
+                    ? 'text-stone-950 after:scale-x-100'
+                    : 'text-stone-500 hover:text-stone-900'
                 }`}
               >
                 회원가입
@@ -157,33 +157,33 @@ export default function AuthModal({
           <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
             {mode === 'signup' && (
               <div>
-                <label className="mb-2 block text-xs text-cyan-100/55">이름</label>
+                <label className="mb-2 block text-xs text-stone-500">이름</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="y2k-input w-full px-4 py-3 text-sm text-cyan-100 outline-none"
+                  className="y2k-input w-full px-4 py-3 text-sm text-stone-900 outline-none"
                   placeholder="홍길동"
                 />
               </div>
             )}
 
             <div>
-              <label className="mb-2 block text-xs text-cyan-100/55">이메일</label>
+              <label className="mb-2 block text-xs text-stone-500">이메일</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="y2k-input w-full px-4 py-3 text-sm text-cyan-100 outline-none"
+                className="y2k-input w-full px-4 py-3 text-sm text-stone-900 outline-none"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-xs text-cyan-100/55">비밀번호</label>
+              <label className="mb-2 block text-xs text-stone-500">비밀번호</label>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
-                className="y2k-input w-full px-4 py-3 text-sm text-cyan-100 outline-none"
+                className="y2k-input w-full px-4 py-3 text-sm text-stone-900 outline-none"
                 placeholder="••••••••"
               />
             </div>
@@ -195,7 +195,7 @@ export default function AuthModal({
               </div>
             )}
             {mode === 'login' && resetMessage && (
-              <div className="rounded-2xl border border-cyan-300/18 bg-cyan-300/8 p-3 text-sm text-cyan-100/85">
+              <div className="rounded-2xl border border-stone-900/10 bg-stone-100/70 p-3 text-sm text-stone-700">
                 {resetMessage}
               </div>
             )}
@@ -231,7 +231,7 @@ export default function AuthModal({
               Google로 계속
             </button>
 
-            <p className="text-xs leading-relaxed text-cyan-100/55">
+            <p className="text-xs leading-relaxed text-stone-500">
               계속 진행하면 서비스 약관 및 개인정보 처리방침에 동의하는 것으로 간주됩니다.
             </p>
           </div>

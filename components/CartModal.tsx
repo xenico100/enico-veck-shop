@@ -475,11 +475,11 @@ export default function CartModal({ open, onOpenChange }: CartModalProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[80] bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
         <DialogPrimitive.Content
-          className={`fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-white/10 bg-black/70 shadow-2xl backdrop-blur-xl outline-none ${appleFontClass}`}
+          className={`fixed left-1/2 top-1/2 z-[81] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1rem] border border-stone-900/10 bg-[rgba(255,253,249,0.96)] shadow-[0_24px_70px_rgba(59,44,27,0.08)] backdrop-blur-xl outline-none ${appleFontClass}`}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-5 md:px-6">
+          <div className="flex items-start justify-between gap-4 border-b border-stone-900/10 px-4 py-4 sm:px-5 md:px-6">
             <div className="min-w-0">
               <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-white">
                 {isCheckingOut ? 'Payment Options' : 'Cart'}

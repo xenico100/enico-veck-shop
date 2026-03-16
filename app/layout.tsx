@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import {
-  Barlow_Condensed,
-  IBM_Plex_Sans_KR,
-  Share_Tech_Mono,
+  Archivo,
+  IBM_Plex_Mono,
+  Noto_Sans_KR,
 } from "next/font/google";
 
 import "./styles/tailwind.css";
@@ -10,22 +10,22 @@ import "./styles/theme.css";
 import Providers from "./providers";
 import { BRAND_NAME } from "@/utils/branding";
 
-const sansFont = IBM_Plex_Sans_KR({
+const sansFont = Noto_Sans_KR({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600"],
+  weight: ["300", "400", "500", "700"],
 });
 
-const displayFont = Barlow_Condensed({
+const displayFont = Archivo({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["400", "500", "600"],
+  weight: ["500", "600", "700"],
 });
 
-const monoFont = Share_Tech_Mono({
+const monoFont = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  weight: "400",
+  weight: ["400", "500"],
 });
 
 const siteUrl =
@@ -51,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`dark ${sansFont.variable} ${displayFont.variable} ${monoFont.variable}`}
+      className={`${sansFont.variable} ${displayFont.variable} ${monoFont.variable}`}
     >
       <body className="bg-background text-foreground antialiased">
         <Providers>{children}</Providers>

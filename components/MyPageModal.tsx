@@ -509,7 +509,7 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[70] bg-black/70" onClick={() => onOpenChange(false)} />
+      <div className="fixed inset-0 z-[70] bg-[rgba(31,24,18,0.18)] backdrop-blur-[2px]" onClick={() => onOpenChange(false)} />
 
       <div className="fixed inset-0 z-[71] flex items-end justify-center p-2 pt-10 sm:items-center sm:p-4">
         <div
@@ -521,11 +521,11 @@ export default function MyPageModal({ open, onOpenChange }: Props) {
           onKeyDown={handleKeyDown}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between border-b border-cyan-300/12 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6 md:px-8">
+          <div className="flex items-start justify-between border-b border-stone-900/10 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6 md:px-8">
             <div className="min-w-0 flex-1">
               <h2
                 id="mypage-title"
-                className="display-font text-[1.45rem] font-medium tracking-[0.04em] text-white sm:text-[1.9rem]"
+                className="display-font text-[1.45rem] font-semibold tracking-[0.02em] text-stone-950 sm:text-[1.9rem]"
               >
                 마이페이지
               </h2>

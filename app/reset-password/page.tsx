@@ -82,20 +82,20 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black px-4 text-white">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-black/70 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#fffefb_0%,#f8f4ed_100%)] px-4 text-stone-900">
+      <div className="w-full max-w-md rounded-[1rem] border border-stone-900/10 bg-[rgba(255,253,249,0.94)] p-6 shadow-[0_24px_60px_rgba(58,43,26,0.08)] md:p-8">
         <div className="mb-6 text-center">
-          <p className="text-xs uppercase tracking-[0.32em] text-white/45">Account Recovery</p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white md:text-3xl">
+          <p className="text-xs uppercase tracking-[0.32em] text-stone-500">Account Recovery</p>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950 md:text-3xl">
             비밀번호 재설정
           </h1>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-stone-600">
             이메일 링크를 통해 들어오셨다면 새 비밀번호를 설정할 수 있습니다.
           </p>
         </div>
 
         {checkingSession ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+          <div className="rounded-2xl border border-stone-900/10 bg-stone-50 p-4 text-sm text-stone-600">
             세션을 확인하는 중…
           </div>
         ) : !hasSession ? (
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
             </div>
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4efe6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >
               로그인으로 돌아가기
             </Link>
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <label className="block text-xs uppercase tracking-[0.2em] text-white/50">
+              <label className="block text-xs uppercase tracking-[0.2em] text-stone-500">
                 새 비밀번호
               </label>
               <input
@@ -122,13 +122,13 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="새 비밀번호 입력"
                 autoComplete="new-password"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-white/25"
+                className="y2k-input w-full px-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 outline-none transition focus:ring-2 focus:ring-stone-900/10"
                 disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs uppercase tracking-[0.2em] text-white/50">
+              <label className="block text-xs uppercase tracking-[0.2em] text-stone-500">
                 새 비밀번호 확인
               </label>
               <input
@@ -137,7 +137,7 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="비밀번호 다시 입력"
                 autoComplete="new-password"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-white/20 focus:ring-2 focus:ring-white/25"
+                className="y2k-input w-full px-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 outline-none transition focus:ring-2 focus:ring-stone-900/10"
                 disabled={loading}
               />
             </div>
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
               </div>
             )}
             {message && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+              <div className="rounded-2xl border border-stone-900/10 bg-stone-50 p-3 text-sm text-stone-700">
                 {message}
               </div>
             )}
@@ -156,14 +156,14 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-white px-5 text-sm font-semibold tracking-[0.2px] text-black shadow-md transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/12 bg-[rgba(111,117,95,0.1)] px-5 text-sm font-semibold tracking-[0.1px] text-stone-900 transition hover:bg-[rgba(111,117,95,0.16)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >
               {loading ? '변경 중…' : '새 비밀번호 저장'}
             </button>
 
             <Link
               href="/login"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 text-sm font-medium tracking-[0.2px] text-white/90 backdrop-blur-md transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-900/10 bg-stone-50 px-4 text-sm font-medium tracking-[0.2px] text-stone-800 transition hover:bg-[#f4efe6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/10"
             >
               로그인 페이지로 이동
             </Link>
