@@ -420,6 +420,23 @@ button,
   filter: blur(4px);
 }
 
+.y2k-button-hero-compact {
+  min-height: 1.78rem;
+  padding: 0.3rem 0.62rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
+.y2k-button-hero-compact::before {
+  inset: -0.18rem -0.34rem;
+  filter: blur(5px);
+}
+
+.y2k-button-hero-compact::after {
+  inset: -0.02rem 0.08rem;
+  filter: blur(2.5px);
+}
+
 .y2k-input {
   border-radius: 0.15rem;
   border: 1px solid rgba(18, 7, 8, 0.18);

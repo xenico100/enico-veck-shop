@@ -70,13 +70,13 @@ export default function MainContent() {
             <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-1.5">
               <Link
                 href="/architecture"
-                className="y2k-button y2k-button-primary y2k-button-tight w-full !min-h-10 !px-3.5 !text-[0.68rem] !tracking-[0.08em] no-underline sm:w-auto"
+                className="y2k-button y2k-button-primary y2k-button-hero-compact w-full no-underline sm:w-auto"
               >
                 OPEN NODE MAP
               </Link>
               <a
                 href="#studio"
-                className="y2k-button y2k-button-accent y2k-button-tight w-full !min-h-10 !px-3.5 !text-[0.68rem] !tracking-[0.08em] no-underline sm:w-auto"
+                className="y2k-button y2k-button-accent y2k-button-hero-compact w-full no-underline sm:w-auto"
               >
                 WATCH FEED
               </a>
