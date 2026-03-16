@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+
+import ArchitectureGraph from '@/components/architecture/ArchitectureGraph';
 import { BRAND_NAME, REPRESENTATIVE_NAME } from '@/utils/branding';
 
 const CREATOR_NAME = REPRESENTATIVE_NAME;
@@ -20,15 +23,6 @@ const roleCards = [
     title: '영상편집 · 유튜브 운영',
     detail: '편집으로 마무리한 결과물을 채널 운영까지 연결합니다.'
   }
-];
-
-const architectureNodes = [
-  { title: 'Brand Story', className: 'col-start-1 row-start-1' },
-  { title: 'Landing', className: 'col-start-2 row-start-1' },
-  { title: 'Collection', className: 'col-start-3 row-start-1' },
-  { title: 'Archive', className: 'col-start-1 row-start-2' },
-  { title: 'Product Detail', className: 'col-start-2 row-start-2' },
-  { title: 'Checkout', className: 'col-start-3 row-start-2' }
 ];
 
 const garmentStages = [
@@ -146,36 +140,40 @@ export default function AboutSection() {
             <div className="p-5 sm:p-6 md:p-7">
               <p className="section-kicker">Coding Story</p>
               <p className="mt-4 text-sm leading-relaxed text-cyan-50/78 md:text-base">
-                이 구간에는 {CREATOR_NAME}이 어떤 방식으로 코딩을 시작했고,
-                브랜드 웹사이트를 어떤 생각으로 설계했는지 들어갈 예정입니다.
-                아래 구조도는 나중에 보내주실 실제 정보에 맞춰 바로 치환할 수
-                있게 비주얼 뼈대를 먼저 잡아둔 상태입니다.
+                이 구간은 더 이상 플레이스홀더가 아니라, 실제로 분석한
+                `real_enico` 저장소 구조를 바탕으로 만든 웹 아키텍처
+                다이어그램입니다. 사용자 요청이 Vercel 위의 Next.js로 들어오고,
+                거기서 Supabase 상품 데이터와 Cloudflare R2 이미지를 읽어 상품
+                화면을 렌더링하는 흐름이 한눈에 보이도록 묶었습니다.
+              </p>
+              <p className="mt-4 text-sm leading-relaxed text-cyan-50/66 md:text-base">
+                README, `next.config.ts`, `src/app/page.tsx`,
+                `src/lib/storefront/server.ts`, 관리자 업로드 API, 이미지
+                마이그레이션 API, `tools/sync-upload-to-supabase.mjs`, 그리고
+                `src / public / sql / supabase / tools / upload` 폴더 구조까지
+                같이 반영했습니다. 정확히 단정할 수 없는 연결만
+                `보수적 추론`으로 표시했습니다.
               </p>
 
-              <div className="mt-6 rounded-[1.4rem] border border-cyan-100/12 bg-[#07111f]/88 p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/60">
-                    Designer Brand Website Architecture
-                  </p>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-cyan-50/42">
-                    Placeholder Structure
-                  </span>
-                </div>
+              <div className="mt-6">
+                <ArchitectureGraph variant="compact" />
+              </div>
 
-                <div className="relative mt-5 overflow-hidden rounded-[1.2rem] border border-cyan-100/10 bg-black/20 p-4 sm:p-5">
-                  <div className="pointer-events-none absolute left-1/2 top-[4.2rem] h-[calc(100%-8.4rem)] w-px -translate-x-1/2 bg-cyan-200/16" />
-                  <div className="pointer-events-none absolute left-[18%] right-[18%] top-1/2 h-px -translate-y-1/2 bg-cyan-200/12" />
-                  <div className="grid grid-cols-3 gap-3">
-                    {architectureNodes.map((node) => (
-                      <div
-                        key={node.title}
-                        className={`${node.className} flex min-h-[5.3rem] items-center justify-center rounded-[1rem] border border-cyan-100/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_100%)] px-3 text-center text-sm leading-snug text-cyan-50/82`}
-                      >
-                        {node.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-cyan-100/74">
+                <Link
+                  href="/architecture"
+                  className="y2k-button y2k-button-primary !text-[0.72rem] no-underline"
+                >
+                  OPEN FULL SYSTEM MAP
+                </Link>
+                <a
+                  href="https://github.com/xenico100/real_enico"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="y2k-button y2k-button-ghost !text-[0.72rem] no-underline"
+                >
+                  VIEW SOURCE REPO
+                </a>
               </div>
             </div>
           </article>

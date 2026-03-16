@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import {
   BRAND_NAME,
   CONTACT_EMAIL,
@@ -65,12 +67,12 @@ export default function MainContent() {
             </p>
 
             <div className="mt-7 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
-              <a
-                href="#services"
+              <Link
+                href="/architecture"
                 className="y2k-button y2k-button-primary w-full no-underline sm:w-auto"
               >
                 OPEN NODE MAP
-              </a>
+              </Link>
               <a
                 href="#studio"
                 className="y2k-button y2k-button-accent w-full no-underline sm:w-auto"
