@@ -8,6 +8,7 @@ import {
   ARCH_SVG_HEIGHT,
   ARCH_SVG_WIDTH
 } from '@/components/dark-node/ArchitectureDiagram';
+import BrandBuildSection from '@/components/dark-node/BrandBuildSection';
 import {
   ProductionDiagram,
   PROD_SVG_HEIGHT,
@@ -217,6 +218,8 @@ export default function DarkNodeDiagramStack({
             </span>
           </div>
         </div>
+
+        <BrandBuildSection />
       </div>
 
       <div className="relative flex w-full justify-center py-6">
