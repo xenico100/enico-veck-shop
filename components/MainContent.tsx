@@ -44,7 +44,7 @@ export default function MainContent() {
       <div className="section-shell">
         <div className="grid items-end gap-10 lg:grid-cols-[1.45fr_0.95fr]">
           <div className="animate-rise">
-            <p className="section-kicker">Coding · Media · Fashion Community</p>
+            <p className="section-kicker">Architecture · Creativity · Art</p>
             <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-semibold leading-[0.9] tracking-[0.01em] text-stone-950">
               {BRAND_NAME}
             </h1>
