@@ -16,6 +16,12 @@ const statItems = [
   { label: 'Secure Nodes', value: '4 Pods' }
 ];
 
+const boardNotes = [
+  '웹사이트 구조 설계부터 프론트엔드 구현까지 직접 진행합니다.',
+  '디자이너 브랜드 의류 설계와 제작 흐름을 한 사람의 감각으로 이어갑니다.',
+  '영상 편집과 채널 운영까지 연결해 결과물을 하나의 브랜드 경험으로 완성합니다.'
+];
+
 export default function MainContent() {
   return (
     <section
@@ -100,16 +106,17 @@ export default function MainContent() {
           </div>
 
           <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden p-5 [animation-delay:0.15s] lg:max-w-none lg:ml-auto lg:max-w-[30rem]">
-            <p className="section-kicker">Signal</p>
+            <p className="section-kicker">Creator</p>
             <h2 className="display-font mt-2 text-xl font-semibold tracking-[0.02em] text-stone-950 sm:text-2xl md:text-3xl">
               Board Notes
             </h2>
 
             <div className="mt-6 space-y-4 text-sm text-stone-700">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Representative</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Solo Studio</p>
                 <p className="mt-1 break-words leading-relaxed">
-                  대표: {REPRESENTATIVE_NAME}
+                  {REPRESENTATIVE_NAME} 1인이 사이트 설계, 의류 설계, 콘텐츠 제작을
+                  함께 운영합니다.
                 </p>
               </div>
               <div>
@@ -120,6 +127,20 @@ export default function MainContent() {
                 >
                   {CONTACT_EMAIL}
                 </a>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Board Notes</p>
+                <div className="mt-2 space-y-2">
+                  {boardNotes.map((note, index) => (
+                    <div
+                      key={note}
+                      className="border-l border-stone-900/12 pl-3 text-[13px] leading-relaxed text-stone-700"
+                    >
+                      <span className="mr-2 text-stone-500">0{index + 1}</span>
+                      {note}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </aside>
