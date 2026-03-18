@@ -108,7 +108,7 @@ export default function MainContent() {
           <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden p-5 [animation-delay:0.15s] lg:max-w-none lg:ml-auto lg:max-w-[30rem]">
             <p className="section-kicker">Creator</p>
             <h2 className="display-font mt-2 text-xl font-semibold tracking-[0.02em] text-stone-950 sm:text-2xl md:text-3xl">
-              Board Notes
+              About
             </h2>
 
             <div className="mt-6 space-y-4 text-sm text-stone-700">
@@ -129,7 +129,7 @@ export default function MainContent() {
                 </a>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Board Notes</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">About</p>
                 <div className="mt-2 space-y-2">
                   {boardNotes.map((note, index) => (
                     <div
