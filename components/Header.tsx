@@ -13,7 +13,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 border-b border-stone-900/10 px-1 py-3 md:px-0 md:py-4">
         <a href="#home" className="group flex min-w-0 items-center no-underline">
           <div className="min-w-0">
-            <p className="section-kicker !text-[0.58rem] !tracking-[0.22em]">Wayfinder Archive</p>
             <p className="display-font text-[0.82rem] tracking-[0.12em] text-stone-950 sm:text-sm md:text-base">
               {BRAND_NAME}
             </p>
