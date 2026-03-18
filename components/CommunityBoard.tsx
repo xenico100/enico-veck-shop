@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { Bookmark, Flame, MessageCircle, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { isAdminUserLike } from '@/utils/service-posts';
 
@@ -196,6 +196,95 @@ const buildOptimisticPostReactionState = (
   };
 };
 
+const getFirstTextExcerpt = (content: string) => {
+  const blocks = parseRichContentBlocks(content || '');
+  const text = blocks
+    .filter((block): block is Extract<RichContentBlock, { type: 'text' }> => block.type === 'text')
+    .map((block) => block.text.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  if (!text) return '내용이 아직 입력되지 않았습니다.';
+  return text.length > 84 ? `${text.slice(0, 84).trim()}…` : text;
+};
+
+const formatRelativeTime = (value: string) => {
+  const target = new Date(value).getTime();
+  const diffMs = Date.now() - target;
+
+  if (!Number.isFinite(target) || diffMs < 0) {
+    return formatDateTime(value);
+  }
+
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours < 1) {
+    const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+    return `${diffMinutes}분 전`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}시간 전`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) {
+    return `${diffDays}일 전`;
+  }
+
+  return formatDateTime(value);
+};
+
+const getCommunityCategoryLabel = (post: CommunityPost) => {
+  const combined = `${post.title} ${post.content}`.toLowerCase();
+  if (
+    /(패션|의류|옷|브랜드|룩북|컬렉션|신발|재킷|웨어|fashion|lookbook|collection|jacket|shoe)/.test(
+      combined
+    )
+  ) {
+    return '패션';
+  }
+  if (/(코딩|개발|프론트|백엔드|api|react|next|typescript|javascript|python|coding|dev)/.test(combined)) {
+    return '코딩';
+  }
+  if (/(유튜브|영상|편집|촬영|미디어|뮤직|음악|youtube|video|media|sound)/.test(combined)) {
+    return '미디어';
+  }
+  return '커뮤니티';
+};
+
+type CommunityPreviewVisual =
+  | { kind: 'image'; src: string }
+  | { kind: 'placeholder'; toneClassName: string; panelLabel: string; mark: string };
+
+const getCommunityPreviewVisual = (post: CommunityPost): CommunityPreviewVisual => {
+  const blocks = parseRichContentBlocks(post.content || '');
+  const youtubeBlock = blocks.find(
+    (block): block is Extract<RichContentBlock, { type: 'youtube' }> => block.type === 'youtube'
+  );
+
+  if (youtubeBlock) {
+    return {
+      kind: 'image',
+      src: `https://i.ytimg.com/vi/${youtubeBlock.videoId}/hqdefault.jpg`
+    };
+  }
+
+  const category = getCommunityCategoryLabel(post);
+  const toneClassByCategory: Record<string, string> = {
+    패션: 'from-[#dfe7f1] via-[#ffffff] to-[#eef1f5]',
+    코딩: 'from-[#dde7ed] via-[#ffffff] to-[#ebf0f4]',
+    미디어: 'from-[#ede3e3] via-[#ffffff] to-[#f2eeee]',
+    커뮤니티: 'from-[#ece8e3] via-[#ffffff] to-[#f4f1ed]'
+  };
+
+  return {
+    kind: 'placeholder',
+    toneClassName: toneClassByCategory[category] ?? toneClassByCategory['커뮤니티'],
+    panelLabel: category,
+    mark: post.title.trim().slice(0, 2).toUpperCase()
+  };
+};
+
 function RichTextWithYouTube({
   content,
   containerClassName,
@@ -266,6 +355,7 @@ export default function CommunityBoard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [activeFeed, setActiveFeed] = useState<'latest' | 'popular'>('latest');
   const [error, setError] = useState<string | null>(null);
   const [setupNotice, setSetupNotice] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -577,7 +667,23 @@ export default function CommunityBoard() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     })[0];
   }, [posts]);
-  const regularPosts = posts.filter((post) => !post.isNotice && post.id !== popularPost?.id);
+  const latestPosts = useMemo(
+    () =>
+      [...posts.filter((post) => !post.isNotice)].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [posts]
+  );
+  const popularPosts = useMemo(
+    () =>
+      [...posts.filter((post) => !post.isNotice)].sort((a, b) => {
+        if (b.dailyLikeCount !== a.dailyLikeCount) return b.dailyLikeCount - a.dailyLikeCount;
+        if (b.likeCount !== a.likeCount) return b.likeCount - a.likeCount;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }),
+    [posts]
+  );
+  const feedPosts = activeFeed === 'latest' ? latestPosts : popularPosts;
   const selectedPost = useMemo(
     () => posts.find((post) => post.id === selectedPostId) ?? null,
     [posts, selectedPostId]
@@ -608,48 +714,71 @@ export default function CommunityBoard() {
   }, [selectedPostId, submitting]);
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-3xl border border-cyan-100/20 bg-cyan-200/10 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="section-kicker !tracking-[0.24em]">Community</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">커뮤니티 자유게시판</h1>
-            <p className="mt-2 text-sm text-cyan-50/72">
-              회원 누구나 자유롭게 글을 쓰고 댓글로 소통할 수 있습니다.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setCreateOpen(true);
-              }}
-              disabled={submitting}
-              className="inline-flex items-center justify-center rounded-full border border-amber-100/35 bg-amber-100/15 px-4 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-100/25 disabled:opacity-60"
-            >
-              글쓰기
-            </button>
-            <button
-              type="button"
-              onClick={() => void loadPosts()}
-              disabled={loading || submitting}
-              className="inline-flex items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-2 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
-            >
-              새로고침
-            </button>
-          </div>
+    <section className="space-y-6 border-t border-stone-200 pt-2">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="section-kicker !tracking-[0.24em]">Community</p>
+          <p className="mt-2 text-[1.65rem] font-semibold tracking-[-0.02em] text-stone-950 md:text-[2.2rem]">
+            커뮤니티 보드
+          </p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-stone-600">
+            코딩, 미디어, 패션 이야기를 기사형 보드로 정리해 보는 커뮤니티 공간입니다.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setCreateOpen(true);
+            }}
+            disabled={submitting}
+            className="y2k-button y2k-button-ghost y2k-button-fade-tight !min-h-9 !px-3 !text-[0.66rem] !tracking-[0.14em]"
+          >
+            게시물 작성
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadPosts()}
+            disabled={loading || submitting}
+            className="y2k-button y2k-button-ghost y2k-button-fade-tight !min-h-9 !px-3 !text-[0.66rem] !tracking-[0.14em]"
+          >
+            새로고침
+          </button>
         </div>
       </div>
 
+      {notices.length > 0 && !loading && (
+        <div className="rounded-[0.2rem] border border-stone-200 bg-white px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#b1071e]">
+              Notice
+            </span>
+            {notices.slice(0, 3).map((post) => (
+              <button
+                key={post.id}
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setSelectedPostId(post.id);
+                }}
+                className="text-left text-sm text-stone-700 transition hover:text-stone-950"
+              >
+                {post.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {error && (
-        <div className="rounded-2xl border border-rose-300/35 bg-rose-500/10 p-4 text-sm text-rose-100">
+        <div className="border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {error}
         </div>
       )}
 
       {setupNotice && !error && (
-        <div className="rounded-2xl border border-amber-300/35 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
           {setupNotice}
         </div>
       )}
@@ -668,10 +797,10 @@ export default function CommunityBoard() {
           />
           <form
             onSubmit={handleCreatePost}
-            className="relative z-[91] w-full max-w-2xl space-y-3 rounded-3xl border border-cyan-100/25 bg-[#041221f2] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
+            className="relative z-[91] w-full max-w-2xl space-y-3 border border-stone-200 bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
           >
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-white">게시글 작성</h2>
+              <p className="text-lg font-semibold text-stone-950">게시글 작성</p>
               <button
                 type="button"
                 onClick={() => {
@@ -679,15 +808,15 @@ export default function CommunityBoard() {
                   setCreateOpen(false);
                 }}
                 disabled={submitting}
-                className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                className="y2k-button y2k-button-ghost y2k-button-fade-pin !min-h-9 !px-3 !text-[0.66rem] !tracking-[0.14em]"
               >
                 닫기
               </button>
             </div>
             {!isLoggedIn ? (
-              <p className="text-sm text-cyan-50/72">
+              <p className="text-sm text-stone-600">
                 글 작성은 로그인 후 가능합니다.{' '}
-                <Link href="/signin" className="underline underline-offset-4">
+                <Link href="/signin" className="underline underline-offset-4 text-stone-950">
                   로그인하러 가기
                 </Link>
               </p>
@@ -698,7 +827,7 @@ export default function CommunityBoard() {
                   onChange={(event) => setCreateTitle(event.target.value)}
                   maxLength={160}
                   placeholder="제목"
-                  className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
+                  className="w-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-950 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
                 />
                 <textarea
                   value={createContent}
@@ -706,13 +835,13 @@ export default function CommunityBoard() {
                   rows={6}
                   maxLength={10000}
                   placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
-                  className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
+                  className="w-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-950 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
                 />
-                <p className="text-xs text-cyan-50/55">
+                <p className="text-xs text-stone-500">
                   유튜브 링크를 한 줄에 단독으로 입력하면 플레이어로 표시됩니다.
                 </p>
                 {isAdmin && (
-                  <label className="inline-flex items-center gap-2 text-sm text-amber-100">
+                  <label className="inline-flex items-center gap-2 text-sm text-stone-700">
                     <input
                       type="checkbox"
                       checked={createNotice}
@@ -726,7 +855,7 @@ export default function CommunityBoard() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center justify-center rounded-full border border-amber-100/35 bg-amber-100/15 px-5 py-2.5 text-sm font-semibold text-amber-50 transition hover:bg-amber-100/25 disabled:opacity-60"
+                    className="y2k-button y2k-button-primary y2k-button-service-fade !min-h-10 !px-5 !text-[0.72rem] !tracking-[0.14em]"
                   >
                     {submitting ? '저장 중...' : '게시글 올리기'}
                   </button>
@@ -737,7 +866,7 @@ export default function CommunityBoard() {
                       setCreateOpen(false);
                     }}
                     disabled={submitting}
-                    className="inline-flex items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-2 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                    className="y2k-button y2k-button-ghost y2k-button-fade-tight !min-h-9 !px-4 !text-[0.66rem] !tracking-[0.14em]"
                   >
                     취소
                   </button>
@@ -749,79 +878,86 @@ export default function CommunityBoard() {
       )}
 
       {loading ? (
-        <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-5 text-sm text-cyan-50/74">
+        <div className="border border-stone-200 bg-white p-5 text-sm text-stone-600">
           게시글을 불러오는 중입니다...
         </div>
       ) : null}
 
-      {!loading && notices.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">공지사항</p>
-          {notices.map((post) => (
-            <CommunityPostTitleRow
-              key={post.id}
-              post={post}
-              onOpen={() => {
-                setError(null);
-                setSelectedPostId(post.id);
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {!loading && (
+        <div className="border-t border-stone-200">
+          <div className="grid grid-cols-2 border-b border-stone-200 text-center">
+            <button
+              type="button"
+              onClick={() => setActiveFeed('latest')}
+              className={`relative px-4 py-4 text-sm font-semibold transition ${
+                activeFeed === 'latest' ? 'text-stone-950' : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              최신
+              {activeFeed === 'latest' && (
+                <span className="absolute inset-x-0 bottom-0 h-[3px] bg-stone-950" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFeed('popular')}
+              className={`relative px-4 py-4 text-sm font-semibold transition ${
+                activeFeed === 'popular' ? 'text-stone-950' : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              인기 글
+              {activeFeed === 'popular' && (
+                <span className="absolute inset-x-0 bottom-0 h-[3px] bg-stone-950" />
+              )}
+            </button>
+          </div>
 
-      {!loading && popularPost && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-200">
-            인기글 (최근 24시간 좋아요 1등)
-          </p>
-          <CommunityPostTitleRow
-            key={popularPost.id}
-            post={popularPost}
-            featuredLabel={`24시간 좋아요 ${popularPost.dailyLikeCount}`}
-            onOpen={() => {
-              setError(null);
-              setSelectedPostId(popularPost.id);
-            }}
-          />
-        </div>
-      )}
-
-      {!loading && regularPosts.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">자유게시판</p>
-          {regularPosts.map((post) => (
-            <CommunityPostTitleRow
-              key={post.id}
-              post={post}
-              onOpen={() => {
-                setError(null);
-                setSelectedPostId(post.id);
-              }}
-            />
-          ))}
+          {feedPosts.length > 0 ? (
+            <div>
+              {feedPosts.map((post, index) => (
+                <CommunityMagazineRow
+                  key={post.id}
+                  post={post}
+                  order={index + 1}
+                  featuredLabel={
+                    activeFeed === 'popular' && index === 0
+                      ? `24시간 좋아요 ${post.dailyLikeCount}`
+                      : undefined
+                  }
+                  onOpen={() => {
+                    setError(null);
+                    setSelectedPostId(post.id);
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="border-b border-stone-200 bg-white p-6 text-center text-sm text-stone-500">
+              아직 게시글이 없습니다. 첫 글을 작성해 보세요.
+            </div>
+          )}
         </div>
       )}
 
       {selectedPost && (
-        <div className="fixed inset-0 z-[90] flex items-end justify-center p-1 pt-6 sm:items-center sm:p-4">
+        <div className="fixed inset-0 z-[90] flex items-end justify-center p-0 sm:items-center sm:p-3">
           <div
-            className="absolute inset-0 bg-black/82 backdrop-blur-sm"
+            className="absolute inset-0 bg-[rgba(10,10,10,0.62)] backdrop-blur-[2px]"
             onClick={() => {
               if (submitting) return;
               setSelectedPostId(null);
             }}
           />
-          <div className="relative z-[91] flex h-[min(100dvh-0.25rem,64rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.05rem] border border-cyan-100/25 bg-[#041221f2] shadow-[0_30px_100px_rgba(0,0,0,0.6)] sm:h-[min(100dvh-1.5rem,64rem)]">
-            <div className="flex items-start justify-between gap-4 border-b border-cyan-100/15 bg-[#06101bf2] px-4 py-3 sm:px-6">
+          <div className="relative z-[91] flex h-[100dvh] w-full max-w-[72rem] flex-col overflow-hidden border border-stone-200 bg-[#fbfdff] shadow-[0_30px_100px_rgba(0,0,0,0.22)] sm:h-[min(100dvh-1rem,68rem)]">
+            <div className="flex items-start justify-between gap-4 border-b border-stone-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-50/55">
-                  Community
+                <p className="text-[11px] uppercase tracking-[0.22em] text-[#b1071e]">
+                  {getCommunityCategoryLabel(selectedPost)}
                 </p>
-                <h3 className="mt-1 break-words text-base font-semibold text-white sm:text-lg">
+                <p className="mt-1 break-words text-base font-semibold text-stone-950 sm:text-lg">
                   {selectedPost.title}
-                </h3>
-                <p className="mt-1 text-xs text-white/50">
+                </p>
+                <p className="mt-1 text-xs text-stone-500">
                   {selectedPost.authorName} · {formatDateTime(selectedPost.createdAt)}
                 </p>
               </div>
@@ -832,13 +968,14 @@ export default function CommunityBoard() {
                   setSelectedPostId(null);
                 }}
                 disabled={submitting}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                className="y2k-button y2k-button-ghost y2k-button-fade-pin !min-h-10 !px-4 !text-[0.68rem] !tracking-[0.14em]"
                 aria-label="게시글 닫기"
               >
                 <X className="h-4 w-4" />
+                <span>닫기</span>
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-4 sm:px-6 sm:pb-10">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-5 pt-3 sm:px-6 sm:pb-8 sm:pt-4">
               <CommunityPostCard
                 post={selectedPost}
                 currentUserId={currentUserId}
@@ -870,47 +1007,98 @@ export default function CommunityBoard() {
           </div>
         </div>
       )}
-
-      {!loading && posts.length === 0 && (
-        <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/10 p-6 text-center text-sm text-cyan-50/75">
-          아직 게시글이 없습니다. 첫 글을 작성해 보세요.
-        </div>
-      )}
     </section>
   );
 }
 
-function CommunityPostTitleRow({
+function CommunityMagazineRow({
   post,
+  order,
   featuredLabel,
   onOpen
 }: {
   post: CommunityPost;
+  order: number;
   featuredLabel?: string;
   onOpen: () => void;
 }) {
+  const categoryLabel = getCommunityCategoryLabel(post);
+  const previewVisual = getCommunityPreviewVisual(post);
+  const excerpt = getFirstTextExcerpt(post.content);
+
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={
-        post.isNotice
-          ? 'w-full rounded-2xl border border-amber-300/35 bg-amber-500/10 px-4 py-3 text-left transition hover:bg-amber-400/16'
-          : 'w-full rounded-2xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-left transition hover:bg-cyan-200/16'
-      }
+      className="grid w-full gap-6 border-b border-stone-200 px-0 py-7 text-left transition hover:bg-stone-50 md:grid-cols-[minmax(0,1.02fr)_minmax(18rem,0.98fr)] md:items-stretch"
     >
-      <div className="flex items-center gap-2">
-        {post.isNotice && (
-          <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-100">
-            Notice
+      <div className="flex min-h-[16rem] flex-col">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-[12px] font-semibold tracking-[-0.02em] text-[#1f3a7d]">
+            {categoryLabel}
           </span>
+          {post.isNotice && (
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b1071e]">
+              Notice
+            </span>
+          )}
+          {featuredLabel && (
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+              {featuredLabel}
+            </span>
+          )}
+        </div>
+
+        <p className="mt-4 text-[2rem] font-semibold leading-[1.16] tracking-[-0.04em] text-stone-950 md:text-[2.2rem]">
+          {post.title}
+        </p>
+        <p className="mt-4 max-w-xl text-[1.02rem] leading-relaxed text-stone-500">{excerpt}</p>
+        <p className="mt-6 text-sm text-stone-500">
+          By {post.authorName} / {formatRelativeTime(post.createdAt)}
+        </p>
+
+        <div className="mt-auto flex items-center justify-between gap-3 pt-8">
+          <div className="flex items-center gap-4 text-sm text-stone-500">
+            <span className="inline-flex items-center gap-1.5">
+              <Flame className="h-4 w-4" />
+              <span>{post.likeCount}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <MessageCircle className="h-4 w-4" />
+              <span>{post.comments.length}</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] uppercase tracking-[0.18em] text-stone-400">
+              {String(order).padStart(2, '0')}
+            </span>
+            <Bookmark className="h-4 w-4 text-stone-400" />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative min-h-[16rem] overflow-hidden border border-stone-200 bg-white">
+        {previewVisual.kind === 'image' ? (
+          <img
+            src={previewVisual.src}
+            alt={post.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <div
+            className={`flex h-full w-full flex-col justify-between bg-gradient-to-br ${previewVisual.toneClassName} p-6`}
+          >
+            <div className="text-[11px] uppercase tracking-[0.18em] text-stone-400">
+              {previewVisual.panelLabel}
+            </div>
+            <div className="self-end text-[4.8rem] font-semibold leading-none tracking-[-0.08em] text-stone-300">
+              {previewVisual.mark}
+            </div>
+          </div>
         )}
-        {featuredLabel && (
-          <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-100">
-            {featuredLabel}
-          </span>
-        )}
-        <p className="line-clamp-1 text-sm font-semibold text-white">{post.title}</p>
       </div>
     </button>
   );
@@ -972,11 +1160,9 @@ function CommunityPostCard({
 
   return (
     <article
-      className={
-        post.isNotice
-          ? `rounded-[1rem] border border-amber-300/35 bg-amber-500/10 ${inModal ? 'p-5 sm:p-6' : 'p-4 sm:p-5'}`
-          : `rounded-[1rem] border border-cyan-100/20 bg-cyan-200/10 ${inModal ? 'p-5 sm:p-6' : 'p-4 sm:p-5'}`
-      }
+      className={`border ${
+        post.isNotice ? 'border-[#d8b6ab] bg-[#fff9f5]' : 'border-stone-200 bg-white'
+      } ${inModal ? 'flex min-h-full flex-col p-4 sm:p-6' : 'p-4 sm:p-5'}`}
     >
       {(!inModal || canManagePost) && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -984,32 +1170,32 @@ function CommunityPostCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 {post.isNotice && (
-                  <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                  <span className="inline-flex items-center border border-[#d8b6ab] bg-[#fff0e6] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#b1071e]">
                     Notice
                   </span>
                 )}
                 {featuredLabel && (
-                  <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">
+                  <span className="inline-flex items-center border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                     {featuredLabel}
                   </span>
                 )}
-                <h3 className="break-words text-base font-semibold text-white sm:text-lg">
+                <p className="break-words text-base font-semibold text-stone-950 sm:text-lg">
                   {post.title}
-                </h3>
+                </p>
               </div>
-              <p className="mt-1 text-xs text-white/55">
+              <p className="mt-1 text-xs text-stone-500">
                 {post.authorName} · {formatDateTime(post.createdAt)}
               </p>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               {post.isNotice && (
-                <span className="inline-flex items-center rounded-full border border-amber-300/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100">
+                <span className="inline-flex items-center border border-[#d8b6ab] bg-[#fff0e6] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#b1071e]">
                   Notice
                 </span>
               )}
               {featuredLabel && (
-                <span className="inline-flex items-center rounded-full border border-sky-300/35 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-100">
+                <span className="inline-flex items-center border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                   {featuredLabel}
                 </span>
               )}
@@ -1023,7 +1209,7 @@ function CommunityPostCard({
                   type="button"
                   onClick={onOpenEdit}
                   disabled={submitting}
-                  className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                  className="y2k-button y2k-button-ghost y2k-button-fade-pin !min-h-9 !px-3 !text-[0.64rem] !tracking-[0.14em]"
                 >
                   수정
                 </button>
@@ -1032,7 +1218,7 @@ function CommunityPostCard({
                   type="button"
                   onClick={onCloseEdit}
                   disabled={submitting}
-                  className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                  className="y2k-button y2k-button-ghost y2k-button-fade-pin !min-h-9 !px-3 !text-[0.64rem] !tracking-[0.14em]"
                 >
                   취소
                 </button>
@@ -1041,7 +1227,7 @@ function CommunityPostCard({
                 type="button"
                 onClick={onDeletePost}
                 disabled={submitting}
-                className="rounded-full border border-rose-300/35 bg-rose-500/12 px-3 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/24 disabled:opacity-60"
+                className="y2k-button y2k-button-ghost y2k-button-fade-pin !min-h-9 !px-3 !text-[0.64rem] !tracking-[0.14em]"
               >
                 삭제
               </button>
@@ -1053,8 +1239,8 @@ function CommunityPostCard({
       {!isEditing ? (
         <RichTextWithYouTube
           content={post.content}
-          containerClassName={`${inModal ? 'mt-2' : 'mt-3'} space-y-3`}
-          textClassName="whitespace-pre-wrap text-sm leading-relaxed text-white/85"
+          containerClassName={`${inModal ? 'mt-2 max-h-[24vh] overflow-y-auto pr-1 sm:max-h-[28vh]' : 'mt-3'} space-y-3`}
+          textClassName="whitespace-pre-wrap text-sm leading-relaxed text-stone-700"
         />
       ) : (
         <div className="mt-3 space-y-2">
@@ -1062,7 +1248,7 @@ function CommunityPostCard({
             value={editTitle}
             onChange={(event) => onEditTitleChange(event.target.value)}
             maxLength={160}
-            className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
+            className="w-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-950 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
           />
           <textarea
             value={editContent}
@@ -1070,10 +1256,10 @@ function CommunityPostCard({
             rows={4}
             maxLength={10000}
             placeholder={'내용\n유튜브 링크를 한 줄에 입력하면 자동 재생됩니다.'}
-            className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-4 py-3 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
+            className="w-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-950 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
           />
           {isAdmin && (
-            <label className="inline-flex items-center gap-2 text-sm text-amber-100">
+            <label className="inline-flex items-center gap-2 text-sm text-stone-700">
               <input
                 type="checkbox"
                 checked={editNotice}
@@ -1088,7 +1274,7 @@ function CommunityPostCard({
               type="button"
               onClick={onUpdatePost}
               disabled={submitting}
-              className="rounded-full border border-amber-100/35 bg-amber-100/15 px-4 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-100/25 disabled:opacity-60"
+              className="y2k-button y2k-button-primary y2k-button-service-fade !min-h-9 !px-4 !text-[0.66rem] !tracking-[0.14em]"
             >
               저장
             </button>
@@ -1101,10 +1287,10 @@ function CommunityPostCard({
           type="button"
           onClick={() => onReactPost('like')}
           disabled={reactionPending || !isLoggedIn}
-          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+          className={`inline-flex items-center gap-2 border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
             post.viewerReaction === 'like'
-              ? 'border-emerald-300/50 bg-emerald-400/15 text-emerald-100'
-              : 'border-cyan-100/30 bg-cyan-200/10 text-cyan-50 hover:bg-cyan-200/20'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
           }`}
           title={isLoggedIn ? '좋아요' : '로그인 후 사용할 수 있습니다.'}
         >
@@ -1115,27 +1301,27 @@ function CommunityPostCard({
           type="button"
           onClick={() => onReactPost('dislike')}
           disabled={reactionPending || !isLoggedIn}
-          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+          className={`inline-flex items-center gap-2 border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
             post.viewerReaction === 'dislike'
-              ? 'border-rose-300/50 bg-rose-400/15 text-rose-100'
-              : 'border-cyan-100/30 bg-cyan-200/10 text-cyan-50 hover:bg-cyan-200/20'
+              ? 'border-rose-200 bg-rose-50 text-rose-700'
+              : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'
           }`}
           title={isLoggedIn ? '싫어요' : '로그인 후 사용할 수 있습니다.'}
         >
           <ThumbsDown className="h-3.5 w-3.5" />
           <span>{post.dislikeCount}</span>
         </button>
-        {!isLoggedIn && <span className="text-xs text-white/45">로그인 후 반응을 남길 수 있습니다.</span>}
+        {!isLoggedIn && <span className="text-xs text-stone-400">로그인 후 반응을 남길 수 있습니다.</span>}
       </div>
 
-      <div className={`mt-5 flex flex-col gap-3 rounded-2xl border border-cyan-100/20 bg-[#041320b0] ${inModal ? 'p-5' : 'p-4'}`}>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-50/60">
+      <div className={`mt-5 flex flex-col gap-3 border border-stone-200 bg-[#fafafa] ${inModal ? 'min-h-0 flex-1 p-4 sm:p-5' : 'p-4'}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
           댓글 {post.comments.length}
         </p>
         {post.comments.length === 0 ? (
-          <p className="text-sm text-white/55">아직 댓글이 없습니다.</p>
+          <p className="text-sm text-stone-500">아직 댓글이 없습니다.</p>
         ) : (
-          <ul className={`${inModal ? 'max-h-[36vh] overflow-y-auto pr-1' : ''} space-y-2`}>
+          <ul className={`${inModal ? 'min-h-0 flex-1 overflow-y-auto pr-1' : ''} space-y-2`}>
             {post.comments.map((comment) => {
               const canDeleteComment = Boolean(
                 currentUserId && (currentUserId === comment.userId || isAdmin)
@@ -1143,17 +1329,17 @@ function CommunityPostCard({
               return (
                 <li
                   key={comment.id}
-                  className="rounded-xl border border-cyan-100/18 bg-cyan-200/10 px-3 py-2"
+                  className="border border-stone-200 bg-white px-3 py-2"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs text-white/55">
+                      <p className="text-xs text-stone-500">
                         {comment.authorName} · {formatDateTime(comment.createdAt)}
                       </p>
                       <RichTextWithYouTube
                         content={comment.content}
                         containerClassName="mt-1 space-y-2"
-                        textClassName="whitespace-pre-wrap text-sm text-white/85"
+                        textClassName="whitespace-pre-wrap text-sm text-stone-700"
                       />
                     </div>
                     {canDeleteComment && (
@@ -1161,7 +1347,7 @@ function CommunityPostCard({
                         type="button"
                         onClick={() => onDeleteComment(comment.id)}
                         disabled={submitting}
-                        className="rounded-full border border-rose-300/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-100 transition hover:bg-rose-500/22 disabled:opacity-60"
+                        className="y2k-button y2k-button-ghost y2k-button-fade-pin !min-h-8 !px-2.5 !text-[0.6rem] !tracking-[0.12em]"
                       >
                         삭제
                       </button>
@@ -1176,14 +1362,14 @@ function CommunityPostCard({
         <div
           className={
             inModal
-              ? 'sticky bottom-0 z-10 mt-2 rounded-xl border border-cyan-100/10 bg-[#041320f2] p-3 shadow-[0_-12px_30px_rgba(0,0,0,0.22)] sm:p-4'
+              ? 'mt-2 border border-stone-200 bg-white p-3 shadow-[0_-10px_24px_rgba(0,0,0,0.04)] sm:p-4'
               : ''
           }
         >
           {!isLoggedIn ? (
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-stone-500">
               댓글 작성은 로그인 후 가능합니다.{' '}
-              <Link href="/signin" className="underline underline-offset-4">
+              <Link href="/signin" className="underline underline-offset-4 text-stone-950">
                 로그인
               </Link>
             </p>
@@ -1192,17 +1378,17 @@ function CommunityPostCard({
               <textarea
                 value={commentDraft}
                 onChange={(event) => onCommentDraftChange(event.target.value)}
-                rows={4}
+                rows={5}
                 maxLength={2000}
                 placeholder="댓글을 입력해 주세요."
-                className="w-full rounded-xl border border-cyan-100/20 bg-cyan-200/10 px-3 py-2 text-sm text-cyan-50 placeholder:text-cyan-50/45 focus:outline-none focus:ring-2 focus:ring-cyan-100/35"
+                className="w-full border border-stone-200 bg-white px-3 py-3 text-sm text-stone-950 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200"
               />
               <div>
                 <button
                   type="button"
                   onClick={onCreateComment}
                   disabled={submitting}
-                  className="rounded-full border border-cyan-100/28 bg-cyan-200/12 px-4 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:opacity-60"
+                  className="y2k-button y2k-button-ghost y2k-button-fade-tight !min-h-9 !px-4 !text-[0.64rem] !tracking-[0.14em]"
                 >
                   댓글 등록
                 </button>
