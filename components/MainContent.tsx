@@ -67,10 +67,10 @@ export default function MainContent() {
               </a>
             </div>
             <p className="mt-6 max-w-2xl text-sm leading-relaxed text-stone-700 md:text-base">
-              {BRAND_NAME}은 코딩, 미디어, 패션에 대한 정보와 인사이트를 함께
-              나누는 커뮤니티 사이트입니다. 트렌드 정리부터 작업 이야기,
-              실무 팁과 추천 콘텐츠까지 한곳에서 보고 소통할 수 있도록
-              구성했습니다.
+              {BRAND_NAME}은 코드, 영상, 패션을 직접 만드는 사람이 운영하는
+              커뮤니티형 아카이브입니다. 웹사이트 구축부터 의상 제작, 영상
+              편집까지 실제 작업의 전 과정을 바탕으로 실무 팁, 작업 이야기,
+              인사이트를 공유합니다.
             </p>
 
             <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-1.5">
