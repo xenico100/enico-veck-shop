@@ -1,303 +1,244 @@
 'use client';
 
-const trunkMarkers = Array.from({ length: 11 }, (_, index) => `${index * 10}%`);
+const trunkMarkers = Array.from(
+  { length: 9 },
+  (_, index) => `${5 + index * 11.5}%`
+);
 
-const stages = [
-  {
-    id: 'garment',
-    title: '의류제작',
-    labelLeft: '13%',
-    panelLeft: '4%',
-    panelWidth: '26%',
-    branchHeight: '3.7rem',
-    lines: ['├ 원부자재 발주', '├ CLO 3D 설계', '├ 데이터 저장', '└ 실물 제작']
-  },
-  {
-    id: 'video',
-    title: '영상제작',
-    labelLeft: '42%',
-    panelLeft: '34%',
-    panelWidth: '22%',
-    branchHeight: '3.7rem',
-    lines: [
-      '├ 제품 촬영',
-      '├ 촬영/소스 정리',
-      '├ 컷 편집',
-      '├ 자막/사운드',
-      '└ 최종 출력'
-    ]
-  },
-  {
-    id: 'platform',
-    title: '플랫폼 업로드',
-    labelLeft: '72%',
-    panelLeft: '60%',
-    panelWidth: '34%',
-    branchHeight: '3.7rem',
-    groups: [
-      {
-        title: '[몽상인 영상채널]',
-        items: [
-          'YouTube   → 롱폼 / 숏폼 업로드',
-          'Instagram → 롱폼 / 숏폼 업로드',
-          'TikTok    → 롱폼 / 숏폼 업로드'
-        ]
-      },
-      {
-        title: '[enicoveck]',
-        items: [
-          '상품 등록',
-          '이미지 업로드',
-          '사이즈표 기재',
-          '상품 설명',
-          '결제 연결',
-          '상품 오픈',
-          '의류 콘텐츠 기반 영어권 숏폼 1개 업로드'
-        ]
-      }
-    ]
-  }
+const garmentItems = [
+  '원부자재 발주',
+  'CLO 3D 설계',
+  '데이터 저장',
+  '실물 제작'
+] as const;
+
+const videoItems = [
+  '제품 촬영',
+  '촬영/소스 정리',
+  '컷 편집',
+  '자막/사운드',
+  '최종 출력'
+] as const;
+
+const channelItems = [
+  'YouTube   → 롱폼 / 숏폼 업로드',
+  'Instagram → 롱폼 / 숏폼 업로드',
+  'TikTok    → 롱폼 / 숏폼 업로드'
+] as const;
+
+const storeItems = [
+  '상품 등록',
+  '이미지 업로드',
+  '사이즈표 기재',
+  '상품 설명',
+  '결제 연결',
+  '상품 오픈',
+  '의류 콘텐츠 기반 영어권 숏폼 1개 업로드'
 ] as const;
 
 const branchPaths = [
-  'M120 238 C148 220 162 190 180 118',
-  'M220 238 C238 208 258 176 292 78',
-  'M360 238 C346 206 336 178 318 102',
-  'M520 238 C544 212 566 182 594 92',
-  'M684 238 C666 266 650 296 624 388',
-  'M846 238 C870 214 894 184 928 96',
-  'M1008 238 C988 264 974 292 950 366'
+  'M132 192 C166 164 184 118 210 74',
+  'M286 192 C320 162 340 126 364 66',
+  'M440 192 C420 228 404 264 386 326',
+  'M642 192 C676 164 700 128 734 72',
+  'M812 192 C788 228 768 260 742 318',
+  'M1090 192 C1118 166 1146 130 1182 74',
+  'M1248 192 C1222 230 1204 264 1178 332'
+] as const;
+
+const mainNodes = [
+  { left: '12%', color: '#48c9d5' },
+  { left: '36%', color: '#f0b44d' },
+  { left: '69%', color: '#e06c78' }
 ] as const;
 
 export default function TimelineSpikeEditor() {
   return (
-    <div className="mt-5 overflow-hidden rounded-[1.9rem] border border-[#485c8f]/40 bg-[#020817] p-3 shadow-[0_26px_80px_rgba(2,8,24,0.46)] sm:p-4">
-      <div className="overflow-x-auto rounded-[1.55rem] border border-white/8 bg-[radial-gradient(circle_at_50%_20%,rgba(159,193,255,0.12),transparent_26%),linear-gradient(180deg,rgba(6,14,32,0.98),rgba(3,8,18,1))]">
-        <div className="relative min-h-[39rem] min-w-[1120px] overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_35%,rgba(204,219,255,0.12),transparent_18%),radial-gradient(circle_at_80%_28%,rgba(223,196,255,0.12),transparent_18%),radial-gradient(circle_at_52%_62%,rgba(188,225,255,0.08),transparent_26%)]" />
+    <div className="mt-6 overflow-x-auto">
+      <div className="relative min-h-[35rem] min-w-[1280px]">
+        {trunkMarkers.map((left) => (
+          <div
+            key={left}
+            className="pointer-events-none absolute top-3 h-4 w-px bg-[#35446d]/65"
+            style={{ left }}
+          />
+        ))}
 
-          {trunkMarkers.map((left) => (
-            <div
-              key={left}
-              className="pointer-events-none absolute top-4 h-4 w-px bg-white/90"
-              style={{ left }}
+        <div className="absolute left-1/2 top-8 z-10 flex w-[92%] -translate-x-1/2 items-center justify-center font-mono text-[16px] font-semibold tracking-[0.1em] text-[#1d2b54]">
+          <span>[의류제작]</span>
+          <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-[#576892]">
+            ───────────────
+          </span>
+          <span>[영상제작]</span>
+          <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-[#576892]">
+            ───────────────
+          </span>
+          <span>[플랫폼 업로드]</span>
+        </div>
+
+        <svg
+          viewBox="0 0 1280 560"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="trunk-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#d8e7ff" stopOpacity="0" />
+              <stop offset="24%" stopColor="#e8f1ff" stopOpacity="0.86" />
+              <stop offset="54%" stopColor="#f8fbff" stopOpacity="1" />
+              <stop offset="74%" stopColor="#efd6ff" stopOpacity="0.86" />
+              <stop offset="100%" stopColor="#d8e7ff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="trunk-core" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#52648f" />
+              <stop offset="34%" stopColor="#35507b" />
+              <stop offset="62%" stopColor="#5a4d88" />
+              <stop offset="100%" stopColor="#516693" />
+            </linearGradient>
+            <filter
+              id="trunk-blur"
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
+              <feGaussianBlur stdDeviation="10" />
+            </filter>
+            <filter
+              id="trunk-soft"
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
+              <feGaussianBlur stdDeviation="2.2" />
+            </filter>
+          </defs>
+
+          <path
+            d="M74 192 C248 192 352 192 514 192 C700 192 874 192 1208 192"
+            stroke="url(#trunk-glow)"
+            strokeWidth="54"
+            strokeLinecap="round"
+            fill="none"
+            filter="url(#trunk-blur)"
+          />
+          <path
+            d="M74 192 C248 192 352 192 514 192 C700 192 874 192 1208 192"
+            stroke="url(#trunk-core)"
+            strokeWidth="22"
+            strokeLinecap="round"
+            fill="none"
+            filter="url(#trunk-soft)"
+          />
+
+          {branchPaths.map((path) => (
+            <path
+              key={path}
+              d={path}
+              stroke="#92a3cc"
+              strokeWidth="6"
+              strokeLinecap="round"
+              fill="none"
+              strokeDasharray="16 16"
+              opacity="0.72"
             />
           ))}
+        </svg>
 
-          <svg
-            viewBox="0 0 1200 620"
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient id="trunk-glow" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#c8deff" stopOpacity="0" />
-                <stop offset="30%" stopColor="#edf5ff" stopOpacity="0.96" />
-                <stop offset="62%" stopColor="#efd7ff" stopOpacity="0.88" />
-                <stop offset="100%" stopColor="#c6ebff" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="trunk-core" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#d2e7ff" />
-                <stop offset="45%" stopColor="#ffffff" />
-                <stop offset="68%" stopColor="#edd0ff" />
-                <stop offset="100%" stopColor="#d2f1ff" />
-              </linearGradient>
-              <linearGradient
-                id="branch-fill"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#d5eaff" stopOpacity="0.92" />
-                <stop offset="54%" stopColor="#ffffff" stopOpacity="0.94" />
-                <stop offset="100%" stopColor="#eccfff" stopOpacity="0.84" />
-              </linearGradient>
-              <filter
-                id="diagram-blur"
-                x="-20%"
-                y="-20%"
-                width="140%"
-                height="140%"
-              >
-                <feGaussianBlur stdDeviation="12" />
-              </filter>
-              <filter
-                id="diagram-soft"
-                x="-20%"
-                y="-20%"
-                width="140%"
-                height="140%"
-              >
-                <feGaussianBlur stdDeviation="3" />
-              </filter>
-            </defs>
+        <div className="pointer-events-none absolute left-[6%] right-[6%] top-[9.35rem] h-[7px] rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(250,252,255,0.94),rgba(238,214,255,0.9),rgba(255,255,255,0))] opacity-85 blur-[1px]" />
+        <div className="pointer-events-none absolute left-[6%] right-[6%] top-[8.55rem] h-[34px] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(240,246,255,0.22),rgba(173,198,241,0.08),transparent_72%)] blur-xl" />
 
-            <path
-              d="M48 238 C212 238 334 237 492 238 C630 239 748 238 906 238 C1010 238 1088 238 1152 238"
-              stroke="url(#trunk-glow)"
-              strokeWidth="58"
-              strokeLinecap="round"
-              fill="none"
-              filter="url(#diagram-blur)"
-              className="diagram-pulse"
-            />
-            <path
-              d="M48 238 C212 238 334 237 492 238 C630 239 748 238 906 238 C1010 238 1088 238 1152 238"
-              stroke="url(#trunk-core)"
-              strokeWidth="18"
-              strokeLinecap="round"
-              fill="none"
-              filter="url(#diagram-soft)"
-              className="diagram-flow"
-            />
+        {mainNodes.map((node) => (
+          <div
+            key={node.left}
+            className="absolute top-[8.62rem] z-10 h-5 w-5 -translate-x-1/2 rounded-full border border-white/80 shadow-[0_0_0_6px_rgba(255,255,255,0.18),0_0_18px_rgba(106,129,186,0.28)]"
+            style={{ left: node.left, backgroundColor: node.color }}
+          />
+        ))}
 
-            {branchPaths.map((path) => (
-              <g key={path}>
-                <path
-                  d={path}
-                  stroke="#d9e9ff"
-                  strokeWidth="22"
-                  strokeLinecap="round"
-                  fill="none"
-                  opacity="0.22"
-                  filter="url(#diagram-blur)"
-                  className="diagram-branch"
+        <div className="absolute left-[4%] top-[15rem] w-[24%]">
+          <div className="space-y-4 font-mono text-[15px] leading-[1.55] text-[#1d2b54]">
+            {garmentItems.map((item, index) => (
+              <div key={item} className="flex items-center gap-3">
+                <span
+                  className="h-[10px] w-[10px] rounded-full shadow-[0_0_12px_rgba(88,148,196,0.24)]"
+                  style={{
+                    backgroundColor:
+                      index === 0
+                        ? '#f0d355'
+                        : index === 1
+                          ? '#48c9d5'
+                          : index === 2
+                            ? '#6fd08e'
+                            : '#7d94d0'
+                  }}
                 />
-                <path
-                  d={path}
-                  stroke="url(#branch-fill)"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  fill="none"
-                  filter="url(#diagram-soft)"
-                  className="diagram-flow"
-                />
-              </g>
+                <span>{item}</span>
+              </div>
             ))}
-          </svg>
-
-          <div className="pointer-events-none absolute left-6 right-6 top-[13.65rem] h-[110px] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(245,250,255,0.26),rgba(149,190,255,0.12),transparent_70%)] blur-2xl" />
-          <div className="pointer-events-none absolute left-10 right-10 top-[14.6rem] h-[8px] rounded-full bg-[linear-gradient(90deg,rgba(211,231,255,0),rgba(245,250,255,1),rgba(238,211,255,0.92),rgba(207,239,255,0))] shadow-[0_0_24px_rgba(236,245,255,0.86)]" />
-
-          <div className="absolute left-1/2 top-[13.05rem] z-10 flex w-[88%] -translate-x-1/2 items-center justify-center font-mono text-[16px] font-semibold tracking-[0.08em] text-white [text-shadow:0_0_22px_rgba(226,239,255,0.34)]">
-            <span>[의류제작]</span>
-            <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-white/92">
-              ──────────────
-            </span>
-            <span>[영상제작]</span>
-            <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-white/92">
-              ──────────────
-            </span>
-            <span>[플랫폼 업로드]</span>
           </div>
+        </div>
 
-          {stages.map((stage) => (
-            <div key={stage.id}>
-              <div
-                className="pointer-events-none absolute top-[15.3rem] z-0 w-px bg-[linear-gradient(180deg,rgba(236,244,255,0.9),rgba(190,221,255,0.24),transparent)]"
-                style={{
-                  left: stage.labelLeft,
-                  height: stage.branchHeight
-                }}
-              />
+        <div className="absolute left-[34%] top-[15rem] w-[22%]">
+          <div className="space-y-4 font-mono text-[15px] leading-[1.55] text-[#1d2b54]">
+            {videoItems.map((item, index) => (
+              <div key={item} className="flex items-center gap-3">
+                <span
+                  className="h-[10px] w-[10px] rounded-full shadow-[0_0_12px_rgba(193,123,103,0.22)]"
+                  style={{
+                    backgroundColor:
+                      index < 2 ? '#f0b44d' : index < 4 ? '#ea7b5a' : '#d55872'
+                  }}
+                />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-              <div
-                className="absolute top-[18.9rem] z-10"
-                style={{
-                  left: stage.panelLeft,
-                  width: stage.panelWidth
-                }}
-              >
-                {'lines' in stage ? (
-                  <div className="space-y-3 font-mono text-[15px] leading-[1.75] tracking-[0.04em] text-[#eef5ff]">
-                    {stage.lines.map((line) => (
-                      <div key={line} className="flex items-start gap-3">
-                        <span className="mt-[0.2rem] h-[7px] w-[7px] rounded-full bg-[#f7fbff] shadow-[0_0_10px_rgba(240,247,255,0.74)]" />
-                        <span>{line.replace(/^[├└]\s*/, '')}</span>
-                      </div>
-                    ))}
+        <div className="absolute left-[59%] top-[14.5rem] w-[35%]">
+          <div className="space-y-8 font-mono text-[14px] leading-[1.65] text-[#1d2b54]">
+            <div className="relative pl-6">
+              <div className="absolute left-0 top-[0.7rem] h-[calc(100%-0.7rem)] w-px bg-[#697aa4]/70" />
+              <div className="absolute left-0 top-[0.7rem] h-px w-4 bg-[#697aa4]/80" />
+              <div className="text-[15px] font-semibold tracking-[0.08em] text-[#3a4d7c]">
+                [몽상인 영상채널]
+              </div>
+              <div className="mt-3 space-y-2 pl-6">
+                {channelItems.map((item, index) => (
+                  <div key={item} className="relative">
+                    <div className="absolute -left-6 top-[0.76rem] h-px w-4 bg-[#697aa4]/72" />
+                    {index < channelItems.length - 1 ? (
+                      <div className="absolute -left-6 top-0 h-full w-px bg-[#9ea9c6]/45" />
+                    ) : null}
+                    <div>{item}</div>
                   </div>
-                ) : (
-                  <div className="space-y-5 font-mono text-[14px] leading-[1.8] tracking-[0.03em] text-[#eef5ff]">
-                    {stage.groups.map((group) => (
-                      <div key={group.title} className="relative pl-5">
-                        <div className="absolute left-0 top-[0.6rem] h-[calc(100%-0.6rem)] w-px bg-white/30" />
-                        <div className="absolute left-0 top-[0.6rem] h-px w-3 bg-white/50" />
-                        <div className="text-[15px] font-semibold tracking-[0.12em] text-white">
-                          {group.title}
-                        </div>
-                        <div className="mt-2 space-y-2 pl-5">
-                          {group.items.map((item, index) => (
-                            <div key={item} className="relative">
-                              <div className="absolute -left-5 top-[0.78rem] h-px w-3 bg-white/42" />
-                              {index < group.items.length - 1 ? (
-                                <div className="absolute -left-5 top-0 h-full w-px bg-white/22" />
-                              ) : null}
-                              <div>{item}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
             </div>
-          ))}
 
-          <div className="pointer-events-none absolute left-[8%] top-[9.5rem] h-24 w-10 rotate-[18deg] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.28),transparent)] blur-[10px] opacity-70" />
-          <div className="pointer-events-none absolute left-[47%] top-[6.9rem] h-28 w-10 rotate-[26deg] rounded-full bg-[linear-gradient(180deg,rgba(222,202,255,0.32),transparent)] blur-[12px] opacity-70" />
-          <div className="pointer-events-none absolute left-[85%] top-[10.2rem] h-24 w-10 rotate-[24deg] rounded-full bg-[linear-gradient(180deg,rgba(255,255,255,0.28),transparent)] blur-[11px] opacity-65" />
+            <div className="relative pl-6">
+              <div className="absolute left-0 top-[0.7rem] h-[calc(100%-0.7rem)] w-px bg-[#697aa4]/70" />
+              <div className="absolute left-0 top-[0.7rem] h-px w-4 bg-[#697aa4]/80" />
+              <div className="text-[15px] font-semibold tracking-[0.08em] text-[#3a4d7c]">
+                [enicoveck]
+              </div>
+              <div className="mt-3 space-y-2 pl-6">
+                {storeItems.map((item, index) => (
+                  <div key={item} className="relative">
+                    <div className="absolute -left-6 top-[0.76rem] h-px w-4 bg-[#697aa4]/72" />
+                    {index < storeItems.length - 1 ? (
+                      <div className="absolute -left-6 top-0 h-full w-px bg-[#9ea9c6]/45" />
+                    ) : null}
+                    <div>{item}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <style>{`
-        .diagram-flow {
-          stroke-dasharray: 22 16;
-          animation: diagram-flow 11s linear infinite;
-        }
-
-        .diagram-pulse {
-          animation: diagram-pulse 5s ease-in-out infinite;
-        }
-
-        .diagram-branch {
-          animation: diagram-branch 4.8s ease-in-out infinite;
-        }
-
-        @keyframes diagram-flow {
-          0% {
-            stroke-dashoffset: 0;
-          }
-          100% {
-            stroke-dashoffset: -240;
-          }
-        }
-
-        @keyframes diagram-pulse {
-          0%,
-          100% {
-            opacity: 0.54;
-          }
-          50% {
-            opacity: 0.96;
-          }
-        }
-
-        @keyframes diagram-branch {
-          0%,
-          100% {
-            opacity: 0.18;
-          }
-          45% {
-            opacity: 0.42;
-          }
-          70% {
-            opacity: 0.26;
-          }
-        }
-      `}</style>
     </div>
   );
 }
