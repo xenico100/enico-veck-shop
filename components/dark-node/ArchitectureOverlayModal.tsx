@@ -84,13 +84,13 @@ export default function ArchitectureOverlayModal({
             ref={closeButtonRef}
             type="button"
             onClick={() => onOpenChange(false)}
-            className="y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-pin absolute right-4 top-4 z-10 shrink-0 sm:right-6 sm:top-6 md:right-8"
+            className="absolute right-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-stone-900/12 bg-white/92 text-stone-900 shadow-[0_14px_30px_rgba(15,23,42,0.12)] backdrop-blur-md transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/70 sm:right-6 sm:top-6 md:right-8"
             aria-label="아키텍처 모달 닫기"
           >
             <X className="h-4 w-4" />
           </button>
 
-          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto px-4 pb-6 pt-16 sm:max-h-[88vh] sm:px-6 sm:pb-8 sm:pt-20 md:px-8">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto px-4 pb-6 pt-10 sm:max-h-[88vh] sm:px-6 sm:pb-8 sm:pt-12 md:px-8">
             {activeTab === 'system' ? (
               <div className="space-y-4">
                 <ZoomableCanvas
