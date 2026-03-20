@@ -75,7 +75,6 @@ export default function TimelineSpikeEditor() {
       <div className="overflow-x-auto rounded-[1.55rem] border border-white/8 bg-[radial-gradient(circle_at_50%_20%,rgba(159,193,255,0.12),transparent_26%),linear-gradient(180deg,rgba(6,14,32,0.98),rgba(3,8,18,1))]">
         <div className="relative min-h-[39rem] min-w-[1120px] overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_35%,rgba(204,219,255,0.12),transparent_18%),radial-gradient(circle_at_80%_28%,rgba(223,196,255,0.12),transparent_18%),radial-gradient(circle_at_52%_62%,rgba(188,225,255,0.08),transparent_26%)]" />
-          <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
 
           {trunkMarkers.map((left) => (
             <div
@@ -137,7 +136,7 @@ export default function TimelineSpikeEditor() {
             <path
               d="M48 238 C212 238 334 237 492 238 C630 239 748 238 906 238 C1010 238 1088 238 1152 238"
               stroke="url(#trunk-glow)"
-              strokeWidth="34"
+              strokeWidth="58"
               strokeLinecap="round"
               fill="none"
               filter="url(#diagram-blur)"
@@ -146,7 +145,7 @@ export default function TimelineSpikeEditor() {
             <path
               d="M48 238 C212 238 334 237 492 238 C630 239 748 238 906 238 C1010 238 1088 238 1152 238"
               stroke="url(#trunk-core)"
-              strokeWidth="8"
+              strokeWidth="18"
               strokeLinecap="round"
               fill="none"
               filter="url(#diagram-soft)"
@@ -158,7 +157,7 @@ export default function TimelineSpikeEditor() {
                 <path
                   d={path}
                   stroke="#d9e9ff"
-                  strokeWidth="18"
+                  strokeWidth="22"
                   strokeLinecap="round"
                   fill="none"
                   opacity="0.22"
@@ -168,7 +167,7 @@ export default function TimelineSpikeEditor() {
                 <path
                   d={path}
                   stroke="url(#branch-fill)"
-                  strokeWidth="4"
+                  strokeWidth="6"
                   strokeLinecap="round"
                   fill="none"
                   filter="url(#diagram-soft)"
@@ -178,19 +177,25 @@ export default function TimelineSpikeEditor() {
             ))}
           </svg>
 
-          <div className="pointer-events-none absolute left-8 right-8 top-[14.85rem] h-[58px] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(245,250,255,0.2),rgba(149,190,255,0.08),transparent_68%)] blur-xl" />
+          <div className="pointer-events-none absolute left-6 right-6 top-[13.65rem] h-[110px] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(245,250,255,0.26),rgba(149,190,255,0.12),transparent_70%)] blur-2xl" />
+          <div className="pointer-events-none absolute left-10 right-10 top-[14.6rem] h-[8px] rounded-full bg-[linear-gradient(90deg,rgba(211,231,255,0),rgba(245,250,255,1),rgba(238,211,255,0.92),rgba(207,239,255,0))] shadow-[0_0_24px_rgba(236,245,255,0.86)]" />
+
+          <div className="absolute left-1/2 top-[13.05rem] z-10 flex w-[88%] -translate-x-1/2 items-center justify-center font-mono text-[16px] font-semibold tracking-[0.08em] text-white [text-shadow:0_0_22px_rgba(226,239,255,0.34)]">
+            <span>[의류제작]</span>
+            <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-white/92">
+              ──────────────
+            </span>
+            <span>[영상제작]</span>
+            <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-white/92">
+              ──────────────
+            </span>
+            <span>[플랫폼 업로드]</span>
+          </div>
 
           {stages.map((stage) => (
             <div key={stage.id}>
               <div
-                className="absolute top-[13rem] z-10 -translate-x-1/2 rounded-full border border-white/30 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(118,148,212,0.16))] px-5 py-2 font-mono text-[15px] font-semibold tracking-[0.24em] text-white shadow-[0_0_28px_rgba(213,230,255,0.28)] backdrop-blur-md"
-                style={{ left: stage.labelLeft }}
-              >
-                [{stage.title}]
-              </div>
-
-              <div
-                className="pointer-events-none absolute top-[15.4rem] z-0 w-px bg-[linear-gradient(180deg,rgba(236,244,255,0.84),rgba(190,221,255,0.22),transparent)]"
+                className="pointer-events-none absolute top-[15.3rem] z-0 w-px bg-[linear-gradient(180deg,rgba(236,244,255,0.9),rgba(190,221,255,0.24),transparent)]"
                 style={{
                   left: stage.labelLeft,
                   height: stage.branchHeight
@@ -198,7 +203,7 @@ export default function TimelineSpikeEditor() {
               />
 
               <div
-                className="absolute top-[19.1rem] z-10"
+                className="absolute top-[18.9rem] z-10"
                 style={{
                   left: stage.panelLeft,
                   width: stage.panelWidth
