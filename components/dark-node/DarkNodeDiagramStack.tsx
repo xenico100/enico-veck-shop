@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 import BrandBuildSection from '@/components/dark-node/BrandBuildSection';
 
 type DarkNodeDiagramStackProps = {
@@ -11,9 +9,6 @@ type DarkNodeDiagramStackProps = {
 export default function DarkNodeDiagramStack({
   className
 }: DarkNodeDiagramStackProps) {
-  const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const archiveRed = '#7d002d';
-
   return (
     <div
       className={`relative w-full overflow-hidden bg-[#f8fbff] ${className ?? ''}`.trim()}
@@ -24,57 +19,8 @@ export default function DarkNodeDiagramStack({
 
       <div className="dark-node-noise pointer-events-none absolute inset-0 z-10 opacity-5" />
 
-      <div className="relative z-0 w-full px-3 pb-4 pt-4 md:px-6 md:pb-6 md:pt-6">
-        <div className="mb-4 md:mb-6">
-          <div
-            className="dark-node-glitch font-mono text-xs tracking-wider opacity-70 md:text-sm"
-            data-text="REAL_ENICO :: ARCHITECTURE CUTLINE STUDIO"
-            style={{
-              color: archiveRed,
-              textShadow: '0 0 4px rgba(90, 0, 16, 0.18)'
-            }}
-          >
-            REAL_ENICO :: ARCHITECTURE CUTLINE STUDIO
-          </div>
-          <div
-            className="mt-1 font-mono text-[10px] tracking-wider opacity-60 md:text-xs"
-            style={{ color: archiveRed }}
-          >
-            Final Cut Style Trunk × Coding Architecture × Fashion Architecture
-          </div>
-          <div
-            className="mt-2 font-mono text-[9px] tracking-wider opacity-45 md:text-[10px]"
-            style={{ color: archiveRed }}
-          >
-            [EDITOR ONLINE] :: {currentDate} :: [CUT / UNDO / STACK / HOVER]
-          </div>
-        </div>
-
+      <div className="relative z-0 w-full px-3 py-4 md:px-6 md:py-6">
         <BrandBuildSection />
-
-        <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[#38523e]/80 md:text-[11px]">
-          <span className="rounded-full border border-stone-900/10 bg-white/60 px-3 py-1.5">
-            Master Trunk
-          </span>
-          <span className="rounded-full border border-stone-900/10 bg-white/60 px-3 py-1.5">
-            Spike Hover Popup
-          </span>
-          <span className="rounded-full border border-stone-900/10 bg-white/60 px-3 py-1.5">
-            Cut / Undo
-          </span>
-          <span className="rounded-full border border-stone-900/10 bg-white/60 px-3 py-1.5">
-            Editable Inspector
-          </span>
-        </div>
-      </div>
-
-      <div className="relative flex w-full justify-center py-6">
-        <div
-          className="px-4 text-center font-mono text-[9px] tracking-widest opacity-55 md:text-[10px]"
-          style={{ color: '#38523e' }}
-        >
-          [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
-        </div>
       </div>
 
       <style>{`

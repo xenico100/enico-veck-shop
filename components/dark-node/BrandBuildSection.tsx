@@ -6,15 +6,12 @@ import TimelineSpikeEditor from '@/components/dark-node/TimelineSpikeEditor';
 
 type FeaturedVideoResponse = {
   url?: string | null;
-  mime?: string | null;
-  source?: 'public' | 'fallback' | null;
 };
 
 const FALLBACK_VIDEO_URL = '/images/hero-bg.mp4';
 
 export default function BrandBuildSection() {
   const [videoUrl, setVideoUrl] = useState(FALLBACK_VIDEO_URL);
-  const [videoSourceLabel, setVideoSourceLabel] = useState('Local fallback');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,9 +29,6 @@ export default function BrandBuildSection() {
         if (!payload.url) return;
 
         setVideoUrl(payload.url);
-        setVideoSourceLabel(
-          payload.source === 'public' ? 'R2 public archive' : 'R2 archive'
-        );
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError')
           return;
@@ -49,21 +43,11 @@ export default function BrandBuildSection() {
   return (
     <section className="mt-6 md:mt-8">
       <div className="tech-panel overflow-hidden p-4 sm:p-5 md:p-7">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 md:mb-5">
-          <div>
-            <p className="section-kicker">Designer Brand Build</p>
-            <h3 className="display-font mt-2 text-[1.4rem] font-semibold tracking-[0.06em] text-stone-950 sm:text-[1.9rem] md:text-[2.3rem]">
-              코딩 아키텍처와 패션 아키텍처로 디자이너 브랜드 구축 완료
-            </h3>
-          </div>
-          <div className="text-right">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
-              1920 × 1080 archive playback
-            </p>
-            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-stone-400">
-              {videoSourceLabel}
-            </p>
-          </div>
+        <div className="mb-4 md:mb-5">
+          <p className="section-kicker">Designer Brand Build</p>
+          <h3 className="display-font mt-2 text-[1.4rem] font-semibold tracking-[0.06em] text-stone-950 sm:text-[1.9rem] md:text-[2.3rem]">
+            코딩 아키텍처와 패션 아키텍처로 디자이너 브랜드 구축 완료
+          </h3>
         </div>
 
         <div className="relative overflow-hidden border border-stone-900/10 bg-[#eff4fb]">
