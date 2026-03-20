@@ -14,6 +14,7 @@ import {
   PROD_SVG_HEIGHT,
   PROD_SVG_WIDTH
 } from '@/components/dark-node/ProductionDiagram';
+import WorkflowHeistTimeline from '@/components/dark-node/WorkflowHeistTimeline';
 import { ZoomableCanvas } from '@/components/dark-node/ZoomableCanvas';
 
 type DarkNodeDiagramStackProps = {
@@ -38,12 +39,21 @@ export default function DarkNodeDiagramStack({
   const prodReuseInk = '#27572e';
 
   return (
-    <div className={cn('relative min-h-screen w-full overflow-hidden bg-[#f8fbff]', className)}>
+    <div
+      className={cn(
+        'relative min-h-screen w-full overflow-hidden bg-[#f8fbff]',
+        className
+      )}
+    >
       <div className="pointer-events-none absolute inset-0 z-20 opacity-10">
         <div className="dark-node-scanlines h-full" />
       </div>
 
       <div className="dark-node-noise pointer-events-none absolute inset-0 z-10 opacity-5" />
+
+      <div className="relative z-0 w-full px-3 pt-4 md:px-6 md:pt-6">
+        <WorkflowHeistTimeline />
+      </div>
 
       <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
         <div className="mb-4 md:mb-6">
@@ -61,8 +71,7 @@ export default function DarkNodeDiagramStack({
             className="mt-1 font-mono text-[10px] tracking-wider opacity-60 md:text-xs"
             style={{ color: archiveRed }}
           >
-            Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay ×
-            PayPal
+            Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay × PayPal
           </div>
           <div
             className="mt-2 font-mono text-[9px] tracking-wider opacity-45 md:text-[10px]"
@@ -78,7 +87,10 @@ export default function DarkNodeDiagramStack({
 
         <div className="mt-3 font-mono text-[10px] md:text-xs">
           <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#d2d2d2] bg-[#f8fbff] p-2 backdrop-blur-sm md:p-3">
-            <div className="mb-1 w-full tracking-wide opacity-75" style={{ color: statusInk }}>
+            <div
+              className="mb-1 w-full tracking-wide opacity-75"
+              style={{ color: statusInk }}
+            >
               FLOW TYPES:
             </div>
             <div className="flex items-center gap-2">
@@ -114,7 +126,10 @@ export default function DarkNodeDiagramStack({
           </div>
         </div>
 
-        <div className="mt-2 font-mono text-[9px] opacity-50 md:text-[10px]" style={{ color: statusInk }}>
+        <div
+          className="mt-2 font-mono text-[9px] opacity-50 md:text-[10px]"
+          style={{ color: statusInk }}
+        >
           <div className="flex gap-3 md:gap-4">
             <span>[NODES: 25]</span>
             <span>[CONNECTIONS: 22]</span>
