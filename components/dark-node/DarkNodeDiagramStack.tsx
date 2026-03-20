@@ -6,7 +6,6 @@ import ArchitectureOverlayModal, {
   type ArchitectureModalTab
 } from '@/components/dark-node/ArchitectureOverlayModal';
 import { cn } from '@/utils/cn';
-import BrandBuildSection from '@/components/dark-node/BrandBuildSection';
 import WorkflowHeistTimeline from '@/components/dark-node/WorkflowHeistTimeline';
 
 type DarkNodeDiagramStackProps = {
@@ -39,8 +38,6 @@ export default function DarkNodeDiagramStack({
       <div className="relative z-0 w-full px-3 pt-4 md:px-6 md:pt-6">
         <WorkflowHeistTimeline onTabRequest={openDiagramTab} />
       </div>
-
-      <BrandBuildSection />
 
       <ArchitectureOverlayModal
         open={activeTab !== null}
