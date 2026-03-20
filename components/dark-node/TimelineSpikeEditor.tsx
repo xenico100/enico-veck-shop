@@ -1,252 +1,253 @@
 'use client';
 
-const trunkMarkers = Array.from(
-  { length: 9 },
-  (_, index) => `${5 + index * 11.5}%`
-);
+type DotNode = {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  label: string[];
+  labelX: number;
+  labelY: number;
+  align: 'left' | 'center' | 'right';
+};
 
-const garmentItems = [
-  '원부자재 발주',
-  'CLO 3D 설계',
-  '데이터 저장',
-  '실물 제작'
+const stageTitles = [
+  { id: 'garment', x: 170, label: '[의류제작]' },
+  { id: 'video', x: 600, label: '[영상제작]' },
+  { id: 'platform', x: 1098, label: '[플랫폼 업로드]' }
 ] as const;
 
-const videoItems = [
-  '제품 촬영',
-  '촬영/소스 정리',
-  '컷 편집',
-  '자막/사운드',
-  '최종 출력'
+const dottedPaths = [
+  'M96 176 C128 210 166 214 212 142',
+  'M212 142 C246 100 286 102 326 176',
+  'M326 176 C360 236 402 238 448 176',
+  'M458 176 C500 126 548 120 596 176',
+  'M596 176 C634 220 678 226 726 176',
+  'M726 176 C768 128 820 124 876 176',
+  'M920 176 C986 132 1040 132 1094 176',
+  'M1094 176 C1144 116 1196 120 1242 176',
+  'M1094 176 C1136 228 1188 232 1246 280'
 ] as const;
 
-const channelItems = [
-  'YouTube   → 롱폼 / 숏폼 업로드',
-  'Instagram → 롱폼 / 숏폼 업로드',
-  'TikTok    → 롱폼 / 숏폼 업로드'
-] as const;
+const nodes: DotNode[] = [
+  {
+    id: 'garment-order',
+    x: 96,
+    y: 176,
+    color: '#f1d64f',
+    label: ['원부자재 발주'],
+    labelX: 112,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'garment-clo',
+    x: 212,
+    y: 142,
+    color: '#4ac3d1',
+    label: ['CLO 3D 설계'],
+    labelX: 228,
+    labelY: 104,
+    align: 'left'
+  },
+  {
+    id: 'garment-data',
+    x: 326,
+    y: 176,
+    color: '#65cf72',
+    label: ['데이터 저장'],
+    labelX: 342,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'garment-physical',
+    x: 448,
+    y: 176,
+    color: '#748fdc',
+    label: ['실물 제작'],
+    labelX: 464,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'video-shoot',
+    x: 596,
+    y: 176,
+    color: '#f2b54a',
+    label: ['제품 촬영'],
+    labelX: 612,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'video-source',
+    x: 726,
+    y: 176,
+    color: '#f0a95d',
+    label: ['촬영/소스 정리'],
+    labelX: 742,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'video-cut',
+    x: 876,
+    y: 176,
+    color: '#e97959',
+    label: ['컷 편집'],
+    labelX: 892,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'video-subtitle',
+    x: 1094,
+    y: 176,
+    color: '#d95f72',
+    label: ['자막/사운드', '최종 출력'],
+    labelX: 1110,
+    labelY: 214,
+    align: 'left'
+  },
+  {
+    id: 'channel-youtube',
+    x: 1242,
+    y: 176,
+    color: '#6c6fd9',
+    label: [
+      '[몽상인 영상채널]',
+      'YouTube → 롱폼 / 숏폼 업로드',
+      'Instagram → 롱폼 / 숏폼 업로드',
+      'TikTok → 롱폼 / 숏폼 업로드'
+    ],
+    labelX: 1228,
+    labelY: 88,
+    align: 'right'
+  },
+  {
+    id: 'store-enicoveck',
+    x: 1246,
+    y: 280,
+    color: '#f08f39',
+    label: [
+      '[enicoveck]',
+      '상품 등록',
+      '이미지 업로드',
+      '사이즈표 기재',
+      '상품 설명',
+      '결제 연결',
+      '상품 오픈',
+      '의류 콘텐츠 기반 영어권 숏폼 1개 업로드'
+    ],
+    labelX: 1232,
+    labelY: 300,
+    align: 'right'
+  }
+];
 
-const storeItems = [
-  '상품 등록',
-  '이미지 업로드',
-  '사이즈표 기재',
-  '상품 설명',
-  '결제 연결',
-  '상품 오픈',
-  '의류 콘텐츠 기반 영어권 숏폼 1개 업로드'
-] as const;
-
-const timelineGridColumns =
-  'minmax(230px,0.95fr) minmax(150px,0.52fr) minmax(230px,0.95fr) minmax(150px,0.52fr) minmax(390px,1.55fr)';
-
-const branchPaths = [
-  'M132 192 C166 164 184 118 210 74',
-  'M286 192 C320 162 340 126 364 66',
-  'M440 192 C420 228 404 264 386 326',
-  'M642 192 C676 164 700 128 734 72',
-  'M812 192 C788 228 768 260 742 318',
-  'M1090 192 C1118 166 1146 130 1182 74',
-  'M1248 192 C1222 230 1204 264 1178 332'
-] as const;
-
-const mainNodes = [
-  { left: '12.5%', color: '#48c9d5' },
-  { left: '39.8%', color: '#f0b44d' },
-  { left: '73.5%', color: '#e06c78' }
-] as const;
+const getLabelClassName = (align: DotNode['align']) => {
+  if (align === 'center') return 'items-center text-center';
+  if (align === 'right') return 'items-end text-right';
+  return 'items-start text-left';
+};
 
 export default function TimelineSpikeEditor() {
   return (
     <div className="mt-6 overflow-x-auto">
-      <div className="relative min-h-[35rem] min-w-[1280px]">
-        {trunkMarkers.map((left) => (
-          <div
-            key={left}
-            className="pointer-events-none absolute top-3 h-4 w-px bg-[#35446d]/65"
-            style={{ left }}
-          />
-        ))}
-
-        <div
-          className="absolute inset-x-[4%] top-8 z-10 grid items-center gap-4 font-mono text-[16px] font-semibold tracking-[0.1em] text-[#1d2b54]"
-          style={{ gridTemplateColumns: timelineGridColumns }}
-        >
-          <div className="text-left">[의류제작]</div>
-          <div className="overflow-hidden whitespace-nowrap text-center text-[#576892]">
-            ───────────────
-          </div>
-          <div className="text-center">[영상제작]</div>
-          <div className="overflow-hidden whitespace-nowrap text-center text-[#576892]">
-            ───────────────
-          </div>
-          <div className="text-right">[플랫폼 업로드]</div>
-        </div>
-
+      <div className="relative min-h-[34rem] min-w-[1320px]">
         <svg
-          viewBox="0 0 1280 560"
+          viewBox="0 0 1320 540"
           className="pointer-events-none absolute inset-0 h-full w-full"
           aria-hidden="true"
         >
           <defs>
-            <linearGradient id="trunk-glow" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#d8e7ff" stopOpacity="0" />
-              <stop offset="24%" stopColor="#e8f1ff" stopOpacity="0.86" />
-              <stop offset="54%" stopColor="#f8fbff" stopOpacity="1" />
-              <stop offset="74%" stopColor="#efd6ff" stopOpacity="0.86" />
-              <stop offset="100%" stopColor="#d8e7ff" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="trunk-core" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#52648f" />
-              <stop offset="34%" stopColor="#35507b" />
-              <stop offset="62%" stopColor="#5a4d88" />
-              <stop offset="100%" stopColor="#516693" />
-            </linearGradient>
-            <filter
-              id="trunk-blur"
-              x="-20%"
-              y="-20%"
-              width="140%"
-              height="140%"
+            <linearGradient
+              id="timeline-main-line"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
             >
-              <feGaussianBlur stdDeviation="10" />
-            </filter>
-            <filter
-              id="trunk-soft"
-              x="-20%"
-              y="-20%"
-              width="140%"
-              height="140%"
-            >
-              <feGaussianBlur stdDeviation="2.2" />
-            </filter>
+              <stop offset="0%" stopColor="#5a6e9c" />
+              <stop offset="42%" stopColor="#33517d" />
+              <stop offset="72%" stopColor="#925784" />
+              <stop offset="100%" stopColor="#536e99" />
+            </linearGradient>
           </defs>
 
           <path
-            d="M74 192 C248 192 352 192 514 192 C700 192 874 192 1208 192"
-            stroke="url(#trunk-glow)"
-            strokeWidth="54"
+            d="M76 176 C324 176 436 176 584 176 C748 176 904 176 1246 176"
+            stroke="url(#timeline-main-line)"
+            strokeWidth="4"
             strokeLinecap="round"
             fill="none"
-            filter="url(#trunk-blur)"
-          />
-          <path
-            d="M74 192 C248 192 352 192 514 192 C700 192 874 192 1208 192"
-            stroke="url(#trunk-core)"
-            strokeWidth="22"
-            strokeLinecap="round"
-            fill="none"
-            filter="url(#trunk-soft)"
           />
 
-          {branchPaths.map((path) => (
+          {dottedPaths.map((path) => (
             <path
               key={path}
               d={path}
-              stroke="#92a3cc"
-              strokeWidth="6"
+              stroke="#90a1cb"
+              strokeWidth="4"
               strokeLinecap="round"
               fill="none"
-              strokeDasharray="16 16"
-              opacity="0.72"
+              strokeDasharray="12 12"
+              opacity="0.8"
             />
           ))}
         </svg>
 
-        <div className="pointer-events-none absolute left-[6%] right-[6%] top-[9.35rem] h-[7px] rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(250,252,255,0.94),rgba(238,214,255,0.9),rgba(255,255,255,0))] opacity-85 blur-[1px]" />
-        <div className="pointer-events-none absolute left-[6%] right-[6%] top-[8.55rem] h-[34px] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(240,246,255,0.22),rgba(173,198,241,0.08),transparent_72%)] blur-xl" />
-
-        {mainNodes.map((node) => (
+        {stageTitles.map((title) => (
           <div
-            key={node.left}
-            className="absolute top-[8.62rem] z-10 h-5 w-5 -translate-x-1/2 rounded-full border border-white/80 shadow-[0_0_0_6px_rgba(255,255,255,0.18),0_0_18px_rgba(106,129,186,0.28)]"
-            style={{ left: node.left, backgroundColor: node.color }}
-          />
+            key={title.id}
+            className="absolute top-4 -translate-x-1/2 font-mono text-[18px] font-semibold tracking-[0.08em] text-[#263b68]"
+            style={{ left: `${title.x}px` }}
+          >
+            {title.label}
+          </div>
         ))}
 
-        <div
-          className="absolute inset-x-[4%] top-[15rem] grid items-start gap-4"
-          style={{ gridTemplateColumns: timelineGridColumns }}
-        >
-          <div className="space-y-4 font-mono text-[15px] leading-[1.55] text-[#1d2b54]">
-            {garmentItems.map((item, index) => (
-              <div key={item} className="flex items-center gap-3">
+        {nodes.map((node) => (
+          <div key={node.id}>
+            <div
+              className="absolute z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white shadow-[0_0_0_4px_rgba(255,255,255,0.6)]"
+              style={{
+                left: `${node.x}px`,
+                top: `${node.y}px`,
+                backgroundColor: node.color
+              }}
+            />
+
+            <div
+              className={`absolute flex max-w-[22rem] flex-col gap-1 font-mono text-[14px] leading-[1.45] text-[#233963] ${getLabelClassName(node.align)}`}
+              style={{
+                left: `${node.labelX}px`,
+                top: `${node.labelY}px`,
+                transform:
+                  node.align === 'right'
+                    ? 'translateX(-100%)'
+                    : node.align === 'center'
+                      ? 'translateX(-50%)'
+                      : undefined
+              }}
+            >
+              {node.label.map((line, index) => (
                 <span
-                  className="h-[10px] w-[10px] rounded-full shadow-[0_0_12px_rgba(88,148,196,0.24)]"
-                  style={{
-                    backgroundColor:
-                      index === 0
-                        ? '#f0d355'
-                        : index === 1
-                          ? '#48c9d5'
-                          : index === 2
-                            ? '#6fd08e'
-                            : '#7d94d0'
-                  }}
-                />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-
-          <div />
-
-          <div className="space-y-4 font-mono text-[15px] leading-[1.55] text-[#1d2b54]">
-            {videoItems.map((item, index) => (
-              <div key={item} className="flex items-center gap-3">
-                <span
-                  className="h-[10px] w-[10px] rounded-full shadow-[0_0_12px_rgba(193,123,103,0.22)]"
-                  style={{
-                    backgroundColor:
-                      index < 2 ? '#f0b44d' : index < 4 ? '#ea7b5a' : '#d55872'
-                  }}
-                />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-
-          <div />
-
-          <div className="space-y-8 font-mono text-[14px] leading-[1.65] text-[#1d2b54]">
-            <div className="relative pl-6">
-              <div className="absolute left-0 top-[0.7rem] h-[calc(100%-0.7rem)] w-px bg-[#697aa4]/70" />
-              <div className="absolute left-0 top-[0.7rem] h-px w-4 bg-[#697aa4]/80" />
-              <div className="text-[15px] font-semibold tracking-[0.08em] text-[#3a4d7c]">
-                [몽상인 영상채널]
-              </div>
-              <div className="mt-3 space-y-2 pl-6">
-                {channelItems.map((item, index) => (
-                  <div key={item} className="relative">
-                    <div className="absolute -left-6 top-[0.76rem] h-px w-4 bg-[#697aa4]/72" />
-                    {index < channelItems.length - 1 ? (
-                      <div className="absolute -left-6 top-0 h-full w-px bg-[#9ea9c6]/45" />
-                    ) : null}
-                    <div>{item}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative pl-6">
-              <div className="absolute left-0 top-[0.7rem] h-[calc(100%-0.7rem)] w-px bg-[#697aa4]/70" />
-              <div className="absolute left-0 top-[0.7rem] h-px w-4 bg-[#697aa4]/80" />
-              <div className="text-[15px] font-semibold tracking-[0.08em] text-[#3a4d7c]">
-                [enicoveck]
-              </div>
-              <div className="mt-3 space-y-2 pl-6">
-                {storeItems.map((item, index) => (
-                  <div key={item} className="relative">
-                    <div className="absolute -left-6 top-[0.76rem] h-px w-4 bg-[#697aa4]/72" />
-                    {index < storeItems.length - 1 ? (
-                      <div className="absolute -left-6 top-0 h-full w-px bg-[#9ea9c6]/45" />
-                    ) : null}
-                    <div>{item}</div>
-                  </div>
-                ))}
-              </div>
+                  key={`${node.id}-${line}`}
+                  className={
+                    index === 0 &&
+                    (line.startsWith('[') || node.id === 'store-enicoveck')
+                      ? 'font-semibold tracking-[0.06em] text-[#3d4f7c]'
+                      : ''
+                  }
+                >
+                  {line}
+                </span>
+              ))}
             </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
