@@ -79,12 +79,13 @@ const I = { lg: 32, md: 24, sm: 18 };
 
 const mixWithBlack = (hex: string, amount = 0.42) => {
   const normalized = hex.replace('#', '');
-  const value = normalized.length === 3
-    ? normalized
-        .split('')
-        .map((char) => char + char)
-        .join('')
-    : normalized;
+  const value =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => char + char)
+          .join('')
+      : normalized;
 
   const parts = value.match(/.{2}/g);
   if (!parts) return hex;
@@ -734,10 +735,13 @@ export function ArchitectureDiagram() {
   const renderIcon = (icon: ReactNode, size: number) => {
     if (!isValidElement(icon)) return icon;
 
-    return cloneElement(icon as ReactElement<{ size?: number; strokeWidth?: number }>, {
-      size,
-      strokeWidth: size >= 56 ? 1.25 : 1.4
-    });
+    return cloneElement(
+      icon as ReactElement<{ size?: number; strokeWidth?: number }>,
+      {
+        size,
+        strokeWidth: size >= 56 ? 1.25 : 1.4
+      }
+    );
   };
 
   return (
@@ -745,29 +749,71 @@ export function ArchitectureDiagram() {
       viewBox={`0 0 ${ARCH_SVG_WIDTH} ${ARCH_SVG_HEIGHT}`}
       width={ARCH_SVG_WIDTH}
       height={ARCH_SVG_HEIGHT}
-      style={{ background: '#ffffff' }}
+      style={{ background: 'transparent' }}
     >
       <defs>
         <filter id="ag-c">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ffff" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#00ffff"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="ag-g">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ff41" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#00ff41"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="ag-m">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff00ff" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#ff00ff"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="ag-o">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff9900" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#ff9900"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="ag-y">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ffdd00" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#ffdd00"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="ag-b">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#4488ff" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#4488ff"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="ag-x">
-          <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#888" floodOpacity="0.5" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="3"
+            floodColor="#888"
+            floodOpacity="0.5"
+          />
         </filter>
 
         {Object.entries(FLOW_COLORS).map(([key, color]) => (
@@ -785,7 +831,12 @@ export function ArchitectureDiagram() {
         ))}
 
         <pattern id="ag" width="24" height="24" patternUnits="userSpaceOnUse">
-          <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
+          <path
+            d="M 24 0 L 0 0 0 24"
+            fill="none"
+            stroke="#0f0f0f"
+            strokeWidth="0.5"
+          />
         </pattern>
         <radialGradient id="ag-node-fade" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
@@ -822,9 +873,30 @@ export function ArchitectureDiagram() {
       <rect width="100%" height="100%" fill="#f8fbff" />
       <rect width="100%" height="100%" fill="url(#ag)" opacity="0.22" />
       <rect width="100%" height="100%" fill="url(#ag-board-fade)" />
-      <ellipse cx="318" cy="266" rx="315" ry="195" fill="url(#ag-node-fade)" opacity="0.95" />
-      <ellipse cx="905" cy="284" rx="348" ry="235" fill="url(#ag-node-fade)" opacity="0.92" />
-      <ellipse cx="316" cy="710" rx="330" ry="125" fill="url(#ag-node-fade)" opacity="0.88" />
+      <ellipse
+        cx="318"
+        cy="266"
+        rx="315"
+        ry="195"
+        fill="url(#ag-node-fade)"
+        opacity="0.95"
+      />
+      <ellipse
+        cx="905"
+        cy="284"
+        rx="348"
+        ry="235"
+        fill="url(#ag-node-fade)"
+        opacity="0.92"
+      />
+      <ellipse
+        cx="316"
+        cy="710"
+        rx="330"
+        ry="125"
+        fill="url(#ag-node-fade)"
+        opacity="0.88"
+      />
 
       <rect
         x="750"

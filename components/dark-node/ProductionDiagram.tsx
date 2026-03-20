@@ -67,12 +67,13 @@ const LABEL_FILL = 'rgba(0, 0, 0, 0.18)';
 
 const mixWithBlack = (hex: string, amount = 0.42) => {
   const normalized = hex.replace('#', '');
-  const value = normalized.length === 3
-    ? normalized
-        .split('')
-        .map((char) => char + char)
-        .join('')
-    : normalized;
+  const value =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => char + char)
+          .join('')
+      : normalized;
 
   const parts = value.match(/.{2}/g);
   if (!parts) return hex;
@@ -92,10 +93,13 @@ export function ProductionDiagram() {
   const renderIcon = (icon: ReactNode, size: number) => {
     if (!isValidElement(icon)) return icon;
 
-    return cloneElement(icon as ReactElement<{ size?: number; strokeWidth?: number }>, {
-      size,
-      strokeWidth: size >= 56 ? 1.25 : 1.4
-    });
+    return cloneElement(
+      icon as ReactElement<{ size?: number; strokeWidth?: number }>,
+      {
+        size,
+        strokeWidth: size >= 56 ? 1.25 : 1.4
+      }
+    );
   };
 
   const nodes: ProdNode[] = [
@@ -386,11 +390,41 @@ export function ProductionDiagram() {
   };
 
   const connections: ProdConnection[] = [
-    { from: 'pattern', to: 'clo3d-sample', color: C.digital, flowType: 'digital', waypoints: [r('pattern'), l('clo3d-sample')] },
-    { from: 'clo3d-sample', to: 'fabric-texture', color: C.digital, flowType: 'digital', waypoints: [r('clo3d-sample'), l('fabric-texture')] },
-    { from: 'fabric-texture', to: 'digital-sample-2', color: C.digital, flowType: 'digital', waypoints: [r('fabric-texture'), l('digital-sample-2')] },
-    { from: 'digital-sample-2', to: 'bom', color: C.digital, flowType: 'digital', waypoints: [r('digital-sample-2'), l('bom')] },
-    { from: 'bom', to: 'closet-techpack', color: C.digital, flowType: 'digital', waypoints: [r('bom'), l('closet-techpack')] },
+    {
+      from: 'pattern',
+      to: 'clo3d-sample',
+      color: C.digital,
+      flowType: 'digital',
+      waypoints: [r('pattern'), l('clo3d-sample')]
+    },
+    {
+      from: 'clo3d-sample',
+      to: 'fabric-texture',
+      color: C.digital,
+      flowType: 'digital',
+      waypoints: [r('clo3d-sample'), l('fabric-texture')]
+    },
+    {
+      from: 'fabric-texture',
+      to: 'digital-sample-2',
+      color: C.digital,
+      flowType: 'digital',
+      waypoints: [r('fabric-texture'), l('digital-sample-2')]
+    },
+    {
+      from: 'digital-sample-2',
+      to: 'bom',
+      color: C.digital,
+      flowType: 'digital',
+      waypoints: [r('digital-sample-2'), l('bom')]
+    },
+    {
+      from: 'bom',
+      to: 'closet-techpack',
+      color: C.digital,
+      flowType: 'digital',
+      waypoints: [r('bom'), l('closet-techpack')]
+    },
     {
       from: 'closet-techpack',
       to: 'material-archive',
@@ -441,10 +475,34 @@ export function ProductionDiagram() {
       label: '부자재 참조',
       waypoints: [b('material-archive'), [178, 435], [813, 435], [813, 480]]
     },
-    { from: 'seam-notch', to: 'print-layout', color: C.physical, flowType: 'physical', waypoints: [r('seam-notch'), l('print-layout')] },
-    { from: 'print-layout', to: 'pattern-print', color: C.physical, flowType: 'physical', waypoints: [r('print-layout'), l('pattern-print')] },
-    { from: 'pattern-print', to: 'material-order', color: C.physical, flowType: 'physical', waypoints: [r('pattern-print'), l('material-order')] },
-    { from: 'material-order', to: 'handmade', color: C.physical, flowType: 'physical', waypoints: [r('material-order'), l('handmade')] },
+    {
+      from: 'seam-notch',
+      to: 'print-layout',
+      color: C.physical,
+      flowType: 'physical',
+      waypoints: [r('seam-notch'), l('print-layout')]
+    },
+    {
+      from: 'print-layout',
+      to: 'pattern-print',
+      color: C.physical,
+      flowType: 'physical',
+      waypoints: [r('print-layout'), l('pattern-print')]
+    },
+    {
+      from: 'pattern-print',
+      to: 'material-order',
+      color: C.physical,
+      flowType: 'physical',
+      waypoints: [r('pattern-print'), l('material-order')]
+    },
+    {
+      from: 'material-order',
+      to: 'handmade',
+      color: C.physical,
+      flowType: 'physical',
+      waypoints: [r('material-order'), l('handmade')]
+    },
     {
       from: 'handmade',
       to: 'real-measure',
@@ -475,11 +533,35 @@ export function ProductionDiagram() {
       color: C.archive,
       flowType: 'archive',
       dashed: true,
-      waypoints: [b('digital-archive'), [455, 395], [260, 395], [260, 630], [260, 690]]
+      waypoints: [
+        b('digital-archive'),
+        [455, 395],
+        [260, 395],
+        [260, 630],
+        [260, 690]
+      ]
     },
-    { from: 'clo3d-flat', to: 'size-chart', color: C.ecommerce, flowType: 'ecommerce', waypoints: [r('clo3d-flat'), l('size-chart')] },
-    { from: 'size-chart', to: 'upload-auto', color: C.ecommerce, flowType: 'ecommerce', waypoints: [r('size-chart'), l('upload-auto')] },
-    { from: 'upload-auto', to: 'product-complete', color: C.ecommerce, flowType: 'ecommerce', waypoints: [r('upload-auto'), l('product-complete')] },
+    {
+      from: 'clo3d-flat',
+      to: 'size-chart',
+      color: C.ecommerce,
+      flowType: 'ecommerce',
+      waypoints: [r('clo3d-flat'), l('size-chart')]
+    },
+    {
+      from: 'size-chart',
+      to: 'upload-auto',
+      color: C.ecommerce,
+      flowType: 'ecommerce',
+      waypoints: [r('size-chart'), l('upload-auto')]
+    },
+    {
+      from: 'upload-auto',
+      to: 'product-complete',
+      color: C.ecommerce,
+      flowType: 'ecommerce',
+      waypoints: [r('upload-auto'), l('product-complete')]
+    },
     {
       from: 'digital-archive',
       to: 'upload-auto',
@@ -487,7 +569,13 @@ export function ProductionDiagram() {
       flowType: 'archive',
       dashed: true,
       label: '아카이브 자산',
-      waypoints: [[560, 315], [600, 315], [600, 660], [830, 660], [830, 690]]
+      waypoints: [
+        [560, 315],
+        [600, 315],
+        [600, 660],
+        [830, 660],
+        [830, 690]
+      ]
     },
     {
       from: 'clo-size-data',
@@ -495,7 +583,13 @@ export function ProductionDiagram() {
       color: C.archive,
       flowType: 'archive',
       dashed: true,
-      waypoints: [[835, 315], [870, 315], [870, 660], [558, 660], [558, 690]]
+      waypoints: [
+        [835, 315],
+        [870, 315],
+        [870, 660],
+        [558, 660],
+        [558, 690]
+      ]
     }
   ];
 
@@ -580,38 +674,77 @@ export function ProductionDiagram() {
       viewBox={`0 0 ${PROD_SVG_WIDTH} ${PROD_SVG_HEIGHT}`}
       width={PROD_SVG_WIDTH}
       height={PROD_SVG_HEIGHT}
-      style={{ background: '#ffffff' }}
+      style={{ background: 'transparent' }}
     >
       <defs>
         <filter id="p-gc">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ffff" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#00ffff"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="p-gg">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#00ff41" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#00ff41"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="p-gm">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff00ff" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#ff00ff"
+            floodOpacity="0.7"
+          />
         </filter>
         <filter id="p-gb">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#4499ff" floodOpacity="0.7" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="4"
+            floodColor="#4499ff"
+            floodOpacity="0.7"
+          />
         </filter>
 
-        {(['digital', 'physical', 'ecommerce', 'archive'] as const).map((ph) => (
-          <marker
-            key={ph}
-            id={`p-a-${ph}`}
-            markerWidth="10"
-            markerHeight="8"
-            refX="9"
-            refY="4"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 4, 0 8" fill={mixWithBlack(C[ph], 0.34)} />
-          </marker>
-        ))}
+        {(['digital', 'physical', 'ecommerce', 'archive'] as const).map(
+          (ph) => (
+            <marker
+              key={ph}
+              id={`p-a-${ph}`}
+              markerWidth="10"
+              markerHeight="8"
+              refX="9"
+              refY="4"
+              orient="auto"
+            >
+              <polygon
+                points="0 0, 10 4, 0 8"
+                fill={mixWithBlack(C[ph], 0.34)}
+              />
+            </marker>
+          )
+        )}
 
-        <pattern id="p-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-          <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#0f0f0f" strokeWidth="0.5" />
+        <pattern
+          id="p-grid"
+          width="24"
+          height="24"
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d="M 24 0 L 0 0 0 24"
+            fill="none"
+            stroke="#0f0f0f"
+            strokeWidth="0.5"
+          />
         </pattern>
         <radialGradient id="p-node-fade" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
@@ -635,7 +768,13 @@ export function ProductionDiagram() {
           <stop offset="68%" stopColor="#140005" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#000000" stopOpacity="0" />
         </radialGradient>
-        <filter id="p-singularity" x="-140%" y="-140%" width="380%" height="380%">
+        <filter
+          id="p-singularity"
+          x="-140%"
+          y="-140%"
+          width="380%"
+          height="380%"
+        >
           <feGaussianBlur stdDeviation="11" />
         </filter>
         <linearGradient id="p-board-fade" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -653,10 +792,38 @@ export function ProductionDiagram() {
       <rect width="100%" height="100%" fill="#f8fbff" />
       <rect width="100%" height="100%" fill="url(#p-grid)" opacity="0.22" />
       <rect width="100%" height="100%" fill="url(#p-board-fade)" />
-      <ellipse cx="675" cy="104" rx="630" ry="115" fill="url(#p-node-fade)" opacity="0.92" />
-      <ellipse cx="680" cy="310" rx="640" ry="132" fill="url(#p-node-fade)" opacity="0.88" />
-      <ellipse cx="680" cy="520" rx="640" ry="132" fill="url(#p-node-fade)" opacity="0.88" />
-      <ellipse cx="680" cy="728" rx="640" ry="118" fill="url(#p-node-fade)" opacity="0.9" />
+      <ellipse
+        cx="675"
+        cy="104"
+        rx="630"
+        ry="115"
+        fill="url(#p-node-fade)"
+        opacity="0.92"
+      />
+      <ellipse
+        cx="680"
+        cy="310"
+        rx="640"
+        ry="132"
+        fill="url(#p-node-fade)"
+        opacity="0.88"
+      />
+      <ellipse
+        cx="680"
+        cy="520"
+        rx="640"
+        ry="132"
+        fill="url(#p-node-fade)"
+        opacity="0.88"
+      />
+      <ellipse
+        cx="680"
+        cy="728"
+        rx="640"
+        ry="118"
+        fill="url(#p-node-fade)"
+        opacity="0.9"
+      />
 
       {phaseRows.map((g) => (
         <g key={g.phase}>

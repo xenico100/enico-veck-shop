@@ -235,13 +235,9 @@ export default function ArchitectureOverlayModal({
 
       <style>{`
         .architecture-modal-shell {
-          background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 255, 0.98)),
-            linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.58));
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          box-shadow:
-            0 30px 80px rgba(148, 163, 184, 0.16),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          background: transparent;
+          border: 1px solid transparent;
+          box-shadow: none;
           animation: architecture-modal-enter 240ms ease-out;
         }
 

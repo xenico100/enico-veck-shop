@@ -214,7 +214,7 @@ export function ZoomableCanvas({
 
       <div
         ref={containerRef}
-        className="w-full overflow-hidden rounded-sm border border-[#d5d5d5] bg-[#f8fbff]"
+        className="w-full overflow-hidden rounded-sm border border-transparent bg-transparent"
         style={{
           height: Math.max(320, svgHeight * scale + 20),
           cursor: isPanning ? 'grabbing' : 'grab'
