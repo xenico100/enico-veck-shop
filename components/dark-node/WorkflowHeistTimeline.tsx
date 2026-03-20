@@ -494,7 +494,7 @@ const renderClickCue = (node: NodeSpec) => {
   const cueScale = 1.5;
   const cueColor = '#bf1028';
   const cueGlow = 'rgba(226, 37, 63, 0.18)';
-  const labelOffsetX = node.id === 'p0' ? 46 : 44;
+  const labelOffsetX = node.id === 'p0' ? 62 : 60;
   const labelOffsetY = node.id === 'p0' ? -46 : -50;
 
   return (
