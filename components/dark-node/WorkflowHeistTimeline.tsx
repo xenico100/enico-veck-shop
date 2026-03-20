@@ -3,20 +3,50 @@
 import { useState } from 'react';
 
 const palette = {
-  bg: '#f7f7f2',
-  bgDeep: '#f7f7f2',
+  bg: '#f7efe3',
+  bgDeep: '#f2e4d2',
   surface: 'transparent',
-  surfaceLine: 'rgba(15,23,42,0.08)',
-  jade: '#44f1a6',
-  jadeSoft: '#2ccf95',
-  amber: '#ffc06b',
-  amberSoft: '#ff9e57',
-  cobalt: '#5aa3ff',
-  rose: '#ff7a6e',
-  cream: '#111827',
-  fog: '#6b7280',
-  ink: '#0f172a'
+  surfaceLine: 'rgba(83,34,18,0.1)',
+  jade: '#ffd66b',
+  jadeSoft: '#ffb24a',
+  amber: '#ff9247',
+  amberSoft: '#ff713c',
+  cobalt: '#ff5536',
+  rose: '#ff7f48',
+  cream: '#27140d',
+  fog: '#8d6b58',
+  ink: '#2d1610'
 } as const;
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace('#', '');
+  const value =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => char + char)
+          .join('')
+      : normalized;
+
+  const parts = value.match(/.{2}/g);
+  if (!parts) return { r: 255, g: 255, b: 255 };
+
+  const [r, g, b] = parts.map((part) => parseInt(part, 16));
+  return { r, g, b };
+};
+
+const rgbaFromHex = (hex: string, alpha: number) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const mixHex = (hex: string, target: number, amount: number) => {
+  const { r, g, b } = hexToRgb(hex);
+  const blend = (channel: number) =>
+    Math.round(channel + (target - channel) * amount);
+
+  return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
+};
 
 type PathSpec = {
   d: string;
@@ -219,7 +249,7 @@ const nodes: NodeSpec[] = [
     tx: 210,
     ty: 1328,
     anchor: 'middle',
-    color: palette.jade,
+    color: palette.amber,
     isMain: true
   },
   {
@@ -231,7 +261,7 @@ const nodes: NodeSpec[] = [
     tx: 88,
     ty: 1515,
     anchor: 'end',
-    color: palette.jade
+    color: palette.amber
   },
   {
     id: 'm2',
@@ -242,7 +272,7 @@ const nodes: NodeSpec[] = [
     tx: 332,
     ty: 1615,
     anchor: 'start',
-    color: palette.jade
+    color: palette.amber
   },
   {
     id: 'm3',
@@ -253,7 +283,7 @@ const nodes: NodeSpec[] = [
     tx: 88,
     ty: 1715,
     anchor: 'end',
-    color: palette.jade
+    color: palette.amber
   },
   {
     id: 'e0',
@@ -264,7 +294,7 @@ const nodes: NodeSpec[] = [
     tx: 590,
     ty: 1328,
     anchor: 'middle',
-    color: palette.amber,
+    color: palette.cobalt,
     isMain: true
   },
   {
@@ -275,7 +305,7 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1475,
     anchor: 'end',
-    color: palette.amber
+    color: palette.cobalt
   },
   {
     id: 'e2',
@@ -285,7 +315,7 @@ const nodes: NodeSpec[] = [
     tx: 712,
     ty: 1530,
     anchor: 'start',
-    color: palette.amber
+    color: palette.cobalt
   },
   {
     id: 'e3',
@@ -295,7 +325,7 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1585,
     anchor: 'end',
-    color: palette.amber
+    color: palette.cobalt
   },
   {
     id: 'e4',
@@ -305,7 +335,7 @@ const nodes: NodeSpec[] = [
     tx: 712,
     ty: 1640,
     anchor: 'start',
-    color: palette.amber
+    color: palette.cobalt
   },
   {
     id: 'e5',
@@ -315,7 +345,7 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1695,
     anchor: 'end',
-    color: palette.amber
+    color: palette.cobalt
   },
   {
     id: 'e6',
@@ -325,7 +355,7 @@ const nodes: NodeSpec[] = [
     tx: 712,
     ty: 1750,
     anchor: 'start',
-    color: palette.amber
+    color: palette.cobalt
   },
   {
     id: 'e7',
@@ -335,7 +365,7 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1805,
     anchor: 'end',
-    color: palette.amber
+    color: palette.cobalt
   }
 ];
 
@@ -400,21 +430,21 @@ export default function WorkflowHeistTimeline({
         <div
           className="absolute -left-20 top-10 h-80 w-80 rounded-full blur-3xl"
           style={{
-            background: 'rgba(68,241,166,0.14)',
+            background: 'rgba(255, 213, 94, 0.18)',
             animation: 'driftA 10s ease-in-out infinite'
           }}
         />
         <div
           className="absolute right-[-80px] top-[22%] h-96 w-96 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255,192,107,0.14)',
+            background: 'rgba(255, 135, 63, 0.16)',
             animation: 'driftB 12s ease-in-out infinite'
           }}
         />
         <div
           className="absolute left-[28%] top-[46%] h-72 w-72 rounded-full blur-3xl"
           style={{
-            background: 'rgba(90,163,255,0.1)',
+            background: 'rgba(255, 86, 54, 0.12)',
             animation: 'driftA 14s ease-in-out infinite'
           }}
         />
@@ -444,9 +474,10 @@ export default function WorkflowHeistTimeline({
                     x2="400"
                     y2="1260"
                   >
-                    <stop offset="0%" stopColor={palette.jade} />
-                    <stop offset="55%" stopColor={palette.cobalt} />
-                    <stop offset="100%" stopColor={palette.amber} />
+                    <stop offset="0%" stopColor="#ffe49a" />
+                    <stop offset="38%" stopColor={palette.jadeSoft} />
+                    <stop offset="70%" stopColor={palette.amberSoft} />
+                    <stop offset="100%" stopColor={palette.cobalt} />
                   </linearGradient>
                   <filter
                     id="softBlur"
@@ -521,7 +552,7 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(90,163,255,0.16)"
+                            stroke="rgba(255, 181, 86, 0.16)"
                             strokeWidth={path.width + 18}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -530,7 +561,7 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(90,163,255,0.28)"
+                            stroke="rgba(255, 110, 58, 0.24)"
                             strokeWidth={path.width + 8}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -559,6 +590,23 @@ export default function WorkflowHeistTimeline({
                   const baseRadius = node.isMain ? 13 : 8;
                   const hoverRadius = node.isMain ? 18 : 12;
                   const glowRadius = node.isMain ? 34 : 24;
+                  const lanternRx =
+                    (isHovered ? hoverRadius : baseRadius) +
+                    (node.isMain ? 6 : 4);
+                  const lanternRy = lanternRx + (node.isMain ? 5 : 3);
+                  const lanternGlow = isHovered
+                    ? glowRadius + 10
+                    : glowRadius + 3;
+                  const lanternGradientId = `lantern-paper-${node.id}`;
+                  const lanternCoreId = `lantern-core-${node.id}`;
+                  const lanternShade = mixHex(node.color, 0, 0.34);
+                  const lanternPaper = mixHex(node.color, 255, 0.38);
+                  const lanternHighlight = mixHex(node.color, 255, 0.74);
+                  const ribStroke = isHovered
+                    ? 'rgba(255, 246, 214, 0.46)'
+                    : 'rgba(255, 246, 214, 0.28)';
+                  const capFill = mixHex(node.color, 0, 0.54);
+                  const glowColor = rgbaFromHex(node.color, 0.9);
 
                   return (
                     <g
@@ -568,24 +616,54 @@ export default function WorkflowHeistTimeline({
                       onClick={() => handleNodeClick(node.id)}
                       className="cursor-pointer"
                     >
-                      <circle
+                      <defs>
+                        <radialGradient
+                          id={lanternGradientId}
+                          cx="50%"
+                          cy="36%"
+                          r="78%"
+                        >
+                          <stop offset="0%" stopColor={lanternHighlight} />
+                          <stop offset="58%" stopColor={lanternPaper} />
+                          <stop offset="100%" stopColor={lanternShade} />
+                        </radialGradient>
+                        <radialGradient
+                          id={lanternCoreId}
+                          cx="50%"
+                          cy="34%"
+                          r="72%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={rgbaFromHex(node.color, 0.92)}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor={rgbaFromHex(node.color, 0)}
+                          />
+                        </radialGradient>
+                      </defs>
+
+                      <ellipse
                         cx={node.x}
                         cy={node.y}
-                        r={isHovered ? glowRadius : glowRadius - 6}
+                        rx={lanternGlow}
+                        ry={lanternGlow + (node.isMain ? 5 : 3)}
                         fill={node.color}
-                        opacity={isHovered ? 0.16 : 0.08}
+                        opacity={isHovered ? 0.2 : 0.11}
                         filter="url(#softBlur)"
                       />
 
                       {node.isMain ? (
-                        <circle
+                        <ellipse
                           cx={node.x}
                           cy={node.y}
-                          r={isHovered ? 24 : 20}
+                          rx={lanternRx + 7}
+                          ry={lanternRy + 7}
                           fill="none"
                           stroke={node.color}
                           strokeWidth="1.5"
-                          opacity={isHovered ? 0.42 : 0.18}
+                          opacity={isHovered ? 0.38 : 0.16}
                           style={{
                             transformOrigin: `${node.x}px ${node.y}px`,
                             animation: 'pulseRing 2.8s ease-in-out infinite'
@@ -593,21 +671,80 @@ export default function WorkflowHeistTimeline({
                         />
                       ) : null}
 
+                      <ellipse
+                        cx={node.x}
+                        cy={node.y}
+                        rx={lanternRx}
+                        ry={lanternRy}
+                        fill={`url(#${lanternGradientId})`}
+                        stroke={rgbaFromHex(node.color, 0.72)}
+                        strokeWidth={node.isMain ? '1.8' : '1.4'}
+                        filter="url(#nodeGlow)"
+                        style={{
+                          filter: `drop-shadow(0 0 ${node.isMain ? 18 : 11}px ${glowColor})`
+                        }}
+                      />
+
+                      <ellipse
+                        cx={node.x}
+                        cy={node.y - lanternRy * 0.18}
+                        rx={lanternRx * 0.54}
+                        ry={lanternRy * 0.46}
+                        fill={`url(#${lanternCoreId})`}
+                        opacity={0.72}
+                      />
+
+                      {[-0.54, -0.2, 0.2, 0.54].map((offset) => (
+                        <ellipse
+                          key={`${node.id}-rib-${offset}`}
+                          cx={node.x + lanternRx * offset * 0.22}
+                          cy={node.y}
+                          rx={lanternRx * (0.7 - Math.abs(offset) * 0.28)}
+                          ry={lanternRy * 0.92}
+                          fill="none"
+                          stroke={ribStroke}
+                          strokeWidth={0.85}
+                        />
+                      ))}
+
+                      <ellipse
+                        cx={node.x}
+                        cy={node.y - lanternRy * 0.72}
+                        rx={lanternRx * 0.5}
+                        ry={node.isMain ? 2.6 : 2.1}
+                        fill={capFill}
+                        opacity={0.92}
+                      />
+
+                      <ellipse
+                        cx={node.x}
+                        cy={node.y + lanternRy * 0.72}
+                        rx={lanternRx * 0.5}
+                        ry={node.isMain ? 2.6 : 2.1}
+                        fill={capFill}
+                        opacity={0.88}
+                      />
+
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={isHovered ? hoverRadius : baseRadius}
-                        fill="rgba(5,8,11,0.95)"
-                        stroke={node.color}
-                        strokeWidth={node.isMain ? '3.5' : '2.4'}
-                        filter="url(#nodeGlow)"
+                        r={node.isMain ? 3.2 : 2.4}
+                        fill={mixHex(node.color, 0, 0.62)}
+                        opacity={0.5}
+                      />
+
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={node.isMain ? 1.6 : 1.2}
+                        fill="rgba(255, 248, 230, 0.88)"
                       />
 
                       <text
                         x={node.tx}
                         y={node.ty}
-                        fill="rgba(255,255,255,0.92)"
-                        stroke="rgba(255,255,255,0.92)"
+                        fill="rgba(255, 249, 232, 0.96)"
+                        stroke="rgba(255, 249, 232, 0.96)"
                         strokeWidth="10"
                         fontSize={isHovered ? '16' : '14'}
                         fontWeight="700"
@@ -625,7 +762,7 @@ export default function WorkflowHeistTimeline({
                         fontWeight="700"
                         letterSpacing="0.04em"
                         textAnchor={node.anchor}
-                        style={{ textShadow: '0 1px 0 rgba(255,255,255,0.55)' }}
+                        style={{ textShadow: '0 1px 0 rgba(255,247,228,0.7)' }}
                       >
                         {node.text}
                       </text>
@@ -634,7 +771,7 @@ export default function WorkflowHeistTimeline({
                         <text
                           x={node.tx}
                           y={node.ty + 20}
-                          fill={isHovered ? '#475569' : '#64748b'}
+                          fill={isHovered ? '#724731' : '#946b56'}
                           fontSize="10"
                           fontWeight="600"
                           letterSpacing="0.28em"
@@ -649,7 +786,7 @@ export default function WorkflowHeistTimeline({
                         <text
                           x={node.tx}
                           y={node.ty + 18}
-                          fill="#64748b"
+                          fill="#8f6a58"
                           fontSize="11"
                           fontWeight="500"
                           textAnchor={node.anchor}
