@@ -98,14 +98,14 @@ const polarPoint = (cx: number, cy: number, radius: number, angle: number) => {
 };
 
 const renderMotif = (node: NodeSpec, isHovered: boolean) => {
-  const scale = node.isMain ? 1.08 : 0.82;
-  const stroke = mixHex(node.color, 0, 0.76);
-  const fill = rgbaFromHex(node.color, isHovered ? 0.24 : 0.16);
-  const glowFill = rgbaFromHex(node.color, isHovered ? 0.16 : 0.1);
-  const accent = 'rgba(255,247,228,0.88)';
-  const lineWidth = node.isMain ? 1.15 : 0.95;
-  const centerRadius = node.isMain ? 1.6 : 1.2;
-  const ringRadius = node.isMain ? 5.2 : 4.1;
+  const scale = node.isMain ? 2.2 : 1.78;
+  const stroke = mixHex(node.color, 0, 0.82);
+  const fill = rgbaFromHex(node.color, isHovered ? 0.22 : 0.14);
+  const glowFill = rgbaFromHex(node.color, isHovered ? 0.2 : 0.12);
+  const accent = 'rgba(255,233,205,0.72)';
+  const lineWidth = node.isMain ? 1.45 : 1.15;
+  const centerRadius = node.isMain ? 1.4 : 1.05;
+  const ringRadius = node.isMain ? 8.9 : 7.2;
   const x = node.x;
   const y = node.y;
 
@@ -445,6 +445,47 @@ const renderMotif = (node: NodeSpec, isHovered: boolean) => {
     default:
       return null;
   }
+};
+
+type LanternFragment = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  tone: 'cut' | 'burn' | 'flash';
+};
+
+const getLanternFragments = (
+  node: NodeSpec,
+  lanternRx: number,
+  lanternRy: number
+): LanternFragment[] => {
+  const unit = node.isMain ? 4.1 : 3;
+  const make = (
+    dx: number,
+    dy: number,
+    width: number,
+    height: number,
+    tone: LanternFragment['tone']
+  ) => ({
+    x: node.x + dx * lanternRx - (width * unit) / 2,
+    y: node.y + dy * lanternRy - (height * unit) / 2,
+    width: width * unit,
+    height: height * unit,
+    tone
+  });
+
+  return [
+    make(-0.84, -0.46, 2.4, 1.2, 'cut'),
+    make(0.58, -0.18, 1.5, 1.2, 'cut'),
+    make(-0.18, 0.38, 1.9, 1.4, 'cut'),
+    make(0.7, 0.24, 1.2, 1.8, 'cut'),
+    make(0.06, 0.68, 2.6, 1.05, 'cut'),
+    make(-0.48, -0.62, 1.3, 0.85, 'burn'),
+    make(0.2, -0.04, 0.9, 0.9, 'flash'),
+    make(0.42, 0.52, 1.1, 0.85, 'burn'),
+    make(-0.64, 0.18, 0.85, 0.85, 'flash')
+  ];
 };
 
 const paths: PathSpec[] = [
@@ -1004,6 +1045,7 @@ export default function WorkflowHeistTimeline({
                     : glowRadius + 3;
                   const lanternGradientId = `lantern-paper-${node.id}`;
                   const lanternCoreId = `lantern-core-${node.id}`;
+                  const lanternMaskId = `lantern-mask-${node.id}`;
                   const lanternShade = mixHex(node.color, 0, 0.34);
                   const lanternPaper = mixHex(node.color, 255, 0.38);
                   const lanternHighlight = mixHex(node.color, 255, 0.74);
@@ -1012,6 +1054,17 @@ export default function WorkflowHeistTimeline({
                     : 'rgba(255, 246, 214, 0.28)';
                   const capFill = mixHex(node.color, 0, 0.54);
                   const glowColor = rgbaFromHex(node.color, 0.9);
+                  const lanternFragments = getLanternFragments(
+                    node,
+                    lanternRx,
+                    lanternRy
+                  );
+                  const cutFragments = lanternFragments.filter(
+                    (fragment) => fragment.tone === 'cut'
+                  );
+                  const surfaceFragments = lanternFragments.filter(
+                    (fragment) => fragment.tone !== 'cut'
+                  );
 
                   return (
                     <g
@@ -1053,6 +1106,33 @@ export default function WorkflowHeistTimeline({
                             stopColor={rgbaFromHex(node.color, 0)}
                           />
                         </radialGradient>
+                        <mask
+                          id={lanternMaskId}
+                          maskUnits="userSpaceOnUse"
+                          x={node.x - lanternGlow * 2}
+                          y={node.y - lanternGlow * 2}
+                          width={lanternGlow * 4}
+                          height={lanternGlow * 4}
+                        >
+                          <ellipse
+                            cx={node.x}
+                            cy={node.y}
+                            rx={lanternRx}
+                            ry={lanternRy}
+                            fill="white"
+                          />
+                          {cutFragments.map((fragment, index) => (
+                            <rect
+                              key={`${node.id}-cut-${index}`}
+                              x={fragment.x}
+                              y={fragment.y}
+                              width={fragment.width}
+                              height={fragment.height}
+                              fill="black"
+                              shapeRendering="crispEdges"
+                            />
+                          ))}
+                        </mask>
                       </defs>
 
                       <ellipse
@@ -1082,59 +1162,79 @@ export default function WorkflowHeistTimeline({
                         />
                       ) : null}
 
-                      <ellipse
-                        cx={node.x}
-                        cy={node.y}
-                        rx={lanternRx}
-                        ry={lanternRy}
-                        fill={`url(#${lanternGradientId})`}
-                        stroke={rgbaFromHex(node.color, 0.72)}
-                        strokeWidth={node.isMain ? '1.8' : '1.4'}
-                        filter="url(#nodeGlow)"
-                        style={{
-                          filter: `drop-shadow(0 0 ${node.isMain ? 18 : 11}px ${glowColor})`
-                        }}
-                      />
-
-                      <ellipse
-                        cx={node.x}
-                        cy={node.y - lanternRy * 0.18}
-                        rx={lanternRx * 0.54}
-                        ry={lanternRy * 0.46}
-                        fill={`url(#${lanternCoreId})`}
-                        opacity={0.72}
-                      />
-
-                      {[-0.54, -0.2, 0.2, 0.54].map((offset) => (
+                      <g mask={`url(#${lanternMaskId})`}>
                         <ellipse
-                          key={`${node.id}-rib-${offset}`}
-                          cx={node.x + lanternRx * offset * 0.22}
+                          cx={node.x}
                           cy={node.y}
-                          rx={lanternRx * (0.7 - Math.abs(offset) * 0.28)}
-                          ry={lanternRy * 0.92}
-                          fill="none"
-                          stroke={ribStroke}
-                          strokeWidth={0.85}
+                          rx={lanternRx}
+                          ry={lanternRy}
+                          fill={`url(#${lanternGradientId})`}
+                          stroke={rgbaFromHex(node.color, 0.72)}
+                          strokeWidth={node.isMain ? '1.8' : '1.4'}
+                          filter="url(#nodeGlow)"
+                          style={{
+                            filter: `drop-shadow(0 0 ${node.isMain ? 18 : 11}px ${glowColor})`
+                          }}
+                        />
+
+                        <ellipse
+                          cx={node.x}
+                          cy={node.y - lanternRy * 0.14}
+                          rx={lanternRx * 0.5}
+                          ry={lanternRy * 0.44}
+                          fill={`url(#${lanternCoreId})`}
+                          opacity={0.56}
+                        />
+
+                        {[-0.6, -0.18, 0.12, 0.48].map((offset) => (
+                          <ellipse
+                            key={`${node.id}-rib-${offset}`}
+                            cx={node.x + lanternRx * offset * 0.24}
+                            cy={node.y}
+                            rx={lanternRx * (0.74 - Math.abs(offset) * 0.24)}
+                            ry={lanternRy * 0.94}
+                            fill="none"
+                            stroke={ribStroke}
+                            strokeWidth={0.85}
+                          />
+                        ))}
+
+                        <ellipse
+                          cx={node.x}
+                          cy={node.y - lanternRy * 0.72}
+                          rx={lanternRx * 0.5}
+                          ry={node.isMain ? 2.6 : 2.1}
+                          fill={capFill}
+                          opacity={0.92}
+                        />
+
+                        <ellipse
+                          cx={node.x}
+                          cy={node.y + lanternRy * 0.72}
+                          rx={lanternRx * 0.5}
+                          ry={node.isMain ? 2.6 : 2.1}
+                          fill={capFill}
+                          opacity={0.88}
+                        />
+                      </g>
+
+                      {surfaceFragments.map((fragment, index) => (
+                        <rect
+                          key={`${node.id}-surface-${index}`}
+                          x={fragment.x}
+                          y={fragment.y}
+                          width={fragment.width}
+                          height={fragment.height}
+                          fill={
+                            fragment.tone === 'burn'
+                              ? 'rgba(58, 23, 11, 0.18)'
+                              : 'rgba(255, 243, 211, 0.26)'
+                          }
+                          opacity={fragment.tone === 'burn' ? 0.9 : 0.74}
+                          rx={0.8}
+                          shapeRendering="crispEdges"
                         />
                       ))}
-
-                      <ellipse
-                        cx={node.x}
-                        cy={node.y - lanternRy * 0.72}
-                        rx={lanternRx * 0.5}
-                        ry={node.isMain ? 2.6 : 2.1}
-                        fill={capFill}
-                        opacity={0.92}
-                      />
-
-                      <ellipse
-                        cx={node.x}
-                        cy={node.y + lanternRy * 0.72}
-                        rx={lanternRx * 0.5}
-                        ry={node.isMain ? 2.6 : 2.1}
-                        fill={capFill}
-                        opacity={0.88}
-                      />
 
                       {renderMotif(node, isHovered)}
 
