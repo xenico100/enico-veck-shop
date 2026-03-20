@@ -1,6 +1,20 @@
 'use client';
 
+import { useState } from 'react';
+
+import { cn } from '@/utils/cn';
+import {
+  ArchitectureDiagram,
+  ARCH_SVG_HEIGHT,
+  ARCH_SVG_WIDTH
+} from '@/components/dark-node/ArchitectureDiagram';
 import BrandBuildSection from '@/components/dark-node/BrandBuildSection';
+import {
+  ProductionDiagram,
+  PROD_SVG_HEIGHT,
+  PROD_SVG_WIDTH
+} from '@/components/dark-node/ProductionDiagram';
+import { ZoomableCanvas } from '@/components/dark-node/ZoomableCanvas';
 
 type DarkNodeDiagramStackProps = {
   className?: string;
@@ -9,18 +23,212 @@ type DarkNodeDiagramStackProps = {
 export default function DarkNodeDiagramStack({
   className
 }: DarkNodeDiagramStackProps) {
+  const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const archiveRed = '#7d002d';
+  const dataInk = '#0b5c61';
+  const imageInk = '#17652f';
+  const authInk = '#865114';
+  const paymentInk = '#776109';
+  const adminInk = '#6b135c';
+  const statusInk = '#1b5c2c';
+  const prodDigitalInk = '#0a4f57';
+  const prodArchiveInk = '#1c5a28';
+  const prodPhysicalInk = '#6e1768';
+  const prodCommerceInk = '#33599a';
+  const prodReuseInk = '#27572e';
+
   return (
-    <div
-      className={`relative w-full overflow-hidden bg-[#f8fbff] ${className ?? ''}`.trim()}
-    >
+    <div className={cn('relative min-h-screen w-full overflow-hidden bg-[#f8fbff]', className)}>
       <div className="pointer-events-none absolute inset-0 z-20 opacity-10">
         <div className="dark-node-scanlines h-full" />
       </div>
 
       <div className="dark-node-noise pointer-events-none absolute inset-0 z-10 opacity-5" />
 
-      <div className="relative z-0 w-full px-3 py-4 md:px-6 md:py-6">
+      <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
+        <div className="mb-4 md:mb-6">
+          <div
+            className="dark-node-glitch font-mono text-xs tracking-wider opacity-70 md:text-sm"
+            data-text="REAL_ENICO :: SYSTEM ARCHITECTURE MAP"
+            style={{
+              color: archiveRed,
+              textShadow: '0 0 4px rgba(90, 0, 16, 0.18)'
+            }}
+          >
+            REAL_ENICO :: SYSTEM ARCHITECTURE MAP
+          </div>
+          <div
+            className="mt-1 font-mono text-[10px] tracking-wider opacity-60 md:text-xs"
+            style={{ color: archiveRed }}
+          >
+            Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay ×
+            PayPal
+          </div>
+          <div
+            className="mt-2 font-mono text-[9px] tracking-wider opacity-45 md:text-[10px]"
+            style={{ color: archiveRed }}
+          >
+            [SYSTEM ONLINE] :: {currentDate}
+          </div>
+        </div>
+
+        <ZoomableCanvas svgWidth={ARCH_SVG_WIDTH} svgHeight={ARCH_SVG_HEIGHT}>
+          <ArchitectureDiagram />
+        </ZoomableCanvas>
+
+        <div className="mt-3 font-mono text-[10px] md:text-xs">
+          <div className="inline-flex flex-wrap gap-x-4 gap-y-1 rounded border border-[#d2d2d2] bg-[#f8fbff] p-2 backdrop-blur-sm md:p-3">
+            <div className="mb-1 w-full tracking-wide opacity-75" style={{ color: statusInk }}>
+              FLOW TYPES:
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-5 bg-[#00ffff] shadow-[0_0_4px_#00ffff]" />
+              <span className="opacity-80" style={{ color: dataInk }}>
+                Data Flow
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-5 bg-[#00ff41] shadow-[0_0_4px_#00ff41]" />
+              <span className="opacity-80" style={{ color: imageInk }}>
+                Image Flow
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-5 bg-[#ff9900] shadow-[0_0_4px_#ff9900]" />
+              <span className="opacity-80" style={{ color: authInk }}>
+                Auth Flow
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-5 bg-[#ffdd00] shadow-[0_0_4px_#ffdd00]" />
+              <span className="opacity-80" style={{ color: paymentInk }}>
+                Payment Flow
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-0.5 w-5 bg-[#ff00ff] shadow-[0_0_4px_#ff00ff]" />
+              <span className="opacity-80" style={{ color: adminInk }}>
+                Admin Flow
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-2 font-mono text-[9px] opacity-50 md:text-[10px]" style={{ color: statusInk }}>
+          <div className="flex gap-3 md:gap-4">
+            <span>[NODES: 25]</span>
+            <span>[CONNECTIONS: 22]</span>
+            <span>[ZONES: 6]</span>
+            <span>[STATUS: ACTIVE]</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative my-4 h-px w-full">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent opacity-30" />
+      </div>
+
+      <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
+        <div className="mb-4 md:mb-6">
+          <div
+            className="dark-node-glitch font-mono text-xs tracking-wider md:text-sm"
+            style={{
+              color: archiveRed,
+              textShadow: '0 0 4px rgba(90, 0, 16, 0.18)',
+              opacity: 0.9
+            }}
+            data-text="PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처"
+          >
+            PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처
+          </div>
+          <div
+            className="mt-1 font-mono text-[10px] tracking-wider opacity-65 md:text-xs"
+            style={{ color: archiveRed }}
+          >
+            CLO3D × CLO-SET × Handmade × enicoveck.com
+          </div>
+          <div
+            className="mt-2 font-mono text-[9px] tracking-wider opacity-50 md:text-[10px]"
+            style={{ color: archiveRed }}
+          >
+            [NODES: 19] :: [CONNECTIONS: 24] :: [PHASES: 4]
+          </div>
+        </div>
+
+        <ZoomableCanvas svgWidth={PROD_SVG_WIDTH} svgHeight={PROD_SVG_HEIGHT}>
+          <ProductionDiagram />
+        </ZoomableCanvas>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] md:text-[11px]">
+          <div className="flex items-center gap-2">
+            <div
+              className="h-[2px] w-6 md:w-10"
+              style={{
+                background: '#00ffff',
+                boxShadow: '0 0 6px #00ffff'
+              }}
+            />
+            <span style={{ color: prodDigitalInk }} className="opacity-95">
+              디지털 플로우
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-[2px] w-6 md:w-10"
+              style={{
+                background: '#00ff41',
+                boxShadow: '0 0 6px #00ff41'
+              }}
+            />
+            <span style={{ color: prodArchiveInk }} className="opacity-95">
+              아카이브 / 데이터
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-[2px] w-6 md:w-10"
+              style={{
+                background: '#ff00ff',
+                boxShadow: '0 0 6px #ff00ff'
+              }}
+            />
+            <span style={{ color: prodPhysicalInk }} className="opacity-95">
+              실물 프로덕션
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-[2px] w-6 md:w-10"
+              style={{
+                background: '#4499ff',
+                boxShadow: '0 0 6px #4499ff'
+              }}
+            />
+            <span style={{ color: prodCommerceInk }} className="opacity-95">
+              이커머스 아웃풋
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-[2px] w-6 border-t-2 border-dashed md:w-10"
+              style={{ borderColor: '#00ff41' }}
+            />
+            <span style={{ color: prodReuseInk }} className="opacity-85">
+              데이터 재사용
+            </span>
+          </div>
+        </div>
+
         <BrandBuildSection />
+      </div>
+
+      <div className="relative flex w-full justify-center py-6">
+        <div
+          className="px-4 text-center font-mono text-[9px] tracking-widest opacity-55 md:text-[10px]"
+          style={{ color: '#38523e' }}
+        >
+          [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
+        </div>
       </div>
 
       <style>{`
