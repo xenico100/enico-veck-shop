@@ -114,13 +114,18 @@ export function ZoomableCanvas({
       if (e.touches.length === 2) {
         const dist = getTouchDist(e.touches);
         if (pinchStartDist.current > 0) {
-          const newScale = pinchStartScale.current * (dist / pinchStartDist.current);
+          const newScale =
+            pinchStartScale.current * (dist / pinchStartDist.current);
           setScale(clampScale(newScale));
         }
       } else if (e.touches.length === 1 && lastTouchCount.current === 1) {
         setTranslate({
-          x: translateStart.current.x + (e.touches[0].clientX - panStart.current.x),
-          y: translateStart.current.y + (e.touches[0].clientY - panStart.current.y)
+          x:
+            translateStart.current.x +
+            (e.touches[0].clientX - panStart.current.x),
+          y:
+            translateStart.current.y +
+            (e.touches[0].clientY - panStart.current.y)
         });
       }
     },
@@ -157,18 +162,29 @@ export function ZoomableCanvas({
 
   return (
     <div className="relative w-full" style={{ touchAction: 'none' }}>
-      <div className="absolute right-2 top-2 z-20 flex items-center gap-1 font-mono">
+      <div
+        className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded-2xl border px-2 py-1.5 font-mono backdrop-blur-md"
+        style={{
+          background: 'rgba(248, 251, 255, 0.58)',
+          borderColor: 'rgba(125, 0, 45, 0.14)',
+          boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)'
+        }}
+      >
         <button
           onClick={() => setScale((prev) => clampScale(prev * 0.85))}
-          className="flex h-8 w-8 items-center justify-center rounded border bg-[#f8fbff] transition-colors"
-          style={{ borderColor: 'rgba(125, 0, 45, 0.28)' }}
+          className="flex h-8 w-8 items-center justify-center rounded border transition-colors"
+          style={{
+            borderColor: 'rgba(125, 0, 45, 0.2)',
+            background: 'rgba(255, 255, 255, 0.62)'
+          }}
         >
           <ZoomOut size={14} color={controlRed} />
         </button>
         <div
-          className="min-w-[48px] rounded border bg-[#f8fbff] px-2 py-1 text-center font-mono text-[10px] opacity-85"
+          className="min-w-[48px] rounded border px-2 py-1 text-center font-mono text-[10px] opacity-85"
           style={{
-            borderColor: 'rgba(125, 0, 45, 0.28)',
+            borderColor: 'rgba(125, 0, 45, 0.18)',
+            background: 'rgba(255, 255, 255, 0.52)',
             color: controlRed
           }}
         >
@@ -176,15 +192,21 @@ export function ZoomableCanvas({
         </div>
         <button
           onClick={() => setScale((prev) => clampScale(prev * 1.15))}
-          className="flex h-8 w-8 items-center justify-center rounded border bg-[#f8fbff] transition-colors"
-          style={{ borderColor: 'rgba(125, 0, 45, 0.28)' }}
+          className="flex h-8 w-8 items-center justify-center rounded border transition-colors"
+          style={{
+            borderColor: 'rgba(125, 0, 45, 0.2)',
+            background: 'rgba(255, 255, 255, 0.62)'
+          }}
         >
           <ZoomIn size={14} color={controlRed} />
         </button>
         <button
           onClick={resetView}
-          className="flex h-8 w-8 items-center justify-center rounded border bg-[#f8fbff] transition-colors"
-          style={{ borderColor: 'rgba(125, 0, 45, 0.28)' }}
+          className="flex h-8 w-8 items-center justify-center rounded border transition-colors"
+          style={{
+            borderColor: 'rgba(125, 0, 45, 0.2)',
+            background: 'rgba(255, 255, 255, 0.62)'
+          }}
         >
           <Maximize size={14} color={controlRed} />
         </button>
