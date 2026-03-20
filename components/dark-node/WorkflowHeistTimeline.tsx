@@ -507,14 +507,14 @@ const renderClickCue = (node: NodeSpec) => {
           ry="39"
           fill="none"
           stroke={cueGlow}
-          strokeWidth="14"
+          strokeWidth="9"
           filter="url(#softBlur)"
         />
         <path
           d="M -28 -9 C -34 -31, -10 -42, 12 -35 C 35 -27, 38 1, 28 21 C 17 39, -10 40, -25 26"
           fill="none"
           stroke={cueColor}
-          strokeWidth="4.8"
+          strokeWidth="3.2"
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.94}
@@ -523,7 +523,7 @@ const renderClickCue = (node: NodeSpec) => {
           d="M -24 -15 C -12 -42, 21 -40, 34 -14 C 43 7, 27 35, -1 36 C -20 36, -33 18, -31 3"
           fill="none"
           stroke={cueColor}
-          strokeWidth="2.3"
+          strokeWidth="1.6"
           strokeLinecap="round"
           strokeLinejoin="round"
           opacity={0.84}
@@ -533,36 +533,28 @@ const renderClickCue = (node: NodeSpec) => {
       <g
         transform={`translate(${node.x + labelOffsetX} ${node.y + labelOffsetY}) scale(${cueScale})`}
       >
-        <path
-          d="M 0 0 L 0 18 L 4.8 13.6 L 8.8 22.4 L 12.4 20.8 L 8.4 12.1 L 14.8 12 Z"
-          fill={cueColor}
-          stroke="rgba(255, 246, 244, 0.95)"
-          strokeWidth="1.1"
-          strokeLinejoin="round"
-          style={{ filter: 'drop-shadow(0 0 10px rgba(191,16,40,0.28))' }}
-        />
         <text
-          x="21"
+          x="0"
           y="12"
           fill="rgba(255, 247, 243, 0.98)"
           stroke="rgba(255, 247, 243, 0.98)"
           strokeWidth="7"
-          fontSize="14"
+          fontSize="9.5"
           fontWeight="800"
-          letterSpacing="0.16em"
+          letterSpacing="0.08em"
         >
-          CLICK
+          관계자 외 접근금지
         </text>
         <text
-          x="21"
+          x="0"
           y="12"
           fill={cueColor}
-          fontSize="14"
+          fontSize="9.5"
           fontWeight="800"
-          letterSpacing="0.16em"
+          letterSpacing="0.08em"
           style={{ textTransform: 'uppercase' }}
         >
-          CLICK
+          관계자 외 접근금지
         </text>
       </g>
     </g>
