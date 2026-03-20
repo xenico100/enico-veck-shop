@@ -67,10 +67,384 @@ type NodeSpec = {
   anchor: 'start' | 'middle' | 'end';
   color: string;
   isMain?: boolean;
+  motif: MotifType;
 };
 
 type WorkflowHeistTimelineProps = {
   onTabRequest?: (target: 'system' | 'production') => void;
+};
+
+type MotifType =
+  | 'lotus'
+  | 'wheel'
+  | 'sun'
+  | 'yantra'
+  | 'seed'
+  | 'eye'
+  | 'spiral'
+  | 'waves'
+  | 'knot'
+  | 'flame'
+  | 'orbit'
+  | 'moon'
+  | 'gate';
+
+const polarPoint = (cx: number, cy: number, radius: number, angle: number) => {
+  const rad = (angle * Math.PI) / 180;
+  return {
+    x: cx + Math.cos(rad) * radius,
+    y: cy + Math.sin(rad) * radius
+  };
+};
+
+const renderMotif = (node: NodeSpec, isHovered: boolean) => {
+  const scale = node.isMain ? 1.08 : 0.82;
+  const stroke = mixHex(node.color, 0, 0.76);
+  const fill = rgbaFromHex(node.color, isHovered ? 0.24 : 0.16);
+  const glowFill = rgbaFromHex(node.color, isHovered ? 0.16 : 0.1);
+  const accent = 'rgba(255,247,228,0.88)';
+  const lineWidth = node.isMain ? 1.15 : 0.95;
+  const centerRadius = node.isMain ? 1.6 : 1.2;
+  const ringRadius = node.isMain ? 5.2 : 4.1;
+  const x = node.x;
+  const y = node.y;
+
+  switch (node.motif) {
+    case 'lotus':
+      return (
+        <>
+          {Array.from({ length: 8 }).map((_, index) => {
+            const angle = index * 45;
+            const petalCenter = polarPoint(x, y, 4.8 * scale, angle);
+
+            return (
+              <ellipse
+                key={`${node.id}-lotus-${angle}`}
+                cx={petalCenter.x}
+                cy={petalCenter.y}
+                rx={1.65 * scale}
+                ry={3.25 * scale}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={0.52}
+                transform={`rotate(${angle} ${petalCenter.x} ${petalCenter.y})`}
+              />
+            );
+          })}
+          <circle
+            cx={x}
+            cy={y}
+            r={ringRadius}
+            fill={glowFill}
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'wheel':
+      return (
+        <>
+          <circle
+            cx={x}
+            cy={y}
+            r={ringRadius + 1.2}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          {Array.from({ length: 8 }).map((_, index) => {
+            const angle = index * 45;
+            const inner = polarPoint(x, y, 1.4 * scale, angle);
+            const outer = polarPoint(x, y, ringRadius + 0.7, angle);
+
+            return (
+              <line
+                key={`${node.id}-wheel-${angle}`}
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
+                stroke={stroke}
+                strokeWidth={0.75}
+              />
+            );
+          })}
+          <circle
+            cx={x}
+            cy={y}
+            r={2.4 * scale}
+            fill={glowFill}
+            stroke={stroke}
+            strokeWidth={0.72}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'sun':
+      return (
+        <>
+          {Array.from({ length: 12 }).map((_, index) => {
+            const angle = index * 30;
+            const inner = polarPoint(x, y, 4.1 * scale, angle);
+            const outer = polarPoint(x, y, 7.1 * scale, angle);
+
+            return (
+              <line
+                key={`${node.id}-sun-${angle}`}
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
+                stroke={stroke}
+                strokeWidth={0.72}
+              />
+            );
+          })}
+          <circle
+            cx={x}
+            cy={y}
+            r={4.5 * scale}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'yantra':
+      return (
+        <>
+          <polygon
+            points={`${x},${y - 6.2 * scale} ${x - 5.2 * scale},${y + 3.8 * scale} ${x + 5.2 * scale},${y + 3.8 * scale}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <polygon
+            points={`${x},${y + 6.2 * scale} ${x - 5.2 * scale},${y - 3.8 * scale} ${x + 5.2 * scale},${y - 3.8 * scale}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+            opacity={0.82}
+          />
+          <circle
+            cx={x}
+            cy={y}
+            r={2.15 * scale}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={0.68}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'seed':
+      return (
+        <>
+          {Array.from({ length: 6 }).map((_, index) => {
+            const angle = index * 60 - 90;
+            const petalCenter = polarPoint(x, y, 4.1 * scale, angle);
+
+            return (
+              <path
+                key={`${node.id}-seed-${angle}`}
+                d={`M ${petalCenter.x} ${petalCenter.y - 2.8 * scale} C ${petalCenter.x + 1.7 * scale} ${petalCenter.y - 0.8 * scale}, ${petalCenter.x + 1.2 * scale} ${petalCenter.y + 2.2 * scale}, ${petalCenter.x} ${petalCenter.y + 3 * scale} C ${petalCenter.x - 1.2 * scale} ${petalCenter.y + 2.2 * scale}, ${petalCenter.x - 1.7 * scale} ${petalCenter.y - 0.8 * scale}, ${petalCenter.x} ${petalCenter.y - 2.8 * scale}`}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={0.5}
+                transform={`rotate(${angle} ${petalCenter.x} ${petalCenter.y})`}
+              />
+            );
+          })}
+          <circle
+            cx={x}
+            cy={y}
+            r={2.6 * scale}
+            fill={glowFill}
+            stroke={stroke}
+            strokeWidth={0.72}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'eye':
+      return (
+        <>
+          <path
+            d={`M ${x - 7 * scale} ${y} Q ${x} ${y - 5.5 * scale} ${x + 7 * scale} ${y}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <path
+            d={`M ${x - 7 * scale} ${y} Q ${x} ${y + 5.5 * scale} ${x + 7 * scale} ${y}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <circle
+            cx={x}
+            cy={y}
+            r={2.8 * scale}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={0.72}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'spiral':
+      return (
+        <>
+          <path
+            d={`M ${x + 5.5 * scale} ${y + 0.4 * scale} C ${x + 4.2 * scale} ${y + 5.2 * scale}, ${x - 3.6 * scale} ${y + 5.5 * scale}, ${x - 4.4 * scale} ${y + 0.5 * scale} C ${x - 5.1 * scale} ${y - 4.4 * scale}, ${x + 1.4 * scale} ${y - 5.5 * scale}, ${x + 2.1 * scale} ${y - 0.4 * scale} C ${x + 2.5 * scale} ${y + 2.2 * scale}, ${x - 0.2 * scale} ${y + 2.6 * scale}, ${x - 1.1 * scale} ${y + 0.5 * scale}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+            strokeLinecap="round"
+          />
+          <circle
+            cx={x - 1.1 * scale}
+            cy={y + 0.5 * scale}
+            r={centerRadius}
+            fill={accent}
+          />
+        </>
+      );
+    case 'waves':
+      return (
+        <>
+          {[-3.6, 0, 3.6].map((offset) => (
+            <path
+              key={`${node.id}-wave-${offset}`}
+              d={`M ${x - 6.2 * scale} ${y + offset * scale * 0.34} C ${x - 3.9 * scale} ${y + (offset - 1.2) * scale * 0.34}, ${x - 1.6 * scale} ${y + (offset + 1.2) * scale * 0.34}, ${x + 0.6 * scale} ${y + offset * scale * 0.34} C ${x + 2.8 * scale} ${y + (offset - 1.2) * scale * 0.34}, ${x + 5 * scale} ${y + (offset + 1.2) * scale * 0.34}, ${x + 6.8 * scale} ${y + offset * scale * 0.34}`}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={0.9}
+              strokeLinecap="round"
+            />
+          ))}
+        </>
+      );
+    case 'knot':
+      return (
+        <>
+          <ellipse
+            cx={x - 2.2 * scale}
+            cy={y}
+            rx={3.8 * scale}
+            ry={5.1 * scale}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <ellipse
+            cx={x + 2.2 * scale}
+            cy={y}
+            rx={3.8 * scale}
+            ry={5.1 * scale}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'flame':
+      return (
+        <>
+          <path
+            d={`M ${x} ${y - 7.4 * scale} C ${x + 4.4 * scale} ${y - 3.8 * scale}, ${x + 3.8 * scale} ${y + 2.2 * scale}, ${x} ${y + 6.2 * scale} C ${x - 4.1 * scale} ${y + 2 * scale}, ${x - 4.2 * scale} ${y - 3.6 * scale}, ${x} ${y - 7.4 * scale}`}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <path
+            d={`M ${x} ${y - 3.8 * scale} C ${x + 2.1 * scale} ${y - 1.9 * scale}, ${x + 1.8 * scale} ${y + 1.3 * scale}, ${x} ${y + 4.1 * scale} C ${x - 1.8 * scale} ${y + 1.3 * scale}, ${x - 1.9 * scale} ${y - 1.9 * scale}, ${x} ${y - 3.8 * scale}`}
+            fill={accent}
+            opacity={0.86}
+          />
+        </>
+      );
+    case 'orbit':
+      return (
+        <>
+          <ellipse
+            cx={x}
+            cy={y}
+            rx={6.4 * scale}
+            ry={3.3 * scale}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <ellipse
+            cx={x}
+            cy={y}
+            rx={6.4 * scale}
+            ry={3.3 * scale}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+            transform={`rotate(60 ${x} ${y})`}
+            opacity={0.88}
+          />
+          <ellipse
+            cx={x}
+            cy={y}
+            rx={6.4 * scale}
+            ry={3.3 * scale}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+            transform={`rotate(-60 ${x} ${y})`}
+            opacity={0.74}
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    case 'moon':
+      return (
+        <>
+          <circle
+            cx={x - 0.9 * scale}
+            cy={y}
+            r={5.8 * scale}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={lineWidth}
+          />
+          <circle
+            cx={x + 2.2 * scale}
+            cy={y - 0.2 * scale}
+            r={4.9 * scale}
+            fill={rgbaFromHex(node.color, 0)}
+          />
+          <circle
+            cx={x - 1.4 * scale}
+            cy={y - 0.8 * scale}
+            r={centerRadius}
+            fill={accent}
+          />
+        </>
+      );
+    case 'gate':
+      return (
+        <>
+          <path
+            d={`M ${x - 6.8 * scale} ${y + 4.6 * scale} L ${x + 6.8 * scale} ${y + 4.6 * scale} M ${x - 5.1 * scale} ${y + 4.6 * scale} L ${x - 5.1 * scale} ${y - 5.6 * scale} M ${x + 5.1 * scale} ${y + 4.6 * scale} L ${x + 5.1 * scale} ${y - 5.6 * scale} M ${x - 7.8 * scale} ${y - 3.6 * scale} L ${x + 7.8 * scale} ${y - 3.6 * scale}`}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={lineWidth}
+            strokeLinecap="round"
+          />
+          <circle cx={x} cy={y} r={centerRadius} fill={accent} />
+        </>
+      );
+    default:
+      return null;
+  }
 };
 
 const paths: PathSpec[] = [
@@ -124,7 +498,8 @@ const nodes: NodeSpec[] = [
     ty: 78,
     anchor: 'middle',
     color: palette.jade,
-    isMain: true
+    isMain: true,
+    motif: 'lotus'
   },
   {
     id: 'v0',
@@ -136,7 +511,8 @@ const nodes: NodeSpec[] = [
     ty: 668,
     anchor: 'middle',
     color: palette.rose,
-    isMain: true
+    isMain: true,
+    motif: 'sun'
   },
   {
     id: 'p0',
@@ -148,7 +524,8 @@ const nodes: NodeSpec[] = [
     ty: 1218,
     anchor: 'middle',
     color: palette.cobalt,
-    isMain: true
+    isMain: true,
+    motif: 'gate'
   },
   {
     id: 'c1',
@@ -158,7 +535,8 @@ const nodes: NodeSpec[] = [
     tx: 232,
     ty: 265,
     anchor: 'end',
-    color: palette.jade
+    color: palette.jade,
+    motif: 'seed'
   },
   {
     id: 'c2',
@@ -168,7 +546,8 @@ const nodes: NodeSpec[] = [
     tx: 568,
     ty: 375,
     anchor: 'start',
-    color: palette.jade
+    color: palette.jade,
+    motif: 'yantra'
   },
   {
     id: 'c3',
@@ -178,7 +557,8 @@ const nodes: NodeSpec[] = [
     tx: 232,
     ty: 485,
     anchor: 'end',
-    color: palette.jade
+    color: palette.jade,
+    motif: 'wheel'
   },
   {
     id: 'c4',
@@ -188,7 +568,8 @@ const nodes: NodeSpec[] = [
     tx: 568,
     ty: 595,
     anchor: 'start',
-    color: palette.jade
+    color: palette.jade,
+    motif: 'knot'
   },
   {
     id: 'v1',
@@ -198,7 +579,8 @@ const nodes: NodeSpec[] = [
     tx: 232,
     ty: 870,
     anchor: 'end',
-    color: palette.rose
+    color: palette.rose,
+    motif: 'eye'
   },
   {
     id: 'v2',
@@ -208,7 +590,8 @@ const nodes: NodeSpec[] = [
     tx: 568,
     ty: 980,
     anchor: 'start',
-    color: palette.rose
+    color: palette.rose,
+    motif: 'orbit'
   },
   {
     id: 'v3',
@@ -218,7 +601,8 @@ const nodes: NodeSpec[] = [
     tx: 232,
     ty: 1090,
     anchor: 'end',
-    color: palette.rose
+    color: palette.rose,
+    motif: 'spiral'
   },
   {
     id: 'v4',
@@ -228,7 +612,8 @@ const nodes: NodeSpec[] = [
     tx: 568,
     ty: 1200,
     anchor: 'start',
-    color: palette.rose
+    color: palette.rose,
+    motif: 'waves'
   },
   {
     id: 'v5',
@@ -238,7 +623,8 @@ const nodes: NodeSpec[] = [
     tx: 232,
     ty: 1285,
     anchor: 'end',
-    color: palette.rose
+    color: palette.rose,
+    motif: 'flame'
   },
   {
     id: 'm0',
@@ -250,7 +636,8 @@ const nodes: NodeSpec[] = [
     ty: 1328,
     anchor: 'middle',
     color: palette.amber,
-    isMain: true
+    isMain: true,
+    motif: 'orbit'
   },
   {
     id: 'm1',
@@ -261,7 +648,8 @@ const nodes: NodeSpec[] = [
     tx: 88,
     ty: 1515,
     anchor: 'end',
-    color: palette.amber
+    color: palette.amber,
+    motif: 'moon'
   },
   {
     id: 'm2',
@@ -272,7 +660,8 @@ const nodes: NodeSpec[] = [
     tx: 332,
     ty: 1615,
     anchor: 'start',
-    color: palette.amber
+    color: palette.amber,
+    motif: 'knot'
   },
   {
     id: 'm3',
@@ -283,7 +672,8 @@ const nodes: NodeSpec[] = [
     tx: 88,
     ty: 1715,
     anchor: 'end',
-    color: palette.amber
+    color: palette.amber,
+    motif: 'sun'
   },
   {
     id: 'e0',
@@ -295,7 +685,8 @@ const nodes: NodeSpec[] = [
     ty: 1328,
     anchor: 'middle',
     color: palette.cobalt,
-    isMain: true
+    isMain: true,
+    motif: 'wheel'
   },
   {
     id: 'e1',
@@ -305,7 +696,8 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1475,
     anchor: 'end',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'yantra'
   },
   {
     id: 'e2',
@@ -315,7 +707,8 @@ const nodes: NodeSpec[] = [
     tx: 712,
     ty: 1530,
     anchor: 'start',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'lotus'
   },
   {
     id: 'e3',
@@ -325,7 +718,8 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1585,
     anchor: 'end',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'gate'
   },
   {
     id: 'e4',
@@ -335,7 +729,8 @@ const nodes: NodeSpec[] = [
     tx: 712,
     ty: 1640,
     anchor: 'start',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'waves'
   },
   {
     id: 'e5',
@@ -345,7 +740,8 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1695,
     anchor: 'end',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'knot'
   },
   {
     id: 'e6',
@@ -355,7 +751,8 @@ const nodes: NodeSpec[] = [
     tx: 712,
     ty: 1750,
     anchor: 'start',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'sun'
   },
   {
     id: 'e7',
@@ -365,7 +762,8 @@ const nodes: NodeSpec[] = [
     tx: 468,
     ty: 1805,
     anchor: 'end',
-    color: palette.cobalt
+    color: palette.cobalt,
+    motif: 'flame'
   }
 ];
 
@@ -593,6 +991,7 @@ export default function WorkflowHeistTimeline({
 
                 {nodes.map((node) => {
                   const isHovered = hoveredNode === node.id;
+                  const isActionNode = node.id === 'c0' || node.id === 'p0';
                   const baseRadius = node.isMain ? 13 : 8;
                   const hoverRadius = node.isMain ? 18 : 12;
                   const glowRadius = node.isMain ? 34 : 24;
@@ -619,8 +1018,14 @@ export default function WorkflowHeistTimeline({
                       key={node.id}
                       onMouseEnter={() => setHoveredNode(node.id)}
                       onMouseLeave={() => setHoveredNode('p0')}
-                      onClick={() => handleNodeClick(node.id)}
-                      className="cursor-pointer"
+                      onClick={
+                        isActionNode
+                          ? () => handleNodeClick(node.id)
+                          : undefined
+                      }
+                      className={
+                        isActionNode ? 'cursor-pointer' : 'cursor-default'
+                      }
                     >
                       <defs>
                         <radialGradient
@@ -730,6 +1135,8 @@ export default function WorkflowHeistTimeline({
                         fill={capFill}
                         opacity={0.88}
                       />
+
+                      {renderMotif(node, isHovered)}
 
                       <circle
                         cx={node.x}
