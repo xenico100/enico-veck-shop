@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { cn } from '@/utils/cn';
 import {
@@ -28,7 +28,6 @@ export default function DarkNodeDiagramStack({
 }: DarkNodeDiagramStackProps) {
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [activeTab, setActiveTab] = useState<DiagramTab | null>(null);
-  const activeDiagramRef = useRef<HTMLDivElement | null>(null);
   const archiveRed = '#7d002d';
   const dataInk = '#0b5c61';
   const imageInk = '#17652f';
@@ -44,12 +43,6 @@ export default function DarkNodeDiagramStack({
 
   const openDiagramTab = (tab: DiagramTab) => {
     setActiveTab(tab);
-    window.requestAnimationFrame(() => {
-      activeDiagramRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    });
   };
 
   return (
@@ -70,10 +63,7 @@ export default function DarkNodeDiagramStack({
       </div>
 
       {activeTab === 'system' ? (
-        <div
-          ref={activeDiagramRef}
-          className="relative z-0 w-full px-3 pb-6 pt-2 md:px-6 md:pb-10 md:pt-3"
-        >
+        <div className="workflow-diagram-fade relative z-0 w-full px-3 pb-6 pt-2 md:px-6 md:pb-10 md:pt-3">
           <div className="mb-4 md:mb-6">
             <div
               className="dark-node-glitch font-mono text-xs tracking-wider opacity-70 md:text-sm"
@@ -158,10 +148,7 @@ export default function DarkNodeDiagramStack({
           </div>
         </div>
       ) : activeTab === 'production' ? (
-        <div
-          ref={activeDiagramRef}
-          className="relative z-0 w-full px-3 pb-6 pt-2 md:px-6 md:pb-10 md:pt-3"
-        >
+        <div className="workflow-diagram-fade relative z-0 w-full px-3 pb-6 pt-2 md:px-6 md:pb-10 md:pt-3">
           <div className="mb-4 md:mb-6">
             <div
               className="dark-node-glitch font-mono text-xs tracking-wider md:text-sm"
@@ -260,14 +247,6 @@ export default function DarkNodeDiagramStack({
         </div>
       ) : null}
 
-      {activeTab ? null : (
-        <div
-          ref={activeDiagramRef}
-          className="pointer-events-none relative z-0 h-0 w-full overflow-hidden px-3 md:px-6"
-          aria-hidden="true"
-        />
-      )}
-
       <BrandBuildSection />
 
       <div className="relative flex w-full justify-center py-6">
@@ -342,6 +321,22 @@ export default function DarkNodeDiagramStack({
           90% { clip: rect(45px, 9999px, 47px, 0); }
           95% { clip: rect(37px, 9999px, 20px, 0); }
           100% { clip: rect(4px, 9999px, 91px, 0); }
+        }
+
+        .workflow-diagram-fade {
+          animation: workflow-diagram-fade 320ms ease-out;
+          transform-origin: top center;
+        }
+
+        @keyframes workflow-diagram-fade {
+          0% {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
     </div>
