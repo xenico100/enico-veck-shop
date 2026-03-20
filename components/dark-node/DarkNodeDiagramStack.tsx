@@ -42,11 +42,9 @@ export default function DarkNodeDiagramStack({
       <ArchitectureOverlayModal
         open={activeTab !== null}
         activeTab={activeTab ?? 'system'}
-        currentDate={currentDate}
         onOpenChange={(open) => {
           if (!open) setActiveTab(null);
         }}
-        onTabChange={setActiveTab}
       />
 
       <div className="relative flex w-full justify-center py-6">

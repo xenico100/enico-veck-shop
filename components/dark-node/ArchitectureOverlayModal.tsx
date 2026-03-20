@@ -14,27 +14,21 @@ import {
   PROD_SVG_WIDTH
 } from '@/components/dark-node/ProductionDiagram';
 import { ZoomableCanvas } from '@/components/dark-node/ZoomableCanvas';
-import PillTab from '@/components/ui/PillTab';
 
 export type ArchitectureModalTab = 'system' | 'production';
 
 type ArchitectureOverlayModalProps = {
   activeTab: ArchitectureModalTab;
-  currentDate: string;
   onOpenChange: (open: boolean) => void;
-  onTabChange: (tab: ArchitectureModalTab) => void;
   open: boolean;
 };
 
 export default function ArchitectureOverlayModal({
   activeTab,
-  currentDate,
   onOpenChange,
-  onTabChange,
   open
 }: ArchitectureOverlayModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const archiveRed = '#7d002d';
   const dataInk = '#0b5c61';
   const imageInk = '#17652f';
   const authInk = '#865114';
@@ -82,78 +76,23 @@ export default function ArchitectureOverlayModal({
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="architecture-modal-title"
-          className="architecture-modal-shell max-h-[calc(100dvh-0.75rem)] w-full max-w-[96rem] overflow-hidden rounded-[1.15rem]"
+          aria-label="Architecture Overlay"
+          className="architecture-modal-shell relative max-h-[calc(100dvh-0.75rem)] w-full max-w-[96rem] overflow-hidden rounded-[1.15rem]"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-stone-900/10 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6 md:px-8">
-            <div className="min-w-0 flex-1">
-              <h2
-                id="architecture-modal-title"
-                className="display-font text-[1.35rem] font-semibold tracking-[0.04em] text-stone-950 sm:text-[1.7rem] md:text-[2rem]"
-              >
-                Architecture Viewer
-              </h2>
-              <div className="mt-4 overflow-x-auto pb-1">
-                <div className="flex min-w-max items-center gap-2">
-                  <PillTab
-                    active={activeTab === 'system'}
-                    onClick={() => onTabChange('system')}
-                    className="whitespace-nowrap"
-                  >
-                    SYSTEM ARCHITECTURE MAP
-                  </PillTab>
-                  <PillTab
-                    active={activeTab === 'production'}
-                    onClick={() => onTabChange('production')}
-                    className="whitespace-nowrap"
-                  >
-                    패션 프로덕션 아키텍처
-                  </PillTab>
-                </div>
-              </div>
-            </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-pin absolute right-4 top-4 z-10 shrink-0 sm:right-6 sm:top-6 md:right-8"
+            aria-label="아키텍처 모달 닫기"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-            <button
-              ref={closeButtonRef}
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-pin shrink-0"
-              aria-label="아키텍처 모달 닫기"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto px-4 pb-6 pt-5 sm:max-h-[78vh] sm:px-6 sm:pb-8 sm:pt-6 md:px-8">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto px-4 pb-6 pt-16 sm:max-h-[88vh] sm:px-6 sm:pb-8 sm:pt-20 md:px-8">
             {activeTab === 'system' ? (
               <div className="space-y-4">
-                <div className="mb-4 md:mb-6">
-                  <div
-                    className="dark-node-glitch font-mono text-xs tracking-wider opacity-70 md:text-sm"
-                    data-text="REAL_ENICO :: SYSTEM ARCHITECTURE MAP"
-                    style={{
-                      color: archiveRed,
-                      textShadow: '0 0 4px rgba(90, 0, 16, 0.18)'
-                    }}
-                  >
-                    REAL_ENICO :: SYSTEM ARCHITECTURE MAP
-                  </div>
-                  <div
-                    className="mt-1 font-mono text-[10px] tracking-wider opacity-60 md:text-xs"
-                    style={{ color: archiveRed }}
-                  >
-                    Next.js × Supabase × Cloudflare R2 × Google Auth × Nice Pay
-                    × PayPal
-                  </div>
-                  <div
-                    className="mt-2 font-mono text-[9px] tracking-wider opacity-45 md:text-[10px]"
-                    style={{ color: archiveRed }}
-                  >
-                    [SYSTEM ONLINE] :: {currentDate}
-                  </div>
-                </div>
-
                 <ZoomableCanvas
                   svgWidth={ARCH_SVG_WIDTH}
                   svgHeight={ARCH_SVG_HEIGHT}
@@ -204,47 +143,9 @@ export default function ArchitectureOverlayModal({
                     </div>
                   </div>
                 </div>
-
-                <div
-                  className="mt-2 font-mono text-[9px] opacity-50 md:text-[10px]"
-                  style={{ color: statusInk }}
-                >
-                  <div className="flex gap-3 md:gap-4">
-                    <span>[NODES: 25]</span>
-                    <span>[CONNECTIONS: 22]</span>
-                    <span>[ZONES: 6]</span>
-                    <span>[STATUS: ACTIVE]</span>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="mb-4 md:mb-6">
-                  <div
-                    className="dark-node-glitch font-mono text-xs tracking-wider md:text-sm"
-                    style={{
-                      color: archiveRed,
-                      textShadow: '0 0 4px rgba(90, 0, 16, 0.18)',
-                      opacity: 0.9
-                    }}
-                    data-text="PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처"
-                  >
-                    PRODUCTION PIPELINE :: 패션 프로덕션 아키텍처
-                  </div>
-                  <div
-                    className="mt-1 font-mono text-[10px] tracking-wider opacity-65 md:text-xs"
-                    style={{ color: archiveRed }}
-                  >
-                    CLO3D × CLO-SET × Handmade × enicoveck.com
-                  </div>
-                  <div
-                    className="mt-2 font-mono text-[9px] tracking-wider opacity-50 md:text-[10px]"
-                    style={{ color: archiveRed }}
-                  >
-                    [NODES: 19] :: [CONNECTIONS: 24] :: [PHASES: 4]
-                  </div>
-                </div>
-
                 <ZoomableCanvas
                   svgWidth={PROD_SVG_WIDTH}
                   svgHeight={PROD_SVG_HEIGHT}
@@ -353,51 +254,6 @@ export default function ArchitectureOverlayModal({
             opacity: 1;
             transform: translateY(0) scale(1);
           }
-        }
-
-        .dark-node-glitch {
-          position: relative;
-          text-shadow:
-            0 0 5px #00ff41,
-            0 0 10px #00ff41;
-        }
-
-        .dark-node-glitch::before {
-          content: attr(data-text);
-          position: absolute;
-          left: -2px;
-          top: 0;
-          overflow: hidden;
-          background: #f8fbff;
-          color: #00ff41;
-          text-shadow: -2px 0 #ff00ff;
-          clip: rect(0, 900px, 0, 0);
-          animation: dark-node-glitch-anim 5s infinite linear alternate-reverse;
-          opacity: 0.8;
-        }
-
-        @keyframes dark-node-glitch-anim {
-          0% { clip: rect(42px, 9999px, 44px, 0); }
-          5% { clip: rect(12px, 9999px, 59px, 0); }
-          10% { clip: rect(48px, 9999px, 29px, 0); }
-          15% { clip: rect(42px, 9999px, 73px, 0); }
-          20% { clip: rect(63px, 9999px, 27px, 0); }
-          25% { clip: rect(34px, 9999px, 55px, 0); }
-          30% { clip: rect(86px, 9999px, 73px, 0); }
-          35% { clip: rect(20px, 9999px, 20px, 0); }
-          40% { clip: rect(26px, 9999px, 60px, 0); }
-          45% { clip: rect(25px, 9999px, 66px, 0); }
-          50% { clip: rect(57px, 9999px, 98px, 0); }
-          55% { clip: rect(5px, 9999px, 46px, 0); }
-          60% { clip: rect(82px, 9999px, 31px, 0); }
-          65% { clip: rect(54px, 9999px, 27px, 0); }
-          70% { clip: rect(28px, 9999px, 99px, 0); }
-          75% { clip: rect(45px, 9999px, 69px, 0); }
-          80% { clip: rect(23px, 9999px, 85px, 0); }
-          85% { clip: rect(54px, 9999px, 84px, 0); }
-          90% { clip: rect(45px, 9999px, 47px, 0); }
-          95% { clip: rect(37px, 9999px, 20px, 0); }
-          100% { clip: rect(4px, 9999px, 91px, 0); }
         }
       `}</style>
     </>
