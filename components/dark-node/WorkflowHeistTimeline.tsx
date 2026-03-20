@@ -98,14 +98,14 @@ const polarPoint = (cx: number, cy: number, radius: number, angle: number) => {
 };
 
 const renderMotif = (node: NodeSpec, isHovered: boolean) => {
-  const scale = node.isMain ? 2.2 : 1.78;
+  const scale = node.isMain ? 2.72 : 2.2;
   const stroke = mixHex(node.color, 0, 0.82);
   const fill = rgbaFromHex(node.color, isHovered ? 0.22 : 0.14);
   const glowFill = rgbaFromHex(node.color, isHovered ? 0.2 : 0.12);
   const accent = 'rgba(255,233,205,0.72)';
-  const lineWidth = node.isMain ? 1.45 : 1.15;
-  const centerRadius = node.isMain ? 1.4 : 1.05;
-  const ringRadius = node.isMain ? 8.9 : 7.2;
+  const lineWidth = node.isMain ? 1.7 : 1.32;
+  const centerRadius = node.isMain ? 1.65 : 1.2;
+  const ringRadius = node.isMain ? 10.8 : 8.9;
   const x = node.x;
   const y = node.y;
 
@@ -925,20 +925,10 @@ export default function WorkflowHeistTimeline({
         }
         .grain-overlay {
           background-image:
-            linear-gradient(
-              45deg,
-              rgba(250,250,250,0.96) 25%,
-              rgba(255,255,255,0.96) 25%,
-              rgba(255,255,255,0.96) 50%,
-              rgba(250,250,250,0.96) 50%,
-              rgba(250,250,250,0.96) 75%,
-              rgba(255,255,255,0.96) 75%,
-              rgba(255,255,255,0.96) 100%
-            ),
-            linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px);
-          background-size: 28px 28px, 28px 28px, 28px 28px;
-          background-position: 0 0, 0 0, 0 0;
+            linear-gradient(rgba(15,23,42,0.018) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15,23,42,0.018) 1px, transparent 1px);
+          background-size: 32px 32px, 32px 32px;
+          background-position: 0 0, 0 0;
           mix-blend-mode: normal;
           animation: flicker 4s ease-in-out infinite;
         }
@@ -948,27 +938,27 @@ export default function WorkflowHeistTimeline({
         <div
           className="absolute -left-20 top-10 h-80 w-80 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255, 213, 94, 0.12)',
+            background: 'rgba(226, 232, 240, 0.11)',
             animation: 'driftA 10s ease-in-out infinite'
           }}
         />
         <div
           className="absolute right-[-80px] top-[22%] h-96 w-96 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255, 135, 63, 0.1)',
+            background: 'rgba(203, 213, 225, 0.09)',
             animation: 'driftB 12s ease-in-out infinite'
           }}
         />
         <div
           className="absolute left-[28%] top-[46%] h-72 w-72 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255, 86, 54, 0.08)',
+            background: 'rgba(226, 232, 240, 0.08)',
             animation: 'driftA 14s ease-in-out infinite'
           }}
         />
         <div
           className="grain-overlay absolute inset-0"
-          style={{ opacity: 0.18 }}
+          style={{ opacity: 0.08 }}
         />
       </div>
 
@@ -1036,7 +1026,7 @@ export default function WorkflowHeistTimeline({
                   cy="380"
                   rx="170"
                   ry="120"
-                  fill="rgba(68,241,166,0.09)"
+                  fill="rgba(226,232,240,0.08)"
                   filter="url(#softBlur)"
                 />
                 <ellipse
@@ -1044,7 +1034,7 @@ export default function WorkflowHeistTimeline({
                   cy="1180"
                   rx="170"
                   ry="130"
-                  fill="rgba(255,122,110,0.09)"
+                  fill="rgba(226,232,240,0.06)"
                   filter="url(#softBlur)"
                 />
                 <ellipse
@@ -1052,7 +1042,7 @@ export default function WorkflowHeistTimeline({
                   cy="1530"
                   rx="180"
                   ry="140"
-                  fill="rgba(255,192,107,0.08)"
+                  fill="rgba(226,232,240,0.05)"
                   filter="url(#softBlur)"
                 />
 
@@ -1106,16 +1096,16 @@ export default function WorkflowHeistTimeline({
                 {nodes.map((node) => {
                   const isHovered = hoveredNode === node.id;
                   const isActionNode = node.id === 'c0' || node.id === 'p0';
-                  const baseRadius = node.isMain ? 13 : 8;
-                  const hoverRadius = node.isMain ? 18 : 12;
-                  const glowRadius = node.isMain ? 34 : 24;
+                  const baseRadius = node.isMain ? 16 : 10.5;
+                  const hoverRadius = node.isMain ? 22 : 15;
+                  const glowRadius = node.isMain ? 40 : 30;
                   const lanternRx =
                     (isHovered ? hoverRadius : baseRadius) +
-                    (node.isMain ? 6 : 4);
-                  const lanternRy = lanternRx + (node.isMain ? 5 : 3);
+                    (node.isMain ? 8 : 5.5);
+                  const lanternRy = lanternRx + (node.isMain ? 6.5 : 4.5);
                   const lanternGlow = isHovered
-                    ? glowRadius + 10
-                    : glowRadius + 3;
+                    ? glowRadius + 11
+                    : glowRadius + 4;
                   const lanternGradientId = `lantern-paper-${node.id}`;
                   const lanternCoreId = `lantern-core-${node.id}`;
                   const lanternMaskId = `lantern-mask-${node.id}`;
@@ -1316,7 +1306,7 @@ export default function WorkflowHeistTimeline({
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={node.isMain ? 3.2 : 2.4}
+                        r={node.isMain ? 3.8 : 2.9}
                         fill={mixHex(node.color, 0, 0.62)}
                         opacity={0.5}
                       />
@@ -1324,7 +1314,7 @@ export default function WorkflowHeistTimeline({
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={node.isMain ? 1.6 : 1.2}
+                        r={node.isMain ? 1.9 : 1.4}
                         fill="rgba(255, 248, 230, 0.88)"
                       />
 
