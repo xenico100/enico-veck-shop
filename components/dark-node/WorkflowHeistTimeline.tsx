@@ -3,10 +3,10 @@
 import { useState } from 'react';
 
 const palette = {
-  bg: '#f7efe3',
-  bgDeep: '#f2e4d2',
+  bg: '#ffffff',
+  bgDeep: '#f7f7f7',
   surface: 'transparent',
-  surfaceLine: 'rgba(83,34,18,0.1)',
+  surfaceLine: 'rgba(15,23,42,0.08)',
   jade: '#ffd66b',
   jadeSoft: '#ffb24a',
   amber: '#ff9247',
@@ -413,15 +413,21 @@ export default function WorkflowHeistTimeline({
         }
         .grain-overlay {
           background-image:
-            linear-gradient(to bottom, rgba(255,255,255,0.26), rgba(255,255,255,0.12)),
-            repeating-linear-gradient(
-              to bottom,
-              rgba(15,23,42,0.02) 0px,
-              rgba(15,23,42,0.02) 1px,
-              transparent 1px,
-              transparent 5px
-            );
-          mix-blend-mode: multiply;
+            linear-gradient(
+              45deg,
+              rgba(250,250,250,0.96) 25%,
+              rgba(255,255,255,0.96) 25%,
+              rgba(255,255,255,0.96) 50%,
+              rgba(250,250,250,0.96) 50%,
+              rgba(250,250,250,0.96) 75%,
+              rgba(255,255,255,0.96) 75%,
+              rgba(255,255,255,0.96) 100%
+            ),
+            linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px);
+          background-size: 28px 28px, 28px 28px, 28px 28px;
+          background-position: 0 0, 0 0, 0 0;
+          mix-blend-mode: normal;
           animation: flicker 4s ease-in-out infinite;
         }
       `}</style>
@@ -430,21 +436,21 @@ export default function WorkflowHeistTimeline({
         <div
           className="absolute -left-20 top-10 h-80 w-80 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255, 213, 94, 0.18)',
+            background: 'rgba(255, 213, 94, 0.12)',
             animation: 'driftA 10s ease-in-out infinite'
           }}
         />
         <div
           className="absolute right-[-80px] top-[22%] h-96 w-96 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255, 135, 63, 0.16)',
+            background: 'rgba(255, 135, 63, 0.1)',
             animation: 'driftB 12s ease-in-out infinite'
           }}
         />
         <div
           className="absolute left-[28%] top-[46%] h-72 w-72 rounded-full blur-3xl"
           style={{
-            background: 'rgba(255, 86, 54, 0.12)',
+            background: 'rgba(255, 86, 54, 0.08)',
             animation: 'driftA 14s ease-in-out infinite'
           }}
         />
