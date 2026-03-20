@@ -2,19 +2,7 @@
 
 import Link from 'next/link';
 
-import {
-  BRAND_NAME,
-  CONTACT_EMAIL,
-  DESIGNER_BRAND_URL,
-  REPRESENTATIVE_NAME,
-  YOUTUBE_URL
-} from '@/utils/branding';
-
-const boardNotes = [
-  '웹사이트 구조 설계부터 프론트엔드 구현까지 직접 진행합니다.',
-  '디자이너 브랜드 의류 설계와 제작 흐름을 한 사람의 감각으로 이어갑니다.',
-  '영상 편집과 채널 운영까지 연결해 결과물을 하나의 브랜드 경험으로 완성합니다.'
-];
+import { BRAND_NAME, DESIGNER_BRAND_URL, YOUTUBE_URL } from '@/utils/branding';
 
 export default function MainContent() {
   return (
@@ -36,98 +24,50 @@ export default function MainContent() {
       </div>
 
       <div className="section-shell">
-        <div className="grid items-end gap-10 lg:grid-cols-[1.45fr_0.95fr]">
-          <div className="animate-rise">
-            <p className="section-kicker">Architecture · Creativity · Art</p>
-            <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-semibold leading-[0.9] tracking-[0.01em] text-stone-950">
-              {BRAND_NAME}
-            </h1>
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-stone-600 md:text-[0.95rem]">
-              <a
-                href={DESIGNER_BRAND_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="underline decoration-stone-900/25 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/55"
-              >
-                enicoveck.com
-              </a>
-              <a
-                href={YOUTUBE_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="underline decoration-stone-900/25 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/55"
-              >
-                YouTube / FancyVeck
-              </a>
-            </div>
-            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-stone-700 md:text-base">
-              {BRAND_NAME}은 코드, 영상, 패션을 직접 만드는 사람이 운영하는
-              커뮤니티형 아카이브입니다. 웹사이트 구축부터 의상 제작, 영상
-              편집까지 실제 작업의 전 과정을 바탕으로 실무 팁, 작업 이야기,
-              인사이트를 공유합니다.
-            </p>
-
-            <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-1.5">
-              <Link
-                href="/architecture"
-                className="y2k-button y2k-button-primary y2k-button-hero-compact y2k-button-fade-micro w-full no-underline sm:w-auto"
-              >
-                OPEN NODE MAP
-              </Link>
-              <a
-                href="#studio"
-                className="y2k-button y2k-button-accent y2k-button-hero-compact y2k-button-fade-micro w-full no-underline sm:w-auto"
-              >
-                WATCH FEED
-              </a>
-            </div>
+        <div className="animate-rise max-w-3xl">
+          <p className="section-kicker">Architecture · Creativity · Art</p>
+          <h1 className="display-font text-glow mt-5 text-[clamp(2.8rem,9vw,7.4rem)] font-semibold leading-[0.9] tracking-[0.01em] text-stone-950">
+            {BRAND_NAME}
+          </h1>
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-stone-600 md:text-[0.95rem]">
+            <a
+              href={DESIGNER_BRAND_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-stone-900/25 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/55"
+            >
+              enicoveck.com
+            </a>
+            <a
+              href={YOUTUBE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-stone-900/25 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/55"
+            >
+              YouTube / FancyVeck
+            </a>
           </div>
+          <p className="mt-6 max-w-2xl text-sm leading-relaxed text-stone-700 md:text-base">
+            {BRAND_NAME}은 코드, 영상, 패션을 직접 만드는 사람이 운영하는
+            커뮤니티형 아카이브입니다. 웹사이트 구축부터 의상 제작, 영상
+            편집까지 실제 작업의 전 과정을 바탕으로 실무 팁, 작업 이야기,
+            인사이트를 공유합니다.
+          </p>
 
-          <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden p-5 [animation-delay:0.15s] lg:max-w-none lg:ml-auto lg:max-w-[30rem]">
-            <p className="section-kicker">Creator</p>
-            <h2 className="display-font mt-2 text-xl font-semibold tracking-[0.02em] text-stone-950 sm:text-2xl md:text-3xl">
-              About
-            </h2>
-
-            <div className="mt-6 space-y-4 text-sm text-stone-700">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
-                  Solo Studio
-                </p>
-                <p className="mt-1 break-words leading-relaxed">
-                  {REPRESENTATIVE_NAME} 1인이 사이트 설계, 의류 설계, 콘텐츠
-                  제작을 함께 운영합니다.
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
-                  Email
-                </p>
-                <a
-                  href={`mailto:${CONTACT_EMAIL}`}
-                  className="mt-1 block break-all leading-relaxed underline decoration-stone-900/20 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/50"
-                >
-                  {CONTACT_EMAIL}
-                </a>
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
-                  About
-                </p>
-                <div className="mt-2 space-y-2">
-                  {boardNotes.map((note, index) => (
-                    <div
-                      key={note}
-                      className="border-l border-stone-900/12 pl-3 text-[13px] leading-relaxed text-stone-700"
-                    >
-                      <span className="mr-2 text-stone-500">0{index + 1}</span>
-                      {note}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
+          <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-1.5">
+            <Link
+              href="/architecture"
+              className="y2k-button y2k-button-primary y2k-button-hero-compact y2k-button-fade-micro w-full no-underline sm:w-auto"
+            >
+              OPEN NODE MAP
+            </Link>
+            <a
+              href="#studio"
+              className="y2k-button y2k-button-accent y2k-button-hero-compact y2k-button-fade-micro w-full no-underline sm:w-auto"
+            >
+              WATCH FEED
+            </a>
+          </div>
         </div>
       </div>
     </section>
