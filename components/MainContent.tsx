@@ -10,12 +10,6 @@ import {
   YOUTUBE_URL
 } from '@/utils/branding';
 
-const statItems = [
-  { label: 'Signal Drops', value: '1,200+' },
-  { label: 'Network Uptime', value: '24/7' },
-  { label: 'Secure Nodes', value: '4 Pods' }
-];
-
 const boardNotes = [
   '웹사이트 구조 설계부터 프론트엔드 구현까지 직접 진행합니다.',
   '디자이너 브랜드 의류 설계와 제작 흐름을 한 사람의 감각으로 이어갑니다.',
@@ -87,22 +81,6 @@ export default function MainContent() {
                 WATCH FEED
               </a>
             </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {statItems.map((item) => (
-                <div
-                  key={item.label}
-                  className="min-w-0 border-l border-stone-900/12 py-1 pl-4"
-                >
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
-                    {item.label}
-                  </p>
-                  <p className="mt-2 display-font text-lg font-semibold tracking-[0.03em] text-stone-950 md:text-xl">
-                    {item.value}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <aside className="tech-panel scanline animate-rise relative max-w-xl overflow-hidden p-5 [animation-delay:0.15s] lg:max-w-none lg:ml-auto lg:max-w-[30rem]">
@@ -113,14 +91,18 @@ export default function MainContent() {
 
             <div className="mt-6 space-y-4 text-sm text-stone-700">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Solo Studio</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
+                  Solo Studio
+                </p>
                 <p className="mt-1 break-words leading-relaxed">
-                  {REPRESENTATIVE_NAME} 1인이 사이트 설계, 의류 설계, 콘텐츠 제작을
-                  함께 운영합니다.
+                  {REPRESENTATIVE_NAME} 1인이 사이트 설계, 의류 설계, 콘텐츠
+                  제작을 함께 운영합니다.
                 </p>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">Email</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
+                  Email
+                </p>
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
                   className="mt-1 block break-all leading-relaxed underline decoration-stone-900/20 underline-offset-4 transition hover:text-stone-950 hover:decoration-stone-900/50"
@@ -129,7 +111,9 @@ export default function MainContent() {
                 </a>
               </div>
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">About</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-stone-500">
+                  About
+                </p>
                 <div className="mt-2 space-y-2">
                   {boardNotes.map((note, index) => (
                     <div
