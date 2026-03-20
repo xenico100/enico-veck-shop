@@ -27,8 +27,8 @@ export default function DarkNodeDiagramStack({
   className
 }: DarkNodeDiagramStackProps) {
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [activeTab, setActiveTab] = useState<DiagramTab>('system');
-  const tabSectionRef = useRef<HTMLDivElement | null>(null);
+  const [activeTab, setActiveTab] = useState<DiagramTab | null>(null);
+  const activeDiagramRef = useRef<HTMLDivElement | null>(null);
   const archiveRed = '#7d002d';
   const dataInk = '#0b5c61';
   const imageInk = '#17652f';
@@ -45,7 +45,7 @@ export default function DarkNodeDiagramStack({
   const openDiagramTab = (tab: DiagramTab) => {
     setActiveTab(tab);
     window.requestAnimationFrame(() => {
-      tabSectionRef.current?.scrollIntoView({
+      activeDiagramRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       });
@@ -69,40 +69,11 @@ export default function DarkNodeDiagramStack({
         <WorkflowHeistTimeline onTabRequest={openDiagramTab} />
       </div>
 
-      <div
-        ref={tabSectionRef}
-        className="relative z-0 w-full px-3 pb-2 pt-2 md:px-6 md:pb-3"
-      >
-        <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-[0.18em] md:text-xs">
-          <button
-            type="button"
-            onClick={() => openDiagramTab('system')}
-            className={cn(
-              'rounded-full border px-3 py-2 transition-colors',
-              activeTab === 'system'
-                ? 'border-[#7d002d] bg-[#f0e6ea] text-[#7d002d]'
-                : 'border-stone-300 bg-white/70 text-stone-500'
-            )}
-          >
-            SYSTEM ARCHITECTURE MAP
-          </button>
-          <button
-            type="button"
-            onClick={() => openDiagramTab('production')}
-            className={cn(
-              'rounded-full border px-3 py-2 transition-colors',
-              activeTab === 'production'
-                ? 'border-[#7d002d] bg-[#f0e6ea] text-[#7d002d]'
-                : 'border-stone-300 bg-white/70 text-stone-500'
-            )}
-          >
-            패션 프로덕션 아키텍처
-          </button>
-        </div>
-      </div>
-
       {activeTab === 'system' ? (
-        <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
+        <div
+          ref={activeDiagramRef}
+          className="relative z-0 w-full px-3 pb-6 pt-2 md:px-6 md:pb-10 md:pt-3"
+        >
           <div className="mb-4 md:mb-6">
             <div
               className="dark-node-glitch font-mono text-xs tracking-wider opacity-70 md:text-sm"
@@ -186,8 +157,11 @@ export default function DarkNodeDiagramStack({
             </div>
           </div>
         </div>
-      ) : (
-        <div className="relative z-0 w-full px-3 pb-6 pt-4 md:px-6 md:pb-10 md:pt-6">
+      ) : activeTab === 'production' ? (
+        <div
+          ref={activeDiagramRef}
+          className="relative z-0 w-full px-3 pb-6 pt-2 md:px-6 md:pb-10 md:pt-3"
+        >
           <div className="mb-4 md:mb-6">
             <div
               className="dark-node-glitch font-mono text-xs tracking-wider md:text-sm"
@@ -278,6 +252,20 @@ export default function DarkNodeDiagramStack({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {activeTab ? (
+        <div className="relative my-4 h-px w-full">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ffff] to-transparent opacity-30" />
+        </div>
+      ) : null}
+
+      {activeTab ? null : (
+        <div
+          ref={activeDiagramRef}
+          className="pointer-events-none relative z-0 h-0 w-full overflow-hidden px-3 md:px-6"
+          aria-hidden="true"
+        />
       )}
 
       <BrandBuildSection />
