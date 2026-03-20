@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
 import { BRAND_NAME, DESIGNER_BRAND_URL, YOUTUBE_URL } from '@/utils/branding';
 
 export default function MainContent() {
@@ -54,12 +52,12 @@ export default function MainContent() {
           </p>
 
           <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-1.5">
-            <Link
-              href="/architecture"
+            <a
+              href="#about"
               className="y2k-button y2k-button-primary y2k-button-hero-compact y2k-button-fade-micro w-full no-underline sm:w-auto"
             >
               OPEN NODE MAP
-            </Link>
+            </a>
             <a
               href="#studio"
               className="y2k-button y2k-button-accent y2k-button-hero-compact y2k-button-fade-micro w-full no-underline sm:w-auto"
