@@ -488,6 +488,80 @@ const getLanternFragments = (
   ];
 };
 
+const renderClickCue = (node: NodeSpec) => {
+  if (node.id !== 'c0') return null;
+
+  const cueColor = '#bf1028';
+  const cueGlow = 'rgba(226, 37, 63, 0.18)';
+
+  return (
+    <g pointerEvents="none">
+      <ellipse
+        cx={node.x}
+        cy={node.y}
+        rx={34}
+        ry={39}
+        fill="none"
+        stroke={cueGlow}
+        strokeWidth={14}
+        filter="url(#softBlur)"
+      />
+      <path
+        d={`M ${node.x - 28} ${node.y - 9} C ${node.x - 34} ${node.y - 31}, ${node.x - 10} ${node.y - 42}, ${node.x + 12} ${node.y - 35} C ${node.x + 35} ${node.y - 27}, ${node.x + 38} ${node.y + 1}, ${node.x + 28} ${node.y + 21} C ${node.x + 17} ${node.y + 39}, ${node.x - 10} ${node.y + 40}, ${node.x - 25} ${node.y + 26}`}
+        fill="none"
+        stroke={cueColor}
+        strokeWidth={4.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.94}
+      />
+      <path
+        d={`M ${node.x - 24} ${node.y - 15} C ${node.x - 12} ${node.y - 42}, ${node.x + 21} ${node.y - 40}, ${node.x + 34} ${node.y - 14} C ${node.x + 43} ${node.y + 7}, ${node.x + 27} ${node.y + 35}, ${node.x - 1} ${node.y + 36} C ${node.x - 20} ${node.y + 36}, ${node.x - 33} ${node.y + 18}, ${node.x - 31} ${node.y + 3}`}
+        fill="none"
+        stroke={cueColor}
+        strokeWidth={2.3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.84}
+      />
+
+      <g transform={`translate(${node.x + 42} ${node.y - 49})`}>
+        <path
+          d="M 0 0 L 0 18 L 4.8 13.6 L 8.8 22.4 L 12.4 20.8 L 8.4 12.1 L 14.8 12 Z"
+          fill={cueColor}
+          stroke="rgba(255, 246, 244, 0.95)"
+          strokeWidth="1.1"
+          strokeLinejoin="round"
+          style={{ filter: 'drop-shadow(0 0 10px rgba(191,16,40,0.28))' }}
+        />
+        <text
+          x="21"
+          y="12"
+          fill="rgba(255, 247, 243, 0.98)"
+          stroke="rgba(255, 247, 243, 0.98)"
+          strokeWidth="7"
+          fontSize="14"
+          fontWeight="800"
+          letterSpacing="0.16em"
+        >
+          CLICK
+        </text>
+        <text
+          x="21"
+          y="12"
+          fill={cueColor}
+          fontSize="14"
+          fontWeight="800"
+          letterSpacing="0.16em"
+          style={{ textTransform: 'uppercase' }}
+        >
+          CLICK
+        </text>
+      </g>
+    </g>
+  );
+};
+
 const paths: PathSpec[] = [
   {
     d: 'M 400 120 L 400 1260',
@@ -1134,6 +1208,8 @@ export default function WorkflowHeistTimeline({
                           ))}
                         </mask>
                       </defs>
+
+                      {renderClickCue(node)}
 
                       <ellipse
                         cx={node.x}
