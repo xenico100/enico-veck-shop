@@ -489,43 +489,50 @@ const getLanternFragments = (
 };
 
 const renderClickCue = (node: NodeSpec) => {
-  if (node.id !== 'c0') return null;
+  if (node.id !== 'c0' && node.id !== 'p0') return null;
 
+  const cueScale = 1.5;
   const cueColor = '#bf1028';
   const cueGlow = 'rgba(226, 37, 63, 0.18)';
+  const labelOffsetX = node.id === 'p0' ? 46 : 44;
+  const labelOffsetY = node.id === 'p0' ? -46 : -50;
 
   return (
     <g pointerEvents="none">
-      <ellipse
-        cx={node.x}
-        cy={node.y}
-        rx={34}
-        ry={39}
-        fill="none"
-        stroke={cueGlow}
-        strokeWidth={14}
-        filter="url(#softBlur)"
-      />
-      <path
-        d={`M ${node.x - 28} ${node.y - 9} C ${node.x - 34} ${node.y - 31}, ${node.x - 10} ${node.y - 42}, ${node.x + 12} ${node.y - 35} C ${node.x + 35} ${node.y - 27}, ${node.x + 38} ${node.y + 1}, ${node.x + 28} ${node.y + 21} C ${node.x + 17} ${node.y + 39}, ${node.x - 10} ${node.y + 40}, ${node.x - 25} ${node.y + 26}`}
-        fill="none"
-        stroke={cueColor}
-        strokeWidth={4.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.94}
-      />
-      <path
-        d={`M ${node.x - 24} ${node.y - 15} C ${node.x - 12} ${node.y - 42}, ${node.x + 21} ${node.y - 40}, ${node.x + 34} ${node.y - 14} C ${node.x + 43} ${node.y + 7}, ${node.x + 27} ${node.y + 35}, ${node.x - 1} ${node.y + 36} C ${node.x - 20} ${node.y + 36}, ${node.x - 33} ${node.y + 18}, ${node.x - 31} ${node.y + 3}`}
-        fill="none"
-        stroke={cueColor}
-        strokeWidth={2.3}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.84}
-      />
+      <g transform={`translate(${node.x} ${node.y}) scale(${cueScale})`}>
+        <ellipse
+          cx="0"
+          cy="0"
+          rx="34"
+          ry="39"
+          fill="none"
+          stroke={cueGlow}
+          strokeWidth="14"
+          filter="url(#softBlur)"
+        />
+        <path
+          d="M -28 -9 C -34 -31, -10 -42, 12 -35 C 35 -27, 38 1, 28 21 C 17 39, -10 40, -25 26"
+          fill="none"
+          stroke={cueColor}
+          strokeWidth="4.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.94}
+        />
+        <path
+          d="M -24 -15 C -12 -42, 21 -40, 34 -14 C 43 7, 27 35, -1 36 C -20 36, -33 18, -31 3"
+          fill="none"
+          stroke={cueColor}
+          strokeWidth="2.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.84}
+        />
+      </g>
 
-      <g transform={`translate(${node.x + 42} ${node.y - 49})`}>
+      <g
+        transform={`translate(${node.x + labelOffsetX} ${node.y + labelOffsetY}) scale(${cueScale})`}
+      >
         <path
           d="M 0 0 L 0 18 L 4.8 13.6 L 8.8 22.4 L 12.4 20.8 L 8.4 12.1 L 14.8 12 Z"
           fill={cueColor}
