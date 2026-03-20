@@ -36,6 +36,9 @@ const storeItems = [
   '의류 콘텐츠 기반 영어권 숏폼 1개 업로드'
 ] as const;
 
+const timelineGridColumns =
+  'minmax(230px,0.95fr) minmax(150px,0.52fr) minmax(230px,0.95fr) minmax(150px,0.52fr) minmax(390px,1.55fr)';
+
 const branchPaths = [
   'M132 192 C166 164 184 118 210 74',
   'M286 192 C320 162 340 126 364 66',
@@ -47,9 +50,9 @@ const branchPaths = [
 ] as const;
 
 const mainNodes = [
-  { left: '12%', color: '#48c9d5' },
-  { left: '36%', color: '#f0b44d' },
-  { left: '69%', color: '#e06c78' }
+  { left: '12.5%', color: '#48c9d5' },
+  { left: '39.8%', color: '#f0b44d' },
+  { left: '73.5%', color: '#e06c78' }
 ] as const;
 
 export default function TimelineSpikeEditor() {
@@ -64,16 +67,19 @@ export default function TimelineSpikeEditor() {
           />
         ))}
 
-        <div className="absolute left-1/2 top-8 z-10 flex w-[92%] -translate-x-1/2 items-center justify-center font-mono text-[16px] font-semibold tracking-[0.1em] text-[#1d2b54]">
-          <span>[의류제작]</span>
-          <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-[#576892]">
+        <div
+          className="absolute inset-x-[4%] top-8 z-10 grid items-center gap-4 font-mono text-[16px] font-semibold tracking-[0.1em] text-[#1d2b54]"
+          style={{ gridTemplateColumns: timelineGridColumns }}
+        >
+          <div className="text-left">[의류제작]</div>
+          <div className="overflow-hidden whitespace-nowrap text-center text-[#576892]">
             ───────────────
-          </span>
-          <span>[영상제작]</span>
-          <span className="mx-4 flex-1 overflow-hidden whitespace-nowrap text-center text-[#576892]">
+          </div>
+          <div className="text-center">[영상제작]</div>
+          <div className="overflow-hidden whitespace-nowrap text-center text-[#576892]">
             ───────────────
-          </span>
-          <span>[플랫폼 업로드]</span>
+          </div>
+          <div className="text-right">[플랫폼 업로드]</div>
         </div>
 
         <svg
@@ -157,7 +163,10 @@ export default function TimelineSpikeEditor() {
           />
         ))}
 
-        <div className="absolute left-[4%] top-[15rem] w-[24%]">
+        <div
+          className="absolute inset-x-[4%] top-[15rem] grid items-start gap-4"
+          style={{ gridTemplateColumns: timelineGridColumns }}
+        >
           <div className="space-y-4 font-mono text-[15px] leading-[1.55] text-[#1d2b54]">
             {garmentItems.map((item, index) => (
               <div key={item} className="flex items-center gap-3">
@@ -178,9 +187,9 @@ export default function TimelineSpikeEditor() {
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="absolute left-[34%] top-[15rem] w-[22%]">
+          <div />
+
           <div className="space-y-4 font-mono text-[15px] leading-[1.55] text-[#1d2b54]">
             {videoItems.map((item, index) => (
               <div key={item} className="flex items-center gap-3">
@@ -195,9 +204,9 @@ export default function TimelineSpikeEditor() {
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="absolute left-[59%] top-[14.5rem] w-[35%]">
+          <div />
+
           <div className="space-y-8 font-mono text-[14px] leading-[1.65] text-[#1d2b54]">
             <div className="relative pl-6">
               <div className="absolute left-0 top-[0.7rem] h-[calc(100%-0.7rem)] w-px bg-[#697aa4]/70" />
