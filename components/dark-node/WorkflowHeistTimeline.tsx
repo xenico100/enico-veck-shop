@@ -345,7 +345,7 @@ export default function WorkflowHeistTimeline({
   const [hoveredNode, setHoveredNode] = useState<string>('p0');
 
   const handleNodeClick = (nodeId: string) => {
-    if (nodeId === 'c0' || nodeId === 'v0') {
+    if (nodeId === 'c0') {
       onTabRequest?.('production');
     }
 
