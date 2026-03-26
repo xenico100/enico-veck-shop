@@ -1585,13 +1585,11 @@ h6 {
 }
 
 .bio-header-shell {
-  border: 1px solid rgba(168, 38, 38, 0.18);
-  border-radius: 46px 60px 40px 56px / 44px 46px 52px 42px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow:
-    0 22px 48px rgba(82, 28, 28, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(18px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .bio-header-kicker {
