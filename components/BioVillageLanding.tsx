@@ -1,16 +1,21 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { useAuth } from '@/app/context/AuthContext';
+import { createClient } from '@/utils/supabase/client';
 
 const WORLD_HEIGHT = 3500;
+const MOBILE_WORLD_WIDTH = 1480;
+const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
-const DUMMY_COUNT = 12;
 const PLAYER_MARGIN = 40;
-const PROFILE_STORAGE_KEY = 'bio_village_self_profile_v2';
-const APPEARANCE_STORAGE_KEY = 'bio_village_self_appearance_v2';
+const PROFILE_STORAGE_KEY = 'bio_village_self_profile_v3';
+const APPEARANCE_STORAGE_KEY = 'bio_village_self_appearance_v3';
+const PARTICIPANT_KEY_STORAGE = 'bio_village_presence_key_v1';
+const PRESENCE_CHANNEL = 'bio-village-presence-v1';
 
 type Direction = 'down' | 'left' | 'right' | 'up';
 type SpritePreset = 'archivist' | 'courier' | 'ghost' | 'medic';
@@ -34,7 +39,6 @@ type ActorState = {
   dir: Direction;
   id: string;
   label: string;
-  lastDecisionAt: number;
   palette: PaletteKey;
   preset: SpritePreset;
   profile: AvatarProfile;
@@ -62,8 +66,6 @@ type FacilityNode = {
   caption: string;
   id: string;
   left: string;
-  mobileLeft?: string;
-  mobileTop?: number;
   subtitle: string;
   title: string;
   top: number;
@@ -71,6 +73,8 @@ type FacilityNode = {
 };
 
 type SelectedTarget = { kind: 'remote'; id: string } | { kind: 'self' };
+
+type PresenceStateValue = Record<string, Array<Record<string, unknown>>>;
 
 const directions: Record<string, Direction> = {
   ArrowDown: 'down',
@@ -271,11 +275,11 @@ const paletteMap: Record<
   {
     accent: string;
     body: string;
+    eye: string;
     hair: string;
     name: string;
     outline: string;
     skin: string;
-    eye: string;
   }
 > = {
   amber: {
@@ -331,7 +335,6 @@ const facilityNodes: FacilityNode[] = [
     caption: 'LOBBY / MATCH CORE',
     id: 'atrium-heart',
     left: '50%',
-    mobileTop: 340,
     subtitle: '중앙 접속 심장. 매칭 신호와 유저 흐름이 모이는 코어.',
     title: 'Clinical Atrium',
     top: 360,
@@ -342,8 +345,6 @@ const facilityNodes: FacilityNode[] = [
     caption: 'PROFILE LAB',
     id: 'profile-lab',
     left: '23%',
-    mobileLeft: '50%',
-    mobileTop: 900,
     subtitle: '소개, 관심사, MBTI를 다듬는 생체 프로필 부스.',
     title: 'Profile Lab',
     top: 980,
@@ -354,8 +355,6 @@ const facilityNodes: FacilityNode[] = [
     caption: 'SIGNAL LOUNGE',
     id: 'signal-lounge',
     left: '76%',
-    mobileLeft: '50%',
-    mobileTop: 1260,
     subtitle: '좌클릭으로 타인의 기록을 읽고 채팅 훅을 여는 구역.',
     title: 'Signal Lounge',
     top: 1160,
@@ -366,8 +365,6 @@ const facilityNodes: FacilityNode[] = [
     caption: 'MEMORY WARD',
     id: 'memory-ward',
     left: '28%',
-    mobileLeft: '50%',
-    mobileTop: 1760,
     subtitle: '자기소개와 감정 기록이 축적되는 병동형 갤러리.',
     title: 'Memory Ward',
     top: 1920,
@@ -378,8 +375,6 @@ const facilityNodes: FacilityNode[] = [
     caption: 'RESONANCE GRID',
     id: 'resonance-grid',
     left: '72%',
-    mobileLeft: '50%',
-    mobileTop: 2220,
     subtitle: '랜덤 탐험과 공감 신호가 순환하는 실험층.',
     title: 'Resonance Grid',
     top: 2240,
@@ -390,7 +385,6 @@ const facilityNodes: FacilityNode[] = [
     caption: 'DEEP LAYER / DATING CORE',
     id: 'deep-core',
     left: '50%',
-    mobileTop: 2860,
     subtitle: '완주한 감정 기록과 매칭 로그가 쌓이는 지하 통제실.',
     title: 'Midnight Dating Core',
     top: 2860,
@@ -407,55 +401,20 @@ const veinEdges: Array<[string, string, string, number]> = [
   ['resonance-grid', 'deep-core', '#8d2d54', 11]
 ];
 
-const dummyNames = [
-  'Yuna',
-  'Rin',
-  'Mika',
-  'Theo',
-  'Sora',
-  'Noel',
-  'Haru',
-  'Mina',
-  'Riku',
-  'Eden',
-  'Lia',
-  'Kian',
-  'Ari',
-  'Nox',
-  'Jae'
-];
-
-const dummyTaglines = [
-  '새벽 감정 채집가',
-  '고장난 라디오 수집광',
-  '무드 보드 중독자',
-  '기억 전시 애호가',
-  '야간 산책 레벨 MAX',
-  '사진보다 여운을 믿는 쪽',
-  '도트 감성 덕후',
-  '리버브 강한 음악에 약함'
-];
-
-const dummyInterestSets = [
-  '필름사진 / 폐허 / 서늘한 신스팝',
-  '룩북 / 3D 의상 / 미스터리 맵',
-  '로우파이 / 글리치 비주얼 / 밤산책',
-  '도트 게임 / 전시 / 긴 대화',
-  '편집 / 타이포 / 다크 로맨스',
-  '재봉 / 콜라주 / 오래된 기계음'
-];
-
-const dummyMbti = ['INFJ', 'INFP', 'INTJ', 'ISFP', 'ENTP', 'ENFP'];
-
-const randomItem = <T,>(items: T[]) =>
-  items[Math.floor(Math.random() * items.length)];
-
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-const getActorScreenPosition = (actor: ActorState, scrollY: number) => ({
-  x: actor.x,
-  y: actor.y - scrollY
+const getWorldWidth = (viewportWidth: number) =>
+  viewportWidth < 768
+    ? MOBILE_WORLD_WIDTH
+    : Math.max(viewportWidth, DESKTOP_MIN_WORLD_WIDTH);
+
+const createDefaultProfile = (name: string): AvatarProfile => ({
+  bio: '밤에 깨어 있고, 말보다 무드를 오래 남기는 타입.',
+  interests: '도트게임 / 전시 / 사운드 / 패션',
+  mbti: 'INTJ',
+  name,
+  tagline: '기억 수집 중'
 });
 
 const createCells = (): CellState[] =>
@@ -470,56 +429,21 @@ const createCells = (): CellState[] =>
     worldY: Math.random() * WORLD_HEIGHT
   }));
 
-const createDefaultProfile = (name: string): AvatarProfile => ({
-  bio: '밤에 깨어 있고, 말보다 무드를 오래 남기는 타입.',
-  interests: '도트게임 / 전시 / 사운드 / 패션',
-  mbti: 'INTJ',
-  name,
-  tagline: '기억 수집 중'
-});
+const isPaletteKey = (value: unknown): value is PaletteKey =>
+  typeof value === 'string' && value in paletteMap;
 
-const createDummyActors = (viewportWidth: number): ActorState[] =>
-  Array.from({ length: DUMMY_COUNT }).map((_, index) => {
-    const label = dummyNames[index % dummyNames.length];
-    const presetKeys = Object.keys(spriteSets) as SpritePreset[];
-    const paletteKeys = Object.keys(paletteMap) as PaletteKey[];
+const isSpritePreset = (value: unknown): value is SpritePreset =>
+  typeof value === 'string' && value in spriteSets;
 
-    return {
-      animFrame: Math.random() * 10,
-      dir: randomItem(['down', 'left', 'right', 'up'] as Direction[]),
-      id: `dummy-${index + 1}`,
-      label,
-      lastDecisionAt: 0,
-      palette: paletteKeys[index % paletteKeys.length],
-      preset: presetKeys[index % presetKeys.length],
-      profile: {
-        bio: `${randomItem(dummyTaglines)}. 낯선 사람의 진심 한 조각을 수집하러 돌아다닌다.`,
-        interests: randomItem(dummyInterestSets),
-        mbti: randomItem(dummyMbti),
-        name: label,
-        tagline: randomItem(dummyTaglines)
-      },
-      speed: 1.2 + Math.random() * 1.3,
-      targetX: null,
-      targetY: null,
-      vx: 0,
-      vy: 0,
-      x: 90 + Math.random() * Math.max(240, viewportWidth - 180),
-      y: 180 + Math.random() * (WORLD_HEIGHT - 360)
-    };
-  });
+const isDirection = (value: unknown): value is Direction =>
+  value === 'up' || value === 'down' || value === 'left' || value === 'right';
 
-const pickWanderTarget = (actor: ActorState, maxWidth: number) => {
-  actor.targetX = clamp(
-    actor.x + (Math.random() - 0.5) * 560,
-    PLAYER_MARGIN,
-    Math.max(PLAYER_MARGIN, maxWidth - PLAYER_MARGIN)
-  );
-  actor.targetY = clamp(
-    actor.y + (Math.random() - 0.5) * 760,
-    120,
-    WORLD_HEIGHT - 100
-  );
+const getSpriteSize = (preset: SpritePreset) => {
+  const sprite = spriteSets[preset].down;
+  return {
+    height: sprite.length * PLAYER_SCALE,
+    width: sprite[0].length * PLAYER_SCALE
+  };
 };
 
 const getFacilityCenter = (element: HTMLElement) => {
@@ -530,18 +454,20 @@ const getFacilityCenter = (element: HTMLElement) => {
   };
 };
 
-const getSpriteSize = (preset: SpritePreset) => {
-  const sprite = spriteSets[preset].down;
-  return {
-    height: sprite.length * PLAYER_SCALE,
-    width: sprite[0].length * PLAYER_SCALE
-  };
-};
+const getActorScreenPosition = (
+  actor: ActorState,
+  scrollY: number,
+  cameraX: number
+) => ({
+  x: actor.x - cameraX,
+  y: actor.y - scrollY
+});
 
 function drawActor(
   context: CanvasRenderingContext2D,
   actor: ActorState,
   scrollY: number,
+  cameraX: number,
   options?: {
     isSelf?: boolean;
     isSelected?: boolean;
@@ -554,10 +480,17 @@ function drawActor(
     (actor.vx !== 0 || actor.vy !== 0) && Math.floor(actor.animFrame) % 2 === 0
       ? -4
       : 0;
-  const screenX = actor.x;
+  const screenX = actor.x - cameraX;
   const screenY = actor.y - scrollY;
 
-  if (screenY < -80 || screenY > window.innerHeight + 80) return;
+  if (
+    screenX < -width - 40 ||
+    screenX > window.innerWidth + width + 40 ||
+    screenY < -height - 40 ||
+    screenY > window.innerHeight + height + 40
+  ) {
+    return;
+  }
 
   if (options?.isSelected) {
     context.save();
@@ -645,13 +578,133 @@ function drawActor(
   context.restore();
 }
 
+const buildRemoteActorsFromPresence = (
+  state: PresenceStateValue,
+  ownKey: string | null,
+  previousActors: ActorState[],
+  worldWidth: number
+) => {
+  const previousMap = new Map(previousActors.map((actor) => [actor.id, actor]));
+  const latestEntries = new Map<string, Record<string, unknown>>();
+
+  Object.entries(state).forEach(([presenceKey, metas]) => {
+    metas.forEach((meta) => {
+      const key =
+        typeof meta.key === 'string' && meta.key.trim().length > 0
+          ? meta.key.trim()
+          : presenceKey;
+
+      if (!key || key === ownKey) return;
+
+      const updatedAt =
+        typeof meta.updatedAt === 'string' && meta.updatedAt.trim().length > 0
+          ? meta.updatedAt
+          : '';
+      const previous = latestEntries.get(key);
+      const previousUpdatedAt =
+        previous && typeof previous.updatedAt === 'string'
+          ? previous.updatedAt
+          : '';
+
+      if (!previous || updatedAt >= previousUpdatedAt) {
+        latestEntries.set(key, { ...meta, key });
+      }
+    });
+  });
+
+  return Array.from(latestEntries.entries())
+    .map(([key, meta]) => {
+      const previous = previousMap.get(key);
+      const label =
+        typeof meta.label === 'string' && meta.label.trim().length > 0
+          ? meta.label.trim()
+          : `Visitor ${key.slice(0, 4)}`;
+      const palette = isPaletteKey(meta.palette) ? meta.palette : 'crimson';
+      const preset = isSpritePreset(meta.preset) ? meta.preset : 'archivist';
+      const dir = isDirection(meta.dir) ? meta.dir : 'down';
+      const payloadProfile =
+        meta.profile && typeof meta.profile === 'object'
+          ? (meta.profile as Partial<AvatarProfile>)
+          : {};
+      const profile: AvatarProfile = {
+        bio:
+          typeof payloadProfile.bio === 'string' && payloadProfile.bio.trim()
+            ? payloadProfile.bio.trim()
+            : createDefaultProfile(label).bio,
+        interests:
+          typeof payloadProfile.interests === 'string' &&
+          payloadProfile.interests.trim()
+            ? payloadProfile.interests.trim()
+            : createDefaultProfile(label).interests,
+        mbti:
+          typeof payloadProfile.mbti === 'string' && payloadProfile.mbti.trim()
+            ? payloadProfile.mbti.trim()
+            : createDefaultProfile(label).mbti,
+        name:
+          typeof payloadProfile.name === 'string' && payloadProfile.name.trim()
+            ? payloadProfile.name.trim()
+            : label,
+        tagline:
+          typeof payloadProfile.tagline === 'string' &&
+          payloadProfile.tagline.trim()
+            ? payloadProfile.tagline.trim()
+            : createDefaultProfile(label).tagline
+      };
+
+      const nextX = clamp(
+        typeof meta.x === 'number' ? meta.x : (previous?.x ?? worldWidth / 2),
+        PLAYER_MARGIN,
+        Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
+      );
+      const nextY = clamp(
+        typeof meta.y === 'number' ? meta.y : (previous?.y ?? 520),
+        120,
+        WORLD_HEIGHT - 100
+      );
+
+      return {
+        animFrame: previous?.animFrame ?? 0,
+        dir,
+        id: key,
+        label,
+        palette,
+        preset,
+        profile,
+        speed: 2.25,
+        targetX: nextX,
+        targetY: nextY,
+        vx: previous?.vx ?? 0,
+        vy: previous?.vy ?? 0,
+        x: previous?.x ?? nextX,
+        y: previous?.y ?? nextY
+      } satisfies ActorState;
+    })
+    .sort((left, right) => left.label.localeCompare(right.label));
+};
+
 export default function BioVillageLanding() {
   const { user } = useAuth();
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }, []);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const worldLayerRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const participantKeyRef = useRef<string | null>(null);
   const keysRef = useRef<Record<string, boolean>>({});
   const cellsRef = useRef<CellState[]>([]);
-  const dummyActorsRef = useRef<ActorState[]>([]);
+  const remoteActorsRef = useRef<ActorState[]>([]);
+  const selectedTargetRef = useRef<SelectedTarget | null>(null);
+  const cameraXRef = useRef(0);
+  const cameraYRef = useRef(0);
+  const worldWidthRef = useRef(DESKTOP_MIN_WORLD_WIDTH);
+  const lastPresenceSyncRef = useRef(0);
   const ignoreClickUntilRef = useRef(0);
   const touchStateRef = useRef<{
     moved: boolean;
@@ -665,7 +718,6 @@ export default function BioVillageLanding() {
     dir: 'down',
     id: 'self',
     label: 'YOU',
-    lastDecisionAt: 0,
     palette: 'crimson',
     preset: 'archivist',
     profile: createDefaultProfile('YOU'),
@@ -677,10 +729,11 @@ export default function BioVillageLanding() {
     x: 0,
     y: 520
   });
-  const cameraYRef = useRef(0);
-  const selectedTargetRef = useRef<SelectedTarget | null>(null);
-  const [viewportWidth, setViewportWidth] = useState(1280);
+
+  const [participantKey, setParticipantKey] = useState<string | null>(null);
   const [scrollY, setScrollY] = useState(0);
+  const [viewportWidth, setViewportWidth] = useState(1280);
+  const [worldWidth, setWorldWidth] = useState(DESKTOP_MIN_WORLD_WIDTH);
   const [appearance, setAppearance] = useState<AppearanceState>({
     palette: 'crimson',
     preset: 'archivist'
@@ -692,29 +745,42 @@ export default function BioVillageLanding() {
     null
   );
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
+  const [remoteRevision, setRemoteRevision] = useState(0);
   const [onlineVisitors, setOnlineVisitors] = useState<
     Array<{ id: string; label: string; palette: PaletteKey }>
   >([]);
 
-  const worldActive = scrollY < WORLD_HEIGHT - 96;
   const isMobile = viewportWidth < 768;
+  const worldActive = scrollY < WORLD_HEIGHT - 96;
+
   selectedTargetRef.current = selectedTarget;
+  participantKeyRef.current = participantKey;
 
   const selectedRemote = useMemo(() => {
     if (selectedTarget?.kind !== 'remote') return null;
     return (
-      dummyActorsRef.current.find((actor) => actor.id === selectedTarget.id) ||
+      remoteActorsRef.current.find((actor) => actor.id === selectedTarget.id) ||
       null
     );
-  }, [selectedTarget]);
+  }, [remoteRevision, selectedTarget]);
 
   const selectedActor =
     selectedTarget?.kind === 'self'
       ? playerRef.current
       : (selectedRemote ?? null);
+  const selectedPaletteMeta = selectedActor
+    ? paletteMap[selectedActor.palette]
+    : null;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const storedKey = window.localStorage.getItem(PARTICIPANT_KEY_STORAGE);
+    const nextKey = storedKey || `bio-village-${crypto.randomUUID()}`;
+    if (!storedKey) {
+      window.localStorage.setItem(PARTICIPANT_KEY_STORAGE, nextKey);
+    }
+    setParticipantKey(nextKey);
 
     const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
     const storedAppearance = window.localStorage.getItem(
@@ -745,17 +811,9 @@ export default function BioVillageLanding() {
     if (storedAppearance) {
       try {
         const parsed = JSON.parse(storedAppearance) as Partial<AppearanceState>;
-        const preset =
-          parsed.preset && parsed.preset in spriteSets
-            ? parsed.preset
-            : 'archivist';
-        const palette =
-          parsed.palette && parsed.palette in paletteMap
-            ? parsed.palette
-            : 'crimson';
         setAppearance({
-          palette,
-          preset
+          palette: isPaletteKey(parsed.palette) ? parsed.palette : 'crimson',
+          preset: isSpritePreset(parsed.preset) ? parsed.preset : 'archivist'
         });
       } catch {
         setAppearance({
@@ -781,6 +839,83 @@ export default function BioVillageLanding() {
   }, [saveState]);
 
   useEffect(() => {
+    if (selectedTarget?.kind !== 'remote') return;
+    const exists = remoteActorsRef.current.some(
+      (actor) => actor.id === selectedTarget.id
+    );
+    if (!exists) {
+      setSelectedTarget(null);
+    }
+  }, [remoteRevision, selectedTarget]);
+
+  useEffect(() => {
+    if (!supabase || !participantKey) return;
+
+    let cancelled = false;
+    const channel = supabase.channel(PRESENCE_CHANNEL, {
+      config: {
+        broadcast: { self: false },
+        presence: { key: participantKey }
+      }
+    });
+    presenceChannelRef.current = channel;
+
+    const syncPresenceSnapshot = () => {
+      if (cancelled) return;
+      const nextActors = buildRemoteActorsFromPresence(
+        channel.presenceState() as PresenceStateValue,
+        participantKeyRef.current,
+        remoteActorsRef.current,
+        worldWidthRef.current
+      );
+      remoteActorsRef.current = nextActors;
+      setOnlineVisitors(
+        nextActors.map((actor) => ({
+          id: actor.id,
+          label: actor.label,
+          palette: actor.palette
+        }))
+      );
+      setRemoteRevision((previous) => previous + 1);
+    };
+
+    const trackSelf = async () => {
+      const player = playerRef.current;
+      const key = participantKeyRef.current;
+      if (!key) return;
+
+      await channel.track({
+        key,
+        label: player.label,
+        x: player.x,
+        y: player.y,
+        dir: player.dir,
+        palette: player.palette,
+        preset: player.preset,
+        profile: player.profile,
+        updatedAt: new Date().toISOString()
+      });
+    };
+
+    channel
+      .on('presence', { event: 'sync' }, syncPresenceSnapshot)
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        void trackSelf().catch(() => undefined);
+      });
+
+    return () => {
+      cancelled = true;
+      remoteActorsRef.current = [];
+      setOnlineVisitors([]);
+      setRemoteRevision((previous) => previous + 1);
+      void channel.untrack().catch(() => undefined);
+      void supabase.removeChannel(channel).catch(() => undefined);
+      presenceChannelRef.current = null;
+    };
+  }, [participantKey, supabase]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     cellsRef.current = createCells();
@@ -792,41 +927,44 @@ export default function BioVillageLanding() {
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const nextWorldWidth = getWorldWidth(window.innerWidth);
+      worldWidthRef.current = nextWorldWidth;
+      setWorldWidth(nextWorldWidth);
+      setViewportWidth(window.innerWidth);
+
       canvas.width = Math.floor(window.innerWidth * dpr);
       canvas.height = Math.floor(window.innerHeight * dpr);
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      setViewportWidth(window.innerWidth);
 
-      if (playerRef.current.x === 0) {
-        playerRef.current.x = window.innerWidth / 2;
+      const player = playerRef.current;
+      if (player.x === 0) {
+        player.x = Math.min(nextWorldWidth / 2, window.innerWidth / 2 + 80);
       } else {
-        playerRef.current.x = clamp(
-          playerRef.current.x,
+        player.x = clamp(
+          player.x,
           PLAYER_MARGIN,
-          Math.max(PLAYER_MARGIN, window.innerWidth - PLAYER_MARGIN)
+          Math.max(PLAYER_MARGIN, nextWorldWidth - PLAYER_MARGIN)
         );
       }
 
-      if (dummyActorsRef.current.length === 0) {
-        dummyActorsRef.current = createDummyActors(window.innerWidth);
-        setOnlineVisitors(
-          dummyActorsRef.current.map((actor) => ({
-            id: actor.id,
-            label: actor.label,
-            palette: actor.palette
-          }))
-        );
-      } else {
-        dummyActorsRef.current.forEach((actor) => {
-          actor.x = clamp(
-            actor.x,
-            PLAYER_MARGIN,
-            Math.max(PLAYER_MARGIN, window.innerWidth - PLAYER_MARGIN)
-          );
-        });
-      }
+      remoteActorsRef.current = remoteActorsRef.current.map((actor) => ({
+        ...actor,
+        targetX:
+          actor.targetX == null
+            ? null
+            : clamp(
+                actor.targetX,
+                PLAYER_MARGIN,
+                Math.max(PLAYER_MARGIN, nextWorldWidth - PLAYER_MARGIN)
+              ),
+        x: clamp(
+          actor.x,
+          PLAYER_MARGIN,
+          Math.max(PLAYER_MARGIN, nextWorldWidth - PLAYER_MARGIN)
+        )
+      }));
     };
 
     const handleScroll = () => {
@@ -860,22 +998,12 @@ export default function BioVillageLanding() {
       keysRef.current[event.key] = false;
     };
 
-    const handleContextMenu = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('[data-avatar-ui="true"]')) return;
-      if (window.scrollY >= WORLD_HEIGHT - 96) return;
-
-      event.preventDefault();
-      playerRef.current.targetX = event.clientX;
-      playerRef.current.targetY = event.clientY + window.scrollY;
-      setSelectedTarget(null);
-    };
-
     const findActorAtPoint = (clientX: number, clientY: number) => {
-      const actors = [playerRef.current, ...dummyActorsRef.current]
+      const cameraX = cameraXRef.current;
+      const actors = [playerRef.current, ...remoteActorsRef.current]
         .map((actor) => ({
           actor,
-          ...getActorScreenPosition(actor, window.scrollY)
+          ...getActorScreenPosition(actor, window.scrollY, cameraX)
         }))
         .sort((left, right) => right.actor.y - left.actor.y);
 
@@ -893,6 +1021,17 @@ export default function BioVillageLanding() {
       }
 
       return null;
+    };
+
+    const handleContextMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-avatar-ui="true"]')) return;
+      if (window.scrollY >= WORLD_HEIGHT - 96) return;
+
+      event.preventDefault();
+      playerRef.current.targetX = event.clientX + cameraXRef.current;
+      playerRef.current.targetY = event.clientY + window.scrollY;
+      setSelectedTarget(null);
     };
 
     const handleClick = (event: MouseEvent) => {
@@ -955,8 +1094,8 @@ export default function BioVillageLanding() {
       if (!touch) return;
 
       ignoreClickUntilRef.current = Date.now() + 450;
-
       const hitActor = findActorAtPoint(touch.clientX, touch.clientY);
+
       if (hitActor) {
         if (hitActor.id === 'self') {
           setSelectedTarget({ kind: 'self' });
@@ -967,28 +1106,33 @@ export default function BioVillageLanding() {
       }
 
       setSelectedTarget(null);
+      playerRef.current.targetX = touch.clientX + cameraXRef.current;
+      playerRef.current.targetY = touch.clientY + window.scrollY;
+    };
 
-      const targetX = touch.clientX;
-      const targetY = touch.clientY + window.scrollY;
+    const syncPresenceIfNeeded = () => {
+      const channel = presenceChannelRef.current;
+      const key = participantKeyRef.current;
+      if (!channel || !key) return;
+
+      const now = Date.now();
+      if (now - lastPresenceSyncRef.current < 240) return;
+      lastPresenceSyncRef.current = now;
+
       const player = playerRef.current;
-      const distance = Math.hypot(targetX - player.x, targetY - player.y);
-      const teleportThreshold = window.innerWidth < 768 ? 220 : 360;
-
-      if (distance >= teleportThreshold) {
-        player.x = clamp(
-          targetX,
-          PLAYER_MARGIN,
-          Math.max(PLAYER_MARGIN, window.innerWidth - PLAYER_MARGIN)
-        );
-        player.y = clamp(targetY, 120, WORLD_HEIGHT - 100);
-        player.targetX = null;
-        player.targetY = null;
-        player.vx = 0;
-        player.vy = 0;
-      } else {
-        player.targetX = targetX;
-        player.targetY = targetY;
-      }
+      void channel
+        .track({
+          key,
+          label: player.label,
+          x: player.x,
+          y: player.y,
+          dir: player.dir,
+          palette: player.palette,
+          preset: player.preset,
+          profile: player.profile,
+          updatedAt: new Date().toISOString()
+        })
+        .catch(() => undefined);
     };
 
     const updatePlayer = () => {
@@ -1037,7 +1181,7 @@ export default function BioVillageLanding() {
       player.x = clamp(
         player.x,
         PLAYER_MARGIN,
-        Math.max(PLAYER_MARGIN, window.innerWidth - PLAYER_MARGIN)
+        Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
       );
       player.y = clamp(player.y, 120, WORLD_HEIGHT - 100);
 
@@ -1056,49 +1200,54 @@ export default function BioVillageLanding() {
       }
     };
 
-    const updateDummyActors = (timestamp: number) => {
-      dummyActorsRef.current.forEach((actor) => {
-        const needNewTarget =
-          actor.targetX === null ||
-          actor.targetY === null ||
-          Math.hypot(actor.targetX - actor.x, actor.targetY - actor.y) <
-            actor.speed + 6 ||
-          timestamp - actor.lastDecisionAt > 3200 + Math.random() * 2800;
-
-        if (needNewTarget) {
-          pickWanderTarget(actor, window.innerWidth);
-          actor.lastDecisionAt = timestamp;
-        }
-
-        if (actor.targetX === null || actor.targetY === null) {
-          actor.vx = 0;
-          actor.vy = 0;
-          return;
+    const updateRemoteActors = () => {
+      remoteActorsRef.current = remoteActorsRef.current.map((actor) => {
+        if (actor.targetX == null || actor.targetY == null) {
+          return { ...actor, vx: 0, vy: 0, animFrame: 0 };
         }
 
         const dx = actor.targetX - actor.x;
         const dy = actor.targetY - actor.y;
-        const distance = Math.hypot(dx, dy) || 1;
+        const distance = Math.hypot(dx, dy);
 
-        actor.vx = (dx / distance) * actor.speed;
-        actor.vy = (dy / distance) * actor.speed;
-        actor.x += actor.vx;
-        actor.y += actor.vy;
-
-        actor.x = clamp(
-          actor.x,
-          PLAYER_MARGIN,
-          Math.max(PLAYER_MARGIN, window.innerWidth - PLAYER_MARGIN)
-        );
-        actor.y = clamp(actor.y, 120, WORLD_HEIGHT - 100);
-
-        if (Math.abs(actor.vx) > Math.abs(actor.vy)) {
-          actor.dir = actor.vx > 0 ? 'right' : 'left';
-        } else {
-          actor.dir = actor.vy > 0 ? 'down' : 'up';
+        if (distance < actor.speed + 1) {
+          return {
+            ...actor,
+            animFrame: 0,
+            dir:
+              Math.abs(dx) > Math.abs(dy)
+                ? dx >= 0
+                  ? 'right'
+                  : 'left'
+                : dy >= 0
+                  ? 'down'
+                  : 'up',
+            vx: 0,
+            vy: 0,
+            x: actor.targetX,
+            y: actor.targetY
+          };
         }
 
-        actor.animFrame += 0.12;
+        const vx = (dx / distance) * actor.speed;
+        const vy = (dy / distance) * actor.speed;
+
+        return {
+          ...actor,
+          animFrame: actor.animFrame + 0.12,
+          dir:
+            Math.abs(vx) > Math.abs(vy)
+              ? vx >= 0
+                ? 'right'
+                : 'left'
+              : vy >= 0
+                ? 'down'
+                : 'up',
+          vx,
+          vy,
+          x: actor.x + vx,
+          y: actor.y + vy
+        };
       });
     };
 
@@ -1109,13 +1258,27 @@ export default function BioVillageLanding() {
 
       if (!isMoving) {
         cameraYRef.current = window.scrollY;
-        return;
+      } else {
+        let targetY = player.y - window.innerHeight / 2;
+        targetY = clamp(targetY, 0, WORLD_HEIGHT - window.innerHeight);
+        cameraYRef.current += (targetY - cameraYRef.current) * 0.1;
+        window.scrollTo(0, cameraYRef.current);
       }
 
-      let targetY = player.y - window.innerHeight / 2;
-      targetY = clamp(targetY, 0, WORLD_HEIGHT - window.innerHeight);
-      cameraYRef.current += (targetY - cameraYRef.current) * 0.1;
-      window.scrollTo(0, cameraYRef.current);
+      const maxHorizontalCamera = Math.max(
+        0,
+        worldWidthRef.current - window.innerWidth
+      );
+      const horizontalTarget = clamp(
+        player.x - window.innerWidth / 2,
+        0,
+        maxHorizontalCamera
+      );
+      cameraXRef.current += (horizontalTarget - cameraXRef.current) * 0.14;
+
+      if (worldLayerRef.current) {
+        worldLayerRef.current.style.transform = `translate3d(${-cameraXRef.current}px, 0, 0)`;
+      }
     };
 
     const drawVein = (
@@ -1163,11 +1326,12 @@ export default function BioVillageLanding() {
 
     let time = 0;
 
-    const animate = (timestamp: number) => {
+    const animate = () => {
       time += 1;
       updatePlayer();
-      updateDummyActors(timestamp);
+      updateRemoteActors();
       updateCamera();
+      syncPresenceIfNeeded();
 
       context.fillStyle = 'rgba(248, 249, 250, 0.54)';
       context.fillRect(0, 0, window.innerWidth, window.innerHeight);
@@ -1177,7 +1341,15 @@ export default function BioVillageLanding() {
         cell.worldY += cell.vy + Math.cos(time * 0.01 + cell.phase) * 0.12;
 
         const screenY = cell.worldY - window.scrollY;
-        if (screenY < -50 || screenY > window.innerHeight + 50) return;
+        const screenX = cell.worldX - cameraXRef.current;
+        if (
+          screenX < -50 ||
+          screenX > window.innerWidth + 50 ||
+          screenY < -50 ||
+          screenY > window.innerHeight + 50
+        ) {
+          return;
+        }
 
         const radiusOffset = Math.sin(time * 0.09 + cell.phase) * 1.2;
         const rx = Math.max(0.1, cell.radius + radiusOffset);
@@ -1185,7 +1357,7 @@ export default function BioVillageLanding() {
 
         context.beginPath();
         context.ellipse(
-          cell.worldX,
+          screenX,
           screenY,
           rx,
           ry,
@@ -1218,20 +1390,26 @@ export default function BioVillageLanding() {
             ? 'self'
             : null;
 
-      const visibleActors = [...dummyActorsRef.current].sort(
+      const visibleRemoteActors = [...remoteActorsRef.current].sort(
         (left, right) => left.y - right.y
       );
 
-      visibleActors.forEach((actor) => {
-        drawActor(context, actor, window.scrollY, {
+      visibleRemoteActors.forEach((actor) => {
+        drawActor(context, actor, window.scrollY, cameraXRef.current, {
           isSelected: selectedId === actor.id
         });
       });
 
-      drawActor(context, playerRef.current, window.scrollY, {
-        isSelf: true,
-        isSelected: selectedId === 'self'
-      });
+      drawActor(
+        context,
+        playerRef.current,
+        window.scrollY,
+        cameraXRef.current,
+        {
+          isSelf: true,
+          isSelected: selectedId === 'self'
+        }
+      );
 
       frameRef.current = window.requestAnimationFrame(animate);
     };
@@ -1263,11 +1441,7 @@ export default function BioVillageLanding() {
         window.cancelAnimationFrame(frameRef.current);
       }
     };
-  }, [user?.name]);
-
-  const selectedPaletteMeta = selectedActor
-    ? paletteMap[selectedActor.palette]
-    : null;
+  }, [participantKey, supabase, user?.name]);
 
   return (
     <section
@@ -1276,18 +1450,6 @@ export default function BioVillageLanding() {
       style={{ minHeight: `${WORLD_HEIGHT}px` }}
     >
       <style>{`
-        @keyframes village-squish {
-          0% { border-radius: 38% 62% 66% 34% / 42% 48% 58% 52%; }
-          33% { border-radius: 66% 34% 48% 52% / 30% 34% 70% 66%; }
-          66% { border-radius: 34% 66% 30% 70% / 54% 58% 30% 60%; }
-          100% { border-radius: 38% 62% 66% 34% / 42% 48% 58% 52%; }
-        }
-
-        @keyframes village-breath {
-          0% { transform: translate(-50%, -50%) scale(0.97); }
-          100% { transform: translate(-50%, -50%) scale(1.03); }
-        }
-
         @keyframes village-float {
           0% { transform: translateY(0px); }
           50% { transform: translateY(-6px); }
@@ -1409,18 +1571,18 @@ export default function BioVillageLanding() {
 
         @media (max-width: 767px) {
           .village-node-card {
-            min-height: 150px;
-            padding: 1.05rem 1rem;
+            min-height: 140px;
+            padding: 1rem 0.9rem;
           }
 
           .village-atrium-card {
-            min-height: 180px;
-            padding: 1.2rem 1.1rem;
+            min-height: 168px;
+            padding: 1.15rem 1rem;
           }
 
           .village-core-card {
-            min-height: 210px;
-            padding: 1.35rem 1.2rem;
+            min-height: 200px;
+            padding: 1.3rem 1.1rem;
           }
         }
       `}</style>
@@ -1463,7 +1625,7 @@ export default function BioVillageLanding() {
           BIO_VILLAGE.DATING
         </h1>
         <p className="mt-2 inline-block bg-red-900 px-2 py-1 font-[var(--font-brush)] text-[10px] text-white sm:text-xs">
-          MULTIPLAYER PROFILES / LEFT CLICK TO READ
+          REALTIME VISITORS / TAP AVATAR TO READ
         </p>
       </div>
 
@@ -1481,33 +1643,38 @@ export default function BioVillageLanding() {
               live specimens
             </p>
             <p className="mt-2 text-lg font-semibold text-[rgba(69,14,14,0.92)]">
-              접속 감지 {onlineVisitors.length + 1}명
+              실시간 접속 {onlineVisitors.length + 1}명
             </p>
           </div>
           <div className="rounded-full border border-[rgba(188,51,51,0.18)] bg-[rgba(255,255,255,0.82)] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-[rgba(117,22,22,0.74)]">
-            dating field
+            realtime
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {onlineVisitors.slice(0, 6).map((visitor) => (
-            <div
-              key={visitor.id}
-              className="inline-flex items-center gap-2 rounded-full border border-[rgba(177,44,44,0.12)] bg-white/74 px-3 py-1.5 text-xs text-[rgba(87,17,17,0.82)]"
-            >
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ background: paletteMap[visitor.palette].body }}
-              />
-              {visitor.label}
+          {onlineVisitors.length === 0 ? (
+            <div className="rounded-full border border-[rgba(177,44,44,0.12)] bg-white/74 px-3 py-1.5 text-xs text-[rgba(87,17,17,0.72)]">
+              지금은 너 혼자다
             </div>
-          ))}
+          ) : (
+            onlineVisitors.slice(0, 6).map((visitor) => (
+              <div
+                key={visitor.id}
+                className="inline-flex items-center gap-2 rounded-full border border-[rgba(177,44,44,0.12)] bg-white/74 px-3 py-1.5 text-xs text-[rgba(87,17,17,0.82)]"
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: paletteMap[visitor.palette].body }}
+                />
+                {visitor.label}
+              </div>
+            ))
+          )}
         </div>
 
         <div className="mt-4 rounded-[1.45rem] border border-[rgba(188,51,51,0.12)] bg-white/72 px-4 py-4 text-sm text-[rgba(88,18,18,0.76)]">
-          우클릭은 자동 이동, 좌클릭은 프로필 열람. 지금 맵 안에서 돌아다니는
-          애들 전부 가짜 접속자지만, 채팅 버튼은 실제 랜덤 채팅 모달 훅에
-          연결된다.
+          더미 NPC는 뺐다. 이 칸에 뜨는 애들은 Supabase 실시간 presence로 실제
+          접속한 사람만 나온다.
         </div>
       </div>
 
@@ -1525,7 +1692,7 @@ export default function BioVillageLanding() {
           ▪ 터치: 아바타 프로필 / 바닥 이동
         </p>
         <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
-          ▪ 먼 터치: 해당 위치로 순간이동
+          ▪ 오른쪽 이동: 화면도 같이 오른쪽으로 따라감
         </p>
         <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
           ▪ 우클릭: 자동 이동 좌표 찍기
@@ -1535,46 +1702,47 @@ export default function BioVillageLanding() {
         </p>
       </div>
 
-      <div
-        className="relative w-full"
-        style={{
-          height: `${WORLD_HEIGHT}px`,
-          backgroundColor: '#f8f9fa',
-          backgroundImage:
-            'linear-gradient(rgba(200, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(200, 0, 0, 0.04) 1px, transparent 1px)',
-          backgroundSize: '60px 60px'
-        }}
-      >
-        <div className="absolute inset-x-0 top-[820px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-15" />
-        <div className="absolute inset-x-0 top-[1670px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-10" />
-        <div className="pointer-events-none absolute left-0 top-[870px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.4rem] font-black tracking-[0.12em] text-red-100 opacity-30 sm:text-5xl sm:tracking-[0.2em]">
-          PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
-        </div>
+      <div className="relative h-[3500px] w-full overflow-hidden">
+        <div
+          ref={worldLayerRef}
+          className="relative h-full will-change-transform"
+          style={{
+            width: `${worldWidth}px`,
+            backgroundColor: '#f8f9fa',
+            backgroundImage:
+              'linear-gradient(rgba(200, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(200, 0, 0, 0.04) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }}
+        >
+          <div className="absolute inset-x-0 top-[820px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-15" />
+          <div className="absolute inset-x-0 top-[1670px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-10" />
+          <div className="pointer-events-none absolute left-0 top-[870px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.4rem] font-black tracking-[0.12em] text-red-100 opacity-30 sm:text-5xl sm:tracking-[0.2em]">
+            PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
+          </div>
 
-        {facilityNodes.map((node) => (
-          <article
-            key={node.id}
-            id={node.id}
-            className={`village-facility ${node.bodyClassName}`}
-            style={{
-              left: isMobile ? (node.mobileLeft ?? '50%') : node.left,
-              top: `${isMobile ? (node.mobileTop ?? node.top) : node.top}px`,
-              width: node.width
-                ? `${Math.min(node.width, isMobile ? viewportWidth - 28 : node.width)}px`
-                : undefined
-            }}
-          >
-            <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
-              {node.caption}
-            </p>
-            <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.08rem] font-semibold text-[rgba(77,14,14,0.94)] sm:text-[1.45rem]">
-              {node.title}
-            </h3>
-            <p className="mt-3 text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
-              {node.subtitle}
-            </p>
-          </article>
-        ))}
+          {facilityNodes.map((node) => (
+            <article
+              key={node.id}
+              id={node.id}
+              className={`village-facility ${node.bodyClassName}`}
+              style={{
+                left: node.left,
+                top: `${node.top}px`,
+                width: node.width ? `${node.width}px` : undefined
+              }}
+            >
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
+                {node.caption}
+              </p>
+              <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.08rem] font-semibold text-[rgba(77,14,14,0.94)] sm:text-[1.45rem]">
+                {node.title}
+              </h3>
+              <p className="mt-3 text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
+                {node.subtitle}
+              </p>
+            </article>
+          ))}
+        </div>
       </div>
 
       {selectedActor && worldActive ? (
@@ -1832,8 +2000,8 @@ export default function BioVillageLanding() {
                     profile signal
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-[rgba(86,22,22,0.74)]">
-                    좌클릭으로 프로필 열람 완료. 여기서 바로 채팅 훅을 쏴서 기존
-                    랜덤 채팅 모달로 넘어갈 수 있다.
+                    이 프로필은 실시간 presence로 떠 있는 실제 접속자 기록이다.
+                    채팅 훅 누르면 랜덤 채팅 모달로 바로 넘어간다.
                   </p>
                 </div>
 
