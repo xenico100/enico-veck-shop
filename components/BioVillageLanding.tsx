@@ -62,6 +62,8 @@ type FacilityNode = {
   caption: string;
   id: string;
   left: string;
+  mobileLeft?: string;
+  mobileTop?: number;
   subtitle: string;
   title: string;
   top: number;
@@ -329,6 +331,7 @@ const facilityNodes: FacilityNode[] = [
     caption: 'LOBBY / MATCH CORE',
     id: 'atrium-heart',
     left: '50%',
+    mobileTop: 340,
     subtitle: '중앙 접속 심장. 매칭 신호와 유저 흐름이 모이는 코어.',
     title: 'Clinical Atrium',
     top: 360,
@@ -339,6 +342,8 @@ const facilityNodes: FacilityNode[] = [
     caption: 'PROFILE LAB',
     id: 'profile-lab',
     left: '23%',
+    mobileLeft: '50%',
+    mobileTop: 900,
     subtitle: '소개, 관심사, MBTI를 다듬는 생체 프로필 부스.',
     title: 'Profile Lab',
     top: 980,
@@ -349,6 +354,8 @@ const facilityNodes: FacilityNode[] = [
     caption: 'SIGNAL LOUNGE',
     id: 'signal-lounge',
     left: '76%',
+    mobileLeft: '50%',
+    mobileTop: 1260,
     subtitle: '좌클릭으로 타인의 기록을 읽고 채팅 훅을 여는 구역.',
     title: 'Signal Lounge',
     top: 1160,
@@ -359,6 +366,8 @@ const facilityNodes: FacilityNode[] = [
     caption: 'MEMORY WARD',
     id: 'memory-ward',
     left: '28%',
+    mobileLeft: '50%',
+    mobileTop: 1760,
     subtitle: '자기소개와 감정 기록이 축적되는 병동형 갤러리.',
     title: 'Memory Ward',
     top: 1920,
@@ -369,6 +378,8 @@ const facilityNodes: FacilityNode[] = [
     caption: 'RESONANCE GRID',
     id: 'resonance-grid',
     left: '72%',
+    mobileLeft: '50%',
+    mobileTop: 2220,
     subtitle: '랜덤 탐험과 공감 신호가 순환하는 실험층.',
     title: 'Resonance Grid',
     top: 2240,
@@ -379,6 +390,7 @@ const facilityNodes: FacilityNode[] = [
     caption: 'DEEP LAYER / DATING CORE',
     id: 'deep-core',
     left: '50%',
+    mobileTop: 2860,
     subtitle: '완주한 감정 기록과 매칭 로그가 쌓이는 지하 통제실.',
     title: 'Midnight Dating Core',
     top: 2860,
@@ -640,6 +652,14 @@ export default function BioVillageLanding() {
   const keysRef = useRef<Record<string, boolean>>({});
   const cellsRef = useRef<CellState[]>([]);
   const dummyActorsRef = useRef<ActorState[]>([]);
+  const ignoreClickUntilRef = useRef(0);
+  const touchStateRef = useRef<{
+    moved: boolean;
+    startScrollY: number;
+    targetIsUi: boolean;
+    x: number;
+    y: number;
+  } | null>(null);
   const playerRef = useRef<ActorState>({
     animFrame: 0,
     dir: 'down',
@@ -659,6 +679,7 @@ export default function BioVillageLanding() {
   });
   const cameraYRef = useRef(0);
   const selectedTargetRef = useRef<SelectedTarget | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(1280);
   const [scrollY, setScrollY] = useState(0);
   const [appearance, setAppearance] = useState<AppearanceState>({
     palette: 'crimson',
@@ -676,6 +697,7 @@ export default function BioVillageLanding() {
   >([]);
 
   const worldActive = scrollY < WORLD_HEIGHT - 96;
+  const isMobile = viewportWidth < 768;
   selectedTargetRef.current = selectedTarget;
 
   const selectedRemote = useMemo(() => {
@@ -775,6 +797,7 @@ export default function BioVillageLanding() {
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      setViewportWidth(window.innerWidth);
 
       if (playerRef.current.x === 0) {
         playerRef.current.x = window.innerWidth / 2;
@@ -873,6 +896,8 @@ export default function BioVillageLanding() {
     };
 
     const handleClick = (event: MouseEvent) => {
+      if (Date.now() < ignoreClickUntilRef.current) return;
+
       const target = event.target as HTMLElement | null;
       if (target?.closest('[data-avatar-ui="true"]')) return;
       if (window.scrollY >= WORLD_HEIGHT - 96) return;
@@ -887,6 +912,82 @@ export default function BioVillageLanding() {
         setSelectedTarget({ kind: 'self' });
       } else {
         setSelectedTarget({ kind: 'remote', id: hitActor.id });
+      }
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        touchStateRef.current = null;
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      touchStateRef.current = {
+        moved: false,
+        startScrollY: window.scrollY,
+        targetIsUi: Boolean(target?.closest('[data-avatar-ui="true"]')),
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY
+      };
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const current = touchStateRef.current;
+      if (!current || event.touches.length !== 1) return;
+
+      const moveX = Math.abs(event.touches[0].clientX - current.x);
+      const moveY = Math.abs(event.touches[0].clientY - current.y);
+      const scrollDelta = Math.abs(window.scrollY - current.startScrollY);
+
+      if (moveX > 14 || moveY > 14 || scrollDelta > 10) {
+        current.moved = true;
+      }
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const current = touchStateRef.current;
+      touchStateRef.current = null;
+
+      if (!current || current.targetIsUi || current.moved) return;
+      if (window.scrollY >= WORLD_HEIGHT - 96) return;
+
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+
+      ignoreClickUntilRef.current = Date.now() + 450;
+
+      const hitActor = findActorAtPoint(touch.clientX, touch.clientY);
+      if (hitActor) {
+        if (hitActor.id === 'self') {
+          setSelectedTarget({ kind: 'self' });
+        } else {
+          setSelectedTarget({ kind: 'remote', id: hitActor.id });
+        }
+        return;
+      }
+
+      setSelectedTarget(null);
+
+      const targetX = touch.clientX;
+      const targetY = touch.clientY + window.scrollY;
+      const player = playerRef.current;
+      const distance = Math.hypot(targetX - player.x, targetY - player.y);
+      const teleportThreshold = window.innerWidth < 768 ? 220 : 360;
+
+      if (distance >= teleportThreshold) {
+        player.x = clamp(
+          targetX,
+          PLAYER_MARGIN,
+          Math.max(PLAYER_MARGIN, window.innerWidth - PLAYER_MARGIN)
+        );
+        player.y = clamp(targetY, 120, WORLD_HEIGHT - 100);
+        player.targetX = null;
+        player.targetY = null;
+        player.vx = 0;
+        player.vy = 0;
+      } else {
+        player.targetX = targetX;
+        player.targetY = targetY;
       }
     };
 
@@ -1143,6 +1244,9 @@ export default function BioVillageLanding() {
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('contextmenu', handleContextMenu);
     window.addEventListener('click', handleClick);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
     frameRef.current = window.requestAnimationFrame(animate);
 
     return () => {
@@ -1152,6 +1256,9 @@ export default function BioVillageLanding() {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('click', handleClick);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
       }
@@ -1299,6 +1406,23 @@ export default function BioVillageLanding() {
           box-shadow: 0 12px 24px rgba(176, 44, 44, 0.14);
           color: rgba(110, 20, 20, 0.96);
         }
+
+        @media (max-width: 767px) {
+          .village-node-card {
+            min-height: 150px;
+            padding: 1.05rem 1rem;
+          }
+
+          .village-atrium-card {
+            min-height: 180px;
+            padding: 1.2rem 1.1rem;
+          }
+
+          .village-core-card {
+            min-height: 210px;
+            padding: 1.35rem 1.2rem;
+          }
+        }
       `}</style>
 
       <canvas
@@ -1323,22 +1447,22 @@ export default function BioVillageLanding() {
       />
 
       <div
-        className="pointer-events-none fixed left-8 top-24 z-40"
+        className="pointer-events-none fixed left-4 top-20 z-40 sm:left-8 sm:top-24"
         style={{
           opacity: worldActive ? 1 : 0,
           transition: 'opacity 180ms ease'
         }}
       >
-        <div className="mb-1 font-[var(--font-brush)] text-sm font-bold tracking-widest text-red-700">
+        <div className="mb-1 font-[var(--font-brush)] text-[11px] font-bold tracking-[0.24em] text-red-700 sm:text-sm sm:tracking-widest">
           {'> CLINICAL_DATING_FIELD...'}
         </div>
         <h1
-          className="village-glitch font-[var(--font-display-kr)] text-4xl font-black tracking-widest text-red-800"
+          className="village-glitch font-[var(--font-display-kr)] text-[1.45rem] font-black tracking-[0.14em] text-red-800 sm:text-4xl sm:tracking-widest"
           data-text="BIO_VILLAGE.DATING"
         >
           BIO_VILLAGE.DATING
         </h1>
-        <p className="mt-2 inline-block bg-red-900 px-2 py-1 font-[var(--font-brush)] text-xs text-white">
+        <p className="mt-2 inline-block bg-red-900 px-2 py-1 font-[var(--font-brush)] text-[10px] text-white sm:text-xs">
           MULTIPLAYER PROFILES / LEFT CLICK TO READ
         </p>
       </div>
@@ -1388,22 +1512,25 @@ export default function BioVillageLanding() {
       </div>
 
       <div
-        className="pointer-events-none fixed bottom-6 left-6 z-40 rounded-[1.6rem] border border-[rgba(187,46,46,0.16)] bg-white/82 p-4 shadow-[0_22px_54px_rgba(116,26,26,0.12)] backdrop-blur-xl"
+        className="pointer-events-none fixed bottom-4 left-4 z-40 max-w-[calc(100vw-1.5rem)] rounded-[1.35rem] border border-[rgba(187,46,46,0.16)] bg-white/82 p-3 shadow-[0_22px_54px_rgba(116,26,26,0.12)] backdrop-blur-xl sm:bottom-6 sm:left-6 sm:max-w-none sm:rounded-[1.6rem] sm:p-4"
         style={{
           opacity: worldActive ? 1 : 0,
           transition: 'opacity 180ms ease'
         }}
       >
-        <p className="font-[var(--font-brush)] text-base font-bold text-red-800">
+        <p className="font-[var(--font-brush)] text-[0.9rem] font-bold text-red-800 sm:text-base">
           탐사대원 제어기동
         </p>
-        <p className="mt-2 font-[var(--font-brush)] text-xs font-bold text-gray-800">
-          ▪ 좌클릭: 내 아바타 / 타인 아바타 프로필 열기
+        <p className="mt-2 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
+          ▪ 터치: 아바타 프로필 / 바닥 이동
         </p>
-        <p className="mt-1 font-[var(--font-brush)] text-xs font-bold text-gray-800">
+        <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
+          ▪ 먼 터치: 해당 위치로 순간이동
+        </p>
+        <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
           ▪ 우클릭: 자동 이동 좌표 찍기
         </p>
-        <p className="mt-1 font-[var(--font-brush)] text-xs font-bold text-gray-800">
+        <p className="mt-1 hidden font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:block sm:text-xs">
           ▪ W A S D / 방향키: 직접 이동
         </p>
       </div>
@@ -1420,7 +1547,7 @@ export default function BioVillageLanding() {
       >
         <div className="absolute inset-x-0 top-[820px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-15" />
         <div className="absolute inset-x-0 top-[1670px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-10" />
-        <div className="pointer-events-none absolute left-0 top-[870px] w-full text-center font-[var(--font-display-kr)] text-5xl font-black tracking-[0.2em] text-red-100 opacity-30">
+        <div className="pointer-events-none absolute left-0 top-[870px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.4rem] font-black tracking-[0.12em] text-red-100 opacity-30 sm:text-5xl sm:tracking-[0.2em]">
           PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
         </div>
 
@@ -1430,18 +1557,20 @@ export default function BioVillageLanding() {
             id={node.id}
             className={`village-facility ${node.bodyClassName}`}
             style={{
-              left: node.left,
-              top: `${node.top}px`,
-              width: node.width ? `${node.width}px` : undefined
+              left: isMobile ? (node.mobileLeft ?? '50%') : node.left,
+              top: `${isMobile ? (node.mobileTop ?? node.top) : node.top}px`,
+              width: node.width
+                ? `${Math.min(node.width, isMobile ? viewportWidth - 28 : node.width)}px`
+                : undefined
             }}
           >
             <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
               {node.caption}
             </p>
-            <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.45rem] font-semibold text-[rgba(77,14,14,0.94)]">
+            <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.08rem] font-semibold text-[rgba(77,14,14,0.94)] sm:text-[1.45rem]">
               {node.title}
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-[rgba(92,24,24,0.68)]">
+            <p className="mt-3 text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
               {node.subtitle}
             </p>
           </article>
@@ -1451,9 +1580,9 @@ export default function BioVillageLanding() {
       {selectedActor && worldActive ? (
         <div
           data-avatar-ui="true"
-          className="fixed right-6 top-[6.2rem] z-[70] w-[min(30rem,calc(100vw-1.5rem))] overflow-hidden rounded-[2rem] border border-[rgba(190,44,44,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(248,244,255,0.7))] shadow-[0_36px_120px_rgba(107,21,21,0.16)] backdrop-blur-2xl"
+          className="fixed inset-x-3 bottom-3 top-auto z-[70] w-auto overflow-hidden rounded-[1.6rem] border border-[rgba(190,44,44,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,244,255,0.76))] shadow-[0_36px_120px_rgba(107,21,21,0.16)] backdrop-blur-2xl md:inset-x-auto md:bottom-auto md:right-6 md:top-[6.2rem] md:w-[min(30rem,calc(100vw-1.5rem))] md:rounded-[2rem]"
         >
-          <div className="border-b border-[rgba(190,44,44,0.12)] px-5 pb-5 pt-5 sm:px-6">
+          <div className="border-b border-[rgba(190,44,44,0.12)] px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1473,7 +1602,7 @@ export default function BioVillageLanding() {
                     {selectedPaletteMeta?.name ?? 'Palette'}
                   </span>
                 </div>
-                <h2 className="mt-4 font-[var(--font-display-kr)] text-[1.7rem] font-semibold text-[rgba(69,14,14,0.95)]">
+                <h2 className="mt-4 font-[var(--font-display-kr)] text-[1.28rem] font-semibold text-[rgba(69,14,14,0.95)] sm:text-[1.7rem]">
                   {selectedTarget?.kind === 'self'
                     ? selfProfile.name || 'YOU'
                     : selectedActor.label}
@@ -1495,7 +1624,7 @@ export default function BioVillageLanding() {
             </div>
           </div>
 
-          <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto px-5 pb-5 pt-5 sm:px-6">
+          <div className="max-h-[calc(68dvh-1rem)] overflow-y-auto px-4 pb-4 pt-4 sm:max-h-[calc(100dvh-10rem)] sm:px-6 sm:pb-5 sm:pt-5">
             {selectedTarget?.kind === 'self' ? (
               <div className="space-y-5">
                 <div>
