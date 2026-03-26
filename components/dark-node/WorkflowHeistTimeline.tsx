@@ -48,6 +48,78 @@ const mixHex = (hex: string, target: number, amount: number) => {
   return `rgb(${blend(r)}, ${blend(g)}, ${blend(b)})`;
 };
 
+const hashString = (value: string) =>
+  value
+    .split('')
+    .reduce((acc, char, index) => acc + char.charCodeAt(0) * (index + 17), 0);
+
+const buildOrganicContourPath = (
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  seed: number,
+  amplitude: number,
+  steps = 28
+) => {
+  const points = Array.from({ length: steps }).map((_, index) => {
+    const angle = (Math.PI * 2 * index) / steps;
+    const rippleA = Math.sin(angle * 3 + seed * 0.017) * amplitude;
+    const rippleB = Math.cos(angle * 5 - seed * 0.011) * amplitude * 0.7;
+    const rippleC = Math.sin(angle * 9 + seed * 0.031) * amplitude * 0.36;
+    const finalRx = rx * (1 + rippleA + rippleC);
+    const finalRy = ry * (1 + rippleB - rippleC * 0.55);
+
+    return {
+      x: cx + Math.cos(angle) * finalRx,
+      y: cy + Math.sin(angle) * finalRy
+    };
+  });
+
+  return (
+    points.reduce((path, point, index) => {
+      const command = index === 0 ? 'M' : 'L';
+      return `${path}${command} ${point.x.toFixed(2)} ${point.y.toFixed(2)} `;
+    }, '') + 'Z'
+  );
+};
+
+const buildVeinPath = (
+  cx: number,
+  cy: number,
+  ry: number,
+  offset: number,
+  seed: number
+) => {
+  const topX = cx + offset * 9.2 + Math.sin(seed * 0.021) * 2.6;
+  const topY = cy - ry * 0.72;
+  const ctrl1X = cx + offset * 4.8 + Math.cos(seed * 0.014) * 6.8;
+  const ctrl1Y = cy - ry * 0.26;
+  const ctrl2X = cx + offset * 12.2 - Math.sin(seed * 0.028) * 5.2;
+  const ctrl2Y = cy + ry * 0.06;
+  const bottomX = cx + offset * 7.4 + Math.cos(seed * 0.017) * 3.6;
+  const bottomY = cy + ry * 0.74;
+
+  return `M ${topX.toFixed(2)} ${topY.toFixed(2)} C ${ctrl1X.toFixed(2)} ${ctrl1Y.toFixed(2)}, ${ctrl2X.toFixed(2)} ${ctrl2Y.toFixed(2)}, ${bottomX.toFixed(2)} ${bottomY.toFixed(2)}`;
+};
+
+const buildScarPath = (
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  seed: number
+) => {
+  const startX = cx - rx * 0.58;
+  const startY = cy + Math.sin(seed * 0.02) * ry * 0.12;
+  const midX = cx + Math.cos(seed * 0.037) * rx * 0.09;
+  const midY = cy - ry * 0.06 + Math.sin(seed * 0.018) * 3.2;
+  const endX = cx + rx * 0.54;
+  const endY = cy + Math.cos(seed * 0.025) * ry * 0.11;
+
+  return `M ${startX.toFixed(2)} ${startY.toFixed(2)} C ${(cx - rx * 0.22).toFixed(2)} ${(cy - ry * 0.22).toFixed(2)}, ${midX.toFixed(2)} ${midY.toFixed(2)}, ${(cx + rx * 0.14).toFixed(2)} ${(cy + ry * 0.16).toFixed(2)} S ${(cx + rx * 0.32).toFixed(2)} ${(cy - ry * 0.12).toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+};
+
 type PathSpec = {
   d: string;
   color: string;
@@ -98,14 +170,14 @@ const polarPoint = (cx: number, cy: number, radius: number, angle: number) => {
 };
 
 const renderMotif = (node: NodeSpec, isHovered: boolean) => {
-  const scale = node.isMain ? 2.72 : 2.2;
+  const scale = node.isMain ? 3.18 : 2.52;
   const stroke = mixHex(node.color, 0, 0.82);
-  const fill = rgbaFromHex(node.color, isHovered ? 0.22 : 0.14);
-  const glowFill = rgbaFromHex(node.color, isHovered ? 0.2 : 0.12);
-  const accent = 'rgba(255,233,205,0.72)';
-  const lineWidth = node.isMain ? 1.7 : 1.32;
-  const centerRadius = node.isMain ? 1.65 : 1.2;
-  const ringRadius = node.isMain ? 10.8 : 8.9;
+  const fill = rgbaFromHex(node.color, isHovered ? 0.24 : 0.16);
+  const glowFill = rgbaFromHex(node.color, isHovered ? 0.24 : 0.15);
+  const accent = 'rgba(255, 242, 216, 0.78)';
+  const lineWidth = node.isMain ? 1.95 : 1.5;
+  const centerRadius = node.isMain ? 1.85 : 1.32;
+  const ringRadius = node.isMain ? 11.8 : 9.6;
   const x = node.x;
   const y = node.y;
 
@@ -923,13 +995,29 @@ export default function WorkflowHeistTimeline({
           50% { transform: scale(1.15); opacity: 0.34; }
           100% { transform: scale(1); opacity: 0.2; }
         }
+        @keyframes organPulse {
+          0% { transform: scale(0.985); opacity: 0.12; }
+          50% { transform: scale(1.03); opacity: 0.22; }
+          100% { transform: scale(0.985); opacity: 0.12; }
+        }
+        @keyframes mistDrift {
+          0% { transform: translate3d(0,0,0) rotate(0deg); }
+          50% { transform: translate3d(18px,-14px,0) rotate(5deg); }
+          100% { transform: translate3d(0,0,0) rotate(0deg); }
+        }
         .grain-overlay {
           background-image:
-            linear-gradient(rgba(15,23,42,0.018) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(15,23,42,0.018) 1px, transparent 1px);
-          background-size: 32px 32px, 32px 32px;
-          background-position: 0 0, 0 0;
-          mix-blend-mode: normal;
+            radial-gradient(circle at 18% 24%, rgba(40, 21, 14, 0.06) 0%, transparent 18%),
+            radial-gradient(circle at 76% 33%, rgba(255, 116, 72, 0.065) 0%, transparent 17%),
+            radial-gradient(circle at 48% 72%, rgba(20, 14, 12, 0.05) 0%, transparent 22%),
+            repeating-linear-gradient(
+              0deg,
+              rgba(18, 14, 12, 0.012) 0px,
+              rgba(18, 14, 12, 0.012) 1px,
+              transparent 1px,
+              transparent 5px
+            );
+          mix-blend-mode: multiply;
           animation: flicker 4s ease-in-out infinite;
         }
       `}</style>
@@ -938,36 +1026,49 @@ export default function WorkflowHeistTimeline({
         <div
           className="absolute -left-20 top-10 h-80 w-80 rounded-full blur-3xl"
           style={{
-            background: 'rgba(226, 232, 240, 0.11)',
+            background: 'rgba(34, 19, 16, 0.085)',
             animation: 'driftA 10s ease-in-out infinite'
           }}
         />
         <div
           className="absolute right-[-80px] top-[22%] h-96 w-96 rounded-full blur-3xl"
           style={{
-            background: 'rgba(203, 213, 225, 0.09)',
+            background: 'rgba(255, 129, 72, 0.08)',
             animation: 'driftB 12s ease-in-out infinite'
           }}
         />
         <div
           className="absolute left-[28%] top-[46%] h-72 w-72 rounded-full blur-3xl"
           style={{
-            background: 'rgba(226, 232, 240, 0.08)',
+            background: 'rgba(255, 200, 121, 0.07)',
             animation: 'driftA 14s ease-in-out infinite'
           }}
         />
         <div
+          className="absolute left-[12%] top-[12%] h-[16rem] w-[20rem] rounded-full blur-3xl"
+          style={{
+            background: 'rgba(255, 95, 56, 0.05)',
+            animation: 'mistDrift 18s ease-in-out infinite'
+          }}
+        />
+        <div
+          className="absolute right-[10%] top-[44%] h-[20rem] w-[18rem] rounded-full blur-3xl"
+          style={{
+            background: 'rgba(38, 16, 12, 0.06)',
+            animation: 'mistDrift 22s ease-in-out infinite'
+          }}
+        />
+        <div
           className="grain-overlay absolute inset-0"
-          style={{ opacity: 0.08 }}
+          style={{ opacity: 0.1 }}
         />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
         <div className="mx-auto max-w-4xl">
           <div
-            className="relative overflow-hidden rounded-[32px] border shadow-[0_24px_80px_rgba(148,163,184,0.10)]"
+            className="relative overflow-visible"
             style={{
-              borderColor: palette.surfaceLine,
               background: palette.surface
             }}
           >
@@ -1009,24 +1110,53 @@ export default function WorkflowHeistTimeline({
                       <feMergeNode in="SourceGraphic" />
                     </feMerge>
                   </filter>
+                  <filter
+                    id="organicWarp"
+                    x="-50%"
+                    y="-50%"
+                    width="200%"
+                    height="200%"
+                  >
+                    <feTurbulence
+                      type="fractalNoise"
+                      baseFrequency="0.018 0.032"
+                      numOctaves="2"
+                      seed="11"
+                      result="noise"
+                    />
+                    <feDisplacementMap
+                      in="SourceGraphic"
+                      in2="noise"
+                      scale="11"
+                      xChannelSelector="R"
+                      yChannelSelector="G"
+                    />
+                  </filter>
+                  <filter
+                    id="smearBloom"
+                    x="-100%"
+                    y="-100%"
+                    width="300%"
+                    height="300%"
+                  >
+                    <feGaussianBlur stdDeviation="7" result="blur" />
+                    <feColorMatrix
+                      in="blur"
+                      type="matrix"
+                      values="1 0 0 0 0
+                              0 1 0 0 0
+                              0 0 1 0 0
+                              0 0 0 1.25 0"
+                    />
+                  </filter>
                 </defs>
-
-                <rect
-                  x="40"
-                  y="40"
-                  width="720"
-                  height="1800"
-                  rx="28"
-                  fill="none"
-                  stroke="none"
-                />
 
                 <ellipse
                   cx="220"
                   cy="380"
                   rx="170"
                   ry="120"
-                  fill="rgba(226,232,240,0.08)"
+                  fill="rgba(35, 18, 12, 0.05)"
                   filter="url(#softBlur)"
                 />
                 <ellipse
@@ -1034,7 +1164,7 @@ export default function WorkflowHeistTimeline({
                   cy="1180"
                   rx="170"
                   ry="130"
-                  fill="rgba(226,232,240,0.06)"
+                  fill="rgba(255, 112, 58, 0.045)"
                   filter="url(#softBlur)"
                 />
                 <ellipse
@@ -1042,7 +1172,7 @@ export default function WorkflowHeistTimeline({
                   cy="1530"
                   rx="180"
                   ry="140"
-                  fill="rgba(226,232,240,0.05)"
+                  fill="rgba(255, 211, 146, 0.045)"
                   filter="url(#softBlur)"
                 />
 
@@ -1052,6 +1182,14 @@ export default function WorkflowHeistTimeline({
                   const glowColor = path.color.startsWith('url(')
                     ? 'rgba(90,163,255,0.95)'
                     : path.color;
+                  const warmMembrane = isMain
+                    ? 'rgba(255, 244, 226, 0.36)'
+                    : isBranch
+                      ? 'rgba(255, 241, 221, 0.24)'
+                      : 'rgba(255, 240, 226, 0.18)';
+                  const emberVein = isMain
+                    ? 'rgba(118, 28, 8, 0.22)'
+                    : 'rgba(118, 28, 8, 0.11)';
 
                   return (
                     <g key={index}>
@@ -1060,8 +1198,8 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(255, 181, 86, 0.16)"
-                            strokeWidth={path.width + 18}
+                            stroke="rgba(255, 186, 96, 0.16)"
+                            strokeWidth={path.width + 24}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             filter="url(#softBlur)"
@@ -1069,8 +1207,17 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(255, 110, 58, 0.24)"
-                            strokeWidth={path.width + 8}
+                            stroke="rgba(77, 20, 10, 0.08)"
+                            strokeWidth={path.width + 34}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            filter="url(#softBlur)"
+                          />
+                          <path
+                            d={path.d}
+                            fill="none"
+                            stroke="rgba(255, 118, 62, 0.28)"
+                            strokeWidth={path.width + 10}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
@@ -1089,6 +1236,25 @@ export default function WorkflowHeistTimeline({
                           filter: `drop-shadow(0 0 ${isMain ? 18 : 8}px ${glowColor})`
                         }}
                       />
+                      <path
+                        d={path.d}
+                        fill="none"
+                        stroke={warmMembrane}
+                        strokeWidth={isMain ? 2.8 : 1.15}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity={isMain ? 0.86 : isBranch ? 0.72 : 0.58}
+                      />
+                      <path
+                        d={path.d}
+                        fill="none"
+                        stroke={emberVein}
+                        strokeWidth={isMain ? 1.1 : 0.62}
+                        strokeDasharray={isMain ? '10 17' : '7 12'}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity={0.86}
+                      />
                     </g>
                   );
                 })}
@@ -1096,19 +1262,21 @@ export default function WorkflowHeistTimeline({
                 {nodes.map((node) => {
                   const isHovered = hoveredNode === node.id;
                   const isActionNode = node.id === 'c0' || node.id === 'p0';
-                  const baseRadius = node.isMain ? 16 : 10.5;
-                  const hoverRadius = node.isMain ? 22 : 15;
-                  const glowRadius = node.isMain ? 40 : 30;
+                  const nodeSeed = hashString(node.id);
+                  const baseRadius = node.isMain ? 18 : 12;
+                  const hoverRadius = node.isMain ? 24 : 16.5;
+                  const glowRadius = node.isMain ? 48 : 34;
                   const lanternRx =
                     (isHovered ? hoverRadius : baseRadius) +
-                    (node.isMain ? 8 : 5.5);
-                  const lanternRy = lanternRx + (node.isMain ? 6.5 : 4.5);
+                    (node.isMain ? 10.5 : 7.5);
+                  const lanternRy = lanternRx + (node.isMain ? 8.5 : 5.4);
                   const lanternGlow = isHovered
-                    ? glowRadius + 11
-                    : glowRadius + 4;
+                    ? glowRadius + 13
+                    : glowRadius + 5;
                   const lanternGradientId = `lantern-paper-${node.id}`;
                   const lanternCoreId = `lantern-core-${node.id}`;
                   const lanternMaskId = `lantern-mask-${node.id}`;
+                  const lanternMembraneId = `lantern-membrane-${node.id}`;
                   const lanternShade = mixHex(node.color, 0, 0.34);
                   const lanternPaper = mixHex(node.color, 255, 0.38);
                   const lanternHighlight = mixHex(node.color, 255, 0.74);
@@ -1127,6 +1295,53 @@ export default function WorkflowHeistTimeline({
                   );
                   const surfaceFragments = lanternFragments.filter(
                     (fragment) => fragment.tone !== 'cut'
+                  );
+                  const membraneOuterPath = buildOrganicContourPath(
+                    node.x,
+                    node.y,
+                    lanternRx + (node.isMain ? 6 : 4),
+                    lanternRy + (node.isMain ? 8 : 5),
+                    nodeSeed,
+                    node.isMain ? 0.095 : 0.082,
+                    node.isMain ? 34 : 26
+                  );
+                  const membraneInnerPath = buildOrganicContourPath(
+                    node.x,
+                    node.y,
+                    lanternRx * 0.92,
+                    lanternRy * 0.91,
+                    nodeSeed + 23,
+                    node.isMain ? 0.06 : 0.05,
+                    node.isMain ? 30 : 24
+                  );
+                  const auraPath = buildOrganicContourPath(
+                    node.x,
+                    node.y,
+                    lanternGlow + (node.isMain ? 5 : 3),
+                    lanternGlow + (node.isMain ? 10 : 6),
+                    nodeSeed + 41,
+                    node.isMain ? 0.11 : 0.08,
+                    node.isMain ? 36 : 28
+                  );
+                  const veinPaths = [-0.62, -0.18, 0.22, 0.56].map(
+                    (offset, index) =>
+                      buildVeinPath(
+                        node.x,
+                        node.y,
+                        lanternRy,
+                        offset,
+                        nodeSeed + index * 29
+                      )
+                  );
+                  const scarPaths = [0, 1].map((index) =>
+                    buildScarPath(
+                      node.x,
+                      node.y +
+                        (index === 0 ? -lanternRy * 0.12 : lanternRy * 0.14),
+                      lanternRx * (index === 0 ? 0.94 : 0.82),
+                      lanternRy * 0.24,
+                      nodeSeed + index * 57
+                    )
                   );
 
                   return (
@@ -1169,6 +1384,25 @@ export default function WorkflowHeistTimeline({
                             stopColor={rgbaFromHex(node.color, 0)}
                           />
                         </radialGradient>
+                        <radialGradient
+                          id={lanternMembraneId}
+                          cx="50%"
+                          cy="38%"
+                          r="84%"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="rgba(255, 247, 226, 0.88)"
+                          />
+                          <stop
+                            offset="52%"
+                            stopColor={rgbaFromHex(node.color, 0.18)}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="rgba(32, 15, 10, 0.08)"
+                          />
+                        </radialGradient>
                         <mask
                           id={lanternMaskId}
                           maskUnits="userSpaceOnUse"
@@ -1200,22 +1434,37 @@ export default function WorkflowHeistTimeline({
 
                       {renderClickCue(node)}
 
+                      <path
+                        d={auraPath}
+                        fill={rgbaFromHex(node.color, isHovered ? 0.18 : 0.12)}
+                        filter="url(#smearBloom)"
+                        opacity={node.isMain ? 0.9 : 0.76}
+                        style={{
+                          transformOrigin: `${node.x}px ${node.y}px`,
+                          animation: 'organPulse 4.2s ease-in-out infinite'
+                        }}
+                      />
+
                       <ellipse
                         cx={node.x}
-                        cy={node.y}
-                        rx={lanternGlow}
-                        ry={lanternGlow + (node.isMain ? 5 : 3)}
-                        fill={node.color}
-                        opacity={isHovered ? 0.2 : 0.11}
+                        cy={node.y + lanternRy * 0.1}
+                        rx={lanternGlow * 0.78}
+                        ry={lanternGlow * 0.34}
+                        fill="rgba(46, 16, 11, 0.1)"
                         filter="url(#softBlur)"
                       />
 
                       {node.isMain ? (
-                        <ellipse
-                          cx={node.x}
-                          cy={node.y}
-                          rx={lanternRx + 7}
-                          ry={lanternRy + 7}
+                        <path
+                          d={buildOrganicContourPath(
+                            node.x,
+                            node.y,
+                            lanternRx + 11,
+                            lanternRy + 13,
+                            nodeSeed + 71,
+                            0.085,
+                            36
+                          )}
                           fill="none"
                           stroke={node.color}
                           strokeWidth="1.5"
@@ -1228,18 +1477,22 @@ export default function WorkflowHeistTimeline({
                       ) : null}
 
                       <g mask={`url(#${lanternMaskId})`}>
-                        <ellipse
-                          cx={node.x}
-                          cy={node.y}
-                          rx={lanternRx}
-                          ry={lanternRy}
+                        <path
+                          d={membraneOuterPath}
                           fill={`url(#${lanternGradientId})`}
-                          stroke={rgbaFromHex(node.color, 0.72)}
-                          strokeWidth={node.isMain ? '1.8' : '1.4'}
-                          filter="url(#nodeGlow)"
+                          stroke={rgbaFromHex(node.color, 0.78)}
+                          strokeWidth={node.isMain ? '1.9' : '1.5'}
+                          filter="url(#organicWarp)"
                           style={{
-                            filter: `drop-shadow(0 0 ${node.isMain ? 18 : 11}px ${glowColor})`
+                            filter: `drop-shadow(0 0 ${node.isMain ? 20 : 12}px ${glowColor})`
                           }}
+                        />
+
+                        <path
+                          d={membraneInnerPath}
+                          fill={`url(#${lanternMembraneId})`}
+                          opacity={0.62}
+                          filter="url(#organicWarp)"
                         />
 
                         <ellipse
@@ -1251,16 +1504,35 @@ export default function WorkflowHeistTimeline({
                           opacity={0.56}
                         />
 
-                        {[-0.6, -0.18, 0.12, 0.48].map((offset) => (
-                          <ellipse
-                            key={`${node.id}-rib-${offset}`}
-                            cx={node.x + lanternRx * offset * 0.24}
-                            cy={node.y}
-                            rx={lanternRx * (0.74 - Math.abs(offset) * 0.24)}
-                            ry={lanternRy * 0.94}
+                        {veinPaths.map((veinPath, index) => (
+                          <path
+                            key={`${node.id}-vein-${index}`}
+                            d={veinPath}
                             fill="none"
-                            stroke={ribStroke}
-                            strokeWidth={0.85}
+                            stroke={
+                              index % 2 === 0
+                                ? ribStroke
+                                : rgbaFromHex(node.color, 0.26)
+                            }
+                            strokeWidth={index % 2 === 0 ? 0.92 : 0.72}
+                            strokeLinecap="round"
+                            opacity={index % 2 === 0 ? 0.88 : 0.74}
+                          />
+                        ))}
+
+                        {scarPaths.map((scarPath, index) => (
+                          <path
+                            key={`${node.id}-scar-${index}`}
+                            d={scarPath}
+                            fill="none"
+                            stroke={
+                              index === 0
+                                ? 'rgba(59, 17, 11, 0.24)'
+                                : 'rgba(255, 242, 214, 0.22)'
+                            }
+                            strokeWidth={index === 0 ? 1.15 : 0.85}
+                            strokeLinecap="round"
+                            opacity={0.9}
                           />
                         ))}
 
@@ -1283,6 +1555,15 @@ export default function WorkflowHeistTimeline({
                         />
                       </g>
 
+                      <path
+                        d={membraneOuterPath}
+                        fill="none"
+                        stroke="rgba(255, 247, 230, 0.42)"
+                        strokeWidth={node.isMain ? 0.92 : 0.74}
+                        opacity={0.88}
+                        filter="url(#organicWarp)"
+                      />
+
                       {surfaceFragments.map((fragment, index) => (
                         <rect
                           key={`${node.id}-surface-${index}`}
@@ -1292,8 +1573,8 @@ export default function WorkflowHeistTimeline({
                           height={fragment.height}
                           fill={
                             fragment.tone === 'burn'
-                              ? 'rgba(58, 23, 11, 0.18)'
-                              : 'rgba(255, 243, 211, 0.26)'
+                              ? 'rgba(53, 18, 11, 0.22)'
+                              : 'rgba(255, 247, 224, 0.28)'
                           }
                           opacity={fragment.tone === 'burn' ? 0.9 : 0.74}
                           rx={0.8}
@@ -1306,15 +1587,15 @@ export default function WorkflowHeistTimeline({
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={node.isMain ? 3.8 : 2.9}
+                        r={node.isMain ? 4.4 : 3.2}
                         fill={mixHex(node.color, 0, 0.62)}
-                        opacity={0.5}
+                        opacity={0.56}
                       />
 
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={node.isMain ? 1.9 : 1.4}
+                        r={node.isMain ? 2.3 : 1.7}
                         fill="rgba(255, 248, 230, 0.88)"
                       />
 
