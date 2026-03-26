@@ -1659,52 +1659,15 @@ export default function BioVillageLanding() {
       />
 
       <div
-        data-avatar-ui="true"
-        className="fixed right-6 top-24 z-40 hidden w-[22rem] rounded-[2rem] border border-[rgba(190,44,44,0.16)] bg-white/70 p-5 shadow-[0_26px_80px_rgba(110,17,17,0.12)] backdrop-blur-xl lg:block"
+        className="pointer-events-none fixed right-6 top-24 z-40 hidden lg:block"
         style={{
           opacity: worldActive ? 1 : 0,
           transition: 'opacity 180ms ease'
         }}
       >
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-[rgba(116,32,32,0.48)]">
-              live specimens
-            </p>
-            <p className="mt-2 text-lg font-semibold text-[rgba(69,14,14,0.92)]">
-              실시간 접속 {onlineVisitors.length + 1}명
-            </p>
-          </div>
-          <div className="rounded-full border border-[rgba(188,51,51,0.18)] bg-[rgba(255,255,255,0.82)] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-[rgba(117,22,22,0.74)]">
-            realtime
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {onlineVisitors.length === 0 ? (
-            <div className="rounded-full border border-[rgba(177,44,44,0.12)] bg-white/74 px-3 py-1.5 text-xs text-[rgba(87,17,17,0.72)]">
-              지금은 너 혼자다
-            </div>
-          ) : (
-            onlineVisitors.slice(0, 6).map((visitor) => (
-              <div
-                key={visitor.id}
-                className="inline-flex items-center gap-2 rounded-full border border-[rgba(177,44,44,0.12)] bg-white/74 px-3 py-1.5 text-xs text-[rgba(87,17,17,0.82)]"
-              >
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ background: paletteMap[visitor.palette].body }}
-                />
-                {visitor.label}
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="mt-4 rounded-[1.45rem] border border-[rgba(188,51,51,0.12)] bg-white/72 px-4 py-4 text-sm text-[rgba(88,18,18,0.76)]">
-          비회원도 바로 게스트 아바타로 움직일 수 있고, 로그인한 회원은 저장한
-          닉네임/아바타로 실제 presence 필드에 붙는다.
-        </div>
+        <p className="font-[var(--font-display-kr)] text-lg font-semibold tracking-[0.04em] text-[rgba(69,14,14,0.92)]">
+          실시간 접속 {onlineVisitors.length + 1}명
+        </p>
       </div>
 
       <div className="relative h-[3500px] w-full overflow-hidden">
