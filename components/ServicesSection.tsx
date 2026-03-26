@@ -16,7 +16,6 @@ import { useCart, type CartItemInput } from '@/app/context/CartContext';
 import { useToast } from '@/components/ui/Toasts/use-toast';
 import { ToastAction } from '@/components/ui/Toasts/toast';
 import { ServiceDetailModal } from './ServiceDetailModal';
-import CompanySystemDiagram from './CompanySystemDiagram';
 import {
   ALL_SERVICE_CATEGORIES_LABEL,
   SERVICE_CATEGORIES,
@@ -864,8 +863,6 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       </div>
 
       <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
-        <CompanySystemDiagram />
-
         {/* Title */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
