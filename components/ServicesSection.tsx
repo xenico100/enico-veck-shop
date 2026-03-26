@@ -858,6 +858,11 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
       id="services"
       className="relative px-4 py-14 text-white md:px-8 md:py-24"
     >
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-[6%] top-[12%] h-48 w-48 rounded-full bg-[#7ad0ff]/8 blur-3xl" />
+        <div className="absolute right-[10%] top-[20%] h-56 w-56 rounded-full bg-[#ff6b78]/8 blur-3xl" />
+      </div>
+
       <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
         <CompanySystemDiagram />
 

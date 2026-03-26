@@ -61,7 +61,12 @@ export default function LandingPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-stone-900">
+    <main className="relative min-h-screen overflow-hidden text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-[-10%] top-[8%] h-[28rem] w-[28rem] rounded-full bg-[#7ad0ff]/10 blur-3xl" />
+        <div className="absolute right-[-8%] top-[22%] h-[24rem] w-[24rem] rounded-full bg-[#ff6b78]/10 blur-3xl" />
+        <div className="absolute bottom-[10%] left-[28%] h-[22rem] w-[22rem] rounded-full bg-[#ffbf7b]/8 blur-3xl" />
+      </div>
       <Header onMenuClick={openMenu} />
 
       {hasOpenedMenu ? (

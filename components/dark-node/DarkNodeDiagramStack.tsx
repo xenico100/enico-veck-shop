@@ -25,7 +25,7 @@ export default function DarkNodeDiagramStack({
   return (
     <div
       className={cn(
-        'relative min-h-screen w-full overflow-hidden bg-[#f8fbff]',
+        'relative min-h-screen w-full overflow-hidden bg-transparent',
         className
       )}
     >
@@ -50,7 +50,7 @@ export default function DarkNodeDiagramStack({
       <div className="relative flex w-full justify-center py-6">
         <div
           className="px-4 text-center font-mono text-[9px] tracking-widest opacity-55 md:text-[10px]"
-          style={{ color: '#38523e' }}
+          style={{ color: 'rgba(216, 229, 255, 0.54)' }}
         >
           [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
         </div>

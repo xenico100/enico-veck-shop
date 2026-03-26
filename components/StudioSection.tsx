@@ -252,7 +252,12 @@ const buildTierRows = (posts: StudioPost[]): StudioDisplayRow[] => {
   );
 
   displayRows.push(
-    buildDisplayRow(freeRule, `${freeRule.key}-trial`, freeRule.rowLabel, freePosts)
+    buildDisplayRow(
+      freeRule,
+      `${freeRule.key}-trial`,
+      freeRule.rowLabel,
+      freePosts
+    )
   );
 
   STUDIO_ROW_ACCESS_RULES.slice(1).forEach((rule) => {
@@ -768,7 +773,9 @@ function StudioShortsModal({
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const discoveringVideoRef = useRef(false);
   const wheelLockedRef = useRef(false);
-  const previousNonZeroVolumeRef = useRef(SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME);
+  const previousNonZeroVolumeRef = useRef(
+    SHORTS_INSTAGRAM_STYLE_DEFAULT_VOLUME
+  );
 
   useEffect(() => {
     mediaByPostIdRef.current = mediaByPostId;
@@ -844,103 +851,111 @@ function StudioShortsModal({
     []
   );
 
-  const loadBatchMedia = useCallback(
-    async (postIds: string[]) => {
-      const normalizedIds = Array.from(
-        new Set(postIds.map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean))
-      );
-      const targetIds = normalizedIds.filter((id) => {
-        const current = mediaByPostIdRef.current[id];
-        if (current?.loading) return false;
-        if (current?.videoUrl) return false;
-        if (current?.loaded && !current.error) return false;
-        if ((current?.retryCount ?? 0) >= SHORTS_MEDIA_FETCH_MAX_RETRY) return false;
-        return true;
+  const loadBatchMedia = useCallback(async (postIds: string[]) => {
+    const normalizedIds = Array.from(
+      new Set(
+        postIds
+          .map((id) => (typeof id === 'string' ? id.trim() : ''))
+          .filter(Boolean)
+      )
+    );
+    const targetIds = normalizedIds.filter((id) => {
+      const current = mediaByPostIdRef.current[id];
+      if (current?.loading) return false;
+      if (current?.videoUrl) return false;
+      if (current?.loaded && !current.error) return false;
+      if ((current?.retryCount ?? 0) >= SHORTS_MEDIA_FETCH_MAX_RETRY)
+        return false;
+      return true;
+    });
+    if (targetIds.length === 0)
+      return {} as Record<string, StudioMediaBatchItem>;
+
+    setMediaByPostId((prev) => {
+      const next = { ...prev };
+      targetIds.forEach((id) => {
+        const prevState = prev[id] ?? buildInitialShortsMediaState();
+        next[id] = {
+          ...prevState,
+          loading: true,
+          error: null
+        };
       });
-      if (targetIds.length === 0) return {} as Record<string, StudioMediaBatchItem>;
+      return next;
+    });
+
+    try {
+      const response = await fetch('/api/studio/media/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ postIds: targetIds })
+      });
+      const payload = (await response
+        .json()
+        .catch(() => ({}))) as StudioMediaBatchResponse;
+      if (!response.ok) {
+        throw new Error(
+          payload?.message || '게시물 미디어를 불러오지 못했습니다.'
+        );
+      }
+
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const rowMap = new Map<string, StudioMediaBatchItem>();
+      rows.forEach((row) => {
+        if (row?.postId) {
+          rowMap.set(row.postId, row);
+        }
+      });
 
       setMediaByPostId((prev) => {
         const next = { ...prev };
         targetIds.forEach((id) => {
+          const incoming = rowMap.get(id);
           const prevState = prev[id] ?? buildInitialShortsMediaState();
+          const hasVideo = Boolean(incoming?.videoUrl);
           next[id] = {
-            ...prevState,
-            loading: true,
-            error: null
+            loading: false,
+            loaded: true,
+            videoUrl: incoming?.videoUrl ?? null,
+            fallbackImageUrl: incoming?.fallbackImageUrl ?? null,
+            error: hasVideo ? null : '영상 미디어가 없습니다.',
+            retryCount: hasVideo
+              ? prevState.retryCount
+              : (prevState.retryCount ?? 0) + 1
           };
         });
         return next;
       });
 
-      try {
-        const response = await fetch('/api/studio/media/batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store',
-          body: JSON.stringify({ postIds: targetIds })
-        });
-        const payload = (await response.json().catch(() => ({}))) as StudioMediaBatchResponse;
-        if (!response.ok) {
-          throw new Error(payload?.message || '게시물 미디어를 불러오지 못했습니다.');
+      return rows.reduce<Record<string, StudioMediaBatchItem>>((acc, row) => {
+        if (row?.postId) {
+          acc[row.postId] = row;
         }
-
-        const rows = Array.isArray(payload?.data) ? payload.data : [];
-        const rowMap = new Map<string, StudioMediaBatchItem>();
-        rows.forEach((row) => {
-          if (row?.postId) {
-            rowMap.set(row.postId, row);
-          }
+        return acc;
+      }, {});
+    } catch (error) {
+      setMediaByPostId((prev) => {
+        const next = { ...prev };
+        targetIds.forEach((id) => {
+          const prevState = prev[id] ?? buildInitialShortsMediaState();
+          next[id] = {
+            loading: false,
+            loaded: false,
+            videoUrl: null,
+            fallbackImageUrl: null,
+            error:
+              error instanceof Error
+                ? error.message
+                : '게시물 미디어를 불러오지 못했습니다.',
+            retryCount: (prevState.retryCount ?? 0) + 1
+          };
         });
-
-        setMediaByPostId((prev) => {
-          const next = { ...prev };
-          targetIds.forEach((id) => {
-            const incoming = rowMap.get(id);
-            const prevState = prev[id] ?? buildInitialShortsMediaState();
-            const hasVideo = Boolean(incoming?.videoUrl);
-            next[id] = {
-              loading: false,
-              loaded: true,
-              videoUrl: incoming?.videoUrl ?? null,
-              fallbackImageUrl: incoming?.fallbackImageUrl ?? null,
-              error: hasVideo ? null : '영상 미디어가 없습니다.',
-              retryCount: hasVideo ? prevState.retryCount : (prevState.retryCount ?? 0) + 1
-            };
-          });
-          return next;
-        });
-
-        return rows.reduce<Record<string, StudioMediaBatchItem>>((acc, row) => {
-          if (row?.postId) {
-            acc[row.postId] = row;
-          }
-          return acc;
-        }, {});
-      } catch (error) {
-        setMediaByPostId((prev) => {
-          const next = { ...prev };
-          targetIds.forEach((id) => {
-            const prevState = prev[id] ?? buildInitialShortsMediaState();
-            next[id] = {
-              loading: false,
-              loaded: false,
-              videoUrl: null,
-              fallbackImageUrl: null,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : '게시물 미디어를 불러오지 못했습니다.',
-              retryCount: (prevState.retryCount ?? 0) + 1
-            };
-          });
-          return next;
-        });
-        return {} as Record<string, StudioMediaBatchItem>;
-      }
-    },
-    []
-  );
-
+        return next;
+      });
+      return {} as Record<string, StudioMediaBatchItem>;
+    }
+  }, []);
 
   const scrollToIndex = useCallback(
     (nextIndex: number, behavior: ScrollBehavior = 'smooth') => {
@@ -975,14 +990,13 @@ function StudioShortsModal({
     const cachedVideoIndex = shortsPosts.findIndex((post) =>
       Boolean(mediaByPostIdRef.current[post.id]?.videoUrl)
     );
-    const nextActiveIndex =
-      preferredHasVideo
-        ? preferredIndex
-        : cachedFreeVideoIndex >= 0
-          ? cachedFreeVideoIndex
-          : cachedVideoIndex >= 0
-            ? cachedVideoIndex
-            : preferredIndex;
+    const nextActiveIndex = preferredHasVideo
+      ? preferredIndex
+      : cachedFreeVideoIndex >= 0
+        ? cachedFreeVideoIndex
+        : cachedVideoIndex >= 0
+          ? cachedVideoIndex
+          : preferredIndex;
     setActiveIndex(nextActiveIndex);
 
     const frameId = window.requestAnimationFrame(() => {
@@ -1066,10 +1080,19 @@ function StudioShortsModal({
       return;
     }
 
-    const upcomingIndexes = Array.from({ length: 4 }, (_, offset) => activeIndex + offset + 1)
-      .filter((index) => index >= 0 && index < shortsPosts.length);
+    const upcomingIndexes = Array.from(
+      { length: 4 },
+      (_, offset) => activeIndex + offset + 1
+    ).filter((index) => index >= 0 && index < shortsPosts.length);
     void loadBatchMedia(upcomingIndexes.map((index) => shortsPosts[index].id));
-  }, [activeIndex, loadBatchMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
+  }, [
+    activeIndex,
+    loadBatchMedia,
+    mediaByPostId,
+    open,
+    scrollToIndex,
+    shortsPosts
+  ]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -1155,7 +1178,14 @@ function StudioShortsModal({
     return () => {
       cancelled = true;
     };
-  }, [activeIndex, loadBatchMedia, mediaByPostId, open, scrollToIndex, shortsPosts]);
+  }, [
+    activeIndex,
+    loadBatchMedia,
+    mediaByPostId,
+    open,
+    scrollToIndex,
+    shortsPosts
+  ]);
 
   useEffect(() => {
     if (!open || shortsPosts.length === 0) return;
@@ -1485,7 +1515,10 @@ function StudioShortsModal({
                                 <>
                                   <img
                                     src={previewPoster}
-                                    alt={post.title?.trim() || 'Studio shorts preview'}
+                                    alt={
+                                      post.title?.trim() ||
+                                      'Studio shorts preview'
+                                    }
                                     className="h-full w-full object-cover"
                                     loading="eager"
                                     decoding="async"
@@ -1578,7 +1611,8 @@ function StudioShortsModal({
                                 className={`${videoFitClass} cursor-pointer`}
                               />
                             ) : fallbackImage &&
-                              mediaState.retryCount >= SHORTS_MEDIA_FETCH_MAX_RETRY ? (
+                              mediaState.retryCount >=
+                                SHORTS_MEDIA_FETCH_MAX_RETRY ? (
                               <img
                                 src={fallbackImage}
                                 alt={
@@ -1753,7 +1787,8 @@ export default function StudioSection({
 
   const displayRows = useMemo(() => buildTierRows(studioPosts), [studioPosts]);
   const shortsPosts = useMemo(
-    () => sortStudioShortsPosts(studioPosts.filter((post) => !post.is_placeholder)),
+    () =>
+      sortStudioShortsPosts(studioPosts.filter((post) => !post.is_placeholder)),
     [studioPosts]
   );
 
@@ -2302,13 +2337,17 @@ export default function StudioSection({
         id="studio"
         className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-14 text-white md:px-8 md:py-24"
       >
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-[12%] top-[16%] h-56 w-56 rounded-full bg-[#7ad0ff]/8 blur-3xl" />
+          <div className="absolute right-[12%] bottom-[14%] h-64 w-64 rounded-full bg-[#ff6b78]/8 blur-3xl" />
+        </div>
         <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
           <div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
-              <p className="section-kicker">
-                Studio
-              </p>
-              <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">Studio Flux</h2>
+              <p className="section-kicker">Studio</p>
+              <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">
+                Studio Flux
+              </h2>
               <p className="max-w-2xl text-sm leading-relaxed text-cyan-50/72 md:text-base">
                 무료 일반 멤버십은 체험판 3개만 공개되고, 월 4,900은 가로 영상,
                 월 13,900은 숏폼, 월 79,000은 포토+글 블로그를 이용합니다.
@@ -2346,7 +2385,10 @@ export default function StudioSection({
                     key={`studio-skeleton-row-${rowIndex}`}
                     className="overflow-hidden"
                   >
-                    <div className="flex gap-4" style={{ width: 'fit-content' }}>
+                    <div
+                      className="flex gap-4"
+                      style={{ width: 'fit-content' }}
+                    >
                       {Array.from({ length: 3 }).map((__, cardIndex) => (
                         <div
                           key={`studio-skeleton-${rowIndex}-${cardIndex}`}
@@ -2366,7 +2408,9 @@ export default function StudioSection({
                     실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로
                     채워져 있습니다.
                     {postsError ? (
-                      <p className="mt-2 text-xs text-red-300/90">{postsError}</p>
+                      <p className="mt-2 text-xs text-red-300/90">
+                        {postsError}
+                      </p>
                     ) : null}
                   </div>
                 ) : postsError ? (
