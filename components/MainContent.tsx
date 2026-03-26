@@ -33,7 +33,7 @@ export default function MainContent() {
                 SYSTEM.exe
               </h1>
               <p className="mt-3 font-[var(--font-mono)] text-xs uppercase tracking-[0.34em] text-[rgba(153,41,41,0.68)] md:text-sm">
-                organic archive / clinical white / playable landing field
+                organic archive / clinical white / site-wide pixel avatar
               </p>
               <p className="mt-7 max-w-2xl text-base leading-relaxed text-[rgba(73,23,23,0.78)] md:text-[1.06rem]">
                 夢想人 曰 이곳은 극소수의 창작자를 위한 커뮤니티형
