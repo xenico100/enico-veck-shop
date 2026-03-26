@@ -399,7 +399,7 @@ export default function BioVillageLanding() {
     vx: 0,
     vy: 0,
     x: 0,
-    y: 600
+    y: 520
   });
   const cameraYRef = useRef(0);
   const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
@@ -899,7 +899,7 @@ export default function BioVillageLanding() {
 
       <canvas
         ref={canvasRef}
-        className="pointer-events-none fixed inset-0 z-0 h-full w-full"
+        className="pointer-events-none fixed inset-0 z-[6] h-full w-full"
         style={{
           filter: 'contrast(1.1) saturate(1.2)',
           opacity: worldActive ? 1 : 0,
