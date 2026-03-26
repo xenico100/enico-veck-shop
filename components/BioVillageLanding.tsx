@@ -1659,27 +1659,6 @@ export default function BioVillageLanding() {
       />
 
       <div
-        className="pointer-events-none fixed left-4 top-20 z-40 sm:left-8 sm:top-24"
-        style={{
-          opacity: worldActive ? 1 : 0,
-          transition: 'opacity 180ms ease'
-        }}
-      >
-        <div className="mb-1 font-[var(--font-brush)] text-[11px] font-bold tracking-[0.24em] text-red-700 sm:text-sm sm:tracking-widest">
-          {'> CLINICAL_DATING_FIELD...'}
-        </div>
-        <h1
-          className="village-glitch font-[var(--font-display-kr)] text-[1.45rem] font-black tracking-[0.14em] text-red-800 sm:text-4xl sm:tracking-widest"
-          data-text="BIO_VILLAGE.DATING"
-        >
-          BIO_VILLAGE.DATING
-        </h1>
-        <p className="mt-2 inline-block bg-red-900 px-2 py-1 font-[var(--font-brush)] text-[10px] text-white sm:text-xs">
-          REALTIME VISITORS / TAP AVATAR TO READ
-        </p>
-      </div>
-
-      <div
         data-avatar-ui="true"
         className="fixed right-6 top-24 z-40 hidden w-[22rem] rounded-[2rem] border border-[rgba(190,44,44,0.16)] bg-white/70 p-5 shadow-[0_26px_80px_rgba(110,17,17,0.12)] backdrop-blur-xl lg:block"
         style={{
