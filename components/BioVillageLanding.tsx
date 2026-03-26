@@ -786,7 +786,6 @@ export default function BioVillageLanding() {
 
   const isMobile = viewportWidth < 768;
   const worldActive = scrollY < WORLD_HEIGHT - 96;
-  const isMember = Boolean(user?.id);
 
   selectedTargetRef.current = selectedTarget;
 
@@ -808,7 +807,7 @@ export default function BioVillageLanding() {
 
   useEffect(() => {
     if (!user) {
-      const fallbackName = 'MEMBER';
+      const fallbackName = 'GUEST';
       setSelfProfile(createDefaultProfile(fallbackName));
       setAppearance({
         palette: 'crimson',
@@ -902,12 +901,6 @@ export default function BioVillageLanding() {
       setSelectedTarget(null);
     }
   }, [remoteRevision, selectedTarget]);
-
-  useEffect(() => {
-    if (selectedTarget?.kind === 'self' && !user) {
-      setSelectedTarget(null);
-    }
-  }, [selectedTarget, user]);
 
   useEffect(() => {
     if (!supabase || !user?.id) return;
@@ -1058,10 +1051,7 @@ export default function BioVillageLanding() {
 
     const findActorAtPoint = (clientX: number, clientY: number) => {
       const cameraX = cameraXRef.current;
-      const actors = [
-        ...(user?.id ? [playerRef.current] : []),
-        ...remoteActorsRef.current
-      ]
+      const actors = [playerRef.current, ...remoteActorsRef.current]
         .map((actor) => ({
           actor,
           ...getActorScreenPosition(actor, window.scrollY, cameraX)
@@ -1088,7 +1078,6 @@ export default function BioVillageLanding() {
       const target = event.target as HTMLElement | null;
       if (target?.closest('[data-avatar-ui="true"]')) return;
       if (window.scrollY >= WORLD_HEIGHT - 96) return;
-      if (!user?.id) return;
 
       event.preventDefault();
       playerRef.current.targetX = event.clientX + cameraXRef.current;
@@ -1102,7 +1091,6 @@ export default function BioVillageLanding() {
       const target = event.target as HTMLElement | null;
       if (target?.closest('[data-avatar-ui="true"]')) return;
       if (window.scrollY >= WORLD_HEIGHT - 96) return;
-      if (!user?.id) return;
 
       const hitActor = findActorAtPoint(event.clientX, event.clientY);
       if (!hitActor) {
@@ -1152,7 +1140,6 @@ export default function BioVillageLanding() {
 
       if (!current || current.targetIsUi || current.moved) return;
       if (window.scrollY >= WORLD_HEIGHT - 96) return;
-      if (!user?.id) return;
 
       const touch = event.changedTouches[0];
       if (!touch) return;
@@ -1200,15 +1187,6 @@ export default function BioVillageLanding() {
 
     const updatePlayer = () => {
       const player = playerRef.current;
-      if (!user?.id) {
-        player.vx = 0;
-        player.vy = 0;
-        player.targetX = null;
-        player.targetY = null;
-        player.animFrame = 0;
-        return;
-      }
-
       let dx = 0;
       let dy = 0;
 
@@ -1472,18 +1450,16 @@ export default function BioVillageLanding() {
         });
       });
 
-      if (user?.id) {
-        drawActor(
-          context,
-          playerRef.current,
-          window.scrollY,
-          cameraXRef.current,
-          {
-            isSelf: true,
-            isSelected: selectedId === 'self'
-          }
-        );
-      }
+      drawActor(
+        context,
+        playerRef.current,
+        window.scrollY,
+        cameraXRef.current,
+        {
+          isSelf: true,
+          isSelected: selectedId === 'self'
+        }
+      );
 
       frameRef.current = window.requestAnimationFrame(animate);
     };
@@ -1717,7 +1693,7 @@ export default function BioVillageLanding() {
               live specimens
             </p>
             <p className="mt-2 text-lg font-semibold text-[rgba(69,14,14,0.92)]">
-              실시간 접속 {onlineVisitors.length + (isMember ? 1 : 0)}명
+              실시간 접속 {onlineVisitors.length + 1}명
             </p>
           </div>
           <div className="rounded-full border border-[rgba(188,51,51,0.18)] bg-[rgba(255,255,255,0.82)] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-[rgba(117,22,22,0.74)]">
@@ -1728,9 +1704,7 @@ export default function BioVillageLanding() {
         <div className="mt-4 flex flex-wrap gap-2">
           {onlineVisitors.length === 0 ? (
             <div className="rounded-full border border-[rgba(177,44,44,0.12)] bg-white/74 px-3 py-1.5 text-xs text-[rgba(87,17,17,0.72)]">
-              {isMember
-                ? '지금은 너 혼자다'
-                : '로그인한 회원만 필드에 입장한다'}
+              지금은 너 혼자다
             </div>
           ) : (
             onlineVisitors.slice(0, 6).map((visitor) => (
@@ -1749,60 +1723,10 @@ export default function BioVillageLanding() {
         </div>
 
         <div className="mt-4 rounded-[1.45rem] border border-[rgba(188,51,51,0.12)] bg-white/72 px-4 py-4 text-sm text-[rgba(88,18,18,0.76)]">
-          비회원은 구경만 가능하고, 로그인한 회원만 자기 닉네임/아바타로 실제
-          presence 필드에 붙는다.
+          비회원도 바로 게스트 아바타로 움직일 수 있고, 로그인한 회원은 저장한
+          닉네임/아바타로 실제 presence 필드에 붙는다.
         </div>
       </div>
-
-      {!authLoading && !isMember ? (
-        <div
-          data-avatar-ui="true"
-          className="fixed inset-x-3 top-28 z-[55] mx-auto w-auto max-w-xl rounded-[1.8rem] border border-[rgba(190,44,44,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,243,243,0.84))] p-5 shadow-[0_28px_90px_rgba(120,26,26,0.12)] backdrop-blur-2xl sm:inset-x-0 sm:top-32"
-          style={{
-            opacity: worldActive ? 1 : 0,
-            transition: 'opacity 180ms ease'
-          }}
-        >
-          <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(126,36,36,0.5)]">
-            member access only
-          </p>
-          <h2 className="mt-3 font-[var(--font-display-kr)] text-[1.2rem] font-semibold text-[rgba(76,14,14,0.94)] sm:text-[1.7rem]">
-            회원만 자기 아바타로 접속 가능
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-[rgba(95,24,24,0.72)] sm:text-[0.95rem]">
-            닉네임 짓고, 프리셋 고르고, 메모 저장한 다음 그 상태 그대로 필드에
-            입장한다. 지금은 구경 모드라 움직임이 잠겨 있다.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                window.dispatchEvent(
-                  new CustomEvent('auth:open-modal', {
-                    detail: { mode: 'login' }
-                  })
-                )
-              }
-              className="rounded-full border border-[rgba(177,43,43,0.2)] bg-[linear-gradient(180deg,rgba(160,33,33,0.9),rgba(123,18,18,0.95))] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(145,28,28,0.2)] transition hover:translate-y-[-1px]"
-            >
-              로그인하고 입장
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                window.dispatchEvent(
-                  new CustomEvent('auth:open-modal', {
-                    detail: { mode: 'signup' }
-                  })
-                )
-              }
-              className="rounded-full border border-[rgba(188,51,51,0.16)] bg-white/88 px-5 py-3 text-sm font-semibold text-[rgba(91,17,17,0.88)] transition hover:bg-white"
-            >
-              회원가입하고 닉네임 만들기
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <div
         className="pointer-events-none fixed bottom-4 left-4 z-40 max-w-[calc(100vw-1.5rem)] rounded-[1.35rem] border border-[rgba(187,46,46,0.16)] bg-white/82 p-3 shadow-[0_22px_54px_rgba(116,26,26,0.12)] backdrop-blur-xl sm:bottom-6 sm:left-6 sm:max-w-none sm:rounded-[1.6rem] sm:p-4"
@@ -1815,18 +1739,16 @@ export default function BioVillageLanding() {
           탐사대원 제어기동
         </p>
         <p className="mt-2 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
-          ▪ 터치:{' '}
-          {isMember ? '아바타 프로필 / 바닥 이동' : '회원 로그인 후 입장 가능'}
+          ▪ 터치: 아바타 프로필 / 바닥 이동
         </p>
         <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
           ▪ 오른쪽 이동: 화면도 같이 오른쪽으로 따라감
         </p>
         <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
-          ▪ 우클릭:{' '}
-          {isMember ? '자동 이동 좌표 찍기' : '관람 모드에서는 비활성'}
+          ▪ 우클릭: 자동 이동 좌표 찍기
         </p>
         <p className="mt-1 hidden font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:block sm:text-xs">
-          ▪ W A S D / 방향키: {isMember ? '직접 이동' : '로그인 후 활성화'}
+          ▪ W A S D / 방향키: 직접 이동
         </p>
       </div>
 
