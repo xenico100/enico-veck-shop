@@ -3,19 +3,16 @@
 import { useState } from 'react';
 
 const palette = {
-  bg: '#ffffff',
-  bgDeep: '#f7f7f7',
-  surface: 'transparent',
-  surfaceLine: 'rgba(15,23,42,0.08)',
-  jade: '#ffd66b',
-  jadeSoft: '#ffb24a',
-  amber: '#ff9247',
-  amberSoft: '#ff713c',
-  cobalt: '#ff5536',
-  rose: '#ff7f48',
-  cream: '#27140d',
-  fog: '#8d6b58',
-  ink: '#2d1610'
+  bg: 'transparent',
+  surface: 'rgba(255,255,255,0.78)',
+  jade: '#d8b06a',
+  jadeSoft: '#e6c98c',
+  amber: '#ca6a56',
+  amberSoft: '#df8b73',
+  cobalt: '#a62a2a',
+  rose: '#cf7e65',
+  cream: '#4f231d',
+  ink: '#2f120f'
 } as const;
 
 const hexToRgb = (hex: string) => {
@@ -564,8 +561,8 @@ const renderClickCue = (node: NodeSpec) => {
   if (node.id !== 'c0' && node.id !== 'p0') return null;
 
   const cueScale = 1.5;
-  const cueColor = '#bf1028';
-  const cueGlow = 'rgba(226, 37, 63, 0.18)';
+  const cueColor = '#a81d2c';
+  const cueGlow = 'rgba(216, 53, 76, 0.13)';
   const labelOffsetX = node.id === 'p0' ? 62 : 60;
   const labelOffsetY = node.id === 'p0' ? -46 : -50;
 
@@ -608,12 +605,15 @@ const renderClickCue = (node: NodeSpec) => {
         <text
           x="0"
           y="12"
-          fill="rgba(255, 247, 243, 0.98)"
-          stroke="rgba(255, 247, 243, 0.98)"
+          fill="rgba(255, 250, 248, 0.96)"
+          stroke="rgba(255, 250, 248, 0.96)"
           strokeWidth="7"
           fontSize="9.5"
           fontWeight="800"
           letterSpacing="0.08em"
+          style={{
+            fontFamily: 'var(--font-display-kr), var(--font-brush), serif'
+          }}
         >
           관계자 외 접근금지
         </text>
@@ -624,7 +624,10 @@ const renderClickCue = (node: NodeSpec) => {
           fontSize="9.5"
           fontWeight="800"
           letterSpacing="0.08em"
-          style={{ textTransform: 'uppercase' }}
+          style={{
+            fontFamily: 'var(--font-display-kr), var(--font-brush), serif',
+            textTransform: 'uppercase'
+          }}
         >
           관계자 외 접근금지
         </text>
@@ -957,6 +960,8 @@ export default function WorkflowHeistTimeline({
   onTabRequest
 }: WorkflowHeistTimelineProps) {
   const [hoveredNode, setHoveredNode] = useState<string>('p0');
+  const displayFont = 'var(--font-display-kr), var(--font-brush), serif';
+  const monoFont = 'var(--font-mono), monospace';
 
   const handleNodeClick = (nodeId: string) => {
     if (nodeId === 'c0') {
@@ -970,7 +975,7 @@ export default function WorkflowHeistTimeline({
 
   return (
     <div
-      className="min-h-screen overflow-hidden text-slate-900"
+      className="overflow-hidden text-slate-900"
       style={{
         background: palette.bg
       }}
@@ -1007,13 +1012,13 @@ export default function WorkflowHeistTimeline({
         }
         .grain-overlay {
           background-image:
-            radial-gradient(circle at 18% 24%, rgba(40, 21, 14, 0.06) 0%, transparent 18%),
-            radial-gradient(circle at 76% 33%, rgba(255, 116, 72, 0.065) 0%, transparent 17%),
-            radial-gradient(circle at 48% 72%, rgba(20, 14, 12, 0.05) 0%, transparent 22%),
+            radial-gradient(circle at 18% 24%, rgba(110, 35, 35, 0.045) 0%, transparent 18%),
+            radial-gradient(circle at 76% 33%, rgba(207, 126, 101, 0.048) 0%, transparent 17%),
+            radial-gradient(circle at 48% 72%, rgba(48, 20, 18, 0.035) 0%, transparent 22%),
             repeating-linear-gradient(
               0deg,
-              rgba(18, 14, 12, 0.012) 0px,
-              rgba(18, 14, 12, 0.012) 1px,
+              rgba(90, 44, 38, 0.01) 0px,
+              rgba(90, 44, 38, 0.01) 1px,
               transparent 1px,
               transparent 5px
             );
@@ -1022,57 +1027,76 @@ export default function WorkflowHeistTimeline({
         }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          className="absolute -left-20 top-10 h-80 w-80 rounded-full blur-3xl"
-          style={{
-            background: 'rgba(34, 19, 16, 0.085)',
-            animation: 'driftA 10s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute right-[-80px] top-[22%] h-96 w-96 rounded-full blur-3xl"
-          style={{
-            background: 'rgba(255, 129, 72, 0.08)',
-            animation: 'driftB 12s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute left-[28%] top-[46%] h-72 w-72 rounded-full blur-3xl"
-          style={{
-            background: 'rgba(255, 200, 121, 0.07)',
-            animation: 'driftA 14s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute left-[12%] top-[12%] h-[16rem] w-[20rem] rounded-full blur-3xl"
-          style={{
-            background: 'rgba(255, 95, 56, 0.05)',
-            animation: 'mistDrift 18s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="absolute right-[10%] top-[44%] h-[20rem] w-[18rem] rounded-full blur-3xl"
-          style={{
-            background: 'rgba(38, 16, 12, 0.06)',
-            animation: 'mistDrift 22s ease-in-out infinite'
-          }}
-        />
-        <div
-          className="grain-overlay absolute inset-0"
-          style={{ opacity: 0.1 }}
-        />
-      </div>
+      <div className="mx-auto max-w-6xl px-3 py-4 md:px-6 md:py-6">
+        <div className="relative overflow-hidden rounded-[42px_64px_40px_60px/36px_54px_34px_58px] border border-[rgba(173,35,35,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(249,244,241,0.92))] shadow-[0_28px_64px_rgba(132,38,38,0.08)]">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div
+              className="absolute -left-20 top-10 h-80 w-80 rounded-full blur-3xl"
+              style={{
+                background: 'rgba(196, 62, 62, 0.06)',
+                animation: 'driftA 10s ease-in-out infinite'
+              }}
+            />
+            <div
+              className="absolute right-[-80px] top-[22%] h-96 w-96 rounded-full blur-3xl"
+              style={{
+                background: 'rgba(210, 140, 90, 0.05)',
+                animation: 'driftB 12s ease-in-out infinite'
+              }}
+            />
+            <div
+              className="absolute left-[28%] top-[46%] h-72 w-72 rounded-full blur-3xl"
+              style={{
+                background: 'rgba(151, 179, 101, 0.05)',
+                animation: 'driftA 14s ease-in-out infinite'
+              }}
+            />
+            <div
+              className="absolute left-[12%] top-[12%] h-[16rem] w-[20rem] rounded-full blur-3xl"
+              style={{
+                background: 'rgba(198, 82, 82, 0.04)',
+                animation: 'mistDrift 18s ease-in-out infinite'
+              }}
+            />
+            <div
+              className="absolute right-[10%] top-[44%] h-[20rem] w-[18rem] rounded-full blur-3xl"
+              style={{
+                background: 'rgba(89, 117, 43, 0.045)',
+                animation: 'mistDrift 22s ease-in-out infinite'
+              }}
+            />
+            <div
+              className="grain-overlay absolute inset-0"
+              style={{ opacity: 0.08 }}
+            />
+          </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
-        <div className="mx-auto max-w-4xl">
-          <div
-            className="relative overflow-visible"
-            style={{
-              background: palette.surface
-            }}
-          >
-            <div className="relative p-4 sm:p-6">
+          <div className="relative z-10 px-4 pb-4 pt-5 sm:px-6 sm:pb-6 sm:pt-6 md:px-8 md:pb-8">
+            <div className="mb-4 flex flex-col gap-3 md:mb-6 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="section-kicker !text-[rgba(150,36,36,0.8)]">
+                  Workflow Tissue Map
+                </p>
+                <h3 className="mt-2 text-[clamp(1.45rem,2.8vw,2.25rem)] font-semibold tracking-[0.04em] text-[rgba(67,11,11,0.94)]">
+                  제작 흐름과 업로드 구조를 한 몸처럼 연결한 아카이브
+                </h3>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgba(97,49,49,0.68)] md:text-[15px]">
+                  의류 제작, 영상 제작, 플랫폼 업로드가 따로 노는 다이어그램이
+                  아니라 하나의 생체 흐름처럼 이어지도록 정리한 실사용 맵이다.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.24em] text-[rgba(134,55,55,0.72)]">
+                <span className="rounded-full border border-[rgba(171,48,48,0.18)] bg-white/70 px-3 py-1.5">
+                  Fabric / Edit / Upload
+                </span>
+                <span className="rounded-full border border-[rgba(123,153,73,0.18)] bg-[rgba(245,250,239,0.82)] px-3 py-1.5">
+                  Clinical Archive
+                </span>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[32px_44px_30px_48px/28px_42px_30px_44px] border border-[rgba(176,46,46,0.12)] bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(251,247,244,0.78))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] sm:p-5">
               <svg viewBox="0 0 800 1880" className="h-auto w-full">
                 <defs>
                   <linearGradient
@@ -1083,7 +1107,7 @@ export default function WorkflowHeistTimeline({
                     x2="400"
                     y2="1260"
                   >
-                    <stop offset="0%" stopColor="#ffe49a" />
+                    <stop offset="0%" stopColor="#f2dfba" />
                     <stop offset="38%" stopColor={palette.jadeSoft} />
                     <stop offset="70%" stopColor={palette.amberSoft} />
                     <stop offset="100%" stopColor={palette.cobalt} />
@@ -1156,7 +1180,7 @@ export default function WorkflowHeistTimeline({
                   cy="380"
                   rx="170"
                   ry="120"
-                  fill="rgba(35, 18, 12, 0.05)"
+                  fill="rgba(180, 105, 86, 0.045)"
                   filter="url(#softBlur)"
                 />
                 <ellipse
@@ -1164,7 +1188,7 @@ export default function WorkflowHeistTimeline({
                   cy="1180"
                   rx="170"
                   ry="130"
-                  fill="rgba(255, 112, 58, 0.045)"
+                  fill="rgba(206, 90, 63, 0.04)"
                   filter="url(#softBlur)"
                 />
                 <ellipse
@@ -1172,7 +1196,7 @@ export default function WorkflowHeistTimeline({
                   cy="1530"
                   rx="180"
                   ry="140"
-                  fill="rgba(255, 211, 146, 0.045)"
+                  fill="rgba(174, 192, 116, 0.04)"
                   filter="url(#softBlur)"
                 />
 
@@ -1180,16 +1204,16 @@ export default function WorkflowHeistTimeline({
                   const isMain = path.type === 'main';
                   const isBranch = path.type === 'branch';
                   const glowColor = path.color.startsWith('url(')
-                    ? 'rgba(90,163,255,0.95)'
+                    ? 'rgba(181, 93, 65, 0.62)'
                     : path.color;
                   const warmMembrane = isMain
-                    ? 'rgba(255, 244, 226, 0.36)'
+                    ? 'rgba(255, 250, 241, 0.54)'
                     : isBranch
-                      ? 'rgba(255, 241, 221, 0.24)'
-                      : 'rgba(255, 240, 226, 0.18)';
+                      ? 'rgba(255, 248, 239, 0.4)'
+                      : 'rgba(255, 248, 239, 0.3)';
                   const emberVein = isMain
-                    ? 'rgba(118, 28, 8, 0.22)'
-                    : 'rgba(118, 28, 8, 0.11)';
+                    ? 'rgba(125, 46, 27, 0.16)'
+                    : 'rgba(125, 46, 27, 0.08)';
 
                   return (
                     <g key={index}>
@@ -1198,7 +1222,7 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(255, 186, 96, 0.16)"
+                            stroke="rgba(222, 170, 109, 0.12)"
                             strokeWidth={path.width + 24}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1207,7 +1231,7 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(77, 20, 10, 0.08)"
+                            stroke="rgba(143, 51, 35, 0.07)"
                             strokeWidth={path.width + 34}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1216,7 +1240,7 @@ export default function WorkflowHeistTimeline({
                           <path
                             d={path.d}
                             fill="none"
-                            stroke="rgba(255, 118, 62, 0.28)"
+                            stroke="rgba(197, 95, 70, 0.2)"
                             strokeWidth={path.width + 10}
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1558,7 +1582,7 @@ export default function WorkflowHeistTimeline({
                       <path
                         d={membraneOuterPath}
                         fill="none"
-                        stroke="rgba(255, 247, 230, 0.42)"
+                        stroke="rgba(255, 252, 246, 0.5)"
                         strokeWidth={node.isMain ? 0.92 : 0.74}
                         opacity={0.88}
                         filter="url(#organicWarp)"
@@ -1602,13 +1626,14 @@ export default function WorkflowHeistTimeline({
                       <text
                         x={node.tx}
                         y={node.ty}
-                        fill="rgba(255, 249, 232, 0.96)"
-                        stroke="rgba(255, 249, 232, 0.96)"
-                        strokeWidth="10"
+                        fill="rgba(255, 252, 248, 0.96)"
+                        stroke="rgba(255, 252, 248, 0.96)"
+                        strokeWidth="8"
                         fontSize={isHovered ? '16' : '14'}
                         fontWeight="700"
                         letterSpacing="0.04em"
                         textAnchor={node.anchor}
+                        style={{ fontFamily: displayFont }}
                       >
                         {node.text}
                       </text>
@@ -1621,7 +1646,10 @@ export default function WorkflowHeistTimeline({
                         fontWeight="700"
                         letterSpacing="0.04em"
                         textAnchor={node.anchor}
-                        style={{ textShadow: '0 1px 0 rgba(255,247,228,0.7)' }}
+                        style={{
+                          fontFamily: displayFont,
+                          textShadow: '0 1px 0 rgba(255,250,246,0.72)'
+                        }}
                       >
                         {node.text}
                       </text>
@@ -1635,7 +1663,10 @@ export default function WorkflowHeistTimeline({
                           fontWeight="600"
                           letterSpacing="0.28em"
                           textAnchor={node.anchor}
-                          style={{ textTransform: 'uppercase' }}
+                          style={{
+                            fontFamily: monoFont,
+                            textTransform: 'uppercase'
+                          }}
                         >
                           {node.sub}
                         </text>
@@ -1649,6 +1680,7 @@ export default function WorkflowHeistTimeline({
                           fontSize="11"
                           fontWeight="500"
                           textAnchor={node.anchor}
+                          style={{ fontFamily: monoFont }}
                         >
                           {node.desc}
                         </text>

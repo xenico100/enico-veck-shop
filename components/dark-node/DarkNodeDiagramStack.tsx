@@ -25,17 +25,17 @@ export default function DarkNodeDiagramStack({
   return (
     <div
       className={cn(
-        'relative min-h-screen w-full overflow-hidden bg-transparent',
+        'relative w-full overflow-hidden bg-transparent',
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-0 z-20 opacity-10">
+      <div className="pointer-events-none absolute inset-0 z-20 opacity-[0.06]">
         <div className="dark-node-scanlines h-full" />
       </div>
 
-      <div className="dark-node-noise pointer-events-none absolute inset-0 z-10 opacity-5" />
+      <div className="dark-node-noise pointer-events-none absolute inset-0 z-10 opacity-[0.04]" />
 
-      <div className="relative z-0 w-full px-3 pt-4 md:px-6 md:pt-6">
+      <div className="relative z-0 w-full">
         <WorkflowHeistTimeline onTabRequest={openDiagramTab} />
       </div>
 
@@ -47,10 +47,10 @@ export default function DarkNodeDiagramStack({
         }}
       />
 
-      <div className="relative flex w-full justify-center py-6">
+      <div className="relative flex w-full justify-center pb-3 pt-5 md:pb-5">
         <div
           className="px-4 text-center font-mono text-[9px] tracking-widest opacity-55 md:text-[10px]"
-          style={{ color: 'rgba(216, 229, 255, 0.54)' }}
+          style={{ color: 'rgba(143, 80, 80, 0.58)' }}
         >
           [EOF] :: REAL_ENICO ARCHITECTURE DOCUMENTATION :: {currentDate}
         </div>
@@ -61,7 +61,7 @@ export default function DarkNodeDiagramStack({
           background: linear-gradient(
             to bottom,
             transparent 50%,
-            rgba(0, 255, 65, 0.1) 50%
+            rgba(170, 38, 38, 0.08) 50%
           );
           background-size: 100% 4px;
           animation: dark-node-scanline 8s linear infinite;
