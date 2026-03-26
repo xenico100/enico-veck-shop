@@ -1728,30 +1728,6 @@ export default function BioVillageLanding() {
         </div>
       </div>
 
-      <div
-        className="pointer-events-none fixed bottom-4 left-4 z-40 max-w-[calc(100vw-1.5rem)] rounded-[1.35rem] border border-[rgba(187,46,46,0.16)] bg-white/82 p-3 shadow-[0_22px_54px_rgba(116,26,26,0.12)] backdrop-blur-xl sm:bottom-6 sm:left-6 sm:max-w-none sm:rounded-[1.6rem] sm:p-4"
-        style={{
-          opacity: worldActive ? 1 : 0,
-          transition: 'opacity 180ms ease'
-        }}
-      >
-        <p className="font-[var(--font-brush)] text-[0.9rem] font-bold text-red-800 sm:text-base">
-          탐사대원 제어기동
-        </p>
-        <p className="mt-2 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
-          ▪ 터치: 아바타 프로필 / 바닥 이동
-        </p>
-        <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
-          ▪ 오른쪽 이동: 화면도 같이 오른쪽으로 따라감
-        </p>
-        <p className="mt-1 font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:text-xs">
-          ▪ 우클릭: 자동 이동 좌표 찍기
-        </p>
-        <p className="mt-1 hidden font-[var(--font-brush)] text-[11px] font-bold text-gray-800 sm:block sm:text-xs">
-          ▪ W A S D / 방향키: 직접 이동
-        </p>
-      </div>
-
       <div className="relative h-[3500px] w-full overflow-hidden">
         <div
           ref={worldLayerRef}
