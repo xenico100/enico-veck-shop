@@ -12,6 +12,8 @@ const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
 const PLAYER_MARGIN = 40;
+const PLAYER_SPAWN_X = 640;
+const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
 const PARTICIPANT_SESSION_STORAGE_KEY = 'bio-village-participant-session-v1';
 
@@ -686,12 +688,12 @@ const buildRemoteActorsFromPresence = (
       };
 
       const nextX = clamp(
-        typeof meta.x === 'number' ? meta.x : (previous?.x ?? worldWidth / 2),
+        typeof meta.x === 'number' ? meta.x : (previous?.x ?? PLAYER_SPAWN_X),
         PLAYER_MARGIN,
         Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
       );
       const nextY = clamp(
-        typeof meta.y === 'number' ? meta.y : (previous?.y ?? 520),
+        typeof meta.y === 'number' ? meta.y : (previous?.y ?? PLAYER_SPAWN_Y),
         120,
         WORLD_HEIGHT - 100
       );
@@ -761,7 +763,7 @@ export default function BioVillageLanding() {
     vx: 0,
     vy: 0,
     x: 0,
-    y: 520
+    y: PLAYER_SPAWN_Y
   });
 
   const [scrollY, setScrollY] = useState(0);
@@ -1007,13 +1009,32 @@ export default function BioVillageLanding() {
 
       const player = playerRef.current;
       if (player.x === 0) {
-        player.x = Math.min(nextWorldWidth / 2, window.innerWidth / 2 + 80);
+        player.x = clamp(
+          PLAYER_SPAWN_X,
+          PLAYER_MARGIN,
+          Math.max(PLAYER_MARGIN, nextWorldWidth - PLAYER_MARGIN)
+        );
       } else {
         player.x = clamp(
           player.x,
           PLAYER_MARGIN,
           Math.max(PLAYER_MARGIN, nextWorldWidth - PLAYER_MARGIN)
         );
+      }
+
+      player.y = clamp(player.y || PLAYER_SPAWN_Y, 120, WORLD_HEIGHT - 100);
+
+      const maxHorizontalCamera = Math.max(
+        0,
+        nextWorldWidth - window.innerWidth
+      );
+      cameraXRef.current = clamp(
+        player.x - window.innerWidth / 2,
+        0,
+        maxHorizontalCamera
+      );
+      if (worldLayerRef.current) {
+        worldLayerRef.current.style.transform = `translate3d(${-cameraXRef.current}px, 0, 0)`;
       }
 
       remoteActorsRef.current = remoteActorsRef.current.map((actor) => ({
