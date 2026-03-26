@@ -84,6 +84,18 @@ type FacilityNode = {
   width?: number;
 };
 
+type VillageShopTab = 'diagram' | 'goods' | 'studio';
+
+type VillageShopNode = {
+  hint: string;
+  id: string;
+  left: string;
+  tab: VillageShopTab;
+  title: string;
+  top: number;
+  width: number;
+};
+
 type SelectedTarget = { kind: 'remote'; id: string } | { kind: 'self' };
 
 type PresenceStateValue = Record<string, Array<Record<string, unknown>>>;
@@ -403,6 +415,85 @@ const facilityNodes: FacilityNode[] = [
     width: 420
   }
 ];
+
+const villageShopNodes: VillageShopNode[] = [
+  {
+    hint: '더블클릭: 멤버십 영상',
+    id: 'studio-access-shop',
+    left: '18%',
+    tab: 'studio',
+    title: 'Membership Archive',
+    top: 660,
+    width: 216
+  },
+  {
+    hint: '더블클릭: 굿즈 판매',
+    id: 'goods-access-shop',
+    left: '82%',
+    tab: 'goods',
+    title: 'Goods Counter',
+    top: 820,
+    width: 208
+  },
+  {
+    hint: '더블클릭: 시스템 다이어그램',
+    id: 'diagram-access-shop',
+    left: '52%',
+    tab: 'diagram',
+    title: 'System Kiosk',
+    top: 1540,
+    width: 224
+  }
+];
+
+const villageShopTabMeta: Record<
+  VillageShopTab,
+  {
+    badge: string;
+    description: string;
+    notes: string[];
+    primaryAction: string;
+    sectionId: 'about' | 'services' | 'studio';
+    title: string;
+  }
+> = {
+  diagram: {
+    badge: 'SYSTEM KIOSK',
+    description:
+      '실시간 아키텍처 흐름과 시스템 다이어그램 구역으로 바로 넘기는 접속 단말.',
+    notes: [
+      '워크플로우 타임라인과 시스템 문서 구역으로 바로 점프한다.',
+      '원하면 시스템 다이어그램 오버레이도 바로 띄울 수 있다.'
+    ],
+    primaryAction: '시스템 다이어그램 구역 열기',
+    sectionId: 'about',
+    title: 'System Diagram Access'
+  },
+  goods: {
+    badge: 'GOODS COUNTER',
+    description:
+      '굿즈 판매 섹션으로 바로 이어지고, 장바구니 훅까지 여는 판매 카운터.',
+    notes: [
+      '굿즈 판매 섹션으로 바로 점프할 수 있다.',
+      '장바구니 모달을 바로 띄우는 훅도 함께 붙는다.'
+    ],
+    primaryAction: '굿즈 판매 섹션 열기',
+    sectionId: 'services',
+    title: 'Goods Sales Access'
+  },
+  studio: {
+    badge: 'STUDIO ARCHIVE',
+    description:
+      '멤버십 영상과 스튜디오 기록 섹션으로 바로 연결되는 아카이브 단말.',
+    notes: [
+      '멤버십 영상이 모여 있는 Studio 구역으로 바로 이동한다.',
+      '회원 전용 영상 아카이브 흐름을 탐색하는 입구 역할이다.'
+    ],
+    primaryAction: '멤버십 영상 섹션 열기',
+    sectionId: 'studio',
+    title: 'Membership Video Access'
+  }
+};
 
 const veinEdges: Array<[string, string, string, number]> = [
   ['atrium-heart', 'profile-lab', '#cf3535', 8],
@@ -814,6 +905,7 @@ export default function BioVillageLanding() {
   const lastPresenceSyncRef = useRef(0);
   const initialViewportAlignedRef = useRef(false);
   const ignoreClickUntilRef = useRef(0);
+  const lastShopTapRef = useRef<{ id: string; time: number } | null>(null);
   const touchStateRef = useRef<{
     moved: boolean;
     startScrollY: number;
@@ -851,6 +943,8 @@ export default function BioVillageLanding() {
   const [selectedTarget, setSelectedTarget] = useState<SelectedTarget | null>(
     null
   );
+  const [activeVillageShopTab, setActiveVillageShopTab] =
+    useState<VillageShopTab | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -903,6 +997,45 @@ export default function BioVillageLanding() {
     ? paletteMap[selectedActor.palette]
     : null;
   const isSelfProfileTab = selectedTarget?.kind === 'self';
+  const activeVillageShop = activeVillageShopTab
+    ? villageShopTabMeta[activeVillageShopTab]
+    : null;
+
+  const openVillageShop = (tab: VillageShopTab) => {
+    setSelectedTarget(null);
+    setActiveVillageShopTab(tab);
+  };
+
+  const jumpToVillageSection = (sectionId: 'about' | 'services' | 'studio') => {
+    setActiveVillageShopTab(null);
+    window.setTimeout(() => {
+      document
+        .getElementById(sectionId)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
+
+  const handleVillageShopTouchEnd = (
+    event: React.TouchEvent<HTMLElement>,
+    shopId: string,
+    tab: VillageShopTab
+  ) => {
+    event.preventDefault();
+
+    const now = Date.now();
+    const previousTap = lastShopTapRef.current;
+    if (
+      previousTap &&
+      previousTap.id === shopId &&
+      now - previousTap.time < 320
+    ) {
+      lastShopTapRef.current = null;
+      openVillageShop(tab);
+      return;
+    }
+
+    lastShopTapRef.current = { id: shopId, time: now };
+  };
 
   useEffect(() => {
     if (!user) {
@@ -1741,6 +1874,33 @@ export default function BioVillageLanding() {
           color: rgba(110, 20, 20, 0.96);
         }
 
+        .village-shop-card {
+          position: absolute;
+          transform: translate(-50%, -50%);
+          border: 1px solid rgba(164, 43, 43, 0.2);
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,238,238,0.84));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.92),
+            0 16px 34px rgba(130, 24, 24, 0.12);
+          border-radius: 1.25rem;
+          padding: 0.95rem 1rem;
+          cursor: pointer;
+          transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            border-color 180ms ease;
+          touch-action: manipulation;
+        }
+
+        .village-shop-card:hover {
+          transform: translate(-50%, calc(-50% - 2px));
+          border-color: rgba(164, 43, 43, 0.34);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.96),
+            0 20px 42px rgba(130, 24, 24, 0.18);
+        }
+
         @media (max-width: 767px) {
           .village-node-card {
             min-height: 140px;
@@ -1755,6 +1915,11 @@ export default function BioVillageLanding() {
           .village-core-card {
             min-height: 200px;
             padding: 1.3rem 1.1rem;
+          }
+
+          .village-shop-card {
+            border-radius: 1rem;
+            padding: 0.82rem 0.85rem;
           }
         }
       `}</style>
@@ -1829,6 +1994,42 @@ export default function BioVillageLanding() {
               </h3>
               <p className="mt-3 text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
                 {node.subtitle}
+              </p>
+            </article>
+          ))}
+
+          {villageShopNodes.map((shop) => (
+            <article
+              key={shop.id}
+              id={shop.id}
+              data-avatar-ui="true"
+              role="button"
+              tabIndex={0}
+              className="village-shop-card"
+              style={{
+                left: shop.left,
+                top: `${shop.top}px`,
+                width: `${shop.width}px`
+              }}
+              onDoubleClick={() => openVillageShop(shop.tab)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openVillageShop(shop.tab);
+                }
+              }}
+              onTouchEnd={(event) =>
+                handleVillageShopTouchEnd(event, shop.id, shop.tab)
+              }
+            >
+              <p className="text-[9px] uppercase tracking-[0.26em] text-[rgba(154,52,52,0.54)]">
+                access shop
+              </p>
+              <h3 className="mt-2 font-[var(--font-display-kr)] text-[0.96rem] font-semibold text-[rgba(77,14,14,0.94)]">
+                {shop.title}
+              </h3>
+              <p className="mt-2 text-[11px] leading-relaxed text-[rgba(98,26,26,0.68)]">
+                {shop.hint}
               </p>
             </article>
           ))}
@@ -2224,6 +2425,121 @@ export default function BioVillageLanding() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {activeVillageShop && worldActive ? (
+        <div
+          data-avatar-ui="true"
+          className="fixed inset-x-3 bottom-3 z-[72] overflow-hidden rounded-[1.35rem] border border-[rgba(190,44,44,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(248,244,255,0.8))] shadow-[0_28px_90px_rgba(107,21,21,0.16)] backdrop-blur-2xl md:inset-x-auto md:left-1/2 md:top-[6.8rem] md:w-[min(28rem,calc(100vw-2rem))] md:-translate-x-1/2"
+        >
+          <div className="border-b border-[rgba(190,44,44,0.12)] px-4 pb-3 pt-4 sm:px-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="village-lab-chip">
+                  {activeVillageShop.badge}
+                </span>
+                <h2 className="mt-3 font-[var(--font-display-kr)] text-[1.05rem] font-semibold text-[rgba(69,14,14,0.95)] sm:text-[1.24rem]">
+                  {activeVillageShop.title}
+                </h2>
+                <p className="mt-2 text-[0.78rem] leading-relaxed text-[rgba(100,31,31,0.68)]">
+                  {activeVillageShop.description}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveVillageShopTab(null)}
+                className="rounded-full border border-[rgba(188,51,51,0.16)] bg-white/82 px-2.5 py-1.5 text-[0.72rem] text-[rgba(91,17,17,0.88)] transition-colors hover:bg-white"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(villageShopTabMeta) as VillageShopTab[]).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveVillageShopTab(tab)}
+                    className="rounded-full border px-3 py-1.5 text-[0.68rem] uppercase tracking-[0.14em] transition"
+                    style={{
+                      borderColor:
+                        activeVillageShopTab === tab
+                          ? 'rgba(164,43,43,0.36)'
+                          : 'rgba(164,43,43,0.14)',
+                      background:
+                        activeVillageShopTab === tab
+                          ? 'rgba(255,241,241,0.92)'
+                          : 'rgba(255,255,255,0.68)',
+                      color:
+                        activeVillageShopTab === tab
+                          ? 'rgba(95,18,18,0.92)'
+                          : 'rgba(112,34,34,0.7)'
+                    }}
+                  >
+                    {villageShopTabMeta[tab].title}
+                  </button>
+                )
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              {activeVillageShop.notes.map((note) => (
+                <div
+                  key={note}
+                  className="rounded-[1rem] border border-[rgba(188,51,51,0.12)] bg-white/72 px-3 py-2.5 text-[0.74rem] leading-relaxed text-[rgba(86,22,22,0.78)]"
+                >
+                  {note}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  jumpToVillageSection(activeVillageShop.sectionId)
+                }
+                className="rounded-[1rem] border border-[rgba(188,51,51,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,236,242,0.92))] px-3.5 py-2.5 text-[0.74rem] font-semibold text-[rgba(79,14,14,0.94)] shadow-[0_16px_40px_rgba(125,25,25,0.08)] transition hover:translate-y-[-1px]"
+              >
+                {activeVillageShop.primaryAction}
+              </button>
+
+              {activeVillageShopTab === 'goods' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveVillageShopTab(null);
+                    window.dispatchEvent(new CustomEvent('cart:open-modal'));
+                  }}
+                  className="rounded-[1rem] border border-[rgba(188,51,51,0.14)] bg-white/78 px-3.5 py-2.5 text-[0.72rem] text-[rgba(95,18,18,0.86)] transition hover:bg-white"
+                >
+                  장바구니 열기
+                </button>
+              ) : null}
+
+              {activeVillageShopTab === 'diagram' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveVillageShopTab(null);
+                    window.dispatchEvent(
+                      new CustomEvent('architecture:open-modal', {
+                        detail: { tab: 'system' }
+                      })
+                    );
+                  }}
+                  className="rounded-[1rem] border border-[rgba(188,51,51,0.14)] bg-white/78 px-3.5 py-2.5 text-[0.72rem] text-[rgba(95,18,18,0.86)] transition hover:bg-white"
+                >
+                  시스템 다이어그램 띄우기
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}

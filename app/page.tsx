@@ -91,6 +91,15 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const handleCartHook = () => {
+      setCartOpen(true);
+    };
+
+    window.addEventListener('cart:open-modal', handleCartHook);
+    return () => window.removeEventListener('cart:open-modal', handleCartHook);
+  }, []);
+
+  useEffect(() => {
     const handleAuthHook = (event: Event) => {
       const detail = (event as CustomEvent<AuthHookDetail>).detail;
       setAuthMode(detail?.mode === 'signup' ? 'signup' : 'login');

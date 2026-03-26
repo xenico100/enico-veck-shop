@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import ArchitectureOverlayModal, {
   type ArchitectureModalTab
@@ -21,6 +21,21 @@ export default function DarkNodeDiagramStack({
   const openDiagramTab = (tab: ArchitectureModalTab) => {
     setActiveTab(tab);
   };
+
+  useEffect(() => {
+    const handleArchitectureHook = (event: Event) => {
+      const detail = (event as CustomEvent<{ tab?: ArchitectureModalTab }>)
+        .detail;
+      setActiveTab(detail?.tab === 'production' ? 'production' : 'system');
+    };
+
+    window.addEventListener('architecture:open-modal', handleArchitectureHook);
+    return () =>
+      window.removeEventListener(
+        'architecture:open-modal',
+        handleArchitectureHook
+      );
+  }, []);
 
   return (
     <div
