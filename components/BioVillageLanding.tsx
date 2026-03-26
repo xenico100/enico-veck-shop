@@ -13,6 +13,7 @@ const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
 const PLAYER_MARGIN = 40;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
+const PARTICIPANT_SESSION_STORAGE_KEY = 'bio-village-participant-session-v1';
 
 type Direction = 'down' | 'left' | 'right' | 'up';
 type SpritePreset = 'archivist' | 'courier' | 'ghost' | 'medic';
@@ -729,6 +730,7 @@ export default function BioVillageLanding() {
   const worldLayerRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const participantKeyRef = useRef<string | null>(null);
   const keysRef = useRef<Record<string, boolean>>({});
   const cellsRef = useRef<CellState[]>([]);
   const remoteActorsRef = useRef<ActorState[]>([]);
@@ -765,6 +767,7 @@ export default function BioVillageLanding() {
   const [scrollY, setScrollY] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(1280);
   const [worldWidth, setWorldWidth] = useState(DESKTOP_MIN_WORLD_WIDTH);
+  const [participantKey, setParticipantKey] = useState<string | null>(null);
   const [appearance, setAppearance] = useState<AppearanceState>({
     palette: 'crimson',
     preset: 'archivist'
@@ -788,6 +791,18 @@ export default function BioVillageLanding() {
   const worldActive = scrollY < WORLD_HEIGHT - 96;
 
   selectedTargetRef.current = selectedTarget;
+  participantKeyRef.current = participantKey;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const stored =
+      window.sessionStorage.getItem(PARTICIPANT_SESSION_STORAGE_KEY) ||
+      `bio-village-session-${crypto.randomUUID()}`;
+
+    window.sessionStorage.setItem(PARTICIPANT_SESSION_STORAGE_KEY, stored);
+    setParticipantKey(stored);
+  }, []);
 
   const selectedRemote = useMemo(() => {
     if (selectedTarget?.kind !== 'remote') return null;
@@ -903,13 +918,13 @@ export default function BioVillageLanding() {
   }, [remoteRevision, selectedTarget]);
 
   useEffect(() => {
-    if (!supabase || !user?.id) return;
+    if (!supabase || !participantKey) return;
 
     let cancelled = false;
     const channel = supabase.channel(PRESENCE_CHANNEL, {
       config: {
         broadcast: { self: false },
-        presence: { key: user.id }
+        presence: { key: participantKey }
       }
     });
     presenceChannelRef.current = channel;
@@ -918,7 +933,7 @@ export default function BioVillageLanding() {
       if (cancelled) return;
       const nextActors = buildRemoteActorsFromPresence(
         channel.presenceState() as PresenceStateValue,
-        user.id,
+        participantKey,
         remoteActorsRef.current,
         worldWidthRef.current
       );
@@ -936,7 +951,7 @@ export default function BioVillageLanding() {
     const trackSelf = async () => {
       const player = playerRef.current;
       await channel.track({
-        key: user.id,
+        key: participantKey,
         label: player.label,
         x: player.x,
         y: player.y,
@@ -944,6 +959,7 @@ export default function BioVillageLanding() {
         palette: player.palette,
         preset: player.preset,
         profile: player.profile,
+        userId: user?.id ?? null,
         updatedAt: new Date().toISOString()
       });
     };
@@ -964,7 +980,7 @@ export default function BioVillageLanding() {
       void supabase.removeChannel(channel).catch(() => undefined);
       presenceChannelRef.current = null;
     };
-  }, [supabase, user?.id]);
+  }, [participantKey, supabase, user?.id]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1163,7 +1179,8 @@ export default function BioVillageLanding() {
 
     const syncPresenceIfNeeded = () => {
       const channel = presenceChannelRef.current;
-      if (!channel || !user?.id) return;
+      const key = participantKeyRef.current;
+      if (!channel || !key) return;
 
       const now = Date.now();
       if (now - lastPresenceSyncRef.current < 240) return;
@@ -1172,7 +1189,7 @@ export default function BioVillageLanding() {
       const player = playerRef.current;
       void channel
         .track({
-          key: user.id,
+          key,
           label: player.label,
           x: player.x,
           y: player.y,
@@ -1180,6 +1197,7 @@ export default function BioVillageLanding() {
           palette: player.palette,
           preset: player.preset,
           profile: player.profile,
+          userId: user?.id ?? null,
           updatedAt: new Date().toISOString()
         })
         .catch(() => undefined);
