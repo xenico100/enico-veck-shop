@@ -48,6 +48,10 @@ type DatingHookDetail = {
   label?: string;
 };
 
+type AuthHookDetail = {
+  mode?: 'login' | 'signup';
+};
+
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
@@ -84,6 +88,18 @@ export default function LandingPage() {
     window.addEventListener('dating:open-modal', handleDatingHook);
     return () =>
       window.removeEventListener('dating:open-modal', handleDatingHook);
+  }, []);
+
+  useEffect(() => {
+    const handleAuthHook = (event: Event) => {
+      const detail = (event as CustomEvent<AuthHookDetail>).detail;
+      setAuthMode(detail?.mode === 'signup' ? 'signup' : 'login');
+      setAuthError(null);
+      setAuthOpen(true);
+    };
+
+    window.addEventListener('auth:open-modal', handleAuthHook);
+    return () => window.removeEventListener('auth:open-modal', handleAuthHook);
   }, []);
 
   return (
