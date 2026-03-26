@@ -2338,8 +2338,8 @@ export default function StudioSection({
         className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-14 text-white md:px-8 md:py-24"
       >
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-[12%] top-[16%] h-56 w-56 rounded-full bg-[#7ad0ff]/8 blur-3xl" />
-          <div className="absolute right-[12%] bottom-[14%] h-64 w-64 rounded-full bg-[#ff6b78]/8 blur-3xl" />
+          <div className="absolute left-[12%] top-[16%] h-56 w-56 rounded-full bg-[#430606]/24 blur-3xl" />
+          <div className="absolute right-[12%] bottom-[14%] h-64 w-64 rounded-full bg-[#2a5318]/16 blur-3xl" />
         </div>
         <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
           <div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-start md:justify-between">

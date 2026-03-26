@@ -45,22 +45,24 @@ const messageAxis: AxisConfig = {
   name: '몽상인',
   role: '사람 모으기, 생각 전파',
   caption: '메시지 플랫폼',
-  accentClass: 'text-fuchsia-100',
-  borderClass: 'border-fuchsia-300/25',
-  chipClass: 'border-fuchsia-300/25 bg-fuchsia-400/12 text-fuchsia-100',
+  accentClass: 'text-[rgba(255,216,216,0.94)]',
+  borderClass: 'border-[rgba(140,26,26,0.38)]',
+  chipClass:
+    'border-[rgba(146,27,27,0.4)] bg-[rgba(111,11,11,0.28)] text-[rgba(255,224,224,0.92)]',
   glowClass:
-    'bg-[radial-gradient(circle_at_top,rgba(217,70,239,0.16),transparent_70%)]'
+    'bg-[radial-gradient(circle_at_top,rgba(163,18,18,0.26),transparent_70%)]'
 };
 
 const purchaseAxis: AxisConfig = {
   name: '에니코 벡',
   role: '창작물을 물성으로 판매',
   caption: '구매 플랫폼',
-  accentClass: 'text-amber-100',
-  borderClass: 'border-amber-300/25',
-  chipClass: 'border-amber-300/25 bg-amber-400/12 text-amber-100',
+  accentClass: 'text-[rgba(211,255,184,0.94)]',
+  borderClass: 'border-[rgba(77,120,34,0.34)]',
+  chipClass:
+    'border-[rgba(93,150,38,0.34)] bg-[rgba(40,68,16,0.26)] text-[rgba(214,255,188,0.92)]',
   glowClass:
-    'bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.16),transparent_70%)]'
+    'bg-[radial-gradient(circle_at_top,rgba(90,182,48,0.2),transparent_70%)]'
 };
 
 const messagePlatforms: PlatformItem[] = [
@@ -152,16 +154,17 @@ function PlatformCard({
 }) {
   return (
     <article
-      className={`group relative overflow-hidden rounded-[2rem] border bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-transform duration-500 hover:-translate-y-1 ${axis.borderClass}`}
+      className={`group relative overflow-hidden border bg-[linear-gradient(180deg,rgba(34,4,4,0.94),rgba(9,0,0,0.96))] p-4 shadow-[0_24px_54px_rgba(0,0,0,0.34)] backdrop-blur-sm transition-transform duration-500 hover:-translate-y-1 ${axis.borderClass} rounded-[34px_46px_30px_52px/42px_34px_48px_36px]`}
     >
       <div
         className={`pointer-events-none absolute inset-0 opacity-90 ${axis.glowClass}`}
       />
-      <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-white/10 blur-2xl transition-transform duration-500 group-hover:scale-110" />
+      <div className="pointer-events-none absolute -right-8 top-0 h-24 w-24 rounded-full bg-[rgba(255,225,220,0.08)] blur-2xl transition-transform duration-500 group-hover:scale-110" />
+      <div className="pointer-events-none absolute inset-x-5 top-4 h-px bg-[linear-gradient(90deg,transparent,rgba(255,224,224,0.28),transparent)] opacity-70" />
       <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-50/45">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(196,162,156,0.44)]">
               {axis.caption}
             </p>
             <h4 className={`mt-1 text-base font-semibold ${axis.accentClass}`}>
@@ -172,22 +175,22 @@ function PlatformCard({
             className={`rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-[0.18em] ${
               item.status === 'active'
                 ? axis.chipClass
-                : 'border-white/12 bg-white/[0.04] text-white/55'
+                : 'border-[rgba(108,29,29,0.24)] bg-[rgba(255,255,255,0.03)] text-[rgba(194,170,164,0.56)]'
             }`}
           >
             {item.status === 'active' ? 'LIVE' : 'STANDBY'}
           </span>
         </div>
 
-        <div className="mt-4 grid gap-3 text-sm leading-relaxed text-cyan-50/78">
+        <div className="mt-4 grid gap-3 text-sm leading-relaxed text-[rgba(225,206,201,0.8)]">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-50/40">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(193,160,154,0.42)]">
               업로드할 것
             </p>
             <p className="mt-1">{item.upload}</p>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-cyan-50/40">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(193,160,154,0.42)]">
               역할
             </p>
             <p className="mt-1">{item.role}</p>
@@ -207,10 +210,12 @@ export default function CompanySystemDiagram() {
   );
 
   return (
-    <div className="relative mb-12 overflow-hidden rounded-[3rem] border border-cyan-100/12 bg-[linear-gradient(180deg,rgba(5,10,20,0.96),rgba(7,12,24,0.86))] p-5 shadow-[0_30px_80px_rgba(2,8,23,0.32)] md:mb-14 md:p-8">
-      <div className="pointer-events-none absolute left-[-8%] top-[6%] h-56 w-56 rounded-full bg-[#7ad0ff]/10 blur-3xl" />
-      <div className="pointer-events-none absolute right-[-6%] top-[18%] h-52 w-52 rounded-full bg-[#ff6b78]/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-[-10%] left-[36%] h-48 w-48 rounded-full bg-[#ffbf7b]/8 blur-3xl" />
+    <div className="relative mb-12 overflow-hidden border border-[rgba(117,17,17,0.34)] bg-[linear-gradient(180deg,rgba(16,1,1,0.98),rgba(6,0,0,0.96))] p-5 shadow-[0_34px_90px_rgba(0,0,0,0.5)] md:mb-14 md:p-8 rounded-[48px_68px_54px_70px/54px_46px_64px_48px]">
+      <div className="pointer-events-none absolute left-[-8%] top-[6%] h-56 w-56 rounded-full bg-[#4a0808]/28 blur-3xl" />
+      <div className="pointer-events-none absolute right-[-6%] top-[18%] h-52 w-52 rounded-full bg-[#204d14]/16 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-10%] left-[36%] h-48 w-48 rounded-full bg-[#772515]/20 blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(194,41,41,0.72),transparent)]" />
+      <div className="pointer-events-none absolute inset-x-[12%] top-[7rem] h-px bg-[linear-gradient(90deg,rgba(168,22,22,0),rgba(172,22,22,0.3),rgba(98,255,58,0.12),rgba(168,22,22,0))]" />
 
       <div className="mb-7 flex flex-col gap-3">
         <p className="section-kicker">Company System Diagram</p>
@@ -219,12 +224,12 @@ export default function CompanySystemDiagram() {
             <h3 className="display-font text-[clamp(1.6rem,3vw,2.45rem)] font-semibold tracking-[0.02em] text-white">
               원본 3개에서 메시지와 판매가 모두 파생되는 구조
             </h3>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-cyan-50/65">
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[rgba(215,191,186,0.68)]">
               대본 작성, CLO 3D 작업, 실물 핸드메이드 제작이 원본이고 나머지
               모든 업로드는 이 세 축에서 파생된다.
             </p>
           </div>
-          <div className="rounded-full border border-cyan-100/12 bg-white/[0.04] px-4 py-2 text-[10px] uppercase tracking-[0.28em] text-cyan-50/55 shadow-[0_12px_30px_rgba(0,0,0,0.24)]">
+          <div className="rounded-[999px_760px_860px_640px/58%_48%_64%_42%] border border-[rgba(122,24,24,0.32)] bg-[rgba(92,8,8,0.18)] px-4 py-2 text-[10px] uppercase tracking-[0.28em] text-[rgba(233,214,209,0.58)] shadow-[0_12px_30px_rgba(0,0,0,0.24)]">
             Script / Clo / Handmade → Content / Commerce
           </div>
         </div>
@@ -234,15 +239,15 @@ export default function CompanySystemDiagram() {
         {originItems.map((origin) => (
           <article
             key={origin.label}
-            className="rounded-[2.2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
+            className="border border-[rgba(112,22,22,0.28)] bg-[linear-gradient(180deg,rgba(28,2,2,0.92),rgba(10,0,0,0.94))] p-5 shadow-[0_18px_44px_rgba(0,0,0,0.3)] rounded-[30px_44px_26px_48px/42px_30px_44px_28px]"
           >
-            <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-50/35">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[rgba(194,160,154,0.4)]">
               {origin.label}
             </p>
-            <h4 className="mt-2 text-lg font-semibold text-white">
+            <h4 className="mt-2 text-lg font-semibold text-[rgba(245,226,220,0.96)]">
               {origin.title}
             </h4>
-            <p className="mt-2 text-sm leading-relaxed text-cyan-50/62">
+            <p className="mt-2 text-sm leading-relaxed text-[rgba(215,191,186,0.64)]">
               {origin.detail}
             </p>
           </article>
@@ -250,27 +255,27 @@ export default function CompanySystemDiagram() {
       </div>
 
       <div className="my-7 flex items-center gap-4">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
-        <div className="rounded-full border border-cyan-100/12 bg-white/[0.04] px-4 py-2 text-[10px] uppercase tracking-[0.3em] text-cyan-50/50">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[rgba(165,31,31,0.38)] to-transparent" />
+        <div className="rounded-[999px_760px_860px_640px/58%_48%_64%_42%] border border-[rgba(117,17,17,0.28)] bg-[rgba(83,8,8,0.16)] px-4 py-2 text-[10px] uppercase tracking-[0.3em] text-[rgba(217,195,189,0.5)]">
           Derived Upload System
         </div>
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[rgba(109,196,50,0.24)] to-transparent" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="space-y-4">
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-fuchsia-300/22 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5">
-            <div className="pointer-events-none absolute -right-10 top-[-20%] h-32 w-32 rounded-full bg-fuchsia-400/12 blur-3xl" />
-            <p className="text-[10px] uppercase tracking-[0.3em] text-fuchsia-100/55">
+          <div className="relative overflow-hidden border border-[rgba(140,26,26,0.34)] bg-[linear-gradient(180deg,rgba(28,2,2,0.94),rgba(10,0,0,0.96))] p-5 rounded-[34px_52px_28px_50px/44px_32px_48px_30px]">
+            <div className="pointer-events-none absolute -right-10 top-[-20%] h-32 w-32 rounded-full bg-red-500/12 blur-3xl" />
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[rgba(214,118,118,0.58)]">
               Message Axis
             </p>
-            <h4 className="mt-2 text-2xl font-semibold text-fuchsia-100">
+            <h4 className="mt-2 text-2xl font-semibold text-[rgba(255,224,224,0.94)]">
               몽상인
             </h4>
-            <p className="mt-2 text-sm leading-relaxed text-cyan-50/72">
+            <p className="mt-2 text-sm leading-relaxed text-[rgba(224,201,196,0.72)]">
               사람을 모으고, 생각을 전파하는 메시지 채널.
             </p>
-            <div className="mt-4 rounded-[1.6rem] border border-fuchsia-300/15 bg-fuchsia-400/8 px-4 py-3 text-sm text-fuchsia-50/92">
+            <div className="mt-4 rounded-[28px_36px_24px_38px/30px_24px_34px_26px] border border-[rgba(140,26,26,0.26)] bg-[rgba(89,8,8,0.22)] px-4 py-3 text-sm text-[rgba(255,230,230,0.9)]">
               역할: {messageAxis.role}
             </div>
           </div>
@@ -287,18 +292,18 @@ export default function CompanySystemDiagram() {
         </section>
 
         <section className="space-y-4">
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-amber-300/22 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5">
-            <div className="pointer-events-none absolute -left-10 top-[-20%] h-32 w-32 rounded-full bg-amber-400/12 blur-3xl" />
-            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-100/55">
+          <div className="relative overflow-hidden border border-[rgba(77,120,34,0.3)] bg-[linear-gradient(180deg,rgba(17,11,4,0.92),rgba(6,4,0,0.94))] p-5 rounded-[46px_28px_50px_30px/32px_46px_34px_48px]">
+            <div className="pointer-events-none absolute -left-10 top-[-20%] h-32 w-32 rounded-full bg-emerald-400/12 blur-3xl" />
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[rgba(170,229,128,0.58)]">
               Purchase Axis
             </p>
-            <h4 className="mt-2 text-2xl font-semibold text-amber-100">
+            <h4 className="mt-2 text-2xl font-semibold text-[rgba(218,255,198,0.94)]">
               에니코 벡
             </h4>
-            <p className="mt-2 text-sm leading-relaxed text-cyan-50/72">
+            <p className="mt-2 text-sm leading-relaxed text-[rgba(218,233,204,0.72)]">
               창작물을 물성으로 정리하고 판매까지 연결하는 구매 채널.
             </p>
-            <div className="mt-4 rounded-[1.6rem] border border-amber-300/15 bg-amber-400/8 px-4 py-3 text-sm text-amber-50/92">
+            <div className="mt-4 rounded-[36px_24px_38px_24px/26px_36px_28px_34px] border border-[rgba(77,120,34,0.24)] bg-[rgba(36,57,15,0.22)] px-4 py-3 text-sm text-[rgba(221,255,205,0.88)]">
               역할: {purchaseAxis.role}
             </div>
           </div>
@@ -316,15 +321,15 @@ export default function CompanySystemDiagram() {
       </div>
 
       <div className="mt-7 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-[2rem] border border-emerald-300/18 bg-emerald-400/[0.06] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)]">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-emerald-100/60">
+        <div className="border border-[rgba(77,120,34,0.28)] bg-[rgba(34,52,13,0.16)] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)] rounded-[30px_44px_24px_46px/40px_28px_42px_30px]">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(178,236,140,0.62)]">
             현재 사용 중
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {activePlatforms.map((item) => (
               <span
                 key={item.platform}
-                className="rounded-full border border-emerald-300/18 bg-emerald-400/[0.08] px-3 py-1.5 text-xs text-emerald-50/92"
+                className="rounded-full border border-[rgba(86,137,40,0.28)] bg-[rgba(41,70,18,0.2)] px-3 py-1.5 text-xs text-[rgba(222,255,209,0.9)]"
               >
                 {item.platform}
               </span>
@@ -332,15 +337,15 @@ export default function CompanySystemDiagram() {
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)]">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-50/50">
+        <div className="border border-[rgba(112,22,22,0.22)] bg-[rgba(255,255,255,0.03)] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.24)] rounded-[42px_26px_44px_28px/30px_40px_32px_44px]">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(198,170,164,0.48)]">
             현재 미사용
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {inactivePlatforms.map((item) => (
               <span
                 key={item.platform}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-cyan-50/68"
+                className="rounded-full border border-[rgba(108,29,29,0.2)] bg-[rgba(255,255,255,0.03)] px-3 py-1.5 text-xs text-[rgba(194,170,164,0.66)]"
               >
                 {item.platform}
               </span>
