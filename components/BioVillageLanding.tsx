@@ -900,6 +900,7 @@ export default function BioVillageLanding() {
   const selectedPaletteMeta = selectedActor
     ? paletteMap[selectedActor.palette]
     : null;
+  const isSelfProfileTab = selectedTarget?.kind === 'self';
 
   useEffect(() => {
     if (!user) {
@@ -1826,16 +1827,24 @@ export default function BioVillageLanding() {
       {selectedActor && worldActive ? (
         <div
           data-avatar-ui="true"
-          className="fixed inset-x-3 bottom-3 top-auto z-[70] w-auto overflow-hidden rounded-[1.6rem] border border-[rgba(190,44,44,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,244,255,0.76))] shadow-[0_36px_120px_rgba(107,21,21,0.16)] backdrop-blur-2xl md:inset-x-auto md:bottom-auto md:right-6 md:top-[6.2rem] md:w-[min(30rem,calc(100vw-1.5rem))] md:rounded-[2rem]"
+          className={`fixed z-[70] overflow-hidden border border-[rgba(190,44,44,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(248,244,255,0.76))] shadow-[0_36px_120px_rgba(107,21,21,0.16)] backdrop-blur-2xl ${
+            isSelfProfileTab
+              ? 'inset-x-3 bottom-3 top-auto w-auto rounded-[1.6rem] md:inset-x-auto md:bottom-auto md:right-6 md:top-[6.2rem] md:w-[min(30rem,calc(100vw-1.5rem))] md:rounded-[2rem]'
+              : 'bottom-3 right-3 w-[min(15.75rem,calc(100vw-1.5rem))] rounded-[1.3rem] md:bottom-auto md:right-6 md:top-[6.4rem] md:w-[17.5rem] md:rounded-[1.5rem]'
+          }`}
         >
-          <div className="border-b border-[rgba(190,44,44,0.12)] px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5">
+          <div
+            className={`border-b border-[rgba(190,44,44,0.12)] ${
+              isSelfProfileTab
+                ? 'px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-5'
+                : 'px-3.5 pb-3 pt-3.5'
+            }`}
+          >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="village-lab-chip">
-                    {selectedTarget?.kind === 'self'
-                      ? 'MY PROFILE'
-                      : 'PROFILE TAB'}
+                    {isSelfProfileTab ? 'MY PROFILE' : 'PROFILE TAB'}
                   </span>
                   <span
                     className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]"
@@ -1848,13 +1857,23 @@ export default function BioVillageLanding() {
                     {selectedPaletteMeta?.name ?? 'Palette'}
                   </span>
                 </div>
-                <h2 className="mt-4 font-[var(--font-display-kr)] text-[1.28rem] font-semibold text-[rgba(69,14,14,0.95)] sm:text-[1.7rem]">
-                  {selectedTarget?.kind === 'self'
+                <h2
+                  className={`mt-3 font-[var(--font-display-kr)] font-semibold text-[rgba(69,14,14,0.95)] ${
+                    isSelfProfileTab
+                      ? 'text-[1.28rem] sm:mt-4 sm:text-[1.7rem]'
+                      : 'text-[1rem] md:text-[1.08rem]'
+                  }`}
+                >
+                  {isSelfProfileTab
                     ? selfProfile.name || 'YOU'
                     : selectedActor.label}
                 </h2>
-                <p className="mt-2 text-sm text-[rgba(100,31,31,0.66)]">
-                  {selectedTarget?.kind === 'self'
+                <p
+                  className={`mt-1.5 text-[rgba(100,31,31,0.66)] ${
+                    isSelfProfileTab ? 'text-sm sm:mt-2' : 'text-[0.74rem]'
+                  }`}
+                >
+                  {isSelfProfileTab
                     ? selfProfile.tagline
                     : selectedActor.profile.tagline}
                 </p>
@@ -1863,15 +1882,25 @@ export default function BioVillageLanding() {
               <button
                 type="button"
                 onClick={() => setSelectedTarget(null)}
-                className="rounded-full border border-[rgba(188,51,51,0.16)] bg-white/82 px-3 py-2 text-sm text-[rgba(91,17,17,0.88)] transition-colors hover:bg-white"
+                className={`rounded-full border border-[rgba(188,51,51,0.16)] bg-white/82 text-[rgba(91,17,17,0.88)] transition-colors hover:bg-white ${
+                  isSelfProfileTab
+                    ? 'px-3 py-2 text-sm'
+                    : 'px-2.5 py-1.5 text-[0.72rem]'
+                }`}
               >
                 닫기
               </button>
             </div>
           </div>
 
-          <div className="max-h-[calc(68dvh-1rem)] overflow-y-auto px-4 pb-4 pt-4 sm:max-h-[calc(100dvh-10rem)] sm:px-6 sm:pb-5 sm:pt-5">
-            {selectedTarget?.kind === 'self' ? (
+          <div
+            className={`overflow-y-auto ${
+              isSelfProfileTab
+                ? 'max-h-[calc(68dvh-1rem)] px-4 pb-4 pt-4 sm:max-h-[calc(100dvh-10rem)] sm:px-6 sm:pb-5 sm:pt-5'
+                : 'max-h-[52dvh] px-3.5 pb-3.5 pt-3 md:max-h-[60dvh]'
+            }`}
+          >
+            {isSelfProfileTab ? (
               <div className="space-y-5">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.26em] text-[rgba(123,42,42,0.48)]">
@@ -2115,43 +2144,42 @@ export default function BioVillageLanding() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-5">
-                <div className="rounded-[1.5rem] border border-[rgba(188,51,51,0.14)] bg-white/74 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-[rgba(120,38,38,0.5)]">
+              <div className="space-y-3">
+                <div className="rounded-[1.1rem] border border-[rgba(188,51,51,0.14)] bg-white/74 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(120,38,38,0.5)]">
                     note
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-[rgba(70,16,16,0.92)]">
+                  <p className="mt-2 text-[0.78rem] leading-relaxed text-[rgba(70,16,16,0.92)]">
                     {selectedActor.profile.bio}
                   </p>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-[1.4rem] border border-[rgba(188,51,51,0.14)] bg-white/74 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-[rgba(120,38,38,0.5)]">
+                <div className="grid gap-2">
+                  <div className="rounded-[1rem] border border-[rgba(188,51,51,0.14)] bg-white/74 p-3">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(120,38,38,0.5)]">
                       interests
                     </p>
-                    <p className="mt-3 text-sm text-[rgba(70,16,16,0.92)]">
+                    <p className="mt-2 text-[0.76rem] text-[rgba(70,16,16,0.92)]">
                       {selectedActor.profile.interests}
                     </p>
                   </div>
 
-                  <div className="rounded-[1.4rem] border border-[rgba(188,51,51,0.14)] bg-white/74 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-[rgba(120,38,38,0.5)]">
+                  <div className="rounded-[1rem] border border-[rgba(188,51,51,0.14)] bg-white/74 p-3">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(120,38,38,0.5)]">
                       mbti
                     </p>
-                    <p className="mt-3 text-sm text-[rgba(70,16,16,0.92)]">
+                    <p className="mt-2 text-[0.76rem] text-[rgba(70,16,16,0.92)]">
                       {selectedActor.profile.mbti}
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-[1.45rem] border border-[rgba(188,51,51,0.14)] bg-white/72 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-[rgba(120,38,38,0.5)]">
+                <div className="rounded-[1rem] border border-[rgba(188,51,51,0.14)] bg-white/72 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[rgba(120,38,38,0.5)]">
                     profile signal
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-[rgba(86,22,22,0.74)]">
-                    이 프로필은 실시간 presence로 떠 있는 실제 접속자 기록이다.
-                    채팅 훅 누르면 랜덤 채팅 모달로 바로 넘어간다.
+                  <p className="mt-2 text-[0.74rem] leading-relaxed text-[rgba(86,22,22,0.74)]">
+                    실시간 접속 중인 상대 기록이다.
                   </p>
                 </div>
 
@@ -2167,18 +2195,18 @@ export default function BioVillageLanding() {
                       })
                     );
                   }}
-                  className="w-full rounded-[1.45rem] border border-[rgba(188,51,51,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,236,242,0.92))] px-5 py-4 text-left shadow-[0_16px_40px_rgba(125,25,25,0.12)] transition hover:translate-y-[-1px]"
+                  className="w-full rounded-[1.1rem] border border-[rgba(188,51,51,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,236,242,0.92))] px-3.5 py-3 text-left shadow-[0_16px_40px_rgba(125,25,25,0.12)] transition hover:translate-y-[-1px]"
                 >
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-[rgba(79,14,14,0.94)]">
+                      <p className="text-[0.82rem] font-semibold text-[rgba(79,14,14,0.94)]">
                         채팅 걸기 💬
                       </p>
-                      <p className="mt-1 text-xs text-[rgba(101,32,32,0.62)]">
-                        {selectedActor.label} 기준으로 랜덤 채팅 탭을 띄운다.
+                      <p className="mt-1 text-[0.66rem] text-[rgba(101,32,32,0.62)]">
+                        {selectedActor.label} 채팅 탭 열기
                       </p>
                     </div>
-                    <div className="rounded-full border border-[rgba(188,51,51,0.16)] bg-[rgba(255,255,255,0.74)] px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[rgba(120,24,24,0.72)]">
+                    <div className="rounded-full border border-[rgba(188,51,51,0.16)] bg-[rgba(255,255,255,0.74)] px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-[rgba(120,24,24,0.72)]">
                       hook
                     </div>
                   </div>
