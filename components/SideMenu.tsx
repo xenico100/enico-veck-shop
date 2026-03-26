@@ -9,6 +9,7 @@ interface SideMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onCartClick?: () => void;
+  onDatingClick?: () => void;
   onLoginClick?: () => void;
   onMyPageClick?: () => void;
 }
@@ -16,6 +17,7 @@ interface SideMenuProps {
 const menuItems = [
   { label: 'Home', href: '#home' },
   { label: 'About', href: '#about' },
+  { label: 'Dating', action: 'dating' as const },
   { label: 'Goods', href: '#services' },
   { label: 'Studio', href: '#studio' },
   { label: 'Community', href: '#community' }
@@ -25,6 +27,7 @@ export default function SideMenu({
   isOpen,
   onClose,
   onCartClick,
+  onDatingClick,
   onLoginClick,
   onMyPageClick
 }: SideMenuProps) {
@@ -49,6 +52,11 @@ export default function SideMenu({
 
   const handleLoginClick = () => {
     onLoginClick?.();
+    onClose();
+  };
+
+  const handleDatingClick = () => {
+    onDatingClick?.();
     onClose();
   };
 
@@ -101,13 +109,23 @@ export default function SideMenu({
           <ul className="m-0 list-none space-y-2 p-0">
             {menuItems.map((item) => (
               <li key={item.label}>
-                <a
-                  href={item.href}
-                  onClick={onClose}
-                  className="block px-1 py-2.5 text-base font-medium text-stone-800 no-underline transition hover:text-stone-950"
-                >
-                  {item.label}
-                </a>
+                {'action' in item ? (
+                  <button
+                    type="button"
+                    onClick={handleDatingClick}
+                    className="block w-full px-1 py-2.5 text-left text-base font-medium text-stone-800 transition hover:text-stone-950"
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <a
+                    href={item.href}
+                    onClick={onClose}
+                    className="block px-1 py-2.5 text-base font-medium text-stone-800 no-underline transition hover:text-stone-950"
+                  >
+                    {item.label}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
@@ -136,7 +154,9 @@ export default function SideMenu({
                   <p className="break-words text-sm leading-snug text-stone-900">
                     {user?.name ?? 'User'}
                   </p>
-                  <p className="break-all text-xs text-stone-500">{user?.email ?? ''}</p>
+                  <p className="break-all text-xs text-stone-500">
+                    {user?.email ?? ''}
+                  </p>
                 </div>
                 <button
                   onClick={handleLogout}

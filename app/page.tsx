@@ -39,6 +39,9 @@ const MyPageModal = dynamic(() => import('../components/MyPageModal'), {
 const CartModal = dynamic(() => import('../components/CartModal'), {
   ssr: false
 });
+const DatingModal = dynamic(() => import('../components/DatingModal'), {
+  ssr: false
+});
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -51,6 +54,7 @@ export default function LandingPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [myPageOpen, setMyPageOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [datingOpen, setDatingOpen] = useState(false);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
   const openCart = () => setCartOpen(true);
@@ -74,6 +78,7 @@ export default function LandingPage() {
           isOpen={isMenuOpen}
           onClose={() => setIsMenuOpen(false)}
           onCartClick={openCart}
+          onDatingClick={() => setDatingOpen(true)}
           onLoginClick={() => {
             setAuthMode('login');
             setAuthError(null);
@@ -152,6 +157,9 @@ export default function LandingPage() {
       ) : null}
       {cartOpen ? (
         <CartModal open={cartOpen} onOpenChange={setCartOpen} />
+      ) : null}
+      {datingOpen ? (
+        <DatingModal open={datingOpen} onOpenChange={setDatingOpen} />
       ) : null}
     </main>
   );
