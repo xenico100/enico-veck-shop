@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
 import Header from '../components/Header';
@@ -43,6 +43,11 @@ const DatingModal = dynamic(() => import('../components/DatingModal'), {
   ssr: false
 });
 
+type DatingHookDetail = {
+  id?: string;
+  label?: string;
+};
+
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
@@ -55,6 +60,7 @@ export default function LandingPage() {
   const [myPageOpen, setMyPageOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [datingOpen, setDatingOpen] = useState(false);
+  const [datingHookLabel, setDatingHookLabel] = useState<string | null>(null);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
   const openCart = () => setCartOpen(true);
@@ -63,6 +69,22 @@ export default function LandingPage() {
     setHasOpenedMenu(true);
     setIsMenuOpen(true);
   };
+
+  useEffect(() => {
+    const handleDatingHook = (event: Event) => {
+      const detail = (event as CustomEvent<DatingHookDetail>).detail;
+      setDatingHookLabel(
+        typeof detail?.label === 'string' && detail.label.trim()
+          ? detail.label.trim()
+          : null
+      );
+      setDatingOpen(true);
+    };
+
+    window.addEventListener('dating:open-modal', handleDatingHook);
+    return () =>
+      window.removeEventListener('dating:open-modal', handleDatingHook);
+  }, []);
 
   return (
     <main className="relative min-h-screen overflow-x-hidden text-white">
@@ -73,7 +95,10 @@ export default function LandingPage() {
           isOpen={isMenuOpen}
           onClose={() => setIsMenuOpen(false)}
           onCartClick={openCart}
-          onDatingClick={() => setDatingOpen(true)}
+          onDatingClick={() => {
+            setDatingHookLabel(null);
+            setDatingOpen(true);
+          }}
           onLoginClick={() => {
             setAuthMode('login');
             setAuthError(null);
@@ -154,7 +179,16 @@ export default function LandingPage() {
         <CartModal open={cartOpen} onOpenChange={setCartOpen} />
       ) : null}
       {datingOpen ? (
-        <DatingModal open={datingOpen} onOpenChange={setDatingOpen} />
+        <DatingModal
+          open={datingOpen}
+          hookLabel={datingHookLabel}
+          onOpenChange={(nextOpen) => {
+            setDatingOpen(nextOpen);
+            if (!nextOpen) {
+              setDatingHookLabel(null);
+            }
+          }}
+        />
       ) : null}
     </main>
   );

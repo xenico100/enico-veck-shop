@@ -18,6 +18,7 @@ import ActionButton from '@/components/ui/ActionButton';
 import { createClient } from '@/utils/supabase/client';
 
 type Props = {
+  hookLabel?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -164,7 +165,11 @@ const createSystemMessage = (body: string): ChatMessage => ({
   system: true
 });
 
-export default function DatingModal({ open, onOpenChange }: Props) {
+export default function DatingModal({
+  open,
+  onOpenChange,
+  hookLabel = null
+}: Props) {
   const { user } = useAuth();
   const supabase = useMemo(() => {
     try {
@@ -564,6 +569,12 @@ export default function DatingModal({ open, onOpenChange }: Props) {
                 메뉴에서 바로 꺼내 쓰는 1:1 랜덤 채팅 서비스. 로그인 없이도
                 게스트 입장 가능하고, 매칭은 실시간으로 붙는다.
               </p>
+              {hookLabel ? (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#ff9d7b]/30 bg-[rgba(255,157,123,0.14)] px-3 py-1.5 text-xs text-[#ffd9cb]">
+                  <HeartHandshake className="h-3.5 w-3.5" />
+                  {hookLabel} 프로필에서 채팅 훅 타고 들어옴
+                </div>
+              ) : null}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <PillTab
                   active={activeTab === 'random-chat'}
