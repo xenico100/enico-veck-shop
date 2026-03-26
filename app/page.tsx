@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 import Header from '../components/Header';
 import MainContent from '../components/MainContent';
 import AboutSection from '../components/AboutSection';
-import BioNebulaBackdrop from '../components/BioNebulaBackdrop';
 import { useAuth } from './context/AuthContext';
 
 const SideMenu = dynamic(() => import('../components/SideMenu'));
@@ -66,8 +65,7 @@ export default function LandingPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-white">
-      <BioNebulaBackdrop />
+    <main className="relative min-h-screen overflow-x-hidden text-white">
       <Header onMenuClick={openMenu} />
 
       {hasOpenedMenu ? (
