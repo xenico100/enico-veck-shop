@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { useAuth } from '@/app/context/AuthContext';
@@ -11,8 +11,10 @@ const MOBILE_WORLD_WIDTH = 1480;
 const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
+const REMOTE_PLAYER_SPEED = 7.2;
+const REMOTE_SYNC_INTERVAL_MS = 120;
+const REMOTE_SNAP_DISTANCE = 90;
 const PLAYER_MARGIN = 40;
-const PLAYER_SPAWN_X = 640;
 const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
 const PARTICIPANT_SESSION_STORAGE_KEY = 'bio-village-participant-session-v1';
@@ -417,6 +419,44 @@ const getWorldWidth = (viewportWidth: number) =>
     ? MOBILE_WORLD_WIDTH
     : Math.max(viewportWidth, DESKTOP_MIN_WORLD_WIDTH);
 
+const getSpawnPoint = (worldWidth: number) => ({
+  x: clamp(
+    Math.round(worldWidth * 0.5),
+    PLAYER_MARGIN,
+    Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
+  ),
+  y: PLAYER_SPAWN_Y
+});
+
+const getInitialCameraPosition = (
+  worldWidth: number,
+  viewportWidth: number,
+  viewportHeight: number
+) => {
+  const spawn = getSpawnPoint(worldWidth);
+
+  return {
+    x: clamp(
+      spawn.x - viewportWidth / 2,
+      0,
+      Math.max(0, worldWidth - viewportWidth)
+    ),
+    y: clamp(
+      spawn.y - viewportHeight / 2,
+      0,
+      Math.max(0, WORLD_HEIGHT - viewportHeight)
+    )
+  };
+};
+
+const applyWorldTransform = (
+  worldLayer: HTMLDivElement | null,
+  cameraX: number
+) => {
+  if (!worldLayer) return;
+  worldLayer.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
+};
+
 const createDefaultProfile = (name: string): AvatarProfile => ({
   bio: '밤에 깨어 있고, 말보다 무드를 오래 남기는 타입.',
   interests: '도트게임 / 전시 / 사운드 / 패션',
@@ -452,6 +492,23 @@ const payloadToProfile = (
     tagline: payload.tagline?.trim() || defaults.tagline
   } satisfies AvatarProfile;
 };
+
+const buildPresencePayload = (
+  participantKey: string,
+  player: ActorState,
+  userId: string | null | undefined
+) => ({
+  key: participantKey,
+  label: player.label,
+  x: player.x,
+  y: player.y,
+  dir: player.dir,
+  palette: player.palette,
+  preset: player.preset,
+  profile: player.profile,
+  userId: userId ?? null,
+  updatedAt: new Date().toISOString()
+});
 
 const createCells = (): CellState[] =>
   Array.from({ length: 180 }).map(() => ({
@@ -688,7 +745,9 @@ const buildRemoteActorsFromPresence = (
       };
 
       const nextX = clamp(
-        typeof meta.x === 'number' ? meta.x : (previous?.x ?? PLAYER_SPAWN_X),
+        typeof meta.x === 'number'
+          ? meta.x
+          : (previous?.x ?? getSpawnPoint(worldWidth).x),
         PLAYER_MARGIN,
         Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
       );
@@ -706,13 +765,23 @@ const buildRemoteActorsFromPresence = (
         palette,
         preset,
         profile,
-        speed: 2.25,
+        speed: REMOTE_PLAYER_SPEED,
         targetX: nextX,
         targetY: nextY,
         vx: previous?.vx ?? 0,
         vy: previous?.vy ?? 0,
-        x: previous?.x ?? nextX,
-        y: previous?.y ?? nextY
+        x:
+          previous &&
+          Math.hypot(previous.x - nextX, previous.y - nextY) <
+            REMOTE_SNAP_DISTANCE
+            ? previous.x
+            : nextX,
+        y:
+          previous &&
+          Math.hypot(previous.x - nextX, previous.y - nextY) <
+            REMOTE_SNAP_DISTANCE
+            ? previous.y
+            : nextY
       } satisfies ActorState;
     })
     .sort((left, right) => left.label.localeCompare(right.label));
@@ -741,6 +810,7 @@ export default function BioVillageLanding() {
   const cameraYRef = useRef(0);
   const worldWidthRef = useRef(DESKTOP_MIN_WORLD_WIDTH);
   const lastPresenceSyncRef = useRef(0);
+  const initialViewportAlignedRef = useRef(false);
   const ignoreClickUntilRef = useRef(0);
   const touchStateRef = useRef<{
     moved: boolean;
@@ -767,7 +837,6 @@ export default function BioVillageLanding() {
   });
 
   const [scrollY, setScrollY] = useState(0);
-  const [viewportWidth, setViewportWidth] = useState(1280);
   const [worldWidth, setWorldWidth] = useState(DESKTOP_MIN_WORLD_WIDTH);
   const [participantKey, setParticipantKey] = useState<string | null>(null);
   const [appearance, setAppearance] = useState<AppearanceState>({
@@ -789,11 +858,21 @@ export default function BioVillageLanding() {
     Array<{ id: string; label: string; palette: PaletteKey }>
   >([]);
 
-  const isMobile = viewportWidth < 768;
   const worldActive = scrollY < WORLD_HEIGHT - 96;
 
   selectedTargetRef.current = selectedTarget;
   participantKeyRef.current = participantKey;
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined' || !window.history) return;
+
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -952,18 +1031,9 @@ export default function BioVillageLanding() {
 
     const trackSelf = async () => {
       const player = playerRef.current;
-      await channel.track({
-        key: participantKey,
-        label: player.label,
-        x: player.x,
-        y: player.y,
-        dir: player.dir,
-        palette: player.palette,
-        preset: player.preset,
-        profile: player.profile,
-        userId: user?.id ?? null,
-        updatedAt: new Date().toISOString()
-      });
+      await channel.track(
+        buildPresencePayload(participantKey, player, user?.id ?? null)
+      );
     };
 
     channel
@@ -999,7 +1069,6 @@ export default function BioVillageLanding() {
       const nextWorldWidth = getWorldWidth(window.innerWidth);
       worldWidthRef.current = nextWorldWidth;
       setWorldWidth(nextWorldWidth);
-      setViewportWidth(window.innerWidth);
 
       canvas.width = Math.floor(window.innerWidth * dpr);
       canvas.height = Math.floor(window.innerHeight * dpr);
@@ -1009,11 +1078,13 @@ export default function BioVillageLanding() {
 
       const player = playerRef.current;
       if (player.x === 0) {
+        const spawn = getSpawnPoint(nextWorldWidth);
         player.x = clamp(
-          PLAYER_SPAWN_X,
+          spawn.x,
           PLAYER_MARGIN,
           Math.max(PLAYER_MARGIN, nextWorldWidth - PLAYER_MARGIN)
         );
+        player.y = spawn.y;
       } else {
         player.x = clamp(
           player.x,
@@ -1024,18 +1095,32 @@ export default function BioVillageLanding() {
 
       player.y = clamp(player.y || PLAYER_SPAWN_Y, 120, WORLD_HEIGHT - 100);
 
-      const maxHorizontalCamera = Math.max(
-        0,
-        nextWorldWidth - window.innerWidth
-      );
-      cameraXRef.current = clamp(
-        player.x - window.innerWidth / 2,
-        0,
-        maxHorizontalCamera
-      );
-      if (worldLayerRef.current) {
-        worldLayerRef.current.style.transform = `translate3d(${-cameraXRef.current}px, 0, 0)`;
+      if (!initialViewportAlignedRef.current) {
+        const initialCamera = getInitialCameraPosition(
+          nextWorldWidth,
+          window.innerWidth,
+          window.innerHeight
+        );
+
+        cameraXRef.current = initialCamera.x;
+        cameraYRef.current = initialCamera.y;
+        initialViewportAlignedRef.current = true;
+        setScrollY(initialCamera.y);
+        window.scrollTo(0, initialCamera.y);
+      } else {
+        const maxHorizontalCamera = Math.max(
+          0,
+          nextWorldWidth - window.innerWidth
+        );
+        cameraXRef.current = clamp(cameraXRef.current, 0, maxHorizontalCamera);
+        cameraYRef.current = clamp(
+          cameraYRef.current,
+          0,
+          Math.max(0, WORLD_HEIGHT - window.innerHeight)
+        );
       }
+
+      applyWorldTransform(worldLayerRef.current, cameraXRef.current);
 
       remoteActorsRef.current = remoteActorsRef.current.map((actor) => ({
         ...actor,
@@ -1204,23 +1289,12 @@ export default function BioVillageLanding() {
       if (!channel || !key) return;
 
       const now = Date.now();
-      if (now - lastPresenceSyncRef.current < 240) return;
+      if (now - lastPresenceSyncRef.current < REMOTE_SYNC_INTERVAL_MS) return;
       lastPresenceSyncRef.current = now;
 
       const player = playerRef.current;
       void channel
-        .track({
-          key,
-          label: player.label,
-          x: player.x,
-          y: player.y,
-          dir: player.dir,
-          palette: player.palette,
-          preset: player.preset,
-          profile: player.profile,
-          userId: user?.id ?? null,
-          updatedAt: new Date().toISOString()
-        })
+        .track(buildPresencePayload(key, player, user?.id ?? null))
         .catch(() => undefined);
     };
 
@@ -1364,10 +1438,7 @@ export default function BioVillageLanding() {
         maxHorizontalCamera
       );
       cameraXRef.current += (horizontalTarget - cameraXRef.current) * 0.14;
-
-      if (worldLayerRef.current) {
-        worldLayerRef.current.style.transform = `translate3d(${-cameraXRef.current}px, 0, 0)`;
-      }
+      applyWorldTransform(worldLayerRef.current, cameraXRef.current);
     };
 
     const drawVein = (
