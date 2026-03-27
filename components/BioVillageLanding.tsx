@@ -367,11 +367,11 @@ const facilityNodes: FacilityNode[] = [
     bodyClassName: 'village-atrium-card',
     caption: 'LOBBY / MATCH CORE',
     id: 'atrium-heart',
-    left: '50%',
+    left: '52%',
     subtitle: '중앙 접속 심장. 매칭 신호와 유저 흐름이 모이는 코어.',
     title: 'Clinical Atrium',
-    top: 360,
-    width: 240
+    top: 250,
+    width: 232
   },
   {
     bodyClassName: 'village-node-card',
@@ -429,20 +429,20 @@ const villageShopNodes: VillageShopNode[] = [
   {
     hint: '더블클릭: 멤버십 영상',
     id: 'studio-access-shop',
-    left: '63%',
+    left: '74%',
     tab: 'studio',
     title: 'Tape Garden Booth',
-    top: 680,
-    width: 220
+    top: 790,
+    width: 214
   },
   {
     hint: '더블클릭: 굿즈 판매',
     id: 'goods-access-shop',
-    left: '37.5%',
+    left: '28%',
     tab: 'goods',
     title: 'Goods Counter',
-    top: 630,
-    width: 250
+    top: 745,
+    width: 236
   },
   {
     hint: '더블클릭: 시스템 다이어그램',
@@ -474,18 +474,18 @@ const villagePathMarkers: VillagePathMarker[] = [
   {
     id: 'studio-path-marker',
     label: '멤버십 영상 가는 길',
-    left: '58.5%',
-    rotation: 12,
-    top: 632,
-    width: 232
+    left: '67%',
+    rotation: 16,
+    top: 705,
+    width: 238
   },
   {
     id: 'goods-path-marker',
     label: '굿즈 상점 가는 길',
-    left: '41.5%',
-    rotation: -12,
-    top: 612,
-    width: 206
+    left: '34%',
+    rotation: -16,
+    top: 680,
+    width: 214
   },
   {
     id: 'diagram-path-marker',
