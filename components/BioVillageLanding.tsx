@@ -1423,7 +1423,27 @@ export default function BioVillageLanding() {
     })();
   }, []);
 
-  const openVillageShop = (tab: VillageShopTab) => {
+  const openGoodsCommercePortal = () => {
+    setSelectedTarget(null);
+    setActiveVillageShopTab(null);
+
+    const servicesSection = document.getElementById('services');
+    servicesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('cart:open-modal'));
+    }, 260);
+  };
+
+  const openVillageShop = (
+    tab: VillageShopTab,
+    structureId?: string | null
+  ) => {
+    if (structureId === 'goods-access-shop') {
+      openGoodsCommercePortal();
+      return;
+    }
+
     setSelectedTarget(null);
     setActiveVillageShopTab(tab);
   };
@@ -1452,7 +1472,7 @@ export default function BioVillageLanding() {
       now - previousTap.time < 320
     ) {
       lastStructureTapRef.current = null;
-      openVillageShop(tab);
+      openVillageShop(tab, structureId);
       return;
     }
 
@@ -2956,7 +2976,7 @@ export default function BioVillageLanding() {
                 top: `${node.top}px`,
                 width: node.width ? `${node.width}px` : undefined
               }}
-              onDoubleClick={() => openVillageShop(node.tab)}
+              onDoubleClick={() => openVillageShop(node.tab, node.id)}
               onTouchEnd={(event) =>
                 handleStructureTouchEnd(event, node.id, node.tab)
               }
@@ -2997,7 +3017,7 @@ export default function BioVillageLanding() {
                   top: `${shop.top}px`,
                   width: `${shop.width}px`
                 }}
-                onDoubleClick={() => openVillageShop(shop.tab)}
+                onDoubleClick={() => openVillageShop(shop.tab, shop.id)}
                 onTouchEnd={(event) =>
                   handleStructureTouchEnd(event, shop.id, shop.tab)
                 }
