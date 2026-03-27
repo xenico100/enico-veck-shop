@@ -442,7 +442,7 @@ const villageShopNodes: VillageShopNode[] = [
     tab: 'goods',
     title: 'Goods Counter',
     top: 560,
-    width: 248
+    width: 300
   },
   {
     hint: '더블클릭: 시스템 다이어그램',
@@ -1995,6 +1995,7 @@ export default function BioVillageLanding() {
           box-shadow: none;
           padding: 0;
           overflow: visible;
+          filter: saturate(0.94) contrast(1.02);
         }
 
         .village-castle-shop::before {
@@ -2010,27 +2011,49 @@ export default function BioVillageLanding() {
         .village-castle-shell {
           position: relative;
           width: 100%;
-          padding-top: 0.25rem;
+          padding-top: 0.15rem;
+        }
+
+        .village-castle-shell::after {
+          content: '';
+          position: absolute;
+          left: 50%;
+          bottom: 0.45rem;
+          z-index: 0;
+          width: 74%;
+          height: 1.3rem;
+          transform: translateX(-50%);
+          border-radius: 999px;
+          background: radial-gradient(
+            circle,
+            rgba(61, 22, 22, 0.34) 0%,
+            rgba(61, 22, 22, 0.18) 46%,
+            rgba(61, 22, 22, 0) 100%
+          );
+          filter: blur(9px);
         }
 
         .village-castle-image {
+          position: relative;
+          z-index: 1;
           width: 100%;
           height: auto;
           display: block;
           image-rendering: pixelated;
           filter:
-            drop-shadow(0 18px 20px rgba(76, 24, 24, 0.14))
-            drop-shadow(0 4px 8px rgba(34, 8, 8, 0.18));
+            drop-shadow(0 20px 20px rgba(76, 24, 24, 0.1))
+            drop-shadow(0 5px 8px rgba(34, 8, 8, 0.12));
           user-select: none;
           -webkit-user-drag: none;
+          mix-blend-mode: multiply;
         }
 
         .village-castle-sign {
           position: absolute;
-          left: 50%;
-          top: 0;
-          z-index: 2;
-          transform: translate(-50%, -72%) rotate(-2deg);
+          left: 58%;
+          top: 0.8rem;
+          z-index: 3;
+          transform: translate(-50%, -88%) rotate(3deg);
           border: 1px solid rgba(120, 44, 44, 0.32);
           border-radius: 999px;
           background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,232,232,0.92));
@@ -2044,38 +2067,6 @@ export default function BioVillageLanding() {
           letter-spacing: 0.12em;
           color: rgba(99, 22, 22, 0.92);
           white-space: nowrap;
-        }
-
-        .village-castle-copy {
-          position: absolute;
-          left: 50%;
-          bottom: 0.4rem;
-          z-index: 2;
-          width: calc(100% - 1.2rem);
-          transform: translateX(-50%);
-          border-radius: 1rem;
-          background: linear-gradient(180deg, rgba(28,14,14,0.86), rgba(60,20,20,0.8));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.08),
-            0 10px 24px rgba(43, 10, 10, 0.18);
-          padding: 0.5rem 0.65rem 0.55rem;
-          text-align: center;
-        }
-
-        .village-castle-copy strong {
-          display: block;
-          font-size: 0.74rem;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: rgba(255, 221, 204, 0.9);
-        }
-
-        .village-castle-copy span {
-          display: block;
-          margin-top: 0.2rem;
-          font-size: 0.66rem;
-          line-height: 1.35;
-          color: rgba(255, 235, 235, 0.78);
         }
 
         .village-shop-card::before {
@@ -2163,19 +2154,6 @@ export default function BioVillageLanding() {
           .village-castle-sign {
             font-size: 0.78rem;
             padding: 0.34rem 0.8rem;
-          }
-
-          .village-castle-copy {
-            width: calc(100% - 1rem);
-            padding: 0.42rem 0.52rem 0.48rem;
-          }
-
-          .village-castle-copy strong {
-            font-size: 0.66rem;
-          }
-
-          .village-castle-copy span {
-            font-size: 0.6rem;
           }
 
           .village-floor-path {
@@ -2314,15 +2292,11 @@ export default function BioVillageLanding() {
                   <div className="village-castle-shell">
                     <div className="village-castle-sign">굿즈샵</div>
                     <img
-                      src="/images/bio-village/goods-castle-shop.png"
+                      src="/images/bio-village/goods-castle-shop-cutout.png"
                       alt="굿즈샵 성"
                       className="village-castle-image"
                       draggable={false}
                     />
-                    <div className="village-castle-copy">
-                      <strong>{shop.title}</strong>
-                      <span>{shop.hint}</span>
-                    </div>
                   </div>
                 ) : (
                   <>
