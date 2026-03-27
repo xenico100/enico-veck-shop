@@ -13,7 +13,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '@/app/context/AuthContext';
 import { createClient } from '@/utils/supabase/client';
 
-const WORLD_HEIGHT = 3500;
+const WORLD_HEIGHT = 4300;
 const MOBILE_WORLD_WIDTH = 1480;
 const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
@@ -511,6 +511,54 @@ const goodsShopVariants = [
   }
 ] as const;
 
+const apparelWorkflowNodes = [
+  {
+    align: 'center',
+    chip: 'FABRIC LINE',
+    color: 'rgba(194, 78, 78, 0.92)',
+    id: 'apparel-root',
+    label: '의류제작 시작',
+    x: 50,
+    y: 12
+  },
+  {
+    align: 'left',
+    chip: 'RAW ORDER',
+    color: 'rgba(205, 115, 65, 0.92)',
+    id: 'apparel-source',
+    label: '원부자재 발주',
+    x: 23,
+    y: 30
+  },
+  {
+    align: 'right',
+    chip: 'CLO SYSTEM',
+    color: 'rgba(177, 119, 52, 0.9)',
+    id: 'apparel-clo',
+    label: 'CLO 3D 설계',
+    x: 77,
+    y: 43
+  },
+  {
+    align: 'left',
+    chip: 'ARCHIVE',
+    color: 'rgba(157, 110, 58, 0.9)',
+    id: 'apparel-data',
+    label: '데이터 저장',
+    x: 24,
+    y: 58
+  },
+  {
+    align: 'right',
+    chip: 'HANDMADE',
+    color: 'rgba(161, 76, 54, 0.92)',
+    id: 'apparel-final',
+    label: '실물 제작',
+    x: 78,
+    y: 74
+  }
+] as const;
+
 const villageShopTabMeta: Record<
   VillageShopTab,
   {
@@ -591,7 +639,8 @@ const veinEdges: Array<[string, string, string, number]> = [
   ['profile-lab', 'memory-ward', '#8a2020', 9],
   ['signal-lounge', 'resonance-grid', '#8d2d54', 9],
   ['memory-ward', 'deep-core', '#8a2020', 11],
-  ['resonance-grid', 'deep-core', '#8d2d54', 11]
+  ['resonance-grid', 'deep-core', '#8d2d54', 11],
+  ['deep-core', 'apparel-tissue-map', '#c65a34', 12]
 ];
 
 const clamp = (value: number, min: number, max: number) =>
@@ -2596,6 +2645,143 @@ export default function BioVillageLanding() {
             0 20px 42px rgba(130, 24, 24, 0.18);
         }
 
+        .workflow-tissue-map {
+          position: absolute;
+          z-index: 16;
+          width: min(820px, calc(100vw - 2.8rem));
+          transform: translate(-50%, -50%);
+          border: 1px solid rgba(178, 54, 54, 0.18);
+          border-radius: 44px 60px 42px 64px / 38px 54px 36px 58px;
+          background:
+            radial-gradient(circle at top, rgba(255,255,255,0.94), rgba(255,240,240,0.78)),
+            linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,246,246,0.64));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.88),
+            0 24px 70px rgba(121, 29, 29, 0.1),
+            0 0 0 14px rgba(255, 176, 176, 0.06);
+          backdrop-filter: blur(10px);
+          overflow: hidden;
+          pointer-events: none;
+        }
+
+        .workflow-tissue-map::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 18% 22%, rgba(191, 89, 89, 0.08), transparent 18%),
+            radial-gradient(circle at 82% 34%, rgba(220, 132, 79, 0.08), transparent 16%),
+            radial-gradient(circle at 28% 82%, rgba(154, 92, 51, 0.07), transparent 18%),
+            repeating-linear-gradient(
+              0deg,
+              rgba(125, 46, 46, 0.012) 0px,
+              rgba(125, 46, 46, 0.012) 1px,
+              transparent 1px,
+              transparent 6px
+            );
+          mix-blend-mode: multiply;
+          opacity: 0.82;
+          pointer-events: none;
+        }
+
+        .workflow-tissue-inner {
+          position: relative;
+          z-index: 1;
+          padding: 1.4rem 1.2rem 1.8rem;
+        }
+
+        .workflow-tissue-stage {
+          position: relative;
+          min-height: 760px;
+          margin-top: 1rem;
+          border-radius: 30px 38px 28px 40px / 32px 28px 34px 30px;
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.52), rgba(253,244,244,0.34));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.78);
+          overflow: hidden;
+        }
+
+        .workflow-tissue-svg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .workflow-node {
+          position: absolute;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          gap: 0.58rem;
+          align-items: center;
+          width: 11rem;
+          transform: translate(-50%, -50%);
+          text-align: center;
+        }
+
+        .workflow-node[data-align='left'] {
+          align-items: flex-end;
+          text-align: right;
+        }
+
+        .workflow-node[data-align='right'] {
+          align-items: flex-start;
+          text-align: left;
+        }
+
+        .workflow-node-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          border-radius: 999px;
+          border: 1px solid rgba(186, 69, 69, 0.18);
+          background: rgba(255,255,255,0.7);
+          padding: 0.4rem 0.75rem;
+          font-size: 0.58rem;
+          letter-spacing: 0.22em;
+          text-transform: uppercase;
+          color: rgba(124, 46, 46, 0.72);
+        }
+
+        .workflow-node-label {
+          font-family: var(--font-display-kr);
+          font-size: 1rem;
+          font-weight: 700;
+          color: rgba(74, 14, 14, 0.94);
+          text-shadow: 0 1px 0 rgba(255,255,255,0.72);
+        }
+
+        .workflow-node-core {
+          position: relative;
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: 2px solid currentColor;
+          background: rgba(255,255,255,0.74);
+          box-shadow:
+            0 0 0 8px rgba(255,255,255,0.16),
+            0 0 24px currentColor;
+          color: inherit;
+        }
+
+        .workflow-node-core::before,
+        .workflow-node-core::after {
+          content: '';
+          position: absolute;
+          inset: 7px;
+          border-radius: 999px;
+          border: 1px solid currentColor;
+          opacity: 0.6;
+        }
+
+        .workflow-node-core::after {
+          inset: 13px;
+          background: currentColor;
+          border: none;
+          opacity: 0.84;
+        }
+
         @media (max-width: 767px) {
           .village-node-card {
             min-height: 140px;
@@ -2615,6 +2801,33 @@ export default function BioVillageLanding() {
           .village-shop-card {
             border-radius: 1rem;
             padding: 0.82rem 0.85rem;
+          }
+
+          .workflow-tissue-map {
+            width: min(720px, calc(100vw - 1.35rem));
+            border-radius: 30px 38px 28px 40px / 34px 30px 36px 28px;
+          }
+
+          .workflow-tissue-inner {
+            padding: 1rem 0.95rem 1.15rem;
+          }
+
+          .workflow-tissue-stage {
+            min-height: 640px;
+          }
+
+          .workflow-node {
+            width: 8.1rem;
+          }
+
+          .workflow-node-label {
+            font-size: 0.81rem;
+          }
+
+          .workflow-node-chip {
+            padding: 0.32rem 0.55rem;
+            font-size: 0.5rem;
+            letter-spacing: 0.16em;
           }
 
           .village-castle-sign {
@@ -2667,7 +2880,10 @@ export default function BioVillageLanding() {
         </p>
       </div>
 
-      <div className="relative h-[3500px] w-full overflow-hidden">
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ height: `${WORLD_HEIGHT}px` }}
+      >
         <div
           ref={worldBackdropRef}
           className="pointer-events-none absolute left-0 top-0 z-[6] h-full will-change-transform"
@@ -2681,8 +2897,12 @@ export default function BioVillageLanding() {
         >
           <div className="absolute inset-x-0 top-[820px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-15" />
           <div className="absolute inset-x-0 top-[1670px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-10" />
+          <div className="absolute inset-x-0 top-[3280px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-[0.08]" />
           <div className="pointer-events-none absolute left-0 top-[870px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.4rem] font-black tracking-[0.12em] text-red-100 opacity-30 sm:text-5xl sm:tracking-[0.2em]">
             PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
+          </div>
+          <div className="pointer-events-none absolute left-0 top-[3345px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.15rem] font-black tracking-[0.18em] text-[rgba(181,101,101,0.24)] sm:text-[2.7rem]">
+            APPAREL TISSUE VAULT
           </div>
         </div>
 
@@ -2784,6 +3004,122 @@ export default function BioVillageLanding() {
               </article>
             );
           })}
+
+          <section
+            id="apparel-tissue-map"
+            data-avatar-ui="true"
+            className="workflow-tissue-map"
+            style={{
+              left: '50%',
+              top: '3735px'
+            }}
+          >
+            <div className="workflow-tissue-inner">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
+                WORKFLOW TISSUE MAP
+              </p>
+              <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.1rem] font-semibold text-[rgba(77,14,14,0.94)] sm:text-[1.5rem]">
+                의류 제작 다이어그램
+              </h3>
+              <p className="mt-3 max-w-[32rem] text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
+                원부자재 발주부터 CLO 3D 설계, 데이터 저장, 실물 제작까지 하나의
+                줄기에서 뻗는 제작 조직도를 맵 깊숙한 구역에 이식했다.
+              </p>
+
+              <div className="workflow-tissue-stage">
+                <svg
+                  viewBox="0 0 720 760"
+                  className="workflow-tissue-svg"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient
+                      id="apparelTissueCore"
+                      x1="360"
+                      y1="86"
+                      x2="360"
+                      y2="660"
+                      gradientUnits="userSpaceOnUse"
+                    >
+                      <stop offset="0%" stopColor="rgba(241,205,132,0.82)" />
+                      <stop offset="52%" stopColor="rgba(241,146,96,0.88)" />
+                      <stop offset="100%" stopColor="rgba(219,81,81,0.92)" />
+                    </linearGradient>
+                    <filter
+                      id="apparelTissueGlow"
+                      x="-50%"
+                      y="-50%"
+                      width="200%"
+                      height="200%"
+                    >
+                      <feGaussianBlur stdDeviation="9" />
+                    </filter>
+                  </defs>
+
+                  <path
+                    d="M360 92 L360 660"
+                    stroke="rgba(235,98,98,0.16)"
+                    strokeWidth="36"
+                    strokeLinecap="round"
+                    filter="url(#apparelTissueGlow)"
+                    fill="none"
+                  />
+                  <path
+                    d="M360 92 L360 660"
+                    stroke="url(#apparelTissueCore)"
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                  <path
+                    d="M360 158 C320 184 255 214 176 232"
+                    stroke="rgba(232,176,102,0.82)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                  <path
+                    d="M360 272 C405 290 480 318 546 344"
+                    stroke="rgba(217,164,89,0.8)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                  <path
+                    d="M360 404 C306 426 232 454 178 482"
+                    stroke="rgba(196,140,85,0.82)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                  <path
+                    d="M360 532 C420 556 495 592 552 622"
+                    stroke="rgba(186,102,75,0.86)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                </svg>
+
+                {apparelWorkflowNodes.map((node) => (
+                  <div
+                    key={node.id}
+                    className="workflow-node"
+                    data-align={node.align}
+                    style={{
+                      color: node.color,
+                      left: `${node.x}%`,
+                      top: `${node.y}%`
+                    }}
+                  >
+                    <span className="workflow-node-chip">{node.chip}</span>
+                    <span className="workflow-node-core" />
+                    <p className="workflow-node-label">{node.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
           {poopDrops.map((drop) => (
             <div
