@@ -96,6 +96,15 @@ type VillageShopNode = {
   width: number;
 };
 
+type VillagePathMarker = {
+  id: string;
+  label: string;
+  left: string;
+  top: number;
+  width: number;
+  rotation: number;
+};
+
 type SelectedTarget = { kind: 'remote'; id: string } | { kind: 'self' };
 
 type PresenceStateValue = Record<string, Array<Record<string, unknown>>>;
@@ -420,29 +429,71 @@ const villageShopNodes: VillageShopNode[] = [
   {
     hint: '더블클릭: 멤버십 영상',
     id: 'studio-access-shop',
-    left: '18%',
+    left: '42%',
     tab: 'studio',
-    title: 'Membership Archive',
-    top: 660,
+    title: 'Tape Garden Booth',
+    top: 640,
     width: 216
   },
   {
     hint: '더블클릭: 굿즈 판매',
     id: 'goods-access-shop',
-    left: '82%',
+    left: '58%',
     tab: 'goods',
     title: 'Goods Counter',
-    top: 820,
-    width: 208
+    top: 740,
+    width: 220
   },
   {
     hint: '더블클릭: 시스템 다이어그램',
     id: 'diagram-access-shop',
-    left: '52%',
+    left: '50%',
     tab: 'diagram',
-    title: 'System Kiosk',
-    top: 1540,
-    width: 224
+    title: 'System Shrine',
+    top: 1480,
+    width: 236
+  }
+];
+
+const goodsShopVariants = [
+  {
+    hint: '더블클릭: 복불복 굿즈 진열대',
+    title: 'Lucky Plush Pantry'
+  },
+  {
+    hint: '더블클릭: 랜덤 드랍 굿즈 부스',
+    title: 'Moon Drop Market'
+  },
+  {
+    hint: '더블클릭: 비밀 굿즈 진열소',
+    title: 'Candy Relic Shop'
+  }
+] as const;
+
+const villagePathMarkers: VillagePathMarker[] = [
+  {
+    id: 'studio-path-marker',
+    label: '멤버십 영상 가는 길',
+    left: '44.5%',
+    rotation: -14,
+    top: 592,
+    width: 238
+  },
+  {
+    id: 'goods-path-marker',
+    label: '굿즈 상점 가는 길',
+    left: '55.5%',
+    rotation: 12,
+    top: 690,
+    width: 232
+  },
+  {
+    id: 'diagram-path-marker',
+    label: '시스템 다이어그램 가는 길',
+    left: '50%',
+    rotation: 0,
+    top: 1400,
+    width: 286
   }
 ];
 
@@ -492,6 +543,31 @@ const villageShopTabMeta: Record<
     primaryAction: '멤버십 영상 섹션 열기',
     sectionId: 'studio',
     title: 'Membership Video Access'
+  }
+};
+
+const villageShopVisualMeta: Record<
+  VillageShopTab,
+  {
+    chip: string;
+    glow: string;
+    tone: string;
+  }
+> = {
+  diagram: {
+    chip: 'SYSTEM',
+    glow: 'rgba(87, 120, 255, 0.16)',
+    tone: 'rgba(88, 108, 165, 0.9)'
+  },
+  goods: {
+    chip: 'GOODS',
+    glow: 'rgba(255, 166, 126, 0.2)',
+    tone: 'rgba(167, 84, 41, 0.9)'
+  },
+  studio: {
+    chip: 'VIDEO',
+    glow: 'rgba(215, 126, 255, 0.18)',
+    tone: 'rgba(128, 60, 145, 0.9)'
   }
 };
 
@@ -997,6 +1073,24 @@ export default function BioVillageLanding() {
     ? paletteMap[selectedActor.palette]
     : null;
   const isSelfProfileTab = selectedTarget?.kind === 'self';
+  const goodsShopVariant = useMemo(
+    () =>
+      goodsShopVariants[Math.floor(Math.random() * goodsShopVariants.length)],
+    []
+  );
+  const renderedVillageShopNodes = useMemo(
+    () =>
+      villageShopNodes.map((shop) =>
+        shop.tab === 'goods'
+          ? {
+              ...shop,
+              hint: goodsShopVariant.hint,
+              title: goodsShopVariant.title
+            }
+          : shop
+      ),
+    [goodsShopVariant]
+  );
   const activeVillageShop = activeVillageShopTab
     ? villageShopTabMeta[activeVillageShopTab]
     : null;
@@ -1883,8 +1977,8 @@ export default function BioVillageLanding() {
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.92),
             0 16px 34px rgba(130, 24, 24, 0.12);
-          border-radius: 1.25rem;
-          padding: 0.95rem 1rem;
+          border-radius: 1.4rem 1.15rem 1.6rem 1.2rem;
+          padding: 1rem 1rem 0.95rem;
           cursor: pointer;
           transition:
             transform 180ms ease,
@@ -1893,12 +1987,64 @@ export default function BioVillageLanding() {
           touch-action: manipulation;
         }
 
+        .village-shop-card::before {
+          content: '';
+          position: absolute;
+          inset: 0.6rem 0.7rem auto;
+          height: 0.38rem;
+          border-radius: 999px;
+          background:
+            repeating-linear-gradient(
+              90deg,
+              rgba(255,255,255,0.94),
+              rgba(255,255,255,0.94) 14px,
+              rgba(255,214,214,0.9) 14px,
+              rgba(255,214,214,0.9) 28px
+            );
+          opacity: 0.82;
+        }
+
         .village-shop-card:hover {
           transform: translate(-50%, calc(-50% - 2px));
           border-color: rgba(164, 43, 43, 0.34);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.96),
             0 20px 42px rgba(130, 24, 24, 0.18);
+        }
+
+        .village-floor-path {
+          position: absolute;
+          transform: translate(-50%, -50%) rotate(var(--path-rotate, 0deg));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 2.2rem;
+          border-radius: 999px;
+          border: 1px dashed rgba(164, 43, 43, 0.26);
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,244,244,0.68));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.9),
+            0 10px 24px rgba(130, 24, 24, 0.08);
+        }
+
+        .village-floor-path::before {
+          content: '';
+          position: absolute;
+          left: 0.85rem;
+          right: 0.85rem;
+          top: 50%;
+          height: 2px;
+          transform: translateY(-50%);
+          background:
+            repeating-linear-gradient(
+              90deg,
+              rgba(182, 52, 52, 0.58),
+              rgba(182, 52, 52, 0.58) 12px,
+              transparent 12px,
+              transparent 22px
+            );
+          opacity: 0.68;
         }
 
         @media (max-width: 767px) {
@@ -1920,6 +2066,10 @@ export default function BioVillageLanding() {
           .village-shop-card {
             border-radius: 1rem;
             padding: 0.82rem 0.85rem;
+          }
+
+          .village-floor-path {
+            min-height: 1.95rem;
           }
         }
       `}</style>
@@ -1975,6 +2125,23 @@ export default function BioVillageLanding() {
             PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
           </div>
 
+          {villagePathMarkers.map((marker) => (
+            <div
+              key={marker.id}
+              className="pointer-events-none village-floor-path"
+              style={{
+                left: marker.left,
+                top: `${marker.top}px`,
+                transform: `translate(-50%, -50%) rotate(${marker.rotation}deg)`,
+                width: `${marker.width}px`
+              }}
+            >
+              <span className="relative z-[1] rounded-full bg-[rgba(255,255,255,0.92)] px-3 py-1 text-[10px] font-semibold tracking-[0.12em] text-[rgba(118,34,34,0.82)]">
+                {marker.label}
+              </span>
+            </div>
+          ))}
+
           {facilityNodes.map((node) => (
             <article
               key={node.id}
@@ -1998,41 +2165,52 @@ export default function BioVillageLanding() {
             </article>
           ))}
 
-          {villageShopNodes.map((shop) => (
-            <article
-              key={shop.id}
-              id={shop.id}
-              data-avatar-ui="true"
-              role="button"
-              tabIndex={0}
-              className="village-shop-card"
-              style={{
-                left: shop.left,
-                top: `${shop.top}px`,
-                width: `${shop.width}px`
-              }}
-              onDoubleClick={() => openVillageShop(shop.tab)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openVillageShop(shop.tab);
+          {renderedVillageShopNodes.map((shop) => {
+            const visual = villageShopVisualMeta[shop.tab];
+
+            return (
+              <article
+                key={shop.id}
+                id={shop.id}
+                data-avatar-ui="true"
+                role="button"
+                tabIndex={0}
+                className="village-shop-card"
+                style={{
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
+                  left: shop.left,
+                  top: `${shop.top}px`,
+                  width: `${shop.width}px`
+                }}
+                onDoubleClick={() => openVillageShop(shop.tab)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openVillageShop(shop.tab);
+                  }
+                }}
+                onTouchEnd={(event) =>
+                  handleVillageShopTouchEnd(event, shop.id, shop.tab)
                 }
-              }}
-              onTouchEnd={(event) =>
-                handleVillageShopTouchEnd(event, shop.id, shop.tab)
-              }
-            >
-              <p className="text-[9px] uppercase tracking-[0.26em] text-[rgba(154,52,52,0.54)]">
-                access shop
-              </p>
-              <h3 className="mt-2 font-[var(--font-display-kr)] text-[0.96rem] font-semibold text-[rgba(77,14,14,0.94)]">
-                {shop.title}
-              </h3>
-              <p className="mt-2 text-[11px] leading-relaxed text-[rgba(98,26,26,0.68)]">
-                {shop.hint}
-              </p>
-            </article>
-          ))}
+              >
+                <p
+                  className="relative z-[1] text-[9px] uppercase tracking-[0.26em]"
+                  style={{ color: visual.tone }}
+                >
+                  {visual.chip}
+                </p>
+                <h3 className="relative z-[1] mt-3 font-[var(--font-display-kr)] text-[0.98rem] font-semibold text-[rgba(77,14,14,0.94)]">
+                  {shop.title}
+                </h3>
+                <p className="relative z-[1] mt-2 text-[11px] leading-relaxed text-[rgba(98,26,26,0.68)]">
+                  {shop.hint}
+                </p>
+                <p className="relative z-[1] mt-3 text-[9px] uppercase tracking-[0.22em] text-[rgba(150,50,50,0.54)]">
+                  dbl click / dbl tap
+                </p>
+              </article>
+            );
+          })}
         </div>
       </div>
 
