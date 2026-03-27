@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { useAuth } from '@/app/context/AuthContext';
@@ -20,6 +27,8 @@ const PLAYER_MARGIN = 40;
 const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
 const PARTICIPANT_SESSION_STORAGE_KEY = 'bio-village-participant-session-v1';
+const POOP_SETTLE_MS = 720;
+const POOP_TTL_MS = 1000 * 60 * 60 * 2;
 
 type Direction = 'down' | 'left' | 'right' | 'up';
 type SpritePreset = 'archivist' | 'courier' | 'ghost' | 'medic';
@@ -74,6 +83,7 @@ type CellState = {
 };
 
 type PoopDrop = {
+  actorId: string;
   createdAt: number;
   id: string;
   x: number;
@@ -81,6 +91,7 @@ type PoopDrop = {
 };
 
 type PoopAnimationState = {
+  actorId: string;
   dropX: number;
   dropY: number;
   id: string;
@@ -729,6 +740,9 @@ const getActorScreenPosition = (
   y: actor.y - scrollY
 });
 
+const pruneExpiredPoops = (drops: PoopDrop[], now = Date.now()) =>
+  drops.filter((drop) => now - drop.createdAt < POOP_TTL_MS);
+
 function drawActor(
   context: CanvasRenderingContext2D,
   actor: ActorState,
@@ -1016,8 +1030,9 @@ export default function BioVillageLanding() {
   const worldBackdropRef = useRef<HTMLDivElement | null>(null);
   const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
-  const poopAnimationRef = useRef<PoopAnimationState | null>(null);
-  const poopSettleTimeoutRef = useRef<number | null>(null);
+  const poopAnimationsRef = useRef<PoopAnimationState[]>([]);
+  const poopSettleTimeoutsRef = useRef<Map<string, number>>(new Map());
+  const poopExpiryTimeoutsRef = useRef<Map<string, number>>(new Map());
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const participantKeyRef = useRef<string | null>(null);
   const keysRef = useRef<Record<string, boolean>>({});
@@ -1144,6 +1159,91 @@ export default function BioVillageLanding() {
   const activeVillageShop = activeVillageShopTab
     ? villageShopTabMeta[activeVillageShopTab]
     : null;
+
+  const removePoopAnimation = useCallback((id: string) => {
+    poopAnimationsRef.current = poopAnimationsRef.current.filter(
+      (animation) => animation.id !== id
+    );
+  }, []);
+
+  const schedulePoopExpiry = useCallback((drop: PoopDrop) => {
+    const existingTimeout = poopExpiryTimeoutsRef.current.get(drop.id);
+    if (existingTimeout !== undefined) {
+      window.clearTimeout(existingTimeout);
+    }
+
+    const remaining = drop.createdAt + POOP_TTL_MS - Date.now();
+
+    if (remaining <= 0) {
+      setPoopDrops((previous) =>
+        previous.filter((entry) => entry.id !== drop.id)
+      );
+      poopExpiryTimeoutsRef.current.delete(drop.id);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPoopDrops((previous) =>
+        previous.filter((entry) => entry.id !== drop.id)
+      );
+      poopExpiryTimeoutsRef.current.delete(drop.id);
+    }, remaining);
+
+    poopExpiryTimeoutsRef.current.set(drop.id, timeoutId);
+  }, []);
+
+  const startPoopSequence = useCallback(
+    (
+      actorId: string,
+      dropX: number,
+      dropY: number,
+      id: string,
+      createdAt = Date.now()
+    ) => {
+      const now = Date.now();
+      if (now - createdAt >= POOP_TTL_MS) {
+        return;
+      }
+
+      if (!poopAnimationsRef.current.some((animation) => animation.id === id)) {
+        poopAnimationsRef.current = [
+          ...poopAnimationsRef.current,
+          {
+            actorId,
+            dropX,
+            dropY,
+            id,
+            startedAt: performance.now()
+          }
+        ];
+      }
+
+      const previousTimeout = poopSettleTimeoutsRef.current.get(id);
+      if (previousTimeout !== undefined) {
+        window.clearTimeout(previousTimeout);
+      }
+
+      const settleTimeout = window.setTimeout(() => {
+        const drop = { actorId, createdAt, id, x: dropX, y: dropY };
+
+        setPoopDrops((previous) => {
+          const nextDrops = pruneExpiredPoops(
+            previous.some((entry) => entry.id === id)
+              ? previous
+              : [...previous, drop]
+          );
+          return nextDrops;
+        });
+
+        removePoopAnimation(id);
+        poopSettleTimeoutsRef.current.delete(id);
+        schedulePoopExpiry(drop);
+      }, POOP_SETTLE_MS);
+
+      poopSettleTimeoutsRef.current.set(id, settleTimeout);
+    },
+    [removePoopAnimation, schedulePoopExpiry]
+  );
 
   const openVillageShop = (tab: VillageShopTab) => {
     setSelectedTarget(null);
@@ -1280,9 +1380,15 @@ export default function BioVillageLanding() {
 
   useEffect(() => {
     return () => {
-      if (poopSettleTimeoutRef.current !== null) {
-        window.clearTimeout(poopSettleTimeoutRef.current);
-      }
+      poopSettleTimeoutsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      poopSettleTimeoutsRef.current.clear();
+
+      poopExpiryTimeoutsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      poopExpiryTimeoutsRef.current.clear();
     };
   }, []);
 
@@ -1297,32 +1403,24 @@ export default function BioVillageLanding() {
       );
       const dropY = clamp(player.y + height * 0.46, 120, WORLD_HEIGHT - 32);
       const animationId = crypto.randomUUID();
+      const actorId = participantKeyRef.current ?? 'self';
+      const createdAt = Date.now();
 
-      poopAnimationRef.current = {
-        dropX,
-        dropY,
-        id: animationId,
-        startedAt: performance.now()
-      };
+      startPoopSequence(actorId, dropX, dropY, animationId, createdAt);
 
-      if (poopSettleTimeoutRef.current !== null) {
-        window.clearTimeout(poopSettleTimeoutRef.current);
-      }
-
-      poopSettleTimeoutRef.current = window.setTimeout(() => {
-        setPoopDrops((previous) =>
-          [
-            ...previous,
-            { createdAt: Date.now(), id: animationId, x: dropX, y: dropY }
-          ].slice(-18)
-        );
-
-        if (poopAnimationRef.current?.id === animationId) {
-          poopAnimationRef.current = null;
-        }
-
-        poopSettleTimeoutRef.current = null;
-      }, 720);
+      void presenceChannelRef.current
+        ?.send({
+          type: 'broadcast',
+          event: 'poop-drop',
+          payload: {
+            actorId,
+            createdAt,
+            dropX,
+            dropY,
+            id: animationId
+          }
+        })
+        .catch(() => undefined);
     };
 
     window.addEventListener(
@@ -1335,6 +1433,16 @@ export default function BioVillageLanding() {
         'bio-village:poop-trigger',
         handlePoopTrigger as EventListener
       );
+    };
+  }, [startPoopSequence]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setPoopDrops((previous) => pruneExpiredPoops(previous));
+    }, 60 * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -1377,6 +1485,27 @@ export default function BioVillageLanding() {
     };
 
     channel
+      .on('broadcast', { event: 'poop-drop' }, ({ payload }) => {
+        if (!payload || typeof payload !== 'object') return;
+
+        const data = payload as Record<string, unknown>;
+        if (
+          typeof data.id !== 'string' ||
+          typeof data.actorId !== 'string' ||
+          typeof data.dropX !== 'number' ||
+          typeof data.dropY !== 'number'
+        ) {
+          return;
+        }
+
+        startPoopSequence(
+          data.actorId,
+          data.dropX,
+          data.dropY,
+          data.id,
+          typeof data.createdAt === 'number' ? data.createdAt : Date.now()
+        );
+      })
       .on('presence', { event: 'sync' }, syncPresenceSnapshot)
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') return;
@@ -1392,7 +1521,7 @@ export default function BioVillageLanding() {
       void supabase.removeChannel(channel).catch(() => undefined);
       presenceChannelRef.current = null;
     };
-  }, [participantKey, supabase, user?.id]);
+  }, [participantKey, startPoopSequence, supabase, user?.id]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1911,10 +2040,11 @@ export default function BioVillageLanding() {
           : selectedTargetRef.current?.kind === 'self'
             ? 'self'
             : null;
-      const activePoopAnimation = poopAnimationRef.current;
-      const poopAnimationProgress = activePoopAnimation
-        ? Math.min(1, (performance.now() - activePoopAnimation.startedAt) / 720)
-        : 0;
+      const activePoopAnimations = poopAnimationsRef.current;
+      const selfPoopActorId = participantKeyRef.current ?? 'self';
+      const poopingActorIds = new Set(
+        activePoopAnimations.map((animation) => animation.actorId)
+      );
 
       const visibleRemoteActors = [...remoteActorsRef.current].sort(
         (left, right) => left.y - right.y
@@ -1922,26 +2052,40 @@ export default function BioVillageLanding() {
 
       visibleRemoteActors.forEach((actor) => {
         drawActor(avatarContext, actor, window.scrollY, cameraXRef.current, {
+          isPooping: poopingActorIds.has(actor.id),
           isSelected: selectedId === actor.id
         });
       });
 
-      if (activePoopAnimation) {
-        const { height } = getSpriteSize(playerRef.current.preset);
-        const screenX = activePoopAnimation.dropX - cameraXRef.current;
-        const startY = playerRef.current.y - window.scrollY + height * 0.12;
-        const targetY = activePoopAnimation.dropY - window.scrollY;
-        const animatedY =
-          startY + (targetY - startY) * Math.min(1, poopAnimationProgress);
+      activePoopAnimations.forEach((animation) => {
+        const sourceActor =
+          animation.actorId === selfPoopActorId
+            ? playerRef.current
+            : (remoteActorsRef.current.find(
+                (actor) => actor.id === animation.actorId
+              ) ?? null);
+        const screenX = animation.dropX - cameraXRef.current;
+        const targetY = animation.dropY - window.scrollY;
+        const progress = Math.min(
+          1,
+          (performance.now() - animation.startedAt) / POOP_SETTLE_MS
+        );
+        const actorHeight = sourceActor
+          ? getSpriteSize(sourceActor.preset).height
+          : getSpriteSize(playerRef.current.preset).height;
+        const startY = sourceActor
+          ? sourceActor.y - window.scrollY + actorHeight * 0.12
+          : targetY - actorHeight * 0.22;
+        const animatedY = startY + (targetY - startY) * progress;
 
         drawPoopSprite(
           avatarContext,
           screenX - 8,
           animatedY - 6,
           3,
-          0.92 - poopAnimationProgress * 0.18
+          0.92 - progress * 0.18
         );
-      }
+      });
 
       drawActor(
         avatarContext,
@@ -1949,7 +2093,7 @@ export default function BioVillageLanding() {
         window.scrollY,
         cameraXRef.current,
         {
-          isPooping: Boolean(activePoopAnimation),
+          isPooping: poopingActorIds.has(selfPoopActorId),
           isSelf: true,
           isSelected: selectedId === 'self'
         }
