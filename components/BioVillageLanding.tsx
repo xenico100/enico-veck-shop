@@ -73,6 +73,20 @@ type CellState = {
   worldY: number;
 };
 
+type PoopDrop = {
+  createdAt: number;
+  id: string;
+  x: number;
+  y: number;
+};
+
+type PoopAnimationState = {
+  dropX: number;
+  dropY: number;
+  id: string;
+  startedAt: number;
+};
+
 type FacilityNode = {
   bodyClassName: string;
   caption: string;
@@ -100,6 +114,23 @@ type VillageShopNode = {
 type SelectedTarget = { kind: 'remote'; id: string } | { kind: 'self' };
 
 type PresenceStateValue = Record<string, Array<Record<string, unknown>>>;
+
+const poopPixelPattern = [
+  { color: '#7c4b19', x: 6, y: 0 },
+  { color: '#7c4b19', x: 12, y: 0 },
+  { color: '#7c4b19', x: 0, y: 6 },
+  { color: '#8a571f', x: 6, y: 6 },
+  { color: '#8a571f', x: 12, y: 6 },
+  { color: '#7c4b19', x: 18, y: 6 },
+  { color: '#5b3310', x: 0, y: 12 },
+  { color: '#8a571f', x: 6, y: 12 },
+  { color: '#8a571f', x: 12, y: 12 },
+  { color: '#8a571f', x: 18, y: 12 },
+  { color: '#5b3310', x: 24, y: 12 },
+  { color: '#5b3310', x: 6, y: 18 },
+  { color: '#6c4014', x: 12, y: 18 },
+  { color: '#5b3310', x: 18, y: 18 }
+] as const;
 
 const directions: Record<string, Direction> = {
   ArrowDown: 'down',
@@ -704,6 +735,7 @@ function drawActor(
   scrollY: number,
   cameraX: number,
   options?: {
+    isPooping?: boolean;
     isSelf?: boolean;
     isSelected?: boolean;
   }
@@ -711,6 +743,7 @@ function drawActor(
   const sprite = spriteSets[actor.preset][actor.dir];
   const palette = paletteMap[actor.palette];
   const { width, height } = getSpriteSize(actor.preset);
+  const squatOffset = options?.isPooping ? 5 : 0;
   const bounce =
     (actor.vx !== 0 || actor.vy !== 0) && Math.floor(actor.animFrame) % 2 === 0
       ? -4
@@ -744,7 +777,10 @@ function drawActor(
   }
 
   context.save();
-  context.translate(screenX - width / 2, screenY - height / 2 + bounce);
+  context.translate(
+    screenX - width / 2,
+    screenY - height / 2 + bounce + squatOffset
+  );
 
   for (let row = 0; row < sprite.length; row += 1) {
     for (let col = 0; col < sprite[row].length; col += 1) {
@@ -775,6 +811,20 @@ function drawActor(
   }
 
   context.restore();
+
+  if (options?.isPooping) {
+    context.save();
+    context.translate(screenX + width * 0.18, screenY - height * 0.68);
+    context.fillStyle = 'rgba(123, 68, 20, 0.95)';
+    context.beginPath();
+    context.arc(0, 0, 3, 0, Math.PI * 2);
+    context.arc(6, 3, 2.5, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = 'rgba(255, 214, 157, 0.88)';
+    context.fillRect(6, -6, 2, 2);
+    context.fillRect(8, -4, 2, 2);
+    context.restore();
+  }
 
   context.save();
   context.translate(screenX, screenY + height / 2 + 2);
@@ -810,6 +860,28 @@ function drawActor(
   context.textAlign = 'center';
   context.textBaseline = 'middle';
   context.fillText(actor.label, screenX, screenY - height / 2 - 18);
+  context.restore();
+}
+
+function drawPoopSprite(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  opacity = 1
+) {
+  context.save();
+  context.globalAlpha = opacity;
+  context.translate(x, y);
+  poopPixelPattern.forEach((pixel) => {
+    context.fillStyle = pixel.color;
+    context.fillRect(
+      (pixel.x / 6) * scale,
+      (pixel.y / 6) * scale,
+      scale,
+      scale
+    );
+  });
   context.restore();
 }
 
@@ -944,6 +1016,8 @@ export default function BioVillageLanding() {
   const worldBackdropRef = useRef<HTMLDivElement | null>(null);
   const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
+  const poopAnimationRef = useRef<PoopAnimationState | null>(null);
+  const poopSettleTimeoutRef = useRef<number | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const participantKeyRef = useRef<string | null>(null);
   const keysRef = useRef<Record<string, boolean>>({});
@@ -1004,6 +1078,7 @@ export default function BioVillageLanding() {
   const [onlineVisitors, setOnlineVisitors] = useState<
     Array<{ id: string; label: string; palette: PaletteKey }>
   >([]);
+  const [poopDrops, setPoopDrops] = useState<PoopDrop[]>([]);
 
   const worldActive = scrollY < WORLD_HEIGHT - 96;
 
@@ -1202,6 +1277,66 @@ export default function BioVillageLanding() {
       setSelectedTarget(null);
     }
   }, [remoteRevision, selectedTarget]);
+
+  useEffect(() => {
+    return () => {
+      if (poopSettleTimeoutRef.current !== null) {
+        window.clearTimeout(poopSettleTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handlePoopTrigger = () => {
+      const player = playerRef.current;
+      const { height, width } = getSpriteSize(player.preset);
+      const dropX = clamp(
+        player.x + width * 0.08,
+        PLAYER_MARGIN,
+        Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
+      );
+      const dropY = clamp(player.y + height * 0.46, 120, WORLD_HEIGHT - 32);
+      const animationId = crypto.randomUUID();
+
+      poopAnimationRef.current = {
+        dropX,
+        dropY,
+        id: animationId,
+        startedAt: performance.now()
+      };
+
+      if (poopSettleTimeoutRef.current !== null) {
+        window.clearTimeout(poopSettleTimeoutRef.current);
+      }
+
+      poopSettleTimeoutRef.current = window.setTimeout(() => {
+        setPoopDrops((previous) =>
+          [
+            ...previous,
+            { createdAt: Date.now(), id: animationId, x: dropX, y: dropY }
+          ].slice(-18)
+        );
+
+        if (poopAnimationRef.current?.id === animationId) {
+          poopAnimationRef.current = null;
+        }
+
+        poopSettleTimeoutRef.current = null;
+      }, 720);
+    };
+
+    window.addEventListener(
+      'bio-village:poop-trigger',
+      handlePoopTrigger as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'bio-village:poop-trigger',
+        handlePoopTrigger as EventListener
+      );
+    };
+  }, []);
 
   useEffect(() => {
     if (!supabase || !participantKey) return;
@@ -1776,6 +1911,10 @@ export default function BioVillageLanding() {
           : selectedTargetRef.current?.kind === 'self'
             ? 'self'
             : null;
+      const activePoopAnimation = poopAnimationRef.current;
+      const poopAnimationProgress = activePoopAnimation
+        ? Math.min(1, (performance.now() - activePoopAnimation.startedAt) / 720)
+        : 0;
 
       const visibleRemoteActors = [...remoteActorsRef.current].sort(
         (left, right) => left.y - right.y
@@ -1787,12 +1926,30 @@ export default function BioVillageLanding() {
         });
       });
 
+      if (activePoopAnimation) {
+        const { height } = getSpriteSize(playerRef.current.preset);
+        const screenX = activePoopAnimation.dropX - cameraXRef.current;
+        const startY = playerRef.current.y - window.scrollY + height * 0.12;
+        const targetY = activePoopAnimation.dropY - window.scrollY;
+        const animatedY =
+          startY + (targetY - startY) * Math.min(1, poopAnimationProgress);
+
+        drawPoopSprite(
+          avatarContext,
+          screenX - 8,
+          animatedY - 6,
+          3,
+          0.92 - poopAnimationProgress * 0.18
+        );
+      }
+
       drawActor(
         avatarContext,
         playerRef.current,
         window.scrollY,
         cameraXRef.current,
         {
+          isPooping: Boolean(activePoopAnimation),
           isSelf: true,
           isSelected: selectedId === 'self'
         }
@@ -2312,6 +2469,35 @@ export default function BioVillageLanding() {
               </article>
             );
           })}
+
+          {poopDrops.map((drop) => (
+            <div
+              key={drop.id}
+              className="pointer-events-none absolute z-[12] h-[28px] w-[30px]"
+              style={{
+                left: `${drop.x}px`,
+                top: `${drop.y}px`,
+                transform: 'translate(-50%, -35%)'
+              }}
+            >
+              <div className="absolute bottom-[-3px] left-1/2 h-[8px] w-[22px] -translate-x-1/2 rounded-full bg-[rgba(45,20,8,0.16)] blur-[3px]" />
+              {poopPixelPattern.map((pixel, index) => (
+                <span
+                  key={`${drop.id}-${index}`}
+                  className="absolute block h-[5px] w-[5px]"
+                  style={{
+                    backgroundColor: pixel.color,
+                    boxShadow:
+                      pixel.color === '#8a571f'
+                        ? 'inset 0 1px 0 rgba(255,222,182,0.28)'
+                        : undefined,
+                    left: `${pixel.x}px`,
+                    top: `${pixel.y}px`
+                  }}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
