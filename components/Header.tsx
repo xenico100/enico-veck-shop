@@ -12,6 +12,7 @@ const POOP_HOLD_MS = 3000;
 export default function Header({ onMenuClick }: HeaderProps) {
   const [holdProgress, setHoldProgress] = useState(0);
   const [isHoldingPoop, setIsHoldingPoop] = useState(false);
+  const holdActiveRef = useRef(false);
   const holdStartRef = useRef<number | null>(null);
   const holdTimeoutRef = useRef<number | null>(null);
   const holdRafRef = useRef<number | null>(null);
@@ -30,6 +31,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     holdStartRef.current = null;
     poopTriggeredRef.current = false;
+    holdActiveRef.current = false;
     setIsHoldingPoop(false);
     if (!keepProgress) {
       setHoldProgress(0);
@@ -40,11 +42,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
     return () => resetPoopHold();
   }, []);
 
-  const startPoopHold = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (isHoldingPoop) return;
+  const beginPoopHold = () => {
+    if (holdActiveRef.current) return;
 
-    event.preventDefault();
+    holdActiveRef.current = true;
     poopTriggeredRef.current = false;
     setIsHoldingPoop(true);
     setHoldProgress(0);
@@ -66,6 +67,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       poopTriggeredRef.current = true;
       setHoldProgress(1);
       setIsHoldingPoop(false);
+      holdActiveRef.current = false;
       window.dispatchEvent(new CustomEvent('bio-village:poop-trigger'));
       window.setTimeout(() => {
         setHoldProgress(0);
@@ -73,13 +75,32 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }, POOP_HOLD_MS);
   };
 
-  const stopPoopHold = () => {
+  const startPoopHoldPointer = (
+    event: React.PointerEvent<HTMLButtonElement>
+  ) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.preventDefault();
+    beginPoopHold();
+  };
+
+  const startPoopHoldMouse = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    beginPoopHold();
+  };
+
+  const startPoopHoldTouch = (event: React.TouchEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    beginPoopHold();
+  };
+
+  const stopPoopHold = (keepProgress = false) => {
     if (poopTriggeredRef.current) {
       poopTriggeredRef.current = false;
       return;
     }
 
-    resetPoopHold();
+    resetPoopHold(keepProgress);
   };
 
   return (
@@ -96,14 +117,26 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         <button
           type="button"
-          onPointerDown={startPoopHold}
-          onPointerUp={stopPoopHold}
-          onPointerLeave={stopPoopHold}
-          onPointerCancel={stopPoopHold}
-          className="pointer-events-auto relative overflow-hidden rounded-full border border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)] px-3 py-2 font-[var(--font-brush)] text-[0.64rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] shadow-[0_10px_22px_rgba(0,0,0,0.26)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4"
+          onPointerDown={startPoopHoldPointer}
+          onPointerUp={() => stopPoopHold()}
+          onPointerLeave={() => stopPoopHold()}
+          onPointerCancel={() => stopPoopHold()}
+          onMouseDown={startPoopHoldMouse}
+          onMouseUp={() => stopPoopHold()}
+          onMouseLeave={() => stopPoopHold()}
+          onTouchStart={startPoopHoldTouch}
+          onTouchEnd={() => stopPoopHold()}
+          onTouchCancel={() => stopPoopHold()}
+          onContextMenu={(event) => event.preventDefault()}
+          className={`pointer-events-auto relative overflow-hidden rounded-full border border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)] px-3 py-2 font-[var(--font-brush)] text-[0.64rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] shadow-[0_10px_22px_rgba(0,0,0,0.26)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4 ${isHoldingPoop ? 'scale-[0.985]' : ''}`}
+          style={{ WebkitTouchCallout: 'none', touchAction: 'none' }}
           aria-label="똥싸기 버튼"
         >
-          <span className="relative z-[1]">똥싸기</span>
+          <span className="relative z-[1]">
+            {isHoldingPoop
+              ? `똥싸기 ${Math.max(1, Math.ceil((1 - holdProgress) * 3))}`
+              : '똥싸기'}
+          </span>
           <span
             className="absolute inset-x-1 bottom-1 h-[3px] rounded-full bg-[rgba(255,255,255,0.08)]"
             aria-hidden="true"
