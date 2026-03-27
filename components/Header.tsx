@@ -19,6 +19,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const poopTriggeredRef = useRef(false);
 
   const resetPoopHold = (keepProgress = false) => {
+    const hadActiveHold =
+      holdActiveRef.current ||
+      holdStartRef.current !== null ||
+      poopTriggeredRef.current ||
+      isHoldingPoop;
+
     if (holdTimeoutRef.current !== null) {
       window.clearTimeout(holdTimeoutRef.current);
       holdTimeoutRef.current = null;
@@ -33,6 +39,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     poopTriggeredRef.current = false;
     holdActiveRef.current = false;
     setIsHoldingPoop(false);
+    if (hadActiveHold) {
+      window.dispatchEvent(new CustomEvent('bio-village:poop-hold-end'));
+    }
     if (!keepProgress) {
       setHoldProgress(0);
     }
@@ -50,6 +59,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     setIsHoldingPoop(true);
     setHoldProgress(0);
     holdStartRef.current = performance.now();
+    window.dispatchEvent(new CustomEvent('bio-village:poop-hold-start'));
 
     const tick = () => {
       if (holdStartRef.current === null) return;
@@ -68,6 +78,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
       setHoldProgress(1);
       setIsHoldingPoop(false);
       holdActiveRef.current = false;
+      holdStartRef.current = null;
+      window.dispatchEvent(new CustomEvent('bio-village:poop-hold-end'));
       window.dispatchEvent(new CustomEvent('bio-village:poop-trigger'));
       window.setTimeout(() => {
         setHoldProgress(0);
@@ -92,6 +104,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const startPoopHoldTouch = (event: React.TouchEvent<HTMLButtonElement>) => {
     event.preventDefault();
     beginPoopHold();
+  };
+
+  const preventDefaultEvent = (event: React.SyntheticEvent) => {
+    event.preventDefault();
   };
 
   const stopPoopHold = (keepProgress = false) => {
@@ -127,24 +143,38 @@ export default function Header({ onMenuClick }: HeaderProps) {
           onTouchStart={startPoopHoldTouch}
           onTouchEnd={() => stopPoopHold()}
           onTouchCancel={() => stopPoopHold()}
-          onContextMenu={(event) => event.preventDefault()}
+          onContextMenu={preventDefaultEvent}
+          onDragStart={preventDefaultEvent}
           className={`pointer-events-auto relative overflow-hidden rounded-full border border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)] px-3 py-2 font-[var(--font-brush)] text-[0.64rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] shadow-[0_10px_22px_rgba(0,0,0,0.26)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4 ${isHoldingPoop ? 'scale-[0.985]' : ''}`}
-          style={{ WebkitTouchCallout: 'none', touchAction: 'none' }}
+          style={{
+            MozUserSelect: 'none',
+            WebkitTapHighlightColor: 'transparent',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            touchAction: 'none',
+            userSelect: 'none'
+          }}
           aria-label="똥싸기 버튼"
+          draggable={false}
         >
-          <span className="relative z-[1]">
-            {isHoldingPoop
-              ? `똥싸기 ${Math.max(1, Math.ceil((1 - holdProgress) * 3))}`
-              : '똥싸기'}
-          </span>
-          <span
-            className="absolute inset-x-1 bottom-1 h-[3px] rounded-full bg-[rgba(255,255,255,0.08)]"
-            aria-hidden="true"
-          >
-            <span
-              className="block h-full rounded-full bg-[linear-gradient(90deg,rgba(255,196,120,0.88),rgba(255,134,85,0.98))] transition-[width] duration-75"
-              style={{ width: `${holdProgress * 100}%` }}
-            />
+          <span className="relative z-[1] inline-flex items-center gap-2">
+            {isHoldingPoop ? (
+              <span
+                aria-hidden="true"
+                className="relative h-[13px] w-[13px] rounded-full border border-[rgba(255,243,233,0.36)]"
+                style={{
+                  background: `conic-gradient(rgba(255,196,120,0.96) ${holdProgress * 360}deg, rgba(255,255,255,0.08) 0deg)`
+                }}
+              >
+                <span className="absolute inset-[2px] rounded-full bg-[rgba(44,16,10,0.96)]" />
+              </span>
+            ) : (
+              <span
+                aria-hidden="true"
+                className="h-[13px] w-[13px] rounded-full border border-[rgba(255,243,233,0.26)] bg-[rgba(255,255,255,0.08)]"
+              />
+            )}
+            <span>똥싸기</span>
           </span>
           {isHoldingPoop ? (
             <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.14),transparent)] opacity-70" />

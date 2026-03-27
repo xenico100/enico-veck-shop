@@ -826,7 +826,10 @@ function drawActor(
   const sprite = spriteSets[actor.preset][actor.dir];
   const palette = paletteMap[actor.palette];
   const { width, height } = getSpriteSize(actor.preset);
-  const squatOffset = options?.isPooping ? 5 : 0;
+  const squatOffset = options?.isPooping ? 8 : 0;
+  const strainJitter = options?.isPooping
+    ? Math.sin(performance.now() / 72) * 1.15
+    : 0;
   const bounce =
     (actor.vx !== 0 || actor.vy !== 0) && Math.floor(actor.animFrame) % 2 === 0
       ? -4
@@ -861,7 +864,7 @@ function drawActor(
 
   context.save();
   context.translate(
-    screenX - width / 2,
+    screenX - width / 2 + strainJitter,
     screenY - height / 2 + bounce + squatOffset
   );
 
@@ -1108,6 +1111,7 @@ export default function BioVillageLanding() {
   const cellsRef = useRef<CellState[]>([]);
   const remoteActorsRef = useRef<ActorState[]>([]);
   const selectedTargetRef = useRef<SelectedTarget | null>(null);
+  const selfPoopHoldingRef = useRef(false);
   const lastMovementBroadcastRef = useRef(0);
   const lastMovementActiveRef = useRef(false);
   const cameraXRef = useRef(0);
@@ -1567,6 +1571,14 @@ export default function BioVillageLanding() {
   }, []);
 
   useEffect(() => {
+    const handlePoopHoldStart = () => {
+      selfPoopHoldingRef.current = true;
+    };
+
+    const handlePoopHoldEnd = () => {
+      selfPoopHoldingRef.current = false;
+    };
+
     const handlePoopTrigger = () => {
       const player = playerRef.current;
       const { height, width } = getSpriteSize(player.preset);
@@ -1598,11 +1610,27 @@ export default function BioVillageLanding() {
     };
 
     window.addEventListener(
+      'bio-village:poop-hold-start',
+      handlePoopHoldStart as EventListener
+    );
+    window.addEventListener(
+      'bio-village:poop-hold-end',
+      handlePoopHoldEnd as EventListener
+    );
+    window.addEventListener(
       'bio-village:poop-trigger',
       handlePoopTrigger as EventListener
     );
 
     return () => {
+      window.removeEventListener(
+        'bio-village:poop-hold-start',
+        handlePoopHoldStart as EventListener
+      );
+      window.removeEventListener(
+        'bio-village:poop-hold-end',
+        handlePoopHoldEnd as EventListener
+      );
       window.removeEventListener(
         'bio-village:poop-trigger',
         handlePoopTrigger as EventListener
@@ -2265,6 +2293,8 @@ export default function BioVillageLanding() {
       const poopingActorIds = new Set(
         activePoopAnimations.map((animation) => animation.actorId)
       );
+      const selfIsPooping =
+        selfPoopHoldingRef.current || poopingActorIds.has(selfPoopActorId);
 
       const visibleRemoteActors = [...remoteActorsRef.current].sort(
         (left, right) => left.y - right.y
@@ -2313,7 +2343,7 @@ export default function BioVillageLanding() {
         window.scrollY,
         cameraXRef.current,
         {
-          isPooping: poopingActorIds.has(selfPoopActorId),
+          isPooping: selfIsPooping,
           isSelf: true,
           isSelected: selectedId === 'self'
         }
