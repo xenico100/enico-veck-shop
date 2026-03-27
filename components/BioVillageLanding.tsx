@@ -1571,13 +1571,9 @@ export default function BioVillageLanding() {
   const openGoodsCommercePortal = () => {
     setSelectedTarget(null);
     setActiveVillageShopTab(null);
-
-    const servicesSection = document.getElementById('services');
-    servicesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
     window.setTimeout(() => {
       window.dispatchEvent(new CustomEvent('cart:open-modal'));
-    }, 260);
+    }, 40);
   };
 
   const openCommunityBoardPortal = () => {
@@ -1613,6 +1609,11 @@ export default function BioVillageLanding() {
       window.setTimeout(() => {
         window.dispatchEvent(new CustomEvent('community:open-modal'));
       }, 80);
+      return;
+    }
+
+    if (sectionId === 'services') {
+      openGoodsCommercePortal();
       return;
     }
 
