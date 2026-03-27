@@ -97,15 +97,6 @@ type VillageShopNode = {
   width: number;
 };
 
-type VillagePathMarker = {
-  id: string;
-  label: string;
-  left: string;
-  top: number;
-  width: number;
-  rotation: number;
-};
-
 type SelectedTarget = { kind: 'remote'; id: string } | { kind: 'self' };
 
 type PresenceStateValue = Record<string, Array<Record<string, unknown>>>;
@@ -476,33 +467,6 @@ const goodsShopVariants = [
     title: 'Candy Relic Shop'
   }
 ] as const;
-
-const villagePathMarkers: VillagePathMarker[] = [
-  {
-    id: 'studio-path-marker',
-    label: '멤버십 영상 가는 길',
-    left: '67%',
-    rotation: 16,
-    top: 705,
-    width: 238
-  },
-  {
-    id: 'goods-path-marker',
-    label: '굿즈 상점 가는 길',
-    left: '34%',
-    rotation: -16,
-    top: 680,
-    width: 214
-  },
-  {
-    id: 'diagram-path-marker',
-    label: '시스템 다이어그램 가는 길',
-    left: '50%',
-    rotation: 0,
-    top: 1400,
-    width: 286
-  }
-];
 
 const villageShopTabMeta: Record<
   VillageShopTab,
@@ -2160,42 +2124,6 @@ export default function BioVillageLanding() {
             0 20px 42px rgba(130, 24, 24, 0.18);
         }
 
-        .village-floor-path {
-          position: absolute;
-          z-index: 16;
-          transform: translate(-50%, -50%) rotate(var(--path-rotate, 0deg));
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 2.2rem;
-          border-radius: 999px;
-          border: 1px dashed rgba(164, 43, 43, 0.26);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,244,244,0.68));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.9),
-            0 10px 24px rgba(130, 24, 24, 0.08);
-        }
-
-        .village-floor-path::before {
-          content: '';
-          position: absolute;
-          left: 0.85rem;
-          right: 0.85rem;
-          top: 50%;
-          height: 2px;
-          transform: translateY(-50%);
-          background:
-            repeating-linear-gradient(
-              90deg,
-              rgba(182, 52, 52, 0.58),
-              rgba(182, 52, 52, 0.58) 12px,
-              transparent 12px,
-              transparent 22px
-            );
-          opacity: 0.68;
-        }
-
         @media (max-width: 767px) {
           .village-node-card {
             min-height: 140px;
@@ -2222,9 +2150,6 @@ export default function BioVillageLanding() {
             padding: 0.34rem 0.8rem;
           }
 
-          .village-floor-path {
-            min-height: 1.95rem;
-          }
         }
       `}</style>
 
@@ -2296,23 +2221,6 @@ export default function BioVillageLanding() {
             width: `${worldWidth}px`
           }}
         >
-          {villagePathMarkers.map((marker) => (
-            <div
-              key={marker.id}
-              className="pointer-events-none village-floor-path"
-              style={{
-                left: marker.left,
-                top: `${marker.top}px`,
-                transform: `translate(-50%, -50%) rotate(${marker.rotation}deg)`,
-                width: `${marker.width}px`
-              }}
-            >
-              <span className="relative z-[1] rounded-full bg-[rgba(255,255,255,0.92)] px-3 py-1 text-[10px] font-semibold tracking-[0.12em] text-[rgba(118,34,34,0.82)]">
-                {marker.label}
-              </span>
-            </div>
-          ))}
-
           {facilityNodes.map((node) => (
             <article
               key={node.id}
