@@ -1572,7 +1572,7 @@ export default function BioVillageLanding() {
     setSelectedTarget(null);
     setActiveVillageShopTab(null);
     window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('cart:open-modal'));
+      window.dispatchEvent(new CustomEvent('services:open-modal'));
     }, 40);
   };
 

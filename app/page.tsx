@@ -42,6 +42,12 @@ const CartModal = dynamic(() => import('../components/CartModal'), {
 const DatingModal = dynamic(() => import('../components/DatingModal'), {
   ssr: false
 });
+const ServicesSectionModal = dynamic(
+  () => import('../components/ServicesSectionModal'),
+  {
+    ssr: false
+  }
+);
 const CommunityBoardModal = dynamic(
   () => import('../components/CommunityBoardModal'),
   {
@@ -70,6 +76,7 @@ export default function LandingPage() {
   const [myPageOpen, setMyPageOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [datingOpen, setDatingOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(false);
   const [datingHookLabel, setDatingHookLabel] = useState<string | null>(null);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
@@ -104,6 +111,16 @@ export default function LandingPage() {
 
     window.addEventListener('cart:open-modal', handleCartHook);
     return () => window.removeEventListener('cart:open-modal', handleCartHook);
+  }, []);
+
+  useEffect(() => {
+    const handleServicesHook = () => {
+      setServicesOpen(true);
+    };
+
+    window.addEventListener('services:open-modal', handleServicesHook);
+    return () =>
+      window.removeEventListener('services:open-modal', handleServicesHook);
   }, []);
 
   useEffect(() => {
@@ -231,6 +248,13 @@ export default function LandingPage() {
               setDatingHookLabel(null);
             }
           }}
+        />
+      ) : null}
+      {servicesOpen ? (
+        <ServicesSectionModal
+          open={servicesOpen}
+          onOpenCart={openCart}
+          onOpenChange={setServicesOpen}
         />
       ) : null}
       {communityOpen ? (

@@ -96,10 +96,16 @@ const serviceSwatchBgClasses: Record<string, string> = {
 };
 
 type ServicesSectionProps = {
+  mode?: 'modal' | 'page';
   onOpenCart?: () => void;
+  sectionId?: string;
 };
 
-export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
+export default function ServicesSection({
+  mode = 'page',
+  onOpenCart,
+  sectionId = 'services'
+}: ServicesSectionProps) {
   const { user } = useAuth();
   const { addItem } = useCart();
   const { toast } = useToast();
@@ -161,6 +167,7 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
 
   const getSwatchClass = (color: string) =>
     serviceSwatchBgClasses[color] ?? 'bg-white/30';
+  const isModalMode = mode === 'modal';
 
   const formatMoneyExact = (
     value: number | null | undefined,
@@ -854,15 +861,25 @@ export default function ServicesSection({ onOpenCart }: ServicesSectionProps) {
 
   return (
     <section
-      id="services"
-      className="relative px-4 py-14 text-white md:px-8 md:py-24"
+      id={sectionId}
+      className={`relative text-white ${
+        isModalMode ? 'px-0 py-0' : 'px-4 py-14 md:px-8 md:py-24'
+      }`}
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[6%] top-[12%] h-48 w-48 rounded-full bg-[#460404]/26 blur-3xl" />
-        <div className="absolute right-[10%] top-[20%] h-56 w-56 rounded-full bg-[#2a5318]/18 blur-3xl" />
-      </div>
+      {!isModalMode ? (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-[6%] top-[12%] h-48 w-48 rounded-full bg-[#460404]/26 blur-3xl" />
+          <div className="absolute right-[10%] top-[20%] h-56 w-56 rounded-full bg-[#2a5318]/18 blur-3xl" />
+        </div>
+      ) : null}
 
-      <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
+      <div
+        className={`mx-auto w-full tech-panel scanline animate-rise ${
+          isModalMode
+            ? 'max-w-none rounded-none p-3 sm:p-4 md:p-5'
+            : 'max-w-7xl p-4 sm:p-5 md:p-8'
+        }`}
+      >
         {/* Title */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
