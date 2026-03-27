@@ -19,8 +19,8 @@ const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
 const REMOTE_PLAYER_SPEED = 8.8;
-const REMOTE_SYNC_INTERVAL_MS = 120;
-const MOVEMENT_BROADCAST_INTERVAL_MS = 45;
+const REMOTE_SYNC_INTERVAL_MS = 180;
+const MOVEMENT_BROADCAST_INTERVAL_MS = 32;
 const REMOTE_SNAP_DISTANCE = 90;
 const DESKTOP_VERTICAL_CAMERA_LERP = 0.1;
 const DESKTOP_HORIZONTAL_CAMERA_LERP = 0.14;
@@ -62,6 +62,7 @@ type ActorState = {
   dir: Direction;
   id: string;
   label: string;
+  lastRemoteUpdateAt: number;
   palette: PaletteKey;
   preset: SpritePreset;
   profile: AvatarProfile;
@@ -105,6 +106,14 @@ type CleanupAnimationState = {
   id: string;
   startedAt: number;
   targetDropId: string;
+};
+
+type SharedPoopPayload = {
+  actorId: string;
+  createdAt: number;
+  dropX: number;
+  dropY: number;
+  id: string;
 };
 
 type FacilityNode = {
@@ -764,10 +773,12 @@ const payloadToProfile = (
 const buildPresencePayload = (
   participantKey: string,
   player: ActorState,
-  userId: string | null | undefined
+  userId: string | null | undefined,
+  latestPoop: SharedPoopPayload | null
 ) => ({
   key: participantKey,
   label: player.label,
+  latestPoop,
   x: player.x,
   y: player.y,
   dir: player.dir,
@@ -1136,30 +1147,49 @@ const buildRemoteActorsFromPresence = (
         120,
         WORLD_HEIGHT - 100
       );
+      const updatedAt =
+        typeof meta.updatedAt === 'string' && meta.updatedAt.trim().length > 0
+          ? meta.updatedAt
+          : '';
+      const presenceUpdatedAt = Date.parse(updatedAt || '') || 0;
+      const shouldApplyPresencePosition =
+        !previous ||
+        previous.lastRemoteUpdateAt <= 0 ||
+        presenceUpdatedAt >= previous.lastRemoteUpdateAt - 40;
+      const presenceGap = previous
+        ? Math.hypot(previous.x - nextX, previous.y - nextY)
+        : 0;
 
       return {
         animFrame: previous?.animFrame ?? 0,
         dir,
         id: key,
         label,
+        lastRemoteUpdateAt: shouldApplyPresencePosition
+          ? presenceUpdatedAt
+          : (previous?.lastRemoteUpdateAt ?? 0),
         palette,
         preset,
         profile,
         speed: REMOTE_PLAYER_SPEED,
-        targetX: nextX,
-        targetY: nextY,
+        targetX: shouldApplyPresencePosition
+          ? nextX
+          : (previous?.targetX ?? nextX),
+        targetY: shouldApplyPresencePosition
+          ? nextY
+          : (previous?.targetY ?? nextY),
         vx: previous?.vx ?? 0,
         vy: previous?.vy ?? 0,
         x:
           previous &&
-          Math.hypot(previous.x - nextX, previous.y - nextY) <
-            REMOTE_SNAP_DISTANCE
+          (!shouldApplyPresencePosition ||
+            presenceGap < REMOTE_SNAP_DISTANCE * 2.8)
             ? previous.x
             : nextX,
         y:
           previous &&
-          Math.hypot(previous.x - nextX, previous.y - nextY) <
-            REMOTE_SNAP_DISTANCE
+          (!shouldApplyPresencePosition ||
+            presenceGap < REMOTE_SNAP_DISTANCE * 2.8)
             ? previous.y
             : nextY
       } satisfies ActorState;
@@ -1187,6 +1217,8 @@ export default function BioVillageLanding() {
   const poopSettleTimeoutsRef = useRef<Map<string, number>>(new Map());
   const poopExpiryTimeoutsRef = useRef<Map<string, number>>(new Map());
   const poopDropsRef = useRef<PoopDrop[]>([]);
+  const latestSelfPoopRef = useRef<SharedPoopPayload | null>(null);
+  const seenRemotePoopIdsRef = useRef<Map<string, string>>(new Map());
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const participantKeyRef = useRef<string | null>(null);
   const keysRef = useRef<Record<string, boolean>>({});
@@ -1216,6 +1248,7 @@ export default function BioVillageLanding() {
     dir: 'down',
     id: 'self',
     label: 'YOU',
+    lastRemoteUpdateAt: 0,
     palette: 'crimson',
     preset: 'archivist',
     profile: createDefaultProfile('YOU'),
@@ -1328,19 +1361,40 @@ export default function BioVillageLanding() {
     );
   }, []);
 
-  const removePoopDrop = useCallback((dropId: string) => {
-    const existingTimeout = poopExpiryTimeoutsRef.current.get(dropId);
-    if (existingTimeout !== undefined) {
-      window.clearTimeout(existingTimeout);
-      poopExpiryTimeoutsRef.current.delete(dropId);
-    }
+  const removePoopDrop = useCallback(
+    (dropId: string) => {
+      const existingTimeout = poopExpiryTimeoutsRef.current.get(dropId);
+      if (existingTimeout !== undefined) {
+        window.clearTimeout(existingTimeout);
+        poopExpiryTimeoutsRef.current.delete(dropId);
+      }
 
-    setPoopDrops((previous) => {
-      const nextDrops = previous.filter((entry) => entry.id !== dropId);
-      poopDropsRef.current = nextDrops;
-      return nextDrops;
-    });
-  }, []);
+      if (latestSelfPoopRef.current?.id === dropId) {
+        latestSelfPoopRef.current = null;
+        const channel = presenceChannelRef.current;
+        const key = participantKeyRef.current;
+        if (channel && key) {
+          void channel
+            .track(
+              buildPresencePayload(
+                key,
+                playerRef.current,
+                user?.id ?? null,
+                latestSelfPoopRef.current
+              )
+            )
+            .catch(() => undefined);
+        }
+      }
+
+      setPoopDrops((previous) => {
+        const nextDrops = previous.filter((entry) => entry.id !== dropId);
+        poopDropsRef.current = nextDrops;
+        return nextDrops;
+      });
+    },
+    [user?.id]
+  );
 
   const startCleanupAnimation = useCallback(
     (actorId: string, targetDropId: string) => {
@@ -1386,31 +1440,28 @@ export default function BioVillageLanding() {
     return candidates[0]?.drop ?? null;
   }, []);
 
-  const schedulePoopExpiry = useCallback((drop: PoopDrop) => {
-    const existingTimeout = poopExpiryTimeoutsRef.current.get(drop.id);
-    if (existingTimeout !== undefined) {
-      window.clearTimeout(existingTimeout);
-    }
+  const schedulePoopExpiry = useCallback(
+    (drop: PoopDrop) => {
+      const existingTimeout = poopExpiryTimeoutsRef.current.get(drop.id);
+      if (existingTimeout !== undefined) {
+        window.clearTimeout(existingTimeout);
+      }
 
-    const remaining = drop.createdAt + POOP_TTL_MS - Date.now();
+      const remaining = drop.createdAt + POOP_TTL_MS - Date.now();
 
-    if (remaining <= 0) {
-      setPoopDrops((previous) =>
-        previous.filter((entry) => entry.id !== drop.id)
-      );
-      poopExpiryTimeoutsRef.current.delete(drop.id);
-      return;
-    }
+      if (remaining <= 0) {
+        removePoopDrop(drop.id);
+        return;
+      }
 
-    const timeoutId = window.setTimeout(() => {
-      setPoopDrops((previous) =>
-        previous.filter((entry) => entry.id !== drop.id)
-      );
-      poopExpiryTimeoutsRef.current.delete(drop.id);
-    }, remaining);
+      const timeoutId = window.setTimeout(() => {
+        removePoopDrop(drop.id);
+      }, remaining);
 
-    poopExpiryTimeoutsRef.current.set(drop.id, timeoutId);
-  }, []);
+      poopExpiryTimeoutsRef.current.set(drop.id, timeoutId);
+    },
+    [removePoopDrop]
+  );
 
   const startPoopSequence = useCallback(
     (
@@ -1532,28 +1583,44 @@ export default function BioVillageLanding() {
       const movementGap = previousActor
         ? Math.hypot(previousActor.x - nextX, previousActor.y - nextY)
         : 0;
+      const previousUpdatedAt = previousActor?.lastRemoteUpdateAt ?? 0;
+      if (sentAt <= previousUpdatedAt - 30) {
+        return previousActors;
+      }
+      const latencyMs = Math.min(180, Math.max(0, Date.now() - sentAt));
+      const predictionScale = moving ? latencyMs / 16.7 : 0;
       const nextActor: ActorState = {
         animFrame: moving && previousActor ? previousActor.animFrame + 0.22 : 0,
         dir,
         id: data.key,
         label,
+        lastRemoteUpdateAt: sentAt,
         palette,
         preset,
         profile,
         speed: Math.max(
           REMOTE_PLAYER_SPEED,
-          Math.hypot(data.vx, data.vy) * 1.55
+          Math.hypot(data.vx, data.vy) * 1.18 +
+            Math.min(5.4, movementGap * 0.045)
         ),
-        targetX: nextX,
-        targetY: nextY,
+        targetX: clamp(
+          data.x + data.vx * predictionScale * 0.55,
+          PLAYER_MARGIN,
+          Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
+        ),
+        targetY: clamp(
+          data.y + data.vy * predictionScale * 0.55,
+          120,
+          WORLD_HEIGHT - 100
+        ),
         vx: data.vx,
         vy: data.vy,
         x:
-          moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 1.35
+          moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 4.2
             ? previousActor.x
             : nextX,
         y:
-          moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 1.35
+          moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 4.2
             ? previousActor.y
             : nextY
       };
@@ -1788,20 +1855,37 @@ export default function BioVillageLanding() {
       const animationId = crypto.randomUUID();
       const actorId = participantKeyRef.current ?? 'self';
       const createdAt = Date.now();
+      const poopPayload: SharedPoopPayload = {
+        actorId,
+        createdAt,
+        dropX,
+        dropY,
+        id: animationId
+      };
 
       startPoopSequence(actorId, dropX, dropY, animationId, createdAt);
+      latestSelfPoopRef.current = poopPayload;
 
-      void presenceChannelRef.current
+      const channel = presenceChannelRef.current;
+      const key = participantKeyRef.current;
+      if (channel && key) {
+        void channel
+          .track(
+            buildPresencePayload(
+              key,
+              player,
+              user?.id ?? null,
+              latestSelfPoopRef.current
+            )
+          )
+          .catch(() => undefined);
+      }
+
+      void channel
         ?.send({
           type: 'broadcast',
           event: 'poop-drop',
-          payload: {
-            actorId,
-            createdAt,
-            dropX,
-            dropY,
-            id: animationId
-          }
+          payload: poopPayload
         })
         .catch(() => undefined);
     };
@@ -1911,13 +1995,60 @@ export default function BioVillageLanding() {
 
     const syncPresenceSnapshot = () => {
       if (cancelled) return;
+      const presenceState = channel.presenceState() as PresenceStateValue;
       const nextActors = buildRemoteActorsFromPresence(
-        channel.presenceState() as PresenceStateValue,
+        presenceState,
         participantKey,
         remoteActorsRef.current,
         worldWidthRef.current
       );
       remoteActorsRef.current = nextActors;
+      const nextActorIds = new Set(nextActors.map((actor) => actor.id));
+      Array.from(seenRemotePoopIdsRef.current.keys()).forEach((actorId) => {
+        if (!nextActorIds.has(actorId)) {
+          seenRemotePoopIdsRef.current.delete(actorId);
+        }
+      });
+      Object.entries(presenceState).forEach(([presenceKey, metas]) => {
+        metas.forEach((meta) => {
+          const actorId =
+            typeof meta.key === 'string' && meta.key.trim().length > 0
+              ? meta.key.trim()
+              : presenceKey;
+
+          if (!actorId || actorId === participantKey) return;
+
+          const latestPoop =
+            meta.latestPoop && typeof meta.latestPoop === 'object'
+              ? (meta.latestPoop as Partial<SharedPoopPayload>)
+              : null;
+
+          if (
+            !latestPoop ||
+            typeof latestPoop.id !== 'string' ||
+            typeof latestPoop.dropX !== 'number' ||
+            typeof latestPoop.dropY !== 'number' ||
+            typeof latestPoop.actorId !== 'string'
+          ) {
+            return;
+          }
+
+          if (seenRemotePoopIdsRef.current.get(actorId) === latestPoop.id) {
+            return;
+          }
+
+          seenRemotePoopIdsRef.current.set(actorId, latestPoop.id);
+          startPoopSequence(
+            latestPoop.actorId,
+            latestPoop.dropX,
+            latestPoop.dropY,
+            latestPoop.id,
+            typeof latestPoop.createdAt === 'number'
+              ? latestPoop.createdAt
+              : Date.now()
+          );
+        });
+      });
       setOnlineVisitors(
         nextActors.map((actor) => ({
           id: actor.id,
@@ -1931,7 +2062,12 @@ export default function BioVillageLanding() {
     const trackSelf = async () => {
       const player = playerRef.current;
       await channel.track(
-        buildPresencePayload(participantKey, player, user?.id ?? null)
+        buildPresencePayload(
+          participantKey,
+          player,
+          user?.id ?? null,
+          latestSelfPoopRef.current
+        )
       );
     };
 
@@ -1959,6 +2095,7 @@ export default function BioVillageLanding() {
           data.id,
           typeof data.createdAt === 'number' ? data.createdAt : Date.now()
         );
+        seenRemotePoopIdsRef.current.set(data.actorId, data.id);
       })
       .on('broadcast', { event: 'poop-clear' }, ({ payload }) => {
         if (!payload || typeof payload !== 'object') return;
@@ -2247,7 +2384,14 @@ export default function BioVillageLanding() {
 
       const player = playerRef.current;
       void channel
-        .track(buildPresencePayload(key, player, user?.id ?? null))
+        .track(
+          buildPresencePayload(
+            key,
+            player,
+            user?.id ?? null,
+            latestSelfPoopRef.current
+          )
+        )
         .catch(() => undefined);
     };
 
@@ -2355,14 +2499,19 @@ export default function BioVillageLanding() {
     const updateRemoteActors = () => {
       remoteActorsRef.current = remoteActorsRef.current.map((actor) => {
         if (actor.targetX == null || actor.targetY == null) {
-          return { ...actor, vx: 0, vy: 0, animFrame: 0 };
+          return {
+            ...actor,
+            vx: actor.vx * 0.62,
+            vy: actor.vy * 0.62,
+            animFrame: 0
+          };
         }
 
         const dx = actor.targetX - actor.x;
         const dy = actor.targetY - actor.y;
         const distance = Math.hypot(dx, dy);
 
-        if (distance < actor.speed + 1) {
+        if (distance < 1.5) {
           return {
             ...actor,
             animFrame: 0,
@@ -2381,12 +2530,17 @@ export default function BioVillageLanding() {
           };
         }
 
-        const vx = (dx / distance) * actor.speed;
-        const vy = (dy / distance) * actor.speed;
+        const smoothing = distance > 180 ? 0.22 : distance > 72 ? 0.18 : 0.14;
+        const step = Math.min(
+          distance,
+          Math.max(actor.speed * 1.05, distance * smoothing)
+        );
+        const vx = (dx / distance) * step;
+        const vy = (dy / distance) * step;
 
         return {
           ...actor,
-          animFrame: actor.animFrame + 0.12,
+          animFrame: actor.animFrame + 0.14,
           dir:
             Math.abs(vx) > Math.abs(vy)
               ? vx >= 0
