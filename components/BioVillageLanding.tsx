@@ -30,6 +30,7 @@ const PRESENCE_CHANNEL = 'bio-village-presence-v1';
 const PARTICIPANT_SESSION_STORAGE_KEY = 'bio-village-participant-session-v1';
 const POOP_SETTLE_MS = 720;
 const POOP_TTL_MS = 1000 * 60 * 60 * 2;
+const CLEAN_SWEEP_MS = 860;
 
 type Direction = 'down' | 'left' | 'right' | 'up';
 type SpritePreset = 'archivist' | 'courier' | 'ghost' | 'medic';
@@ -97,6 +98,13 @@ type PoopAnimationState = {
   dropY: number;
   id: string;
   startedAt: number;
+};
+
+type CleanupAnimationState = {
+  actorId: string;
+  id: string;
+  startedAt: number;
+  targetDropId: string;
 };
 
 type FacilityNode = {
@@ -844,6 +852,7 @@ function drawActor(
   scrollY: number,
   cameraX: number,
   options?: {
+    isCleaning?: boolean;
     isPooping?: boolean;
     isSelf?: boolean;
     isSelected?: boolean;
@@ -855,6 +864,9 @@ function drawActor(
   const squatOffset = options?.isPooping ? 8 : 0;
   const strainJitter = options?.isPooping
     ? Math.sin(performance.now() / 72) * 1.15
+    : 0;
+  const cleaningJitter = options?.isCleaning
+    ? Math.sin(performance.now() / 64) * 1.6
     : 0;
   const bounce =
     (actor.vx !== 0 || actor.vy !== 0) && Math.floor(actor.animFrame) % 2 === 0
@@ -890,7 +902,7 @@ function drawActor(
 
   context.save();
   context.translate(
-    screenX - width / 2 + strainJitter,
+    screenX - width / 2 + strainJitter + cleaningJitter,
     screenY - height / 2 + bounce + squatOffset
   );
 
@@ -923,6 +935,48 @@ function drawActor(
   }
 
   context.restore();
+
+  if (options?.isCleaning) {
+    const sweepWave = Math.sin(performance.now() / 74) * 0.22;
+    const dustWave = Math.sin(performance.now() / 48) * 1.2;
+
+    context.save();
+    context.translate(screenX + width * 0.32, screenY + height * 0.1);
+    context.rotate(-0.7 + sweepWave);
+    context.fillStyle = '#8a5b33';
+    context.fillRect(-1, -18, 3, 24);
+    context.fillStyle = '#d8ba7c';
+    context.fillRect(-6, 3, 12, 6);
+    context.fillStyle = 'rgba(118,72,28,0.84)';
+    context.fillRect(-5, 4, 2, 4);
+    context.fillRect(-1, 4, 2, 4);
+    context.fillRect(3, 4, 2, 4);
+    context.restore();
+
+    context.save();
+    context.strokeStyle = 'rgba(138, 92, 41, 0.48)';
+    context.lineWidth = 2;
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(screenX + 4, screenY + height * 0.42);
+    context.quadraticCurveTo(
+      screenX + 18,
+      screenY + height * 0.32 + dustWave,
+      screenX + 28,
+      screenY + height * 0.45
+    );
+    context.stroke();
+    context.beginPath();
+    context.moveTo(screenX - 2, screenY + height * 0.48);
+    context.quadraticCurveTo(
+      screenX + 10,
+      screenY + height * 0.4 - dustWave,
+      screenX + 20,
+      screenY + height * 0.5
+    );
+    context.stroke();
+    context.restore();
+  }
 
   if (options?.isPooping) {
     context.save();
@@ -1128,15 +1182,18 @@ export default function BioVillageLanding() {
   const worldBackdropRef = useRef<HTMLDivElement | null>(null);
   const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
+  const cleanupAnimationsRef = useRef<CleanupAnimationState[]>([]);
   const poopAnimationsRef = useRef<PoopAnimationState[]>([]);
   const poopSettleTimeoutsRef = useRef<Map<string, number>>(new Map());
   const poopExpiryTimeoutsRef = useRef<Map<string, number>>(new Map());
+  const poopDropsRef = useRef<PoopDrop[]>([]);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const participantKeyRef = useRef<string | null>(null);
   const keysRef = useRef<Record<string, boolean>>({});
   const cellsRef = useRef<CellState[]>([]);
   const remoteActorsRef = useRef<ActorState[]>([]);
   const selectedTargetRef = useRef<SelectedTarget | null>(null);
+  const selfCleanupHoldingRef = useRef(false);
   const selfPoopHoldingRef = useRef(false);
   const lastMovementBroadcastRef = useRef(0);
   const lastMovementActiveRef = useRef(false);
@@ -1195,6 +1252,10 @@ export default function BioVillageLanding() {
     Array<{ id: string; label: string; palette: PaletteKey }>
   >([]);
   const [poopDrops, setPoopDrops] = useState<PoopDrop[]>([]);
+
+  useEffect(() => {
+    poopDropsRef.current = poopDrops;
+  }, [poopDrops]);
 
   const worldActive = scrollY < WORLD_HEIGHT - 96;
 
@@ -1265,6 +1326,64 @@ export default function BioVillageLanding() {
     poopAnimationsRef.current = poopAnimationsRef.current.filter(
       (animation) => animation.id !== id
     );
+  }, []);
+
+  const removePoopDrop = useCallback((dropId: string) => {
+    const existingTimeout = poopExpiryTimeoutsRef.current.get(dropId);
+    if (existingTimeout !== undefined) {
+      window.clearTimeout(existingTimeout);
+      poopExpiryTimeoutsRef.current.delete(dropId);
+    }
+
+    setPoopDrops((previous) => {
+      const nextDrops = previous.filter((entry) => entry.id !== dropId);
+      poopDropsRef.current = nextDrops;
+      return nextDrops;
+    });
+  }, []);
+
+  const startCleanupAnimation = useCallback(
+    (actorId: string, targetDropId: string) => {
+      cleanupAnimationsRef.current = [
+        ...cleanupAnimationsRef.current.filter(
+          (animation) => animation.actorId !== actorId
+        ),
+        {
+          actorId,
+          id: crypto.randomUUID(),
+          startedAt: performance.now(),
+          targetDropId
+        }
+      ];
+    },
+    []
+  );
+
+  const findNearbyPoopDrop = useCallback((actor: ActorState) => {
+    const { height } = getSpriteSize(actor.preset);
+    const footX = actor.x;
+    const footY = actor.y + height * 0.44;
+
+    const candidates = poopDropsRef.current
+      .map((drop) => {
+        const dx = drop.x - footX;
+        const dy = drop.y - footY;
+        return {
+          distance: Math.hypot(dx, dy),
+          drop,
+          dx,
+          dy
+        };
+      })
+      .filter(
+        (entry) =>
+          Math.abs(entry.dx) <= 34 &&
+          Math.abs(entry.dy) <= 40 &&
+          entry.distance <= 42
+      )
+      .sort((left, right) => left.distance - right.distance);
+
+    return candidates[0]?.drop ?? null;
   }, []);
 
   const schedulePoopExpiry = useCallback((drop: PoopDrop) => {
@@ -1646,6 +1765,16 @@ export default function BioVillageLanding() {
       selfPoopHoldingRef.current = false;
     };
 
+    const handlePoopCleanHoldStart = () => {
+      selfCleanupHoldingRef.current = Boolean(
+        findNearbyPoopDrop(playerRef.current)
+      );
+    };
+
+    const handlePoopCleanHoldEnd = () => {
+      selfCleanupHoldingRef.current = false;
+    };
+
     const handlePoopTrigger = () => {
       const player = playerRef.current;
       const { height, width } = getSpriteSize(player.preset);
@@ -1676,6 +1805,29 @@ export default function BioVillageLanding() {
         .catch(() => undefined);
     };
 
+    const handlePoopCleanTrigger = () => {
+      selfCleanupHoldingRef.current = false;
+      const player = playerRef.current;
+      const targetDrop = findNearbyPoopDrop(player);
+      if (!targetDrop) return;
+
+      const actorId = participantKeyRef.current ?? 'self';
+      startCleanupAnimation(actorId, targetDrop.id);
+      removePoopDrop(targetDrop.id);
+
+      void presenceChannelRef.current
+        ?.send({
+          type: 'broadcast',
+          event: 'poop-clear',
+          payload: {
+            actorId,
+            clearedAt: Date.now(),
+            dropId: targetDrop.id
+          }
+        })
+        .catch(() => undefined);
+    };
+
     window.addEventListener(
       'bio-village:poop-hold-start',
       handlePoopHoldStart as EventListener
@@ -1687,6 +1839,18 @@ export default function BioVillageLanding() {
     window.addEventListener(
       'bio-village:poop-trigger',
       handlePoopTrigger as EventListener
+    );
+    window.addEventListener(
+      'bio-village:poop-clean-hold-start',
+      handlePoopCleanHoldStart as EventListener
+    );
+    window.addEventListener(
+      'bio-village:poop-clean-hold-end',
+      handlePoopCleanHoldEnd as EventListener
+    );
+    window.addEventListener(
+      'bio-village:poop-clean-trigger',
+      handlePoopCleanTrigger as EventListener
     );
 
     return () => {
@@ -1702,8 +1866,25 @@ export default function BioVillageLanding() {
         'bio-village:poop-trigger',
         handlePoopTrigger as EventListener
       );
+      window.removeEventListener(
+        'bio-village:poop-clean-hold-start',
+        handlePoopCleanHoldStart as EventListener
+      );
+      window.removeEventListener(
+        'bio-village:poop-clean-hold-end',
+        handlePoopCleanHoldEnd as EventListener
+      );
+      window.removeEventListener(
+        'bio-village:poop-clean-trigger',
+        handlePoopCleanTrigger as EventListener
+      );
     };
-  }, [startPoopSequence]);
+  }, [
+    findNearbyPoopDrop,
+    removePoopDrop,
+    startCleanupAnimation,
+    startPoopSequence
+  ]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -1778,6 +1959,20 @@ export default function BioVillageLanding() {
           typeof data.createdAt === 'number' ? data.createdAt : Date.now()
         );
       })
+      .on('broadcast', { event: 'poop-clear' }, ({ payload }) => {
+        if (!payload || typeof payload !== 'object') return;
+
+        const data = payload as Record<string, unknown>;
+        if (
+          typeof data.dropId !== 'string' ||
+          typeof data.actorId !== 'string'
+        ) {
+          return;
+        }
+
+        startCleanupAnimation(data.actorId, data.dropId);
+        removePoopDrop(data.dropId);
+      })
       .on('presence', { event: 'sync' }, syncPresenceSnapshot)
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') return;
@@ -1796,6 +1991,8 @@ export default function BioVillageLanding() {
   }, [
     applyRemoteMovementPayload,
     participantKey,
+    removePoopDrop,
+    startCleanupAnimation,
     startPoopSequence,
     supabase,
     user?.id
@@ -2355,13 +2552,22 @@ export default function BioVillageLanding() {
           : selectedTargetRef.current?.kind === 'self'
             ? 'self'
             : null;
+      cleanupAnimationsRef.current = cleanupAnimationsRef.current.filter(
+        (animation) => performance.now() - animation.startedAt < CLEAN_SWEEP_MS
+      );
+      const activeCleanupAnimations = cleanupAnimationsRef.current;
       const activePoopAnimations = poopAnimationsRef.current;
       const selfPoopActorId = participantKeyRef.current ?? 'self';
       const poopingActorIds = new Set(
         activePoopAnimations.map((animation) => animation.actorId)
       );
+      const cleaningActorIds = new Set(
+        activeCleanupAnimations.map((animation) => animation.actorId)
+      );
       const selfIsPooping =
         selfPoopHoldingRef.current || poopingActorIds.has(selfPoopActorId);
+      const selfIsCleaning =
+        selfCleanupHoldingRef.current || cleaningActorIds.has(selfPoopActorId);
 
       const visibleRemoteActors = [...remoteActorsRef.current].sort(
         (left, right) => left.y - right.y
@@ -2369,6 +2575,7 @@ export default function BioVillageLanding() {
 
       visibleRemoteActors.forEach((actor) => {
         drawActor(avatarContext, actor, window.scrollY, cameraXRef.current, {
+          isCleaning: cleaningActorIds.has(actor.id),
           isPooping: poopingActorIds.has(actor.id),
           isSelected: selectedId === actor.id
         });
@@ -2410,6 +2617,7 @@ export default function BioVillageLanding() {
         window.scrollY,
         cameraXRef.current,
         {
+          isCleaning: selfIsCleaning,
           isPooping: selfIsPooping,
           isSelf: true,
           isSelected: selectedId === 'self'

@@ -7,23 +7,46 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
-const POOP_HOLD_MS = 3000;
+const HOLD_MS = {
+  clean: 2000,
+  poop: 3000
+} as const;
+
+type HoldKind = keyof typeof HOLD_MS;
+
+const HOLD_EVENT_MAP: Record<
+  HoldKind,
+  { end: string; start: string; trigger: string }
+> = {
+  clean: {
+    end: 'bio-village:poop-clean-hold-end',
+    start: 'bio-village:poop-clean-hold-start',
+    trigger: 'bio-village:poop-clean-trigger'
+  },
+  poop: {
+    end: 'bio-village:poop-hold-end',
+    start: 'bio-village:poop-hold-start',
+    trigger: 'bio-village:poop-trigger'
+  }
+};
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const [activeHold, setActiveHold] = useState<HoldKind | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
-  const [isHoldingPoop, setIsHoldingPoop] = useState(false);
   const holdActiveRef = useRef(false);
+  const holdKindRef = useRef<HoldKind | null>(null);
+  const holdRafRef = useRef<number | null>(null);
   const holdStartRef = useRef<number | null>(null);
   const holdTimeoutRef = useRef<number | null>(null);
-  const holdRafRef = useRef<number | null>(null);
-  const poopTriggeredRef = useRef(false);
+  const holdTriggeredRef = useRef(false);
 
-  const resetPoopHold = (keepProgress = false) => {
+  const resetHold = (keepProgress = false) => {
+    const activeKind = holdKindRef.current;
     const hadActiveHold =
       holdActiveRef.current ||
       holdStartRef.current !== null ||
-      poopTriggeredRef.current ||
-      isHoldingPoop;
+      holdTriggeredRef.current ||
+      activeKind !== null;
 
     if (holdTimeoutRef.current !== null) {
       window.clearTimeout(holdTimeoutRef.current);
@@ -35,36 +58,40 @@ export default function Header({ onMenuClick }: HeaderProps) {
       holdRafRef.current = null;
     }
 
-    holdStartRef.current = null;
-    poopTriggeredRef.current = false;
     holdActiveRef.current = false;
-    setIsHoldingPoop(false);
-    if (hadActiveHold) {
-      window.dispatchEvent(new CustomEvent('bio-village:poop-hold-end'));
+    holdKindRef.current = null;
+    holdStartRef.current = null;
+    holdTriggeredRef.current = false;
+    setActiveHold(null);
+
+    if (hadActiveHold && activeKind) {
+      window.dispatchEvent(new CustomEvent(HOLD_EVENT_MAP[activeKind].end));
     }
+
     if (!keepProgress) {
       setHoldProgress(0);
     }
   };
 
   useEffect(() => {
-    return () => resetPoopHold();
+    return () => resetHold();
   }, []);
 
-  const beginPoopHold = () => {
+  const beginHold = (kind: HoldKind) => {
     if (holdActiveRef.current) return;
 
     holdActiveRef.current = true;
-    poopTriggeredRef.current = false;
-    setIsHoldingPoop(true);
-    setHoldProgress(0);
+    holdKindRef.current = kind;
+    holdTriggeredRef.current = false;
     holdStartRef.current = performance.now();
-    window.dispatchEvent(new CustomEvent('bio-village:poop-hold-start'));
+    setActiveHold(kind);
+    setHoldProgress(0);
+    window.dispatchEvent(new CustomEvent(HOLD_EVENT_MAP[kind].start));
 
     const tick = () => {
       if (holdStartRef.current === null) return;
       const elapsed = performance.now() - holdStartRef.current;
-      const nextProgress = Math.min(1, elapsed / POOP_HOLD_MS);
+      const nextProgress = Math.min(1, elapsed / HOLD_MS[kind]);
       setHoldProgress(nextProgress);
 
       if (nextProgress < 1) {
@@ -74,50 +101,126 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
     holdRafRef.current = window.requestAnimationFrame(tick);
     holdTimeoutRef.current = window.setTimeout(() => {
-      poopTriggeredRef.current = true;
-      setHoldProgress(1);
-      setIsHoldingPoop(false);
+      holdTriggeredRef.current = true;
       holdActiveRef.current = false;
+      holdKindRef.current = null;
       holdStartRef.current = null;
-      window.dispatchEvent(new CustomEvent('bio-village:poop-hold-end'));
-      window.dispatchEvent(new CustomEvent('bio-village:poop-trigger'));
+      setActiveHold(null);
+      setHoldProgress(1);
+      window.dispatchEvent(new CustomEvent(HOLD_EVENT_MAP[kind].end));
+      window.dispatchEvent(new CustomEvent(HOLD_EVENT_MAP[kind].trigger));
       window.setTimeout(() => {
         setHoldProgress(0);
       }, 420);
-    }, POOP_HOLD_MS);
+    }, HOLD_MS[kind]);
   };
 
-  const startPoopHoldPointer = (
-    event: React.PointerEvent<HTMLButtonElement>
-  ) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    event.preventDefault();
-    beginPoopHold();
+  const stopHold = (keepProgress = false) => {
+    if (holdTriggeredRef.current) {
+      holdTriggeredRef.current = false;
+      return;
+    }
+
+    resetHold(keepProgress);
   };
 
-  const startPoopHoldMouse = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    beginPoopHold();
-  };
+  const startHoldPointer =
+    (kind: HoldKind) => (event: React.PointerEvent<HTMLButtonElement>) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      event.preventDefault();
+      beginHold(kind);
+    };
 
-  const startPoopHoldTouch = (event: React.TouchEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    beginPoopHold();
-  };
+  const startHoldMouse =
+    (kind: HoldKind) => (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      beginHold(kind);
+    };
+
+  const startHoldTouch =
+    (kind: HoldKind) => (event: React.TouchEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      beginHold(kind);
+    };
 
   const preventDefaultEvent = (event: React.SyntheticEvent) => {
     event.preventDefault();
   };
 
-  const stopPoopHold = (keepProgress = false) => {
-    if (poopTriggeredRef.current) {
-      poopTriggeredRef.current = false;
-      return;
+  const renderHoldOrb = (kind: HoldKind) => {
+    if (activeHold === kind) {
+      return (
+        <span
+          aria-hidden="true"
+          className="relative h-[13px] w-[13px] rounded-full border border-[rgba(255,243,233,0.36)]"
+          style={{
+            background: `conic-gradient(${kind === 'clean' ? 'rgba(188,224,186,0.96)' : 'rgba(255,196,120,0.96)'} ${
+              holdProgress * 360
+            }deg, rgba(255,255,255,0.08) 0deg)`
+          }}
+        >
+          <span className="absolute inset-[2px] rounded-full bg-[rgba(44,16,10,0.96)]" />
+        </span>
+      );
     }
 
-    resetPoopHold(keepProgress);
+    return (
+      <span
+        aria-hidden="true"
+        className="h-[13px] w-[13px] rounded-full border border-[rgba(255,243,233,0.26)] bg-[rgba(255,255,255,0.08)]"
+      />
+    );
   };
+
+  const buttonBaseClassName =
+    'pointer-events-auto relative overflow-hidden rounded-full border px-3 py-2 font-[var(--font-brush)] text-[0.64rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] shadow-[0_10px_22px_rgba(0,0,0,0.26)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4';
+
+  const buttonSharedStyle = {
+    MozUserSelect: 'none' as const,
+    WebkitTapHighlightColor: 'transparent',
+    WebkitTouchCallout: 'none' as const,
+    WebkitUserSelect: 'none' as const,
+    touchAction: 'none' as const,
+    userSelect: 'none' as const
+  };
+
+  const renderHoldButton = (
+    kind: HoldKind,
+    label: string,
+    toneClassName: string,
+    ariaLabel: string
+  ) => (
+    <button
+      type="button"
+      onPointerDown={startHoldPointer(kind)}
+      onPointerUp={() => stopHold()}
+      onPointerLeave={() => stopHold()}
+      onPointerCancel={() => stopHold()}
+      onMouseDown={startHoldMouse(kind)}
+      onMouseUp={() => stopHold()}
+      onMouseLeave={() => stopHold()}
+      onTouchStart={startHoldTouch(kind)}
+      onTouchEnd={() => stopHold()}
+      onTouchCancel={() => stopHold()}
+      onContextMenu={preventDefaultEvent}
+      onDragStart={preventDefaultEvent}
+      className={`${buttonBaseClassName} ${toneClassName} ${
+        activeHold === kind ? 'scale-[0.985]' : ''
+      }`}
+      style={buttonSharedStyle}
+      aria-label={ariaLabel}
+      draggable={false}
+    >
+      <span className="relative z-[1] inline-flex items-center gap-2">
+        {renderHoldOrb(kind)}
+        <span>{label}</span>
+      </span>
+      {activeHold === kind ? (
+        <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.14),transparent)] opacity-70" />
+      ) : null}
+    </button>
+  );
 
   return (
     <header className="pointer-events-none fixed right-0 top-0 z-40 px-3 pt-3 sm:px-4 sm:pt-4 md:px-8 md:pt-6">
@@ -131,55 +234,19 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <Menu className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-[1px]" />
         </button>
 
-        <button
-          type="button"
-          onPointerDown={startPoopHoldPointer}
-          onPointerUp={() => stopPoopHold()}
-          onPointerLeave={() => stopPoopHold()}
-          onPointerCancel={() => stopPoopHold()}
-          onMouseDown={startPoopHoldMouse}
-          onMouseUp={() => stopPoopHold()}
-          onMouseLeave={() => stopPoopHold()}
-          onTouchStart={startPoopHoldTouch}
-          onTouchEnd={() => stopPoopHold()}
-          onTouchCancel={() => stopPoopHold()}
-          onContextMenu={preventDefaultEvent}
-          onDragStart={preventDefaultEvent}
-          className={`pointer-events-auto relative overflow-hidden rounded-full border border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)] px-3 py-2 font-[var(--font-brush)] text-[0.64rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] shadow-[0_10px_22px_rgba(0,0,0,0.26)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4 ${isHoldingPoop ? 'scale-[0.985]' : ''}`}
-          style={{
-            MozUserSelect: 'none',
-            WebkitTapHighlightColor: 'transparent',
-            WebkitTouchCallout: 'none',
-            WebkitUserSelect: 'none',
-            touchAction: 'none',
-            userSelect: 'none'
-          }}
-          aria-label="똥싸기 버튼"
-          draggable={false}
-        >
-          <span className="relative z-[1] inline-flex items-center gap-2">
-            {isHoldingPoop ? (
-              <span
-                aria-hidden="true"
-                className="relative h-[13px] w-[13px] rounded-full border border-[rgba(255,243,233,0.36)]"
-                style={{
-                  background: `conic-gradient(rgba(255,196,120,0.96) ${holdProgress * 360}deg, rgba(255,255,255,0.08) 0deg)`
-                }}
-              >
-                <span className="absolute inset-[2px] rounded-full bg-[rgba(44,16,10,0.96)]" />
-              </span>
-            ) : (
-              <span
-                aria-hidden="true"
-                className="h-[13px] w-[13px] rounded-full border border-[rgba(255,243,233,0.26)] bg-[rgba(255,255,255,0.08)]"
-              />
-            )}
-            <span>똥싸기</span>
-          </span>
-          {isHoldingPoop ? (
-            <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.14),transparent)] opacity-70" />
-          ) : null}
-        </button>
+        {renderHoldButton(
+          'poop',
+          '똥싸기',
+          'border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)]',
+          '똥싸기 버튼'
+        )}
+
+        {renderHoldButton(
+          'clean',
+          '똥치우기',
+          'border-[rgba(52,90,57,0.76)] bg-[rgba(18,43,22,0.94)]',
+          '똥치우기 버튼'
+        )}
       </div>
     </header>
   );
