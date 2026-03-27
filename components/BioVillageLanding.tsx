@@ -1893,6 +1893,7 @@ export default function BioVillageLanding() {
 
         .village-facility {
           position: absolute;
+          z-index: 15;
           transform: translate(-50%, -50%);
           border: 1px solid rgba(180, 48, 48, 0.24);
           background:
@@ -1970,6 +1971,7 @@ export default function BioVillageLanding() {
 
         .village-shop-card {
           position: absolute;
+          z-index: 18;
           transform: translate(-50%, -50%);
           border: 1px solid rgba(164, 43, 43, 0.2);
           background:
@@ -2103,6 +2105,7 @@ export default function BioVillageLanding() {
 
         .village-floor-path {
           position: absolute;
+          z-index: 16;
           transform: translate(-50%, -50%) rotate(var(--path-rotate, 0deg));
           display: flex;
           align-items: center;
