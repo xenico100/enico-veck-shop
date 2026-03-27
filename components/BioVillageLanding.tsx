@@ -79,6 +79,7 @@ type FacilityNode = {
   id: string;
   left: string;
   subtitle: string;
+  tab: VillageShopTab;
   title: string;
   top: number;
   width?: number;
@@ -369,6 +370,7 @@ const facilityNodes: FacilityNode[] = [
     id: 'atrium-heart',
     left: '52%',
     subtitle: '중앙 접속 심장. 매칭 신호와 유저 흐름이 모이는 코어.',
+    tab: 'diagram',
     title: 'Clinical Atrium',
     top: 250,
     width: 232
@@ -379,6 +381,7 @@ const facilityNodes: FacilityNode[] = [
     id: 'profile-lab',
     left: '23%',
     subtitle: '소개, 관심사, MBTI를 다듬는 생체 프로필 부스.',
+    tab: 'studio',
     title: 'Profile Lab',
     top: 980,
     width: 280
@@ -389,6 +392,7 @@ const facilityNodes: FacilityNode[] = [
     id: 'signal-lounge',
     left: '76%',
     subtitle: '좌클릭으로 타인의 기록을 읽고 채팅 훅을 여는 구역.',
+    tab: 'studio',
     title: 'Signal Lounge',
     top: 1160,
     width: 300
@@ -399,6 +403,7 @@ const facilityNodes: FacilityNode[] = [
     id: 'memory-ward',
     left: '28%',
     subtitle: '자기소개와 감정 기록이 축적되는 병동형 갤러리.',
+    tab: 'goods',
     title: 'Memory Ward',
     top: 1920,
     width: 320
@@ -409,6 +414,7 @@ const facilityNodes: FacilityNode[] = [
     id: 'resonance-grid',
     left: '72%',
     subtitle: '랜덤 탐험과 공감 신호가 순환하는 실험층.',
+    tab: 'studio',
     title: 'Resonance Grid',
     top: 2240,
     width: 310
@@ -419,6 +425,7 @@ const facilityNodes: FacilityNode[] = [
     id: 'deep-core',
     left: '50%',
     subtitle: '완주한 감정 기록과 매칭 로그가 쌓이는 지하 통제실.',
+    tab: 'diagram',
     title: 'Midnight Dating Core',
     top: 2860,
     width: 420
@@ -985,7 +992,7 @@ export default function BioVillageLanding() {
   const lastPresenceSyncRef = useRef(0);
   const initialViewportAlignedRef = useRef(false);
   const ignoreClickUntilRef = useRef(0);
-  const lastShopTapRef = useRef<{ id: string; time: number } | null>(null);
+  const lastStructureTapRef = useRef<{ id: string; time: number } | null>(null);
   const touchStateRef = useRef<{
     moved: boolean;
     startScrollY: number;
@@ -1113,26 +1120,26 @@ export default function BioVillageLanding() {
     }, 80);
   };
 
-  const handleVillageShopTouchEnd = (
+  const handleStructureTouchEnd = (
     event: React.TouchEvent<HTMLElement>,
-    shopId: string,
+    structureId: string,
     tab: VillageShopTab
   ) => {
     event.preventDefault();
 
     const now = Date.now();
-    const previousTap = lastShopTapRef.current;
+    const previousTap = lastStructureTapRef.current;
     if (
       previousTap &&
-      previousTap.id === shopId &&
+      previousTap.id === structureId &&
       now - previousTap.time < 320
     ) {
-      lastShopTapRef.current = null;
+      lastStructureTapRef.current = null;
       openVillageShop(tab);
       return;
     }
 
-    lastShopTapRef.current = { id: shopId, time: now };
+    lastStructureTapRef.current = { id: structureId, time: now };
   };
 
   useEffect(() => {
@@ -1872,6 +1879,12 @@ export default function BioVillageLanding() {
           100% { transform: translateY(0px); }
         }
 
+        @keyframes village-glint {
+          0% { transform: translateX(-125%) rotate(8deg); opacity: 0; }
+          18% { opacity: 0.92; }
+          100% { transform: translateX(138%) rotate(8deg); opacity: 0; }
+        }
+
         @keyframes village-glitch-1 {
           0% { clip-path: polygon(0 18%, 100% 18%, 100% 19%, 0 19%); }
           100% { clip-path: polygon(0 62%, 100% 62%, 100% 63%, 0 63%); }
@@ -1920,6 +1933,42 @@ export default function BioVillageLanding() {
             0 18px 48px rgba(131, 26, 26, 0.08);
           backdrop-filter: blur(8px);
           animation: village-float 7.5s ease-in-out infinite;
+        }
+
+        .village-interactive-structure {
+          isolation: isolate;
+          cursor: pointer;
+          touch-action: manipulation;
+        }
+
+        .village-interactive-structure::after {
+          content: '';
+          position: absolute;
+          inset: -18%;
+          z-index: 4;
+          background: linear-gradient(
+            110deg,
+            transparent 34%,
+            rgba(255,255,255,0.76) 48%,
+            transparent 62%
+          );
+          mix-blend-mode: screen;
+          opacity: 0;
+          pointer-events: none;
+          transform: translateX(-125%) rotate(8deg);
+        }
+
+        .village-interactive-structure:hover::after {
+          animation: village-glint 1.05s ease;
+        }
+
+        .village-facility:hover {
+          transform: translate(-50%, calc(-50% - 4px));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.92),
+            0 24px 56px rgba(131, 26, 26, 0.14),
+            0 0 0 10px rgba(255, 160, 160, 0.1);
+          border-color: rgba(180, 48, 48, 0.34);
         }
 
         .village-node-card {
@@ -2268,12 +2317,19 @@ export default function BioVillageLanding() {
             <article
               key={node.id}
               id={node.id}
-              className={`village-facility ${node.bodyClassName}`}
+              data-avatar-ui="true"
+              role="button"
+              tabIndex={0}
+              className={`village-facility village-interactive-structure ${node.bodyClassName}`}
               style={{
                 left: node.left,
                 top: `${node.top}px`,
                 width: node.width ? `${node.width}px` : undefined
               }}
+              onDoubleClick={() => openVillageShop(node.tab)}
+              onTouchEnd={(event) =>
+                handleStructureTouchEnd(event, node.id, node.tab)
+              }
             >
               <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
                 {node.caption}
@@ -2300,8 +2356,8 @@ export default function BioVillageLanding() {
                 tabIndex={0}
                 className={
                   isGoodsCastle
-                    ? 'village-shop-card village-castle-shop'
-                    : 'village-shop-card'
+                    ? 'village-shop-card village-castle-shop village-interactive-structure'
+                    : 'village-shop-card village-interactive-structure'
                 }
                 style={{
                   boxShadow: isGoodsCastle
@@ -2312,14 +2368,8 @@ export default function BioVillageLanding() {
                   width: `${shop.width}px`
                 }}
                 onDoubleClick={() => openVillageShop(shop.tab)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openVillageShop(shop.tab);
-                  }
-                }}
                 onTouchEnd={(event) =>
-                  handleVillageShopTouchEnd(event, shop.id, shop.tab)
+                  handleStructureTouchEnd(event, shop.id, shop.tab)
                 }
               >
                 {isGoodsCastle ? (
