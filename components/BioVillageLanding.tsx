@@ -429,20 +429,20 @@ const villageShopNodes: VillageShopNode[] = [
   {
     hint: '더블클릭: 멤버십 영상',
     id: 'studio-access-shop',
-    left: '61%',
+    left: '63%',
     tab: 'studio',
     title: 'Tape Garden Booth',
-    top: 630,
-    width: 216
+    top: 680,
+    width: 220
   },
   {
     hint: '더블클릭: 굿즈 판매',
     id: 'goods-access-shop',
-    left: '39%',
+    left: '37.5%',
     tab: 'goods',
     title: 'Goods Counter',
-    top: 560,
-    width: 300
+    top: 630,
+    width: 250
   },
   {
     hint: '더블클릭: 시스템 다이어그램',
@@ -474,18 +474,18 @@ const villagePathMarkers: VillagePathMarker[] = [
   {
     id: 'studio-path-marker',
     label: '멤버십 영상 가는 길',
-    left: '56.5%',
-    rotation: 10,
-    top: 590,
-    width: 238
+    left: '58.5%',
+    rotation: 12,
+    top: 632,
+    width: 232
   },
   {
     id: 'goods-path-marker',
     label: '굿즈 상점 가는 길',
-    left: '43%',
-    rotation: -10,
-    top: 610,
-    width: 214
+    left: '41.5%',
+    rotation: -12,
+    top: 612,
+    width: 206
   },
   {
     id: 'diagram-path-marker',
@@ -619,11 +619,13 @@ const getInitialCameraPosition = (
 };
 
 const applyWorldTransform = (
-  worldLayer: HTMLDivElement | null,
+  layers: Array<HTMLDivElement | null>,
   cameraX: number
 ) => {
-  if (!worldLayer) return;
-  worldLayer.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
+  layers.forEach((layer) => {
+    if (!layer) return;
+    layer.style.transform = `translate3d(${-cameraX}px, 0, 0)`;
+  });
 };
 
 const createDefaultProfile = (name: string): AvatarProfile => ({
@@ -966,8 +968,10 @@ export default function BioVillageLanding() {
     }
   }, []);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const worldLayerRef = useRef<HTMLDivElement | null>(null);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const avatarCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const worldBackdropRef = useRef<HTMLDivElement | null>(null);
+  const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const participantKeyRef = useRef<string | null>(null);
@@ -1288,11 +1292,13 @@ export default function BioVillageLanding() {
     if (typeof window === 'undefined') return;
 
     cellsRef.current = createCells();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const backgroundCanvas = backgroundCanvasRef.current;
+    const avatarCanvas = avatarCanvasRef.current;
+    if (!backgroundCanvas || !avatarCanvas) return;
 
-    const context = canvas.getContext('2d');
-    if (!context) return;
+    const backgroundContext = backgroundCanvas.getContext('2d');
+    const avatarContext = avatarCanvas.getContext('2d');
+    if (!backgroundContext || !avatarContext) return;
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1300,11 +1306,14 @@ export default function BioVillageLanding() {
       worldWidthRef.current = nextWorldWidth;
       setWorldWidth(nextWorldWidth);
 
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      [backgroundCanvas, avatarCanvas].forEach((canvas) => {
+        canvas.width = Math.floor(window.innerWidth * dpr);
+        canvas.height = Math.floor(window.innerHeight * dpr);
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+      });
+      backgroundContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+      avatarContext.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const player = playerRef.current;
       if (player.x === 0) {
@@ -1350,7 +1359,10 @@ export default function BioVillageLanding() {
         );
       }
 
-      applyWorldTransform(worldLayerRef.current, cameraXRef.current);
+      applyWorldTransform(
+        [worldBackdropRef.current, worldObjectsRef.current],
+        cameraXRef.current
+      );
 
       remoteActorsRef.current = remoteActorsRef.current.map((actor) => ({
         ...actor,
@@ -1677,7 +1689,10 @@ export default function BioVillageLanding() {
       );
       cameraXRef.current +=
         (horizontalTarget - cameraXRef.current) * horizontalCameraLerp;
-      applyWorldTransform(worldLayerRef.current, cameraXRef.current);
+      applyWorldTransform(
+        [worldBackdropRef.current, worldObjectsRef.current],
+        cameraXRef.current
+      );
     };
 
     const drawVein = (
@@ -1699,28 +1714,28 @@ export default function BioVillageLanding() {
       const dx = to.x - from.x;
       const dy = to.y - from.y;
 
-      context.beginPath();
-      context.moveTo(from.x, from.y);
+      backgroundContext.beginPath();
+      backgroundContext.moveTo(from.x, from.y);
 
       for (let index = -1; index <= 1; index += 1) {
         const cp1x = from.x + dx / 3 + dy * 0.18 * index;
         const cp1y = from.y + dy / 3 - dx * 0.18 * index;
         const cp2x = from.x + (dx * 2) / 3 - dy * 0.18 * index;
         const cp2y = from.y + (dy * 2) / 3 + dx * 0.18 * index;
-        context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, to.x, to.y);
+        backgroundContext.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, to.x, to.y);
       }
 
-      context.strokeStyle = color;
-      context.lineWidth = currentWidth;
-      context.lineCap = 'round';
-      context.shadowBlur = 10;
-      context.shadowColor = 'rgba(255, 64, 64, 0.28)';
-      context.stroke();
+      backgroundContext.strokeStyle = color;
+      backgroundContext.lineWidth = currentWidth;
+      backgroundContext.lineCap = 'round';
+      backgroundContext.shadowBlur = 10;
+      backgroundContext.shadowColor = 'rgba(255, 64, 64, 0.28)';
+      backgroundContext.stroke();
 
-      context.strokeStyle = 'rgba(255,255,255,0.28)';
-      context.lineWidth = currentWidth * 0.24;
-      context.stroke();
-      context.shadowBlur = 0;
+      backgroundContext.strokeStyle = 'rgba(255,255,255,0.28)';
+      backgroundContext.lineWidth = currentWidth * 0.24;
+      backgroundContext.stroke();
+      backgroundContext.shadowBlur = 0;
     };
 
     let time = 0;
@@ -1732,8 +1747,10 @@ export default function BioVillageLanding() {
       updateCamera();
       syncPresenceIfNeeded();
 
-      context.fillStyle = 'rgba(248, 249, 250, 0.54)';
-      context.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      backgroundContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      backgroundContext.fillStyle = 'rgba(248, 249, 250, 0.24)';
+      backgroundContext.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      avatarContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
       cellsRef.current.forEach((cell) => {
         cell.worldX += cell.vx + Math.sin(time * 0.01 + cell.phase) * 0.12;
@@ -1754,8 +1771,8 @@ export default function BioVillageLanding() {
         const rx = Math.max(0.1, cell.radius + radiusOffset);
         const ry = Math.max(0.1, cell.radius - radiusOffset * 0.5);
 
-        context.beginPath();
-        context.ellipse(
+        backgroundContext.beginPath();
+        backgroundContext.ellipse(
           screenX,
           screenY,
           rx,
@@ -1764,8 +1781,8 @@ export default function BioVillageLanding() {
           0,
           Math.PI * 2
         );
-        context.fillStyle = cell.color;
-        context.fill();
+        backgroundContext.fillStyle = cell.color;
+        backgroundContext.fill();
       });
 
       veinEdges.forEach(([fromId, toId, color, width]) => {
@@ -1794,13 +1811,13 @@ export default function BioVillageLanding() {
       );
 
       visibleRemoteActors.forEach((actor) => {
-        drawActor(context, actor, window.scrollY, cameraXRef.current, {
+        drawActor(avatarContext, actor, window.scrollY, cameraXRef.current, {
           isSelected: selectedId === actor.id
         });
       });
 
       drawActor(
-        context,
+        avatarContext,
         playerRef.current,
         window.scrollY,
         cameraXRef.current,
@@ -2163,7 +2180,7 @@ export default function BioVillageLanding() {
       `}</style>
 
       <canvas
-        ref={canvasRef}
+        ref={backgroundCanvasRef}
         className="pointer-events-none fixed inset-0 z-[8] h-full w-full"
         style={{
           filter: 'contrast(1.08) saturate(1.18)',
@@ -2183,6 +2200,15 @@ export default function BioVillageLanding() {
         }}
       />
 
+      <canvas
+        ref={avatarCanvasRef}
+        className="pointer-events-none fixed inset-0 z-[18] h-full w-full"
+        style={{
+          opacity: worldActive ? 1 : 0,
+          transition: 'opacity 180ms ease'
+        }}
+      />
+
       <div
         className="pointer-events-none fixed right-6 top-24 z-40 hidden lg:block"
         style={{
@@ -2197,8 +2223,8 @@ export default function BioVillageLanding() {
 
       <div className="relative h-[3500px] w-full overflow-hidden">
         <div
-          ref={worldLayerRef}
-          className="relative z-[10] h-full will-change-transform"
+          ref={worldBackdropRef}
+          className="pointer-events-none absolute left-0 top-0 z-[6] h-full will-change-transform"
           style={{
             width: `${worldWidth}px`,
             backgroundColor: '#f8f9fa',
@@ -2212,7 +2238,15 @@ export default function BioVillageLanding() {
           <div className="pointer-events-none absolute left-0 top-[870px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.4rem] font-black tracking-[0.12em] text-red-100 opacity-30 sm:text-5xl sm:tracking-[0.2em]">
             PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
           </div>
+        </div>
 
+        <div
+          ref={worldObjectsRef}
+          className="relative z-[15] h-full will-change-transform"
+          style={{
+            width: `${worldWidth}px`
+          }}
+        >
           {villagePathMarkers.map((marker) => (
             <div
               key={marker.id}
