@@ -551,31 +551,31 @@ export default function DatingModal({
           role="dialog"
           aria-modal="true"
           aria-labelledby="dating-title"
-          className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(86,113,255,0.16),_rgba(6,10,22,0.96)_46%,_rgba(4,7,17,0.98)_100%)] shadow-[0_32px_120px_rgba(0,0,0,0.52)]"
+          className="flex max-h-[calc(100dvh-0.75rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[1.6rem] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(86,113,255,0.16),_rgba(6,10,22,0.96)_46%,_rgba(4,7,17,0.98)_100%)] shadow-[0_32px_120px_rgba(0,0,0,0.52)] sm:max-h-[min(calc(100dvh-2rem),46rem)] sm:rounded-[2rem]"
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 pb-5 pt-5 sm:px-7 sm:pb-6 sm:pt-6">
+          <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 pb-4 pt-4 sm:gap-4 sm:px-7 sm:pb-6 sm:pt-6">
             <div className="min-w-0 flex-1">
               <p className="section-kicker !text-[rgba(210,228,255,0.56)]">
                 Dating Service
               </p>
               <h2
                 id="dating-title"
-                className="display-font mt-2 text-[1.35rem] font-semibold tracking-[0.04em] text-white sm:text-[1.75rem]"
+                className="display-font mt-2 text-[1.08rem] font-semibold tracking-[0.04em] text-white sm:text-[1.75rem]"
               >
                 DATING
               </h2>
-              <p className="mt-2 max-w-2xl text-sm text-white/[0.58]">
+              <p className="mt-2 max-w-2xl text-xs leading-relaxed text-white/[0.58] sm:text-sm">
                 메뉴에서 바로 꺼내 쓰는 1:1 랜덤 채팅 서비스. 로그인 없이도
                 게스트 입장 가능하고, 매칭은 실시간으로 붙는다.
               </p>
               {hookLabel ? (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#ff9d7b]/30 bg-[rgba(255,157,123,0.14)] px-3 py-1.5 text-xs text-[#ffd9cb]">
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#ff9d7b]/30 bg-[rgba(255,157,123,0.14)] px-3 py-1.5 text-[11px] text-[#ffd9cb] sm:mt-4 sm:text-xs">
                   <HeartHandshake className="h-3.5 w-3.5" />
                   {hookLabel} 프로필에서 채팅 훅 타고 들어옴
                 </div>
               ) : null}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2 sm:mt-4">
                 <PillTab
                   active={activeTab === 'random-chat'}
                   onClick={() => setActiveTab('random-chat')}
@@ -588,337 +588,346 @@ export default function DatingModal({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-pin shrink-0"
+              className="y2k-button y2k-button-ghost y2k-button-icon y2k-button-fade-pin shrink-0 self-start"
               aria-label="데이팅 닫기"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="grid gap-5 px-5 pb-5 pt-5 sm:px-7 sm:pb-7 lg:grid-cols-[0.94fr_1.06fr]">
-            <div className="space-y-4">
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="section-kicker !text-[rgba(212,228,255,0.46)]">
-                      Queue Signal
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-white">
-                      {matchStatus === 'matched'
-                        ? '매칭 완료'
-                        : matchStatus === 'waiting'
-                          ? '상대 찾는 중'
-                          : '대기열 진입 전'}
-                    </p>
-                    <p className="mt-2 text-sm text-white/[0.58]">
-                      {waitingLabel}
-                    </p>
-                  </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white">
-                    {matchStatus === 'matched' ? (
-                      <HeartHandshake className="h-5 w-5" />
-                    ) : matchStatus === 'waiting' ? (
-                      <RadioTower className="h-5 w-5" />
-                    ) : (
-                      <Orbit className="h-5 w-5" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/[0.45]">
-                      Mode
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-white">
-                      1:1 Random
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/[0.45]">
-                      Queue
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-white">
-                      {waitingCount.toLocaleString('ko-KR')}명
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/[0.45]">
-                      Room
-                    </p>
-                    <p className="mt-2 truncate text-sm font-semibold text-white">
-                      {activeRoom?.partnerLabel ?? '대기 중'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-                <div className="flex items-center gap-2 text-white">
-                  <Sparkles className="h-4 w-4 text-[#ffd37b]" />
-                  <p className="text-sm font-semibold">프로필 셋업</p>
-                </div>
-
-                <div className="mt-4 grid gap-3">
-                  <label className="grid gap-2">
-                    <span className="text-[0.7rem] uppercase tracking-[0.16em] text-white/[0.45]">
-                      Display Name
-                    </span>
-                    <input
-                      value={displayName}
-                      onChange={(event) => setDisplayName(event.target.value)}
-                      placeholder="닉네임을 입력해"
-                      className="y2k-input w-full px-4 py-3 text-white placeholder:text-white/35"
-                      maxLength={24}
-                    />
-                  </label>
-
-                  <div className="rounded-2xl border border-dashed border-white/12 bg-black/20 px-4 py-3 text-xs leading-relaxed text-white/[0.48]">
-                    대화 기록은 세션 동안만 유지된다. 새로고침하거나 나가면 방도
-                    같이 끊긴다. 익명맛은 살리고, 과한 장난질은 하지 말자.
-                  </div>
-                </div>
-
-                {error ? (
-                  <div className="mt-4 rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                    {error}
-                  </div>
-                ) : null}
-
-                <div className="mt-5 flex flex-wrap gap-3">
-                  {matchStatus === 'idle' || matchStatus === 'error' ? (
-                    <ActionButton
-                      variant="primary"
-                      size="md"
-                      className="min-w-[180px]"
-                      onClick={async () => {
-                        if (!supabase) {
-                          setMatchStatus('error');
-                          setError(
-                            'Supabase 실시간 설정이 없어서 매칭을 열 수 없다.'
-                          );
-                          return;
-                        }
-
-                        if (!participantKeyRef.current) {
-                          setMatchStatus('error');
-                          setError(
-                            '참가자 키를 만드는 중이다. 잠깐 뒤에 다시 눌러.'
-                          );
-                          return;
-                        }
-
-                        setError(null);
-                        setMessages([]);
-                        setActiveRoom(null);
-                        setPartnerOnline(false);
-                        setMatchStatus('waiting');
-                        queueJoinedAtRef.current = new Date().toISOString();
-                        await syncLobbyPresence('waiting').catch(() => {
-                          setMatchStatus('error');
-                          setError(
-                            '대기열 진입에 실패했다. 새로 한 번 눌러봐.'
-                          );
-                        });
-                      }}
-                    >
-                      <HeartHandshake className="h-4 w-4" />
-                      랜덤 매칭 시작
-                    </ActionButton>
-                  ) : null}
-
-                  {matchStatus === 'waiting' ? (
-                    <ActionButton
-                      variant="secondary"
-                      size="md"
-                      className="min-w-[160px]"
-                      onClick={() => {
-                        void resetDatingState();
-                      }}
-                    >
-                      대기 취소
-                    </ActionButton>
-                  ) : null}
-
-                  {matchStatus === 'matched' ? (
-                    <ActionButton
-                      variant="secondary"
-                      size="md"
-                      className="min-w-[160px]"
-                      onClick={async () => {
-                        if (roomChannelRef.current) {
-                          await roomChannelRef.current
-                            .send({
-                              type: 'broadcast',
-                              event: 'leave',
-                              payload: {
-                                message: `${currentDisplayName} 님이 방을 종료했다.`
-                              }
-                            })
-                            .catch(() => undefined);
-                        }
-
-                        await resetDatingState();
-                      }}
-                    >
-                      채팅 종료
-                    </ActionButton>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur-md">
-                <div className="flex items-center gap-2 text-white">
-                  <Users2 className="h-4 w-4 text-[#9dbdff]" />
-                  <p className="text-sm font-semibold">서비스 룰</p>
-                </div>
-                <ul className="mt-4 space-y-2 text-sm text-white/[0.58]">
-                  <li>로그인 없이 게스트 입장 가능</li>
-                  <li>짝이 맞으면 자동으로 1:1 방 생성</li>
-                  <li>대화는 저장 안 하고 현재 세션에서만 유지</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-4 backdrop-blur-md sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-                <div>
-                  <p className="section-kicker !text-[rgba(212,228,255,0.46)]">
-                    Chat Room
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-white">
-                    {activeRoom
-                      ? `${activeRoom.partnerLabel} 님과 연결됨`
-                      : '매칭되면 여기서 바로 대화'}
-                  </p>
-                  <p className="mt-1 text-sm text-white/[0.52]">
-                    {activeRoom
-                      ? partnerOnline
-                        ? '상대 접속 중'
-                        : '상대 연결 대기 중'
-                      : '큐에서 짝 맞으면 탭 안에서 그대로 이어진다'}
-                  </p>
-                </div>
-                <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white/[0.58]">
-                  {matchStatus}
-                </div>
-              </div>
-
-              <div className="mt-4 flex min-h-[25rem] flex-col">
-                <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                  {messages.length === 0 ? (
-                    <div className="flex min-h-[18rem] flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-white/12 bg-black/20 px-6 text-center">
-                      <HeartHandshake className="h-10 w-10 text-[#ff8f7c]" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {matchStatus === 'waiting'
-                            ? '상대 찾는 중이다'
-                            : '아직 연결된 상대가 없다'}
-                        </p>
-                        <p className="mt-2 text-xs leading-relaxed text-white/[0.48]">
-                          메뉴에서 바로 꺼낸 데이팅 탭이다. 대기열 진입하면
-                          실시간으로 짝 잡히고, 매칭되면 여기 채팅창이 살아난다.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    messages.map((message) => {
-                      const isMine =
-                        !message.system &&
-                        message.senderKey === participantKeyRef.current;
-
-                      return (
-                        <div
-                          key={message.id}
-                          className={
-                            message.system
-                              ? 'rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-center text-xs text-white/50'
-                              : `max-w-[88%] rounded-[1.4rem] px-4 py-3 ${
-                                  isMine
-                                    ? 'ml-auto border border-[#ff9d7b]/30 bg-[rgba(255,147,92,0.16)] text-white'
-                                    : 'border border-white/10 bg-white/[0.08] text-white'
-                                }`
-                          }
-                        >
-                          {!message.system ? (
-                            <div className="mb-1 flex items-center justify-between gap-4 text-[0.65rem] uppercase tracking-[0.16em] text-white/[0.42]">
-                              <span>
-                                {isMine ? 'YOU' : message.senderLabel}
-                              </span>
-                              <span>{getMessageTimestamp(message.sentAt)}</span>
-                            </div>
-                          ) : null}
-                          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                            {message.body}
-                          </p>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div className="mt-4 border-t border-white/10 pt-4">
-                  <div className="grid gap-3">
-                    <textarea
-                      value={messageDraft}
-                      onChange={(event) => setMessageDraft(event.target.value)}
-                      placeholder={
-                        activeRoom
-                          ? '첫 마디 던져봐. 너무 기계적이면 바로 썰린다.'
-                          : '매칭 후에 입력 가능'
-                      }
-                      rows={4}
-                      disabled={!activeRoom}
-                      className="y2k-input min-h-[120px] w-full resize-none px-4 py-3 text-white placeholder:text-white/35 disabled:cursor-not-allowed disabled:opacity-45"
-                    />
-
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-xs text-white/[0.42]">
-                        실시간 브로드캐스트 기반. 새로고침하면 현재 방은 끊긴다.
+          <div className="min-h-0 overflow-y-auto">
+            <div className="grid gap-4 px-4 pb-4 pt-4 sm:px-7 sm:pb-7 sm:pt-5 lg:grid-cols-[0.94fr_1.06fr] lg:gap-5">
+              <div className="space-y-4">
+                <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4 backdrop-blur-md sm:rounded-[1.75rem] sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="section-kicker !text-[rgba(212,228,255,0.46)]">
+                        Queue Signal
                       </p>
+                      <p className="mt-2 text-base font-semibold text-white sm:text-lg">
+                        {matchStatus === 'matched'
+                          ? '매칭 완료'
+                          : matchStatus === 'waiting'
+                            ? '상대 찾는 중'
+                            : '대기열 진입 전'}
+                      </p>
+                      <p className="mt-2 text-sm text-white/[0.58]">
+                        {waitingLabel}
+                      </p>
+                    </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white">
+                      {matchStatus === 'matched' ? (
+                        <HeartHandshake className="h-5 w-5" />
+                      ) : matchStatus === 'waiting' ? (
+                        <RadioTower className="h-5 w-5" />
+                      ) : (
+                        <Orbit className="h-5 w-5" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-2.5 sm:mt-5 sm:grid-cols-3 sm:gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/[0.45]">
+                        Mode
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        1:1 Random
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/[0.45]">
+                        Queue
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {waitingCount.toLocaleString('ko-KR')}명
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/[0.45]">
+                        Room
+                      </p>
+                      <p className="mt-2 truncate text-sm font-semibold text-white">
+                        {activeRoom?.partnerLabel ?? '대기 중'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4 backdrop-blur-md sm:rounded-[1.75rem] sm:p-5">
+                  <div className="flex items-center gap-2 text-white">
+                    <Sparkles className="h-4 w-4 text-[#ffd37b]" />
+                    <p className="text-sm font-semibold">프로필 셋업</p>
+                  </div>
+
+                  <div className="mt-4 grid gap-3">
+                    <label className="grid gap-2">
+                      <span className="text-[0.7rem] uppercase tracking-[0.16em] text-white/[0.45]">
+                        Display Name
+                      </span>
+                      <input
+                        value={displayName}
+                        onChange={(event) => setDisplayName(event.target.value)}
+                        placeholder="닉네임을 입력해"
+                        className="y2k-input w-full px-4 py-3 text-white placeholder:text-white/35"
+                        maxLength={24}
+                      />
+                    </label>
+
+                    <div className="rounded-2xl border border-dashed border-white/12 bg-black/20 px-4 py-3 text-xs leading-relaxed text-white/[0.48]">
+                      대화 기록은 세션 동안만 유지된다. 새로고침하거나 나가면
+                      방도 같이 끊긴다. 익명맛은 살리고, 과한 장난질은 하지
+                      말자.
+                    </div>
+                  </div>
+
+                  {error ? (
+                    <div className="mt-4 rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap gap-3 sm:mt-5">
+                    {matchStatus === 'idle' || matchStatus === 'error' ? (
                       <ActionButton
                         variant="primary"
                         size="md"
-                        className="min-w-[148px]"
-                        disabled={
-                          !activeRoom || messageDraft.trim().length === 0
-                        }
+                        className="min-w-[180px]"
                         onClick={async () => {
-                          const channel = roomChannelRef.current;
-                          const selfKey = participantKeyRef.current;
-                          const body = messageDraft.trim();
+                          if (!supabase) {
+                            setMatchStatus('error');
+                            setError(
+                              'Supabase 실시간 설정이 없어서 매칭을 열 수 없다.'
+                            );
+                            return;
+                          }
 
-                          if (!channel || !selfKey || !body) return;
+                          if (!participantKeyRef.current) {
+                            setMatchStatus('error');
+                            setError(
+                              '참가자 키를 만드는 중이다. 잠깐 뒤에 다시 눌러.'
+                            );
+                            return;
+                          }
 
-                          const outgoingMessage: ChatMessage = {
-                            id: crypto.randomUUID(),
-                            senderKey: selfKey,
-                            senderLabel:
-                              currentDisplayName ||
-                              `Guest ${selfKey.slice(0, 4)}`,
-                            body,
-                            sentAt: new Date().toISOString()
-                          };
-
-                          appendMessage(outgoingMessage);
-                          setMessageDraft('');
-
-                          await channel
-                            .send({
-                              type: 'broadcast',
-                              event: 'message',
-                              payload: outgoingMessage
-                            })
-                            .catch(() => {
-                              setError(
-                                '메시지 전송이 살짝 꼬였다. 다시 한 번 보내봐.'
-                              );
-                            });
+                          setError(null);
+                          setMessages([]);
+                          setActiveRoom(null);
+                          setPartnerOnline(false);
+                          setMatchStatus('waiting');
+                          queueJoinedAtRef.current = new Date().toISOString();
+                          await syncLobbyPresence('waiting').catch(() => {
+                            setMatchStatus('error');
+                            setError(
+                              '대기열 진입에 실패했다. 새로 한 번 눌러봐.'
+                            );
+                          });
                         }}
                       >
-                        <Send className="h-4 w-4" />
-                        보내기
+                        <HeartHandshake className="h-4 w-4" />
+                        랜덤 매칭 시작
                       </ActionButton>
+                    ) : null}
+
+                    {matchStatus === 'waiting' ? (
+                      <ActionButton
+                        variant="secondary"
+                        size="md"
+                        className="min-w-[160px]"
+                        onClick={() => {
+                          void resetDatingState();
+                        }}
+                      >
+                        대기 취소
+                      </ActionButton>
+                    ) : null}
+
+                    {matchStatus === 'matched' ? (
+                      <ActionButton
+                        variant="secondary"
+                        size="md"
+                        className="min-w-[160px]"
+                        onClick={async () => {
+                          if (roomChannelRef.current) {
+                            await roomChannelRef.current
+                              .send({
+                                type: 'broadcast',
+                                event: 'leave',
+                                payload: {
+                                  message: `${currentDisplayName} 님이 방을 종료했다.`
+                                }
+                              })
+                              .catch(() => undefined);
+                          }
+
+                          await resetDatingState();
+                        }}
+                      >
+                        채팅 종료
+                      </ActionButton>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4 backdrop-blur-md sm:rounded-[1.75rem] sm:p-5">
+                  <div className="flex items-center gap-2 text-white">
+                    <Users2 className="h-4 w-4 text-[#9dbdff]" />
+                    <p className="text-sm font-semibold">서비스 룰</p>
+                  </div>
+                  <ul className="mt-4 space-y-2 text-sm text-white/[0.58]">
+                    <li>로그인 없이 게스트 입장 가능</li>
+                    <li>짝이 맞으면 자동으로 1:1 방 생성</li>
+                    <li>대화는 저장 안 하고 현재 세션에서만 유지</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-3.5 backdrop-blur-md sm:rounded-[1.75rem] sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <p className="section-kicker !text-[rgba(212,228,255,0.46)]">
+                      Chat Room
+                    </p>
+                    <p className="mt-2 text-base font-semibold text-white">
+                      {activeRoom
+                        ? `${activeRoom.partnerLabel} 님과 연결됨`
+                        : '매칭되면 여기서 바로 대화'}
+                    </p>
+                    <p className="mt-1 text-sm text-white/[0.52]">
+                      {activeRoom
+                        ? partnerOnline
+                          ? '상대 접속 중'
+                          : '상대 연결 대기 중'
+                        : '큐에서 짝 맞으면 탭 안에서 그대로 이어진다'}
+                    </p>
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white/[0.58]">
+                    {matchStatus}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex min-h-[18.5rem] flex-col sm:min-h-[25rem]">
+                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                    {messages.length === 0 ? (
+                      <div className="flex min-h-[12rem] flex-col items-center justify-center gap-3 rounded-[1.3rem] border border-dashed border-white/12 bg-black/20 px-4 text-center sm:min-h-[18rem] sm:rounded-[1.5rem] sm:px-6">
+                        <HeartHandshake className="h-10 w-10 text-[#ff8f7c]" />
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            {matchStatus === 'waiting'
+                              ? '상대 찾는 중이다'
+                              : '아직 연결된 상대가 없다'}
+                          </p>
+                          <p className="mt-2 text-xs leading-relaxed text-white/[0.48]">
+                            메뉴에서 바로 꺼낸 데이팅 탭이다. 대기열 진입하면
+                            실시간으로 짝 잡히고, 매칭되면 여기 채팅창이
+                            살아난다.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      messages.map((message) => {
+                        const isMine =
+                          !message.system &&
+                          message.senderKey === participantKeyRef.current;
+
+                        return (
+                          <div
+                            key={message.id}
+                            className={
+                              message.system
+                                ? 'rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-center text-xs text-white/50'
+                                : `max-w-[88%] rounded-[1.4rem] px-4 py-3 ${
+                                    isMine
+                                      ? 'ml-auto border border-[#ff9d7b]/30 bg-[rgba(255,147,92,0.16)] text-white'
+                                      : 'border border-white/10 bg-white/[0.08] text-white'
+                                  }`
+                            }
+                          >
+                            {!message.system ? (
+                              <div className="mb-1 flex items-center justify-between gap-4 text-[0.65rem] uppercase tracking-[0.16em] text-white/[0.42]">
+                                <span>
+                                  {isMine ? 'YOU' : message.senderLabel}
+                                </span>
+                                <span>
+                                  {getMessageTimestamp(message.sentAt)}
+                                </span>
+                              </div>
+                            ) : null}
+                            <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                              {message.body}
+                            </p>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <div className="grid gap-3">
+                      <textarea
+                        value={messageDraft}
+                        onChange={(event) =>
+                          setMessageDraft(event.target.value)
+                        }
+                        placeholder={
+                          activeRoom
+                            ? '첫 마디 던져봐. 너무 기계적이면 바로 썰린다.'
+                            : '매칭 후에 입력 가능'
+                        }
+                        rows={3}
+                        disabled={!activeRoom}
+                        className="y2k-input min-h-[88px] w-full resize-none px-4 py-3 text-white placeholder:text-white/35 disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-[120px]"
+                      />
+
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-xs text-white/[0.42]">
+                          실시간 브로드캐스트 기반. 새로고침하면 현재 방은
+                          끊긴다.
+                        </p>
+                        <ActionButton
+                          variant="primary"
+                          size="md"
+                          className="min-w-[148px]"
+                          disabled={
+                            !activeRoom || messageDraft.trim().length === 0
+                          }
+                          onClick={async () => {
+                            const channel = roomChannelRef.current;
+                            const selfKey = participantKeyRef.current;
+                            const body = messageDraft.trim();
+
+                            if (!channel || !selfKey || !body) return;
+
+                            const outgoingMessage: ChatMessage = {
+                              id: crypto.randomUUID(),
+                              senderKey: selfKey,
+                              senderLabel:
+                                currentDisplayName ||
+                                `Guest ${selfKey.slice(0, 4)}`,
+                              body,
+                              sentAt: new Date().toISOString()
+                            };
+
+                            appendMessage(outgoingMessage);
+                            setMessageDraft('');
+
+                            await channel
+                              .send({
+                                type: 'broadcast',
+                                event: 'message',
+                                payload: outgoingMessage
+                              })
+                              .catch(() => {
+                                setError(
+                                  '메시지 전송이 살짝 꼬였다. 다시 한 번 보내봐.'
+                                );
+                              });
+                          }}
+                        >
+                          <Send className="h-4 w-4" />
+                          보내기
+                        </ActionButton>
+                      </div>
                     </div>
                   </div>
                 </div>
