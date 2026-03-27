@@ -111,7 +111,7 @@ type FacilityNode = {
   width?: number;
 };
 
-type VillageShopTab = 'diagram' | 'goods' | 'studio';
+type VillageShopTab = 'community' | 'diagram' | 'goods' | 'studio';
 
 type VillageShopNode = {
   hint: string;
@@ -468,6 +468,15 @@ const facilityNodes: FacilityNode[] = [
 
 const villageShopNodes: VillageShopNode[] = [
   {
+    hint: '더블클릭: 커뮤니티 보드',
+    id: 'community-board-villa',
+    left: '82%',
+    tab: 'community',
+    title: 'Neo Villa Board',
+    top: 610,
+    width: 338
+  },
+  {
     hint: '더블클릭: 멤버십 영상',
     id: 'studio-access-shop',
     left: '74%',
@@ -566,10 +575,22 @@ const villageShopTabMeta: Record<
     description: string;
     notes: string[];
     primaryAction: string;
-    sectionId: 'about' | 'services' | 'studio';
+    sectionId: 'about' | 'community' | 'services' | 'studio';
     title: string;
   }
 > = {
+  community: {
+    badge: 'COMMUNITY VILLA',
+    description:
+      '게시글, 댓글, 공감 기록이 바로 열리는 커뮤니티 보드 전용 빌라.',
+    notes: [
+      '스크롤로 내려가는 대신 메뉴처럼 커뮤니티 보드 탭을 바로 띄운다.',
+      '맵 위에서 바로 보드 확인하고 닫으면 다시 탐험으로 복귀한다.'
+    ],
+    primaryAction: '커뮤니티 보드 열기',
+    sectionId: 'community',
+    title: 'Community Board Access'
+  },
   diagram: {
     badge: 'SYSTEM KIOSK',
     description:
@@ -616,6 +637,11 @@ const villageShopVisualMeta: Record<
     tone: string;
   }
 > = {
+  community: {
+    chip: 'BOARD',
+    glow: 'rgba(115, 126, 255, 0.18)',
+    tone: 'rgba(78, 106, 204, 0.9)'
+  },
   diagram: {
     chip: 'SYSTEM',
     glow: 'rgba(87, 120, 255, 0.16)',
@@ -1435,10 +1461,21 @@ export default function BioVillageLanding() {
     }, 260);
   };
 
+  const openCommunityBoardPortal = () => {
+    setSelectedTarget(null);
+    setActiveVillageShopTab(null);
+    window.dispatchEvent(new CustomEvent('community:open-modal'));
+  };
+
   const openVillageShop = (
     tab: VillageShopTab,
     structureId?: string | null
   ) => {
+    if (structureId === 'community-board-villa') {
+      openCommunityBoardPortal();
+      return;
+    }
+
     if (structureId === 'goods-access-shop') {
       openGoodsCommercePortal();
       return;
@@ -1448,8 +1485,18 @@ export default function BioVillageLanding() {
     setActiveVillageShopTab(tab);
   };
 
-  const jumpToVillageSection = (sectionId: 'about' | 'services' | 'studio') => {
+  const jumpToVillageSection = (
+    sectionId: 'about' | 'community' | 'services' | 'studio'
+  ) => {
     setActiveVillageShopTab(null);
+
+    if (sectionId === 'community') {
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('community:open-modal'));
+      }, 80);
+      return;
+    }
+
     window.setTimeout(() => {
       document
         .getElementById(sectionId)
@@ -2670,6 +2717,86 @@ export default function BioVillageLanding() {
           white-space: nowrap;
         }
 
+        .village-community-shop {
+          border: none;
+          background: transparent;
+          box-shadow: none;
+          padding: 0;
+          overflow: visible;
+          filter: saturate(1.02) contrast(1.02);
+        }
+
+        .village-community-shop::before {
+          display: none;
+        }
+
+        .village-community-shop:hover {
+          transform: translate(-50%, calc(-50% - 3px)) scale(1.015);
+          border-color: transparent;
+          box-shadow: none;
+        }
+
+        .village-community-shell {
+          position: relative;
+          width: 100%;
+          padding-top: 0.2rem;
+        }
+
+        .village-community-shell::after {
+          content: '';
+          position: absolute;
+          left: 51%;
+          bottom: 0.9rem;
+          z-index: 0;
+          width: 86%;
+          height: 2rem;
+          transform: translateX(-50%);
+          border-radius: 999px;
+          background: radial-gradient(
+            circle,
+            rgba(49, 19, 63, 0.28) 0%,
+            rgba(49, 19, 63, 0.12) 45%,
+            rgba(49, 19, 63, 0) 100%
+          );
+          filter: blur(13px);
+        }
+
+        .village-community-image {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          height: auto;
+          display: block;
+          image-rendering: pixelated;
+          filter:
+            drop-shadow(0 20px 24px rgba(40, 18, 74, 0.14))
+            drop-shadow(0 7px 12px rgba(19, 7, 38, 0.12));
+          user-select: none;
+          -webkit-user-drag: none;
+          mix-blend-mode: multiply;
+        }
+
+        .village-community-sign {
+          position: absolute;
+          left: 16%;
+          top: 1.05rem;
+          z-index: 3;
+          transform: translate(-8%, -46%) rotate(-2deg);
+          border: 1px solid rgba(94, 100, 198, 0.32);
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(246,250,255,0.96), rgba(232,236,255,0.92));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.92),
+            0 14px 28px rgba(47, 43, 123, 0.14);
+          padding: 0.42rem 0.9rem;
+          font-family: var(--font-display-kr);
+          font-size: 0.84rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: rgba(54, 61, 135, 0.92);
+          white-space: nowrap;
+        }
+
         .village-shop-card::before {
           content: '';
           position: absolute;
@@ -2885,6 +3012,11 @@ export default function BioVillageLanding() {
             padding: 0.34rem 0.8rem;
           }
 
+          .village-community-sign {
+            font-size: 0.74rem;
+            padding: 0.3rem 0.72rem;
+          }
+
         }
       `}</style>
 
@@ -2996,6 +3128,7 @@ export default function BioVillageLanding() {
           {renderedVillageShopNodes.map((shop) => {
             const visual = villageShopVisualMeta[shop.tab];
             const isGoodsCastle = shop.tab === 'goods';
+            const isCommunityVilla = shop.tab === 'community';
 
             return (
               <article
@@ -3007,12 +3140,15 @@ export default function BioVillageLanding() {
                 className={
                   isGoodsCastle
                     ? 'village-shop-card village-castle-shop village-interactive-structure'
-                    : 'village-shop-card village-interactive-structure'
+                    : isCommunityVilla
+                      ? 'village-shop-card village-community-shop village-interactive-structure'
+                      : 'village-shop-card village-interactive-structure'
                 }
                 style={{
-                  boxShadow: isGoodsCastle
-                    ? undefined
-                    : `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
+                  boxShadow:
+                    isGoodsCastle || isCommunityVilla
+                      ? undefined
+                      : `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
                   left: shop.left,
                   top: `${shop.top}px`,
                   width: `${shop.width}px`
@@ -3029,6 +3165,16 @@ export default function BioVillageLanding() {
                       src="/images/bio-village/goods-castle-shop-cutout.png"
                       alt="굿즈샵 성"
                       className="village-castle-image"
+                      draggable={false}
+                    />
+                  </div>
+                ) : isCommunityVilla ? (
+                  <div className="village-community-shell">
+                    <div className="village-community-sign">커뮤니티 보드</div>
+                    <img
+                      src="/images/bio-village/community-board-villa.png"
+                      alt="커뮤니티 보드 빌라"
+                      className="village-community-image"
                       draggable={false}
                     />
                   </div>

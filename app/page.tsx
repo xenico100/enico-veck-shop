@@ -42,6 +42,12 @@ const CartModal = dynamic(() => import('../components/CartModal'), {
 const DatingModal = dynamic(() => import('../components/DatingModal'), {
   ssr: false
 });
+const CommunityBoardModal = dynamic(
+  () => import('../components/CommunityBoardModal'),
+  {
+    ssr: false
+  }
+);
 
 type DatingHookDetail = {
   id?: string;
@@ -64,6 +70,7 @@ export default function LandingPage() {
   const [myPageOpen, setMyPageOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [datingOpen, setDatingOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
   const [datingHookLabel, setDatingHookLabel] = useState<string | null>(null);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
@@ -100,6 +107,16 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const handleCommunityHook = () => {
+      setCommunityOpen(true);
+    };
+
+    window.addEventListener('community:open-modal', handleCommunityHook);
+    return () =>
+      window.removeEventListener('community:open-modal', handleCommunityHook);
+  }, []);
+
+  useEffect(() => {
     const handleAuthHook = (event: Event) => {
       const detail = (event as CustomEvent<AuthHookDetail>).detail;
       setAuthMode(detail?.mode === 'signup' ? 'signup' : 'login');
@@ -120,6 +137,7 @@ export default function LandingPage() {
           isOpen={isMenuOpen}
           onClose={() => setIsMenuOpen(false)}
           onCartClick={openCart}
+          onCommunityClick={() => setCommunityOpen(true)}
           onDatingClick={() => {
             setDatingHookLabel(null);
             setDatingOpen(true);
@@ -213,6 +231,12 @@ export default function LandingPage() {
               setDatingHookLabel(null);
             }
           }}
+        />
+      ) : null}
+      {communityOpen ? (
+        <CommunityBoardModal
+          open={communityOpen}
+          onOpenChange={setCommunityOpen}
         />
       ) : null}
     </main>

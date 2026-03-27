@@ -9,6 +9,7 @@ interface SideMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onCartClick?: () => void;
+  onCommunityClick?: () => void;
   onDatingClick?: () => void;
   onLoginClick?: () => void;
   onMyPageClick?: () => void;
@@ -20,13 +21,14 @@ const menuItems = [
   { label: 'Dating', action: 'dating' as const },
   { label: 'Goods', href: '#services' },
   { label: 'Studio', href: '#studio' },
-  { label: 'Community', href: '#community' }
+  { label: 'Community', action: 'community' as const }
 ];
 
 export default function SideMenu({
   isOpen,
   onClose,
   onCartClick,
+  onCommunityClick,
   onDatingClick,
   onLoginClick,
   onMyPageClick
@@ -57,6 +59,11 @@ export default function SideMenu({
 
   const handleDatingClick = () => {
     onDatingClick?.();
+    onClose();
+  };
+
+  const handleCommunityClick = () => {
+    onCommunityClick?.();
     onClose();
   };
 
@@ -114,7 +121,11 @@ export default function SideMenu({
                 {'action' in item ? (
                   <button
                     type="button"
-                    onClick={handleDatingClick}
+                    onClick={
+                      item.action === 'community'
+                        ? handleCommunityClick
+                        : handleDatingClick
+                    }
                     className="block w-full border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 text-left font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
                   >
                     {item.label}
