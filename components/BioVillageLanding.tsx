@@ -2186,7 +2186,7 @@ export default function BioVillageLanding() {
 
       <canvas
         ref={canvasRef}
-        className="pointer-events-none fixed inset-0 z-[12] h-full w-full"
+        className="pointer-events-none fixed inset-0 z-[8] h-full w-full"
         style={{
           filter: 'contrast(1.08) saturate(1.18)',
           opacity: worldActive ? 1 : 0,
@@ -2195,7 +2195,7 @@ export default function BioVillageLanding() {
       />
 
       <div
-        className="pointer-events-none fixed inset-0 z-[13]"
+        className="pointer-events-none fixed inset-0 z-[11]"
         style={{
           background:
             'linear-gradient(rgba(255,255,255,0) 50%, rgba(0,0,0,0.03) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03))',
@@ -2220,7 +2220,7 @@ export default function BioVillageLanding() {
       <div className="relative h-[3500px] w-full overflow-hidden">
         <div
           ref={worldLayerRef}
-          className="relative h-full will-change-transform"
+          className="relative z-[10] h-full will-change-transform"
           style={{
             width: `${worldWidth}px`,
             backgroundColor: '#f8f9fa',
