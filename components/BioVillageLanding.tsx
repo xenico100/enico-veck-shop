@@ -429,20 +429,20 @@ const villageShopNodes: VillageShopNode[] = [
   {
     hint: '더블클릭: 멤버십 영상',
     id: 'studio-access-shop',
-    left: '42%',
+    left: '61%',
     tab: 'studio',
     title: 'Tape Garden Booth',
-    top: 640,
+    top: 630,
     width: 216
   },
   {
     hint: '더블클릭: 굿즈 판매',
     id: 'goods-access-shop',
-    left: '58%',
+    left: '39%',
     tab: 'goods',
     title: 'Goods Counter',
-    top: 740,
-    width: 220
+    top: 560,
+    width: 248
   },
   {
     hint: '더블클릭: 시스템 다이어그램',
@@ -474,18 +474,18 @@ const villagePathMarkers: VillagePathMarker[] = [
   {
     id: 'studio-path-marker',
     label: '멤버십 영상 가는 길',
-    left: '44.5%',
-    rotation: -14,
-    top: 592,
+    left: '56.5%',
+    rotation: 10,
+    top: 590,
     width: 238
   },
   {
     id: 'goods-path-marker',
     label: '굿즈 상점 가는 길',
-    left: '55.5%',
-    rotation: 12,
-    top: 690,
-    width: 232
+    left: '43%',
+    rotation: -10,
+    top: 610,
+    width: 214
   },
   {
     id: 'diagram-path-marker',
@@ -1987,6 +1987,95 @@ export default function BioVillageLanding() {
           touch-action: manipulation;
         }
 
+        .village-castle-shop {
+          border: none;
+          background: transparent;
+          box-shadow: none;
+          padding: 0;
+          overflow: visible;
+        }
+
+        .village-castle-shop::before {
+          display: none;
+        }
+
+        .village-castle-shop:hover {
+          transform: translate(-50%, calc(-50% - 4px)) scale(1.02);
+          border-color: transparent;
+          box-shadow: none;
+        }
+
+        .village-castle-shell {
+          position: relative;
+          width: 100%;
+          padding-top: 0.25rem;
+        }
+
+        .village-castle-image {
+          width: 100%;
+          height: auto;
+          display: block;
+          image-rendering: pixelated;
+          filter:
+            drop-shadow(0 18px 20px rgba(76, 24, 24, 0.14))
+            drop-shadow(0 4px 8px rgba(34, 8, 8, 0.18));
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+
+        .village-castle-sign {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          z-index: 2;
+          transform: translate(-50%, -72%) rotate(-2deg);
+          border: 1px solid rgba(120, 44, 44, 0.32);
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,232,232,0.92));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.92),
+            0 12px 24px rgba(107, 21, 21, 0.12);
+          padding: 0.42rem 0.95rem;
+          font-family: var(--font-display-kr);
+          font-size: 0.9rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          color: rgba(99, 22, 22, 0.92);
+          white-space: nowrap;
+        }
+
+        .village-castle-copy {
+          position: absolute;
+          left: 50%;
+          bottom: 0.4rem;
+          z-index: 2;
+          width: calc(100% - 1.2rem);
+          transform: translateX(-50%);
+          border-radius: 1rem;
+          background: linear-gradient(180deg, rgba(28,14,14,0.86), rgba(60,20,20,0.8));
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 10px 24px rgba(43, 10, 10, 0.18);
+          padding: 0.5rem 0.65rem 0.55rem;
+          text-align: center;
+        }
+
+        .village-castle-copy strong {
+          display: block;
+          font-size: 0.74rem;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(255, 221, 204, 0.9);
+        }
+
+        .village-castle-copy span {
+          display: block;
+          margin-top: 0.2rem;
+          font-size: 0.66rem;
+          line-height: 1.35;
+          color: rgba(255, 235, 235, 0.78);
+        }
+
         .village-shop-card::before {
           content: '';
           position: absolute;
@@ -2066,6 +2155,24 @@ export default function BioVillageLanding() {
           .village-shop-card {
             border-radius: 1rem;
             padding: 0.82rem 0.85rem;
+          }
+
+          .village-castle-sign {
+            font-size: 0.78rem;
+            padding: 0.34rem 0.8rem;
+          }
+
+          .village-castle-copy {
+            width: calc(100% - 1rem);
+            padding: 0.42rem 0.52rem 0.48rem;
+          }
+
+          .village-castle-copy strong {
+            font-size: 0.66rem;
+          }
+
+          .village-castle-copy span {
+            font-size: 0.6rem;
           }
 
           .village-floor-path {
@@ -2167,6 +2274,7 @@ export default function BioVillageLanding() {
 
           {renderedVillageShopNodes.map((shop) => {
             const visual = villageShopVisualMeta[shop.tab];
+            const isGoodsCastle = shop.tab === 'goods';
 
             return (
               <article
@@ -2175,9 +2283,15 @@ export default function BioVillageLanding() {
                 data-avatar-ui="true"
                 role="button"
                 tabIndex={0}
-                className="village-shop-card"
+                className={
+                  isGoodsCastle
+                    ? 'village-shop-card village-castle-shop'
+                    : 'village-shop-card'
+                }
                 style={{
-                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
+                  boxShadow: isGoodsCastle
+                    ? undefined
+                    : `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
                   left: shop.left,
                   top: `${shop.top}px`,
                   width: `${shop.width}px`
@@ -2193,21 +2307,39 @@ export default function BioVillageLanding() {
                   handleVillageShopTouchEnd(event, shop.id, shop.tab)
                 }
               >
-                <p
-                  className="relative z-[1] text-[9px] uppercase tracking-[0.26em]"
-                  style={{ color: visual.tone }}
-                >
-                  {visual.chip}
-                </p>
-                <h3 className="relative z-[1] mt-3 font-[var(--font-display-kr)] text-[0.98rem] font-semibold text-[rgba(77,14,14,0.94)]">
-                  {shop.title}
-                </h3>
-                <p className="relative z-[1] mt-2 text-[11px] leading-relaxed text-[rgba(98,26,26,0.68)]">
-                  {shop.hint}
-                </p>
-                <p className="relative z-[1] mt-3 text-[9px] uppercase tracking-[0.22em] text-[rgba(150,50,50,0.54)]">
-                  dbl click / dbl tap
-                </p>
+                {isGoodsCastle ? (
+                  <div className="village-castle-shell">
+                    <div className="village-castle-sign">굿즈샵</div>
+                    <img
+                      src="/images/bio-village/goods-castle-shop.png"
+                      alt="굿즈샵 성"
+                      className="village-castle-image"
+                      draggable={false}
+                    />
+                    <div className="village-castle-copy">
+                      <strong>{shop.title}</strong>
+                      <span>{shop.hint}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p
+                      className="relative z-[1] text-[9px] uppercase tracking-[0.26em]"
+                      style={{ color: visual.tone }}
+                    >
+                      {visual.chip}
+                    </p>
+                    <h3 className="relative z-[1] mt-3 font-[var(--font-display-kr)] text-[0.98rem] font-semibold text-[rgba(77,14,14,0.94)]">
+                      {shop.title}
+                    </h3>
+                    <p className="relative z-[1] mt-2 text-[11px] leading-relaxed text-[rgba(98,26,26,0.68)]">
+                      {shop.hint}
+                    </p>
+                    <p className="relative z-[1] mt-3 text-[9px] uppercase tracking-[0.22em] text-[rgba(150,50,50,0.54)]">
+                      dbl click / dbl tap
+                    </p>
+                  </>
+                )}
               </article>
             );
           })}
