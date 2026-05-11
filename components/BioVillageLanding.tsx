@@ -3756,15 +3756,20 @@ export default function BioVillageLanding() {
       />
 
       <div
-        className="pointer-events-none fixed right-6 top-24 z-40 hidden lg:block"
+        className="pointer-events-none fixed left-3 top-20 z-40 sm:left-4 sm:top-24 md:left-6"
         style={{
           opacity: worldActive ? 1 : 0,
           transition: 'opacity 180ms ease'
         }}
       >
-        <p className="font-[var(--font-display-kr)] text-lg font-semibold tracking-[0.04em] text-[rgba(69,14,14,0.92)]">
-          실시간 접속 {onlineVisitors.length + 1}명
-        </p>
+        <div className="rounded-full border border-[rgba(186,57,57,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,241,241,0.8))] px-3.5 py-2 shadow-[0_12px_30px_rgba(107,21,21,0.12)] backdrop-blur-xl">
+          <p className="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[rgba(140,52,52,0.62)]">
+            online
+          </p>
+          <p className="mt-1 font-[var(--font-display-kr)] text-[0.92rem] font-semibold tracking-[0.04em] text-[rgba(69,14,14,0.92)] sm:text-[1rem]">
+            현재 접속 {onlineVisitors.length + 1}명
+          </p>
+        </div>
       </div>
 
       <div
