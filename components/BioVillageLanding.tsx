@@ -715,21 +715,50 @@ const getWorldWidth = (viewportWidth: number) =>
     ? MOBILE_WORLD_WIDTH
     : Math.max(viewportWidth, DESKTOP_MIN_WORLD_WIDTH);
 
-const getSpawnPoint = (worldWidth: number) => ({
-  x: clamp(
-    Math.round(worldWidth * 0.5),
-    PLAYER_MARGIN,
-    Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
-  ),
-  y: PLAYER_SPAWN_Y
-});
+const hashParticipantKey = (value: string) =>
+  Array.from(value).reduce(
+    (hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0,
+    7
+  );
+
+const getSpawnPoint = (worldWidth: number, participantKey?: string | null) => {
+  const baseX = Math.round(worldWidth * 0.5);
+  const baseY = PLAYER_SPAWN_Y;
+
+  if (!participantKey) {
+    return {
+      x: clamp(
+        baseX,
+        PLAYER_MARGIN,
+        Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
+      ),
+      y: baseY
+    };
+  }
+
+  const hash = hashParticipantKey(participantKey);
+  const angle = ((hash % 360) * Math.PI) / 180;
+  const radius = 44 + ((Math.floor(hash / 360) % 3) + 1) * 16;
+  const offsetX = Math.round(Math.cos(angle) * radius);
+  const offsetY = Math.round(Math.sin(angle) * Math.min(34, radius * 0.52));
+
+  return {
+    x: clamp(
+      baseX + offsetX,
+      PLAYER_MARGIN,
+      Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
+    ),
+    y: clamp(baseY + offsetY, 120, WORLD_HEIGHT - 100)
+  };
+};
 
 const getInitialCameraPosition = (
   worldWidth: number,
   viewportWidth: number,
-  viewportHeight: number
+  viewportHeight: number,
+  focusPoint?: { x: number; y: number }
 ) => {
-  const spawn = getSpawnPoint(worldWidth);
+  const spawn = focusPoint ?? getSpawnPoint(worldWidth);
 
   return {
     x: clamp(
@@ -1292,12 +1321,14 @@ const buildRemoteActorsFromPresence = (
       const nextX = clamp(
         typeof meta.x === 'number'
           ? meta.x
-          : (previous?.x ?? getSpawnPoint(worldWidth).x),
+          : (previous?.x ?? getSpawnPoint(worldWidth, key).x),
         PLAYER_MARGIN,
         Math.max(PLAYER_MARGIN, worldWidth - PLAYER_MARGIN)
       );
       const nextY = clamp(
-        typeof meta.y === 'number' ? meta.y : (previous?.y ?? PLAYER_SPAWN_Y),
+        typeof meta.y === 'number'
+          ? meta.y
+          : (previous?.y ?? getSpawnPoint(worldWidth, key).y),
         120,
         WORLD_HEIGHT - 100
       );
@@ -1471,6 +1502,19 @@ export default function BioVillageLanding() {
     window.sessionStorage.setItem(PARTICIPANT_SESSION_STORAGE_KEY, stored);
     setParticipantKey(stored);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !participantKey) return;
+
+    const player = playerRef.current;
+    if (player.x !== 0) return;
+
+    const nextWorldWidth = getWorldWidth(window.innerWidth);
+    worldWidthRef.current = nextWorldWidth;
+    const spawn = getSpawnPoint(nextWorldWidth, participantKey);
+    player.x = spawn.x;
+    player.y = spawn.y;
+  }, [participantKey]);
 
   const selectedRemote = useMemo(() => {
     if (selectedTarget?.kind !== 'remote') return null;
@@ -2486,7 +2530,10 @@ export default function BioVillageLanding() {
 
       const player = playerRef.current;
       if (player.x === 0) {
-        const spawn = getSpawnPoint(nextWorldWidth);
+        const spawn = getSpawnPoint(
+          nextWorldWidth,
+          participantKeyRef.current ?? participantKey
+        );
         player.x = clamp(
           spawn.x,
           PLAYER_MARGIN,
@@ -2507,7 +2554,11 @@ export default function BioVillageLanding() {
         const initialCamera = getInitialCameraPosition(
           nextWorldWidth,
           window.innerWidth,
-          window.innerHeight
+          window.innerHeight,
+          {
+            x: player.x,
+            y: player.y
+          }
         );
 
         cameraXRef.current = initialCamera.x;
