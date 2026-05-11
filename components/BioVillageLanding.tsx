@@ -31,8 +31,6 @@ const REMOTE_PLAYER_SPEED = 8.8;
 const REMOTE_SYNC_INTERVAL_MS = 180;
 const MOVEMENT_BROADCAST_INTERVAL_MS = 32;
 const REMOTE_SNAP_DISTANCE = 90;
-const DESKTOP_VERTICAL_CAMERA_LERP = 0.1;
-const DESKTOP_HORIZONTAL_CAMERA_LERP = 0.14;
 const PLAYER_MARGIN = 40;
 const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
@@ -2882,24 +2880,16 @@ export default function BioVillageLanding() {
 
     const updateCamera = () => {
       const player = playerRef.current;
-      const isMoving =
-        player.vx !== 0 || player.vy !== 0 || player.targetY !== null;
-      const isMobileViewport = window.innerWidth < 768;
-      const verticalCameraLerp = isMobileViewport
-        ? 1
-        : DESKTOP_VERTICAL_CAMERA_LERP;
-      const horizontalCameraLerp = isMobileViewport
-        ? 1
-        : DESKTOP_HORIZONTAL_CAMERA_LERP;
+      const maxVerticalCamera = Math.max(0, WORLD_HEIGHT - window.innerHeight);
+      const targetY = clamp(
+        player.y - window.innerHeight / 2,
+        0,
+        maxVerticalCamera
+      );
+      cameraYRef.current = targetY;
 
-      if (!isMoving) {
-        cameraYRef.current = window.scrollY;
-      } else {
-        let targetY = player.y - window.innerHeight / 2;
-        targetY = clamp(targetY, 0, WORLD_HEIGHT - window.innerHeight);
-        cameraYRef.current +=
-          (targetY - cameraYRef.current) * verticalCameraLerp;
-        window.scrollTo(0, cameraYRef.current);
+      if (Math.abs(window.scrollY - targetY) > 0.5) {
+        window.scrollTo(0, targetY);
       }
 
       const maxHorizontalCamera = Math.max(
@@ -2911,8 +2901,7 @@ export default function BioVillageLanding() {
         0,
         maxHorizontalCamera
       );
-      cameraXRef.current +=
-        (horizontalTarget - cameraXRef.current) * horizontalCameraLerp;
+      cameraXRef.current = horizontalTarget;
       applyWorldTransform(
         [worldBackdropRef.current, worldObjectsRef.current],
         cameraXRef.current
