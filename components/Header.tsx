@@ -1,7 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, SendHorizontal } from 'lucide-react';
+
+import {
+  BIO_VILLAGE_CHAT_EVENT_MESSAGE,
+  BIO_VILLAGE_CHAT_EVENT_SEND,
+  BIO_VILLAGE_CHAT_LOG_LIMIT,
+  BIO_VILLAGE_CHAT_MAX_LENGTH,
+  type BioVillageChatEntry,
+  type BioVillageChatSendDetail,
+  normalizeBioVillageChatText
+} from '@/utils/bio-village-chat';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -32,7 +42,10 @@ const HOLD_EVENT_MAP: Record<
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const [activeHold, setActiveHold] = useState<HoldKind | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<BioVillageChatEntry[]>([]);
   const [holdProgress, setHoldProgress] = useState(0);
+  const chatLogRef = useRef<HTMLDivElement | null>(null);
   const holdActiveRef = useRef(false);
   const holdKindRef = useRef<HoldKind | null>(null);
   const holdRafRef = useRef<number | null>(null);
@@ -76,6 +89,46 @@ export default function Header({ onMenuClick }: HeaderProps) {
   useEffect(() => {
     return () => resetHold();
   }, []);
+
+  useEffect(() => {
+    const handleVillageChatMessage = (event: Event) => {
+      const detail = (event as CustomEvent<BioVillageChatEntry>).detail;
+      if (
+        !detail ||
+        typeof detail.id !== 'string' ||
+        typeof detail.author !== 'string' ||
+        typeof detail.text !== 'string'
+      ) {
+        return;
+      }
+
+      setChatMessages((previous) =>
+        [...previous, detail].slice(-BIO_VILLAGE_CHAT_LOG_LIMIT)
+      );
+    };
+
+    window.addEventListener(
+      BIO_VILLAGE_CHAT_EVENT_MESSAGE,
+      handleVillageChatMessage as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        BIO_VILLAGE_CHAT_EVENT_MESSAGE,
+        handleVillageChatMessage as EventListener
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    const target = chatLogRef.current;
+    if (!target) return;
+
+    target.scrollTo({
+      top: target.scrollHeight,
+      behavior: chatMessages.length > 1 ? 'smooth' : 'auto'
+    });
+  }, [chatMessages]);
 
   const beginHold = (kind: HoldKind) => {
     if (holdActiveRef.current) return;
@@ -146,6 +199,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const preventDefaultEvent = (event: React.SyntheticEvent) => {
     event.preventDefault();
+  };
+
+  const submitChat = () => {
+    const text = normalizeBioVillageChatText(chatInput);
+    if (!text) return;
+
+    window.dispatchEvent(
+      new CustomEvent<BioVillageChatSendDetail>(BIO_VILLAGE_CHAT_EVENT_SEND, {
+        detail: { text }
+      })
+    );
+    setChatInput('');
   };
 
   const renderHoldOrb = (kind: HoldKind) => {
@@ -247,6 +312,100 @@ export default function Header({ onMenuClick }: HeaderProps) {
           'border-[rgba(52,90,57,0.76)] bg-[rgba(18,43,22,0.94)]',
           '똥치우기 버튼'
         )}
+
+        <div className="pointer-events-auto w-[min(19.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.6rem] border border-[rgba(77,28,28,0.7)] bg-[linear-gradient(180deg,rgba(16,5,5,0.95),rgba(31,11,11,0.92))] shadow-[0_18px_44px_rgba(0,0,0,0.34)] backdrop-blur-xl">
+          <div className="border-b border-[rgba(255,255,255,0.08)] px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-[var(--font-brush)] text-[0.78rem] font-bold tracking-[0.16em] text-[rgba(255,235,219,0.96)]">
+                  실시간 필드 채팅
+                </p>
+                <p className="mt-1 text-[0.65rem] leading-relaxed text-[rgba(255,226,214,0.62)]">
+                  입력하면 게임 채팅처럼 바로 올라가고, 머리 위 말풍선으로도
+                  보여요.
+                </p>
+              </div>
+              <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[rgba(255,232,224,0.72)]">
+                live
+              </span>
+            </div>
+          </div>
+
+          <div
+            ref={chatLogRef}
+            className="max-h-60 space-y-2 overflow-y-auto px-3 py-3"
+          >
+            {chatMessages.length === 0 ? (
+              <div className="rounded-[1.2rem] border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-3 text-[0.68rem] leading-relaxed text-[rgba(255,228,220,0.6)]">
+                아직 말이 없어요. 한마디 던지면 필드 로그랑 아바타 머리 위
+                말풍선이 같이 반응합니다.
+              </div>
+            ) : (
+              chatMessages.map((message) => {
+                const isSelf = message.tone === 'self';
+
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[88%] rounded-[1.15rem] px-3 py-2 ${
+                        isSelf
+                          ? 'border border-[rgba(255,179,160,0.22)] bg-[linear-gradient(180deg,rgba(139,42,42,0.92),rgba(107,18,18,0.96))] text-[rgba(255,244,240,0.98)]'
+                          : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.07)] text-[rgba(255,236,230,0.9)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-[rgba(255,233,225,0.66)]">
+                          {message.author}
+                        </span>
+                        <span className="text-[0.52rem] text-[rgba(255,229,220,0.48)]">
+                          {new Date(message.sentAt).toLocaleTimeString(
+                            'ko-KR',
+                            {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }
+                          )}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[0.78rem] leading-relaxed">
+                        {message.text}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <form
+            className="border-t border-[rgba(255,255,255,0.08)] p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitChat();
+            }}
+          >
+            <div className="flex items-end gap-2">
+              <input
+                value={chatInput}
+                onChange={(event) => setChatInput(event.target.value)}
+                maxLength={BIO_VILLAGE_CHAT_MAX_LENGTH}
+                placeholder="필드에 띄울 말을 입력해요..."
+                className="min-w-0 flex-1 rounded-[1.1rem] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.07)] px-3 py-3 text-[0.78rem] text-[rgba(255,244,240,0.96)] outline-none transition placeholder:text-[rgba(255,224,216,0.34)] focus:border-[rgba(255,196,181,0.32)] focus:bg-[rgba(255,255,255,0.1)]"
+              />
+              <button
+                type="submit"
+                disabled={!normalizeBioVillageChatText(chatInput)}
+                className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-full border border-[rgba(255,182,163,0.2)] bg-[linear-gradient(180deg,rgba(155,52,52,0.96),rgba(121,23,23,0.98))] text-[rgba(255,248,244,0.96)] shadow-[0_14px_26px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45"
+                aria-label="채팅 보내기"
+              >
+                <SendHorizontal className="h-4 w-4" />
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </header>
   );

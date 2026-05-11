@@ -11,6 +11,15 @@ import {
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { useAuth } from '@/app/context/AuthContext';
+import {
+  BIO_VILLAGE_CHAT_BUBBLE_TTL_MS,
+  BIO_VILLAGE_CHAT_EVENT_MESSAGE,
+  BIO_VILLAGE_CHAT_EVENT_SEND,
+  type BioVillageChatEntry,
+  type BioVillageChatSendDetail,
+  type BioVillageChatTone,
+  normalizeBioVillageChatText
+} from '@/utils/bio-village-chat';
 import { createClient } from '@/utils/supabase/client';
 
 const WORLD_HEIGHT = 4300;
@@ -114,6 +123,20 @@ type SharedPoopPayload = {
   dropX: number;
   dropY: number;
   id: string;
+};
+
+type SharedChatPayload = {
+  actorId: string;
+  id: string;
+  label: string;
+  sentAt: number;
+  text: string;
+};
+
+type ChatBubbleState = {
+  expiresAt: number;
+  text: string;
+  tone: Exclude<BioVillageChatTone, 'system'>;
 };
 
 type FacilityNode = {
@@ -857,6 +880,60 @@ const getActorScreenPosition = (
 const pruneExpiredPoops = (drops: PoopDrop[], now = Date.now()) =>
   drops.filter((drop) => now - drop.createdAt < POOP_TTL_MS);
 
+const wrapSpeechBubbleLines = (
+  text: string,
+  maxCharsPerLine = 14,
+  maxLines = 2
+) => {
+  const normalized = normalizeBioVillageChatText(text);
+  if (!normalized) return [];
+
+  const characters = Array.from(normalized);
+  const lines: string[] = [];
+
+  while (characters.length > 0 && lines.length < maxLines) {
+    lines.push(characters.splice(0, maxCharsPerLine).join('').trim());
+  }
+
+  if (characters.length > 0 && lines.length > 0) {
+    const truncated = Array.from(lines[lines.length - 1]);
+    truncated.pop();
+    lines[lines.length - 1] = `${truncated.join('').trimEnd()}…`;
+  }
+
+  return lines.filter(Boolean);
+};
+
+const drawSpeechBubbleShape = (
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  tailCenterX: number,
+  tailHeight: number,
+  radius: number
+) => {
+  const right = x + width;
+  const bottom = y + height;
+  const tailHalfWidth = 11;
+
+  context.beginPath();
+  context.moveTo(x + radius, y);
+  context.lineTo(right - radius, y);
+  context.quadraticCurveTo(right, y, right, y + radius);
+  context.lineTo(right, bottom - radius);
+  context.quadraticCurveTo(right, bottom, right - radius, bottom);
+  context.lineTo(tailCenterX + tailHalfWidth, bottom);
+  context.lineTo(tailCenterX, bottom + tailHeight);
+  context.lineTo(tailCenterX - tailHalfWidth, bottom);
+  context.lineTo(x + radius, bottom);
+  context.quadraticCurveTo(x, bottom, x, bottom - radius);
+  context.lineTo(x, y + radius);
+  context.quadraticCurveTo(x, y, x + radius, y);
+  context.closePath();
+};
+
 function drawActor(
   context: CanvasRenderingContext2D,
   actor: ActorState,
@@ -1040,6 +1117,85 @@ function drawActor(
   context.restore();
 }
 
+function drawActorSpeechBubble(
+  context: CanvasRenderingContext2D,
+  actor: ActorState,
+  scrollY: number,
+  cameraX: number,
+  text: string,
+  tone: Exclude<BioVillageChatTone, 'system'>
+) {
+  const { height, width } = getSpriteSize(actor.preset);
+  const screenX = actor.x - cameraX;
+  const screenY = actor.y - scrollY;
+
+  if (
+    screenX < -width - 48 ||
+    screenX > window.innerWidth + width + 48 ||
+    screenY < -height - 48 ||
+    screenY > window.innerHeight + height + 48
+  ) {
+    return;
+  }
+
+  const lines = wrapSpeechBubbleLines(text);
+  if (lines.length === 0) return;
+
+  context.save();
+  context.font = '600 12px "IBM Plex Sans KR", sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  const measuredWidth = Math.max(
+    ...lines.map((line) => context.measureText(line).width)
+  );
+  const boxWidth = Math.min(214, Math.max(96, measuredWidth + 26));
+  const lineHeight = 15;
+  const boxHeight = lines.length * lineHeight + 18;
+  const bubbleX = Math.min(
+    Math.max(10, screenX - boxWidth / 2),
+    Math.max(10, window.innerWidth - boxWidth - 10)
+  );
+  const bubbleY = Math.max(8, screenY - height / 2 - boxHeight - 38);
+  const tailHeight = 10;
+  const tailCenterX = Math.min(
+    Math.max(screenX, bubbleX + 18),
+    bubbleX + boxWidth - 18
+  );
+
+  context.shadowBlur = 18;
+  context.shadowColor =
+    tone === 'self' ? 'rgba(164, 32, 32, 0.26)' : 'rgba(65, 105, 177, 0.18)';
+  drawSpeechBubbleShape(
+    context,
+    bubbleX,
+    bubbleY,
+    boxWidth,
+    boxHeight,
+    tailCenterX,
+    tailHeight,
+    14
+  );
+  context.fillStyle =
+    tone === 'self' ? 'rgba(255, 247, 245, 0.98)' : 'rgba(255, 255, 255, 0.96)';
+  context.fill();
+  context.shadowBlur = 0;
+  context.lineWidth = 1.2;
+  context.strokeStyle =
+    tone === 'self' ? 'rgba(181, 52, 52, 0.42)' : 'rgba(95, 132, 221, 0.32)';
+  context.stroke();
+
+  context.fillStyle = tone === 'self' ? '#7c1616' : '#2d4674';
+  lines.forEach((line, index) => {
+    context.fillText(
+      line,
+      bubbleX + boxWidth / 2,
+      bubbleY + 12 + lineHeight / 2 + index * lineHeight
+    );
+  });
+  context.restore();
+}
+
 function drawPoopSprite(
   context: CanvasRenderingContext2D,
   x: number,
@@ -1213,6 +1369,7 @@ export default function BioVillageLanding() {
   const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const cleanupAnimationsRef = useRef<CleanupAnimationState[]>([]);
+  const chatBubblesRef = useRef<Record<string, ChatBubbleState>>({});
   const poopAnimationsRef = useRef<PoopAnimationState[]>([]);
   const poopSettleTimeoutsRef = useRef<Map<string, number>>(new Map());
   const poopExpiryTimeoutsRef = useRef<Map<string, number>>(new Map());
@@ -1354,6 +1511,77 @@ export default function BioVillageLanding() {
   const activeVillageShop = activeVillageShopTab
     ? villageShopTabMeta[activeVillageShopTab]
     : null;
+
+  const emitChatMessage = useCallback((entry: BioVillageChatEntry) => {
+    window.dispatchEvent(
+      new CustomEvent<BioVillageChatEntry>(BIO_VILLAGE_CHAT_EVENT_MESSAGE, {
+        detail: entry
+      })
+    );
+  }, []);
+
+  const setActorChatBubble = useCallback(
+    (
+      actorId: string,
+      text: string,
+      tone: Exclude<BioVillageChatTone, 'system'>
+    ) => {
+      const normalized = normalizeBioVillageChatText(text);
+      if (!normalized) return;
+
+      chatBubblesRef.current[actorId] = {
+        expiresAt: Date.now() + BIO_VILLAGE_CHAT_BUBBLE_TTL_MS,
+        text: normalized,
+        tone
+      };
+    },
+    []
+  );
+
+  const publishChatMessage = useCallback(
+    ({
+      actorId,
+      author,
+      bubbleActorId,
+      id,
+      sentAt,
+      text,
+      tone
+    }: {
+      actorId: string;
+      author: string;
+      bubbleActorId?: string | null;
+      id?: string;
+      sentAt?: number;
+      text: string;
+      tone: BioVillageChatTone;
+    }) => {
+      const normalized = normalizeBioVillageChatText(text);
+      if (!normalized) return null;
+
+      const entry: BioVillageChatEntry = {
+        actorId,
+        author,
+        id: id ?? crypto.randomUUID(),
+        sentAt: sentAt ?? Date.now(),
+        text: normalized,
+        tone
+      };
+
+      emitChatMessage(entry);
+
+      if (tone !== 'system' && bubbleActorId) {
+        setActorChatBubble(
+          bubbleActorId,
+          normalized,
+          tone === 'self' ? 'self' : 'remote'
+        );
+      }
+
+      return entry;
+    },
+    [emitChatMessage, setActorChatBubble]
+  );
 
   const removePoopAnimation = useCallback((id: string) => {
     poopAnimationsRef.current = poopAnimationsRef.current.filter(
@@ -1635,6 +1863,77 @@ export default function BioVillageLanding() {
     })();
   }, []);
 
+  const applyRemoteChatPayload = useCallback(
+    (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
+
+      const data = payload as Partial<SharedChatPayload>;
+      if (
+        typeof data.actorId !== 'string' ||
+        typeof data.text !== 'string' ||
+        typeof data.label !== 'string'
+      ) {
+        return;
+      }
+
+      const ownKey = participantKeyRef.current;
+      if (data.actorId === ownKey) return;
+
+      const fallbackLabel = `Visitor ${data.actorId.slice(0, 4)}`;
+      const actor =
+        remoteActorsRef.current.find((entry) => entry.id === data.actorId) ??
+        null;
+      const author = data.label.trim() || actor?.label || fallbackLabel;
+
+      publishChatMessage({
+        actorId: data.actorId,
+        author,
+        bubbleActorId: data.actorId,
+        id: typeof data.id === 'string' ? data.id : undefined,
+        sentAt: typeof data.sentAt === 'number' ? data.sentAt : Date.now(),
+        text: data.text,
+        tone: 'remote'
+      });
+    },
+    [publishChatMessage]
+  );
+
+  const sendLocalChatMessage = useCallback(
+    (rawText: string) => {
+      const normalized = normalizeBioVillageChatText(rawText);
+      if (!normalized) return;
+
+      const player = playerRef.current;
+      const actorId = participantKeyRef.current ?? 'self';
+      const entry = publishChatMessage({
+        actorId,
+        author: player.label,
+        bubbleActorId: 'self',
+        text: normalized,
+        tone: 'self'
+      });
+
+      if (!entry) return;
+
+      const payload: SharedChatPayload = {
+        actorId,
+        id: entry.id,
+        label: player.label,
+        sentAt: entry.sentAt,
+        text: entry.text
+      };
+
+      void presenceChannelRef.current
+        ?.send({
+          type: 'broadcast',
+          event: 'player-chat',
+          payload
+        })
+        .catch(() => undefined);
+    },
+    [publishChatMessage]
+  );
+
   const openGoodsCommercePortal = () => {
     setSelectedTarget(null);
     setActiveVillageShopTab(null);
@@ -1799,6 +2098,26 @@ export default function BioVillageLanding() {
     const timer = window.setTimeout(() => setSaveState('idle'), 1400);
     return () => window.clearTimeout(timer);
   }, [saveState]);
+
+  useEffect(() => {
+    const handleChatSend = (event: Event) => {
+      const detail = (event as CustomEvent<BioVillageChatSendDetail>).detail;
+      if (!detail || typeof detail.text !== 'string') return;
+      sendLocalChatMessage(detail.text);
+    };
+
+    window.addEventListener(
+      BIO_VILLAGE_CHAT_EVENT_SEND,
+      handleChatSend as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        BIO_VILLAGE_CHAT_EVENT_SEND,
+        handleChatSend as EventListener
+      );
+    };
+  }, [sendLocalChatMessage]);
 
   useEffect(() => {
     if (selectedTarget?.kind !== 'remote') return;
@@ -2075,6 +2394,9 @@ export default function BioVillageLanding() {
       .on('broadcast', { event: 'player-move' }, ({ payload }) => {
         applyRemoteMovementPayload(payload);
       })
+      .on('broadcast', { event: 'player-chat' }, ({ payload }) => {
+        applyRemoteChatPayload(payload);
+      })
       .on('broadcast', { event: 'poop-drop' }, ({ payload }) => {
         if (!payload || typeof payload !== 'object') return;
 
@@ -2127,6 +2449,7 @@ export default function BioVillageLanding() {
       presenceChannelRef.current = null;
     };
   }, [
+    applyRemoteChatPayload,
     applyRemoteMovementPayload,
     participantKey,
     removePoopDrop,
@@ -2707,6 +3030,12 @@ export default function BioVillageLanding() {
           : selectedTargetRef.current?.kind === 'self'
             ? 'self'
             : null;
+      const now = Date.now();
+      Object.entries(chatBubblesRef.current).forEach(([actorId, bubble]) => {
+        if (bubble.expiresAt <= now) {
+          delete chatBubblesRef.current[actorId];
+        }
+      });
       cleanupAnimationsRef.current = cleanupAnimationsRef.current.filter(
         (animation) => performance.now() - animation.startedAt < CLEAN_SWEEP_MS
       );
@@ -2734,6 +3063,18 @@ export default function BioVillageLanding() {
           isPooping: poopingActorIds.has(actor.id),
           isSelected: selectedId === actor.id
         });
+
+        const remoteBubble = chatBubblesRef.current[actor.id];
+        if (remoteBubble) {
+          drawActorSpeechBubble(
+            avatarContext,
+            actor,
+            window.scrollY,
+            cameraXRef.current,
+            remoteBubble.text,
+            remoteBubble.tone
+          );
+        }
       });
 
       activePoopAnimations.forEach((animation) => {
@@ -2778,6 +3119,18 @@ export default function BioVillageLanding() {
           isSelected: selectedId === 'self'
         }
       );
+
+      const selfBubble = chatBubblesRef.current.self;
+      if (selfBubble) {
+        drawActorSpeechBubble(
+          avatarContext,
+          playerRef.current,
+          window.scrollY,
+          cameraXRef.current,
+          selfBubble.text,
+          selfBubble.tone
+        );
+      }
 
       frameRef.current = window.requestAnimationFrame(animate);
     };
