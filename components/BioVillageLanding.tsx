@@ -1417,7 +1417,9 @@ export default function BioVillageLanding() {
   const lastMovementActiveRef = useRef(false);
   const cameraXRef = useRef(0);
   const cameraYRef = useRef(0);
+  const scrollYRef = useRef(0);
   const worldWidthRef = useRef(DESKTOP_MIN_WORLD_WIDTH);
+  const worldActiveRef = useRef(true);
   const lastPresenceSyncRef = useRef(0);
   const initialViewportAlignedRef = useRef(false);
   const ignoreClickUntilRef = useRef(0);
@@ -1447,7 +1449,7 @@ export default function BioVillageLanding() {
     y: PLAYER_SPAWN_Y
   });
 
-  const [scrollY, setScrollY] = useState(0);
+  const [worldActive, setWorldActive] = useState(true);
   const [worldWidth, setWorldWidth] = useState(DESKTOP_MIN_WORLD_WIDTH);
   const [participantKey, setParticipantKey] = useState<string | null>(null);
   const [appearance, setAppearance] = useState<AppearanceState>({
@@ -1476,10 +1478,9 @@ export default function BioVillageLanding() {
     poopDropsRef.current = poopDrops;
   }, [poopDrops]);
 
-  const worldActive = scrollY < WORLD_HEIGHT - 96;
-
   selectedTargetRef.current = selectedTarget;
   participantKeyRef.current = participantKey;
+  worldActiveRef.current = worldActive;
 
   useLayoutEffect(() => {
     if (typeof window === 'undefined' || !window.history) return;
@@ -2563,8 +2564,11 @@ export default function BioVillageLanding() {
 
         cameraXRef.current = initialCamera.x;
         cameraYRef.current = initialCamera.y;
+        scrollYRef.current = initialCamera.y;
         initialViewportAlignedRef.current = true;
-        setScrollY(initialCamera.y);
+        const nextWorldActive = initialCamera.y < WORLD_HEIGHT - 96;
+        worldActiveRef.current = nextWorldActive;
+        setWorldActive(nextWorldActive);
         window.scrollTo(0, initialCamera.y);
       } else {
         const maxHorizontalCamera = Math.max(
@@ -2603,10 +2607,16 @@ export default function BioVillageLanding() {
     };
 
     const handleScroll = () => {
-      setScrollY(window.scrollY);
+      const nextScrollY = window.scrollY;
+      scrollYRef.current = nextScrollY;
+      const nextWorldActive = nextScrollY < WORLD_HEIGHT - 96;
+      if (worldActiveRef.current !== nextWorldActive) {
+        worldActiveRef.current = nextWorldActive;
+        setWorldActive(nextWorldActive);
+      }
       const player = playerRef.current;
       if (player.vx === 0 && player.vy === 0 && player.targetY === null) {
-        cameraYRef.current = window.scrollY;
+        cameraYRef.current = nextScrollY;
       }
     };
 
@@ -2635,10 +2645,11 @@ export default function BioVillageLanding() {
 
     const findActorAtPoint = (clientX: number, clientY: number) => {
       const cameraX = cameraXRef.current;
+      const currentScrollY = scrollYRef.current;
       const actors = [playerRef.current, ...remoteActorsRef.current]
         .map((actor) => ({
           actor,
-          ...getActorScreenPosition(actor, window.scrollY, cameraX)
+          ...getActorScreenPosition(actor, currentScrollY, cameraX)
         }))
         .sort((left, right) => right.actor.y - left.actor.y);
 
@@ -3005,6 +3016,22 @@ export default function BioVillageLanding() {
     let time = 0;
 
     const animate = () => {
+      const currentScrollY = scrollYRef.current;
+      const shouldRenderWorld =
+        worldActiveRef.current && document.visibilityState === 'visible';
+
+      if (!shouldRenderWorld) {
+        backgroundContext.clearRect(
+          0,
+          0,
+          window.innerWidth,
+          window.innerHeight
+        );
+        avatarContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        frameRef.current = window.requestAnimationFrame(animate);
+        return;
+      }
+
       time += 1;
       updatePlayer();
       updateRemoteActors();
@@ -3021,7 +3048,7 @@ export default function BioVillageLanding() {
         cell.worldX += cell.vx + Math.sin(time * 0.01 + cell.phase) * 0.12;
         cell.worldY += cell.vy + Math.cos(time * 0.01 + cell.phase) * 0.12;
 
-        const screenY = cell.worldY - window.scrollY;
+        const screenY = cell.worldY - currentScrollY;
         const screenX = cell.worldX - cameraXRef.current;
         if (
           screenX < -50 ||
@@ -3098,7 +3125,7 @@ export default function BioVillageLanding() {
       );
 
       visibleRemoteActors.forEach((actor) => {
-        drawActor(avatarContext, actor, window.scrollY, cameraXRef.current, {
+        drawActor(avatarContext, actor, currentScrollY, cameraXRef.current, {
           isCleaning: cleaningActorIds.has(actor.id),
           isPooping: poopingActorIds.has(actor.id),
           isSelected: selectedId === actor.id
@@ -3109,7 +3136,7 @@ export default function BioVillageLanding() {
           drawActorSpeechBubble(
             avatarContext,
             actor,
-            window.scrollY,
+            currentScrollY,
             cameraXRef.current,
             remoteBubble.text,
             remoteBubble.tone
@@ -3125,7 +3152,7 @@ export default function BioVillageLanding() {
                 (actor) => actor.id === animation.actorId
               ) ?? null);
         const screenX = animation.dropX - cameraXRef.current;
-        const targetY = animation.dropY - window.scrollY;
+        const targetY = animation.dropY - currentScrollY;
         const progress = Math.min(
           1,
           (performance.now() - animation.startedAt) / POOP_SETTLE_MS
@@ -3134,7 +3161,7 @@ export default function BioVillageLanding() {
           ? getSpriteSize(sourceActor.preset).height
           : getSpriteSize(playerRef.current.preset).height;
         const startY = sourceActor
-          ? sourceActor.y - window.scrollY + actorHeight * 0.12
+          ? sourceActor.y - currentScrollY + actorHeight * 0.12
           : targetY - actorHeight * 0.22;
         const animatedY = startY + (targetY - startY) * progress;
 
@@ -3150,7 +3177,7 @@ export default function BioVillageLanding() {
       drawActor(
         avatarContext,
         playerRef.current,
-        window.scrollY,
+        currentScrollY,
         cameraXRef.current,
         {
           isCleaning: selfIsCleaning,
@@ -3165,7 +3192,7 @@ export default function BioVillageLanding() {
         drawActorSpeechBubble(
           avatarContext,
           playerRef.current,
-          window.scrollY,
+          currentScrollY,
           cameraXRef.current,
           selfBubble.text,
           selfBubble.tone

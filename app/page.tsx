@@ -5,10 +5,12 @@ import dynamic from 'next/dynamic';
 
 import Header from '../components/Header';
 import MainContent from '../components/MainContent';
-import AboutSection from '../components/AboutSection';
 import { useAuth } from './context/AuthContext';
 
 const SideMenu = dynamic(() => import('../components/SideMenu'));
+const AboutSection = dynamic(() => import('../components/AboutSection'), {
+  loading: () => <div className="min-h-[640px]" />
+});
 const ServicesSection = dynamic(() => import('../components/ServicesSection'));
 const StudioSectionWithSearchParams = dynamic(
   () => import('../components/StudioSectionWithSearchParams'),
@@ -63,6 +65,11 @@ type DatingHookDetail = {
 type AuthHookDetail = {
   mode?: 'login' | 'signup';
 };
+
+const deferredSectionStyle = {
+  containIntrinsicSize: '960px',
+  contentVisibility: 'auto'
+} as const;
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -169,21 +176,31 @@ export default function LandingPage() {
       ) : null}
 
       <MainContent />
-      <AboutSection />
-      <ServicesSection onOpenCart={openCart} />
-      <div className="relative">
+      <div style={deferredSectionStyle}>
+        <AboutSection />
+      </div>
+      <div style={deferredSectionStyle}>
+        <ServicesSection onOpenCart={openCart} />
+      </div>
+      <div className="relative" style={deferredSectionStyle}>
         <Suspense fallback={<div>Loading...</div>}>
           <StudioSectionWithSearchParams />
         </Suspense>
       </div>
 
-      <section id="community" className="section-shell pb-24 pt-8 md:pt-14">
+      <section
+        id="community"
+        className="section-shell pb-24 pt-8 md:pt-14"
+        style={deferredSectionStyle}
+      >
         <div className="tech-panel scanline animate-rise p-4 sm:p-6 md:p-8">
           <CommunityBoard />
         </div>
       </section>
 
-      <Footer />
+      <div style={deferredSectionStyle}>
+        <Footer />
+      </div>
 
       {/* ✅ 로그인 / 회원가입 모달 (서비스 팝업과 동일한 방식) */}
       {authOpen ? (
