@@ -30,11 +30,12 @@ const PLAYER_SPEED = 5.8;
 const REMOTE_PLAYER_SPEED = 8.8;
 const REMOTE_SYNC_INTERVAL_MS = 180;
 const MOVEMENT_BROADCAST_INTERVAL_MS = 32;
+const PLAYER_STATE_BROADCAST_INTERVAL_MS = 900;
+const REMOTE_ACTOR_TIMEOUT_MS = 12_000;
 const REMOTE_SNAP_DISTANCE = 90;
 const PLAYER_MARGIN = 40;
 const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
-const PARTICIPANT_SESSION_STORAGE_KEY = 'bio-village-participant-session-v1';
 const POOP_SETTLE_MS = 720;
 const POOP_TTL_MS = 1000 * 60 * 60 * 2;
 const CLEAN_SWEEP_MS = 860;
@@ -1415,6 +1416,7 @@ export default function BioVillageLanding() {
   const selfPoopHoldingRef = useRef(false);
   const lastMovementBroadcastRef = useRef(0);
   const lastMovementActiveRef = useRef(false);
+  const lastStateBroadcastRef = useRef(0);
   const cameraXRef = useRef(0);
   const cameraYRef = useRef(0);
   const scrollYRef = useRef(0);
@@ -1472,6 +1474,9 @@ export default function BioVillageLanding() {
   const [onlineVisitors, setOnlineVisitors] = useState<
     Array<{ id: string; label: string; palette: PaletteKey }>
   >([]);
+  const [realtimeStatus, setRealtimeStatus] = useState<
+    'connecting' | 'offline' | 'online'
+  >('connecting');
   const [poopDrops, setPoopDrops] = useState<PoopDrop[]>([]);
 
   useEffect(() => {
@@ -1496,12 +1501,7 @@ export default function BioVillageLanding() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const stored =
-      window.sessionStorage.getItem(PARTICIPANT_SESSION_STORAGE_KEY) ||
-      `bio-village-session-${crypto.randomUUID()}`;
-
-    window.sessionStorage.setItem(PARTICIPANT_SESSION_STORAGE_KEY, stored);
-    setParticipantKey(stored);
+    setParticipantKey(`bio-village-client-${crypto.randomUUID()}`);
   }, []);
 
   useEffect(() => {
@@ -1625,6 +1625,22 @@ export default function BioVillageLanding() {
     },
     [emitChatMessage, setActorChatBubble]
   );
+
+  const commitRemoteActors = useCallback((actors: ActorState[]) => {
+    const sortedActors = [...actors].sort((left, right) =>
+      left.label.localeCompare(right.label)
+    );
+
+    remoteActorsRef.current = sortedActors;
+    setOnlineVisitors(
+      sortedActors.map((actor) => ({
+        id: actor.id,
+        label: actor.label,
+        palette: actor.palette
+      }))
+    );
+    setRemoteRevision((previous) => previous + 1);
+  }, []);
 
   const removePoopAnimation = useCallback((id: string) => {
     poopAnimationsRef.current = poopAnimationsRef.current.filter(
@@ -1787,124 +1803,130 @@ export default function BioVillageLanding() {
     [removePoopAnimation, schedulePoopExpiry]
   );
 
-  const applyRemoteMovementPayload = useCallback((payload: unknown) => {
-    if (!payload || typeof payload !== 'object') return;
+  const applyRemoteMovementPayload = useCallback(
+    (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
 
-    const data = payload as Record<string, unknown>;
-    if (
-      typeof data.key !== 'string' ||
-      typeof data.x !== 'number' ||
-      typeof data.y !== 'number' ||
-      typeof data.vx !== 'number' ||
-      typeof data.vy !== 'number'
-    ) {
-      return;
-    }
+      const data = payload as Record<string, unknown>;
+      if (
+        typeof data.key !== 'string' ||
+        typeof data.x !== 'number' ||
+        typeof data.y !== 'number' ||
+        typeof data.vx !== 'number' ||
+        typeof data.vy !== 'number'
+      ) {
+        return;
+      }
 
-    const ownKey = participantKeyRef.current;
-    if (data.key === ownKey) return;
+      const ownKey = participantKeyRef.current;
+      if (data.key === ownKey) return;
 
-    const label =
-      typeof data.label === 'string' && data.label.trim().length > 0
-        ? data.label.trim()
-        : `Visitor ${data.key.slice(0, 4)}`;
-    const palette = isPaletteKey(data.palette) ? data.palette : 'crimson';
-    const preset = isSpritePreset(data.preset) ? data.preset : 'archivist';
-    const dir = isDirection(data.dir) ? data.dir : 'down';
-    const moving = data.moving === true;
-    const payloadProfile =
-      data.profile && typeof data.profile === 'object'
-        ? (data.profile as Partial<AvatarProfile>)
-        : {};
-    const profile = payloadToProfile(
-      {
-        bio: payloadProfile.bio,
-        interests: payloadProfile.interests,
-        mbti: payloadProfile.mbti,
-        nickname: payloadProfile.name,
-        palette,
-        preset,
-        tagline: payloadProfile.tagline
-      },
-      label
-    );
-    const sentAt =
-      typeof data.sentAt === 'number' ? data.sentAt : Date.now() - 16;
-    const predictionFrames = moving
-      ? Math.min(5, Math.max(1, (Date.now() - sentAt) / 16.7))
-      : 0;
-    const nextX = clamp(
-      data.x + data.vx * predictionFrames,
-      PLAYER_MARGIN,
-      Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
-    );
-    const nextY = clamp(
-      data.y + data.vy * predictionFrames,
-      120,
-      WORLD_HEIGHT - 100
-    );
-
-    remoteActorsRef.current = (() => {
-      const previousActors = remoteActorsRef.current;
-      const actorIndex = previousActors.findIndex(
-        (actor) => actor.id === data.key
+      const label =
+        typeof data.label === 'string' && data.label.trim().length > 0
+          ? data.label.trim()
+          : `Visitor ${data.key.slice(0, 4)}`;
+      const palette = isPaletteKey(data.palette) ? data.palette : 'crimson';
+      const preset = isSpritePreset(data.preset) ? data.preset : 'archivist';
+      const dir = isDirection(data.dir) ? data.dir : 'down';
+      const moving = data.moving === true;
+      const payloadProfile =
+        data.profile && typeof data.profile === 'object'
+          ? (data.profile as Partial<AvatarProfile>)
+          : {};
+      const profile = payloadToProfile(
+        {
+          bio: payloadProfile.bio,
+          interests: payloadProfile.interests,
+          mbti: payloadProfile.mbti,
+          nickname: payloadProfile.name,
+          palette,
+          preset,
+          tagline: payloadProfile.tagline
+        },
+        label
       );
-      const previousActor =
-        actorIndex >= 0 ? previousActors[actorIndex] : undefined;
-      const movementGap = previousActor
-        ? Math.hypot(previousActor.x - nextX, previousActor.y - nextY)
+      const sentAt =
+        typeof data.sentAt === 'number' ? data.sentAt : Date.now() - 16;
+      const predictionFrames = moving
+        ? Math.min(5, Math.max(1, (Date.now() - sentAt) / 16.7))
         : 0;
-      const previousUpdatedAt = previousActor?.lastRemoteUpdateAt ?? 0;
-      if (sentAt <= previousUpdatedAt - 30) {
-        return previousActors;
-      }
-      const latencyMs = Math.min(180, Math.max(0, Date.now() - sentAt));
-      const predictionScale = moving ? latencyMs / 16.7 : 0;
-      const nextActor: ActorState = {
-        animFrame: moving && previousActor ? previousActor.animFrame + 0.22 : 0,
-        dir,
-        id: data.key,
-        label,
-        lastRemoteUpdateAt: sentAt,
-        palette,
-        preset,
-        profile,
-        speed: Math.max(
-          REMOTE_PLAYER_SPEED,
-          Math.hypot(data.vx, data.vy) * 1.18 +
-            Math.min(5.4, movementGap * 0.045)
-        ),
-        targetX: clamp(
-          data.x + data.vx * predictionScale * 0.55,
-          PLAYER_MARGIN,
-          Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
-        ),
-        targetY: clamp(
-          data.y + data.vy * predictionScale * 0.55,
-          120,
-          WORLD_HEIGHT - 100
-        ),
-        vx: data.vx,
-        vy: data.vy,
-        x:
-          moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 4.2
-            ? previousActor.x
-            : nextX,
-        y:
-          moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 4.2
-            ? previousActor.y
-            : nextY
-      };
+      const nextX = clamp(
+        data.x + data.vx * predictionFrames,
+        PLAYER_MARGIN,
+        Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
+      );
+      const nextY = clamp(
+        data.y + data.vy * predictionFrames,
+        120,
+        WORLD_HEIGHT - 100
+      );
 
-      if (actorIndex < 0) {
-        return [...previousActors, nextActor];
-      }
+      const nextActors = (() => {
+        const previousActors = remoteActorsRef.current;
+        const actorIndex = previousActors.findIndex(
+          (actor) => actor.id === data.key
+        );
+        const previousActor =
+          actorIndex >= 0 ? previousActors[actorIndex] : undefined;
+        const movementGap = previousActor
+          ? Math.hypot(previousActor.x - nextX, previousActor.y - nextY)
+          : 0;
+        const previousUpdatedAt = previousActor?.lastRemoteUpdateAt ?? 0;
+        if (sentAt <= previousUpdatedAt - 30) {
+          return previousActors;
+        }
+        const latencyMs = Math.min(180, Math.max(0, Date.now() - sentAt));
+        const predictionScale = moving ? latencyMs / 16.7 : 0;
+        const nextActor: ActorState = {
+          animFrame:
+            moving && previousActor ? previousActor.animFrame + 0.22 : 0,
+          dir,
+          id: data.key,
+          label,
+          lastRemoteUpdateAt: sentAt,
+          palette,
+          preset,
+          profile,
+          speed: Math.max(
+            REMOTE_PLAYER_SPEED,
+            Math.hypot(data.vx, data.vy) * 1.18 +
+              Math.min(5.4, movementGap * 0.045)
+          ),
+          targetX: clamp(
+            data.x + data.vx * predictionScale * 0.55,
+            PLAYER_MARGIN,
+            Math.max(PLAYER_MARGIN, worldWidthRef.current - PLAYER_MARGIN)
+          ),
+          targetY: clamp(
+            data.y + data.vy * predictionScale * 0.55,
+            120,
+            WORLD_HEIGHT - 100
+          ),
+          vx: data.vx,
+          vy: data.vy,
+          x:
+            moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 4.2
+              ? previousActor.x
+              : nextX,
+          y:
+            moving && previousActor && movementGap < REMOTE_SNAP_DISTANCE * 4.2
+              ? previousActor.y
+              : nextY
+        };
 
-      const nextActors = [...previousActors];
-      nextActors[actorIndex] = nextActor;
-      return nextActors;
-    })();
-  }, []);
+        if (actorIndex < 0) {
+          return [...previousActors, nextActor];
+        }
+
+        const nextActors = [...previousActors];
+        nextActors[actorIndex] = nextActor;
+        return nextActors;
+      })();
+
+      commitRemoteActors(nextActors);
+    },
+    [commitRemoteActors]
+  );
 
   const applyRemoteChatPayload = useCallback(
     (payload: unknown) => {
@@ -2344,12 +2366,32 @@ export default function BioVillageLanding() {
   }, []);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      const now = Date.now();
+      const activeActors = remoteActorsRef.current.filter(
+        (actor) =>
+          actor.lastRemoteUpdateAt <= 0 ||
+          now - actor.lastRemoteUpdateAt < REMOTE_ACTOR_TIMEOUT_MS
+      );
+
+      if (activeActors.length !== remoteActorsRef.current.length) {
+        commitRemoteActors(activeActors);
+      }
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [commitRemoteActors]);
+
+  useEffect(() => {
     if (!supabase || !participantKey) return;
 
     let cancelled = false;
+    setRealtimeStatus('connecting');
     const channel = supabase.channel(PRESENCE_CHANNEL, {
       config: {
-        broadcast: { self: false },
+        broadcast: { ack: true, self: false },
         presence: { key: participantKey }
       }
     });
@@ -2364,7 +2406,7 @@ export default function BioVillageLanding() {
         remoteActorsRef.current,
         worldWidthRef.current
       );
-      remoteActorsRef.current = nextActors;
+      commitRemoteActors(nextActors);
       const nextActorIds = new Set(nextActors.map((actor) => actor.id));
       Array.from(seenRemotePoopIdsRef.current.keys()).forEach((actorId) => {
         if (!nextActorIds.has(actorId)) {
@@ -2411,14 +2453,6 @@ export default function BioVillageLanding() {
           );
         });
       });
-      setOnlineVisitors(
-        nextActors.map((actor) => ({
-          id: actor.id,
-          label: actor.label,
-          palette: actor.palette
-        }))
-      );
-      setRemoteRevision((previous) => previous + 1);
     };
 
     const trackSelf = async () => {
@@ -2433,8 +2467,19 @@ export default function BioVillageLanding() {
       );
     };
 
+    const broadcastSelfState = async () => {
+      await channel.send({
+        type: 'broadcast',
+        event: 'player-state',
+        payload: buildMovementPayload(participantKey, playerRef.current)
+      });
+    };
+
     channel
       .on('broadcast', { event: 'player-move' }, ({ payload }) => {
+        applyRemoteMovementPayload(payload);
+      })
+      .on('broadcast', { event: 'player-state' }, ({ payload }) => {
         applyRemoteMovementPayload(payload);
       })
       .on('broadcast', { event: 'player-chat' }, ({ payload }) => {
@@ -2478,22 +2523,32 @@ export default function BioVillageLanding() {
       })
       .on('presence', { event: 'sync' }, syncPresenceSnapshot)
       .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
-        void trackSelf().catch(() => undefined);
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('online');
+          void trackSelf()
+            .then(() => broadcastSelfState())
+            .then(syncPresenceSnapshot)
+            .catch(() => setRealtimeStatus('offline'));
+          return;
+        }
+
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setRealtimeStatus('offline');
+        }
       });
 
     return () => {
       cancelled = true;
-      remoteActorsRef.current = [];
-      setOnlineVisitors([]);
-      setRemoteRevision((previous) => previous + 1);
+      commitRemoteActors([]);
       void channel.untrack().catch(() => undefined);
       void supabase.removeChannel(channel).catch(() => undefined);
       presenceChannelRef.current = null;
+      setRealtimeStatus('connecting');
     };
   }, [
     applyRemoteChatPayload,
     applyRemoteMovementPayload,
+    commitRemoteActors,
     participantKey,
     removePoopDrop,
     startCleanupAnimation,
@@ -2814,6 +2869,30 @@ export default function BioVillageLanding() {
         .catch(() => undefined);
     };
 
+    const syncRealtimeStateIfNeeded = () => {
+      const channel = presenceChannelRef.current;
+      const key = participantKeyRef.current;
+      if (!channel || !key) return;
+
+      const now = performance.now();
+      if (
+        now - lastStateBroadcastRef.current <
+        PLAYER_STATE_BROADCAST_INTERVAL_MS
+      ) {
+        return;
+      }
+
+      lastStateBroadcastRef.current = now;
+
+      void channel
+        .send({
+          type: 'broadcast',
+          event: 'player-state',
+          payload: buildMovementPayload(key, playerRef.current)
+        })
+        .catch(() => undefined);
+    };
+
     const updatePlayer = () => {
       const player = playerRef.current;
       let dx = 0;
@@ -3038,6 +3117,7 @@ export default function BioVillageLanding() {
       updateCamera();
       syncPresenceIfNeeded();
       syncRealtimeMovementIfNeeded();
+      syncRealtimeStateIfNeeded();
 
       backgroundContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
       backgroundContext.fillStyle = 'rgba(248, 249, 250, 0.24)';
@@ -3841,8 +3921,21 @@ export default function BioVillageLanding() {
         }}
       >
         <div className="rounded-full border border-[rgba(186,57,57,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,241,241,0.8))] px-3.5 py-2 shadow-[0_12px_30px_rgba(107,21,21,0.12)] backdrop-blur-xl">
-          <p className="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[rgba(140,52,52,0.62)]">
-            online
+          <p className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[rgba(140,52,52,0.62)]">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                realtimeStatus === 'online'
+                  ? 'bg-emerald-500'
+                  : realtimeStatus === 'connecting'
+                    ? 'bg-amber-400'
+                    : 'bg-red-500'
+              }`}
+            />
+            {realtimeStatus === 'online'
+              ? 'online'
+              : realtimeStatus === 'connecting'
+                ? 'syncing'
+                : 'offline'}
           </p>
           <p className="mt-1 font-[var(--font-display-kr)] text-[0.92rem] font-semibold tracking-[0.04em] text-[rgba(69,14,14,0.92)] sm:text-[1rem]">
             현재 접속 {onlineVisitors.length + 1}명

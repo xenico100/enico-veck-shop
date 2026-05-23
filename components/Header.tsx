@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Menu, SendHorizontal } from 'lucide-react';
+import { ChevronDown, Menu, MessageCircle, SendHorizontal } from 'lucide-react';
 
 import {
   BIO_VILLAGE_CHAT_EVENT_MESSAGE,
@@ -42,6 +42,7 @@ const HOLD_EVENT_MAP: Record<
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const [activeHold, setActiveHold] = useState<HoldKind | null>(null);
+  const [chatExpanded, setChatExpanded] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<BioVillageChatEntry[]>([]);
   const [holdProgress, setHoldProgress] = useState(0);
@@ -288,7 +289,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   );
 
   return (
-    <header className="pointer-events-none fixed right-0 top-0 z-40 px-3 pt-3 sm:px-4 sm:pt-4 md:px-8 md:pt-6">
+    <header className="pointer-events-none fixed inset-x-0 bottom-3 top-auto z-40 px-3 sm:bottom-auto sm:left-auto sm:right-0 sm:top-0 sm:px-4 sm:pt-4 md:px-8 md:pt-6">
       <div className="flex flex-col items-end gap-2">
         <button
           onClick={onMenuClick}
@@ -313,19 +314,32 @@ export default function Header({ onMenuClick }: HeaderProps) {
           '똥치우기 버튼'
         )}
 
-        <div className="pointer-events-auto w-[min(19.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.6rem] border border-[rgba(77,28,28,0.7)] bg-[linear-gradient(180deg,rgba(16,5,5,0.95),rgba(31,11,11,0.92))] shadow-[0_18px_44px_rgba(0,0,0,0.34)] backdrop-blur-xl">
-          <div className="border-b border-[rgba(255,255,255,0.08)] px-4 py-3">
+        <div className="pointer-events-auto w-full overflow-hidden rounded-[1.1rem] border border-[rgba(77,28,28,0.7)] bg-[linear-gradient(180deg,rgba(16,5,5,0.88),rgba(31,11,11,0.9))] shadow-[0_14px_32px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:w-[min(19.5rem,calc(100vw-1.5rem))] sm:rounded-[1.6rem] sm:bg-[linear-gradient(180deg,rgba(16,5,5,0.95),rgba(31,11,11,0.92))] sm:shadow-[0_18px_44px_rgba(0,0,0,0.34)]">
+          <div className="border-b border-[rgba(255,255,255,0.08)] px-3 py-2 sm:px-4 sm:py-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-[var(--font-brush)] text-[0.78rem] font-bold tracking-[0.16em] text-[rgba(255,235,219,0.96)]">
-                  실시간 필드 채팅
+                <p className="flex items-center gap-2 font-[var(--font-brush)] text-[0.72rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] sm:text-[0.78rem] sm:tracking-[0.16em]">
+                  <MessageCircle className="h-3.5 w-3.5 sm:hidden" />
+                  필드 채팅
                 </p>
-                <p className="mt-1 text-[0.65rem] leading-relaxed text-[rgba(255,226,214,0.62)]">
+                <p className="mt-1 hidden text-[0.65rem] leading-relaxed text-[rgba(255,226,214,0.62)] sm:block">
                   입력하면 게임 채팅처럼 바로 올라가고, 머리 위 말풍선으로도
                   보여요.
                 </p>
               </div>
-              <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[rgba(255,232,224,0.72)]">
+              <button
+                type="button"
+                onClick={() => setChatExpanded((previous) => !previous)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] text-[rgba(255,232,224,0.82)] sm:hidden"
+                aria-label={
+                  chatExpanded ? '채팅 로그 접기' : '채팅 로그 펼치기'
+                }
+              >
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${chatExpanded ? '' : 'rotate-180'}`}
+                />
+              </button>
+              <span className="hidden rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[rgba(255,232,224,0.72)] sm:inline-flex">
                 live
               </span>
             </div>
@@ -333,12 +347,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           <div
             ref={chatLogRef}
-            className="max-h-60 space-y-2 overflow-y-auto px-3 py-3"
+            className={`space-y-2 overflow-y-auto px-2.5 py-2 transition-[max-height,padding] duration-200 sm:max-h-60 sm:px-3 sm:py-3 ${
+              chatExpanded
+                ? 'max-h-[7.5rem]'
+                : 'max-h-0 py-0 sm:max-h-60 sm:py-3'
+            }`}
           >
             {chatMessages.length === 0 ? (
-              <div className="rounded-[1.2rem] border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-3 text-[0.68rem] leading-relaxed text-[rgba(255,228,220,0.6)]">
-                아직 말이 없어요. 한마디 던지면 필드 로그랑 아바타 머리 위
-                말풍선이 같이 반응합니다.
+              <div className="rounded-[0.9rem] border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-[0.66rem] leading-relaxed text-[rgba(255,228,220,0.6)] sm:rounded-[1.2rem] sm:py-3 sm:text-[0.68rem]">
+                아직 말이 없어요.
               </div>
             ) : (
               chatMessages.map((message) => {
@@ -350,7 +367,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-[1.15rem] px-3 py-2 ${
+                      className={`max-w-[88%] rounded-[0.95rem] px-2.5 py-1.5 sm:rounded-[1.15rem] sm:px-3 sm:py-2 ${
                         isSelf
                           ? 'border border-[rgba(255,179,160,0.22)] bg-[linear-gradient(180deg,rgba(139,42,42,0.92),rgba(107,18,18,0.96))] text-[rgba(255,244,240,0.98)]'
                           : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.07)] text-[rgba(255,236,230,0.9)]'
@@ -370,7 +387,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                           )}
                         </span>
                       </div>
-                      <p className="mt-1 text-[0.78rem] leading-relaxed">
+                      <p className="mt-1 text-[0.74rem] leading-relaxed sm:text-[0.78rem]">
                         {message.text}
                       </p>
                     </div>
@@ -381,7 +398,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
 
           <form
-            className="border-t border-[rgba(255,255,255,0.08)] p-3"
+            className="border-t border-[rgba(255,255,255,0.08)] p-2 sm:p-3"
             onSubmit={(event) => {
               event.preventDefault();
               submitChat();
@@ -392,13 +409,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 value={chatInput}
                 onChange={(event) => setChatInput(event.target.value)}
                 maxLength={BIO_VILLAGE_CHAT_MAX_LENGTH}
-                placeholder="필드에 띄울 말을 입력해요..."
-                className="min-w-0 flex-1 rounded-[1.1rem] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.07)] px-3 py-3 text-[0.78rem] text-[rgba(255,244,240,0.96)] outline-none transition placeholder:text-[rgba(255,224,216,0.34)] focus:border-[rgba(255,196,181,0.32)] focus:bg-[rgba(255,255,255,0.1)]"
+                placeholder="말하기..."
+                className="min-w-0 flex-1 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.07)] px-3 py-2.5 text-[0.78rem] text-[rgba(255,244,240,0.96)] outline-none transition placeholder:text-[rgba(255,224,216,0.34)] focus:border-[rgba(255,196,181,0.32)] focus:bg-[rgba(255,255,255,0.1)] sm:rounded-[1.1rem] sm:py-3"
               />
               <button
                 type="submit"
                 disabled={!normalizeBioVillageChatText(chatInput)}
-                className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-full border border-[rgba(255,182,163,0.2)] bg-[linear-gradient(180deg,rgba(155,52,52,0.96),rgba(121,23,23,0.98))] text-[rgba(255,248,244,0.96)] shadow-[0_14px_26px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[rgba(255,182,163,0.2)] bg-[linear-gradient(180deg,rgba(155,52,52,0.96),rgba(121,23,23,0.98))] text-[rgba(255,248,244,0.96)] shadow-[0_14px_26px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45 sm:h-[46px] sm:w-[46px]"
                 aria-label="채팅 보내기"
               >
                 <SendHorizontal className="h-4 w-4" />
