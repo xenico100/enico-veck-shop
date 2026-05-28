@@ -138,18 +138,6 @@ type ChatBubbleState = {
   tone: Exclude<BioVillageChatTone, 'system'>;
 };
 
-type FacilityNode = {
-  bodyClassName: string;
-  caption: string;
-  id: string;
-  left: string;
-  subtitle: string;
-  tab: VillageShopTab;
-  title: string;
-  top: number;
-  width?: number;
-};
-
 type VillageShopTab = 'community' | 'diagram' | 'goods' | 'studio';
 
 type VillageShopNode = {
@@ -436,75 +424,6 @@ const paletteMap: Record<
   }
 };
 
-const facilityNodes: FacilityNode[] = [
-  {
-    bodyClassName: 'village-atrium-card',
-    caption: 'LOBBY / MATCH CORE',
-    id: 'atrium-heart',
-    left: '52%',
-    subtitle: '중앙 접속 심장. 매칭 신호와 유저 흐름이 모이는 코어.',
-    tab: 'diagram',
-    title: 'Clinical Atrium',
-    top: 250,
-    width: 232
-  },
-  {
-    bodyClassName: 'village-node-card',
-    caption: 'PROFILE LAB',
-    id: 'profile-lab',
-    left: '23%',
-    subtitle: '소개, 관심사, MBTI를 다듬는 생체 프로필 부스.',
-    tab: 'studio',
-    title: 'Profile Lab',
-    top: 980,
-    width: 280
-  },
-  {
-    bodyClassName: 'village-node-card',
-    caption: 'SIGNAL LOUNGE',
-    id: 'signal-lounge',
-    left: '76%',
-    subtitle: '좌클릭으로 타인의 기록을 읽고 채팅 훅을 여는 구역.',
-    tab: 'studio',
-    title: 'Signal Lounge',
-    top: 1160,
-    width: 300
-  },
-  {
-    bodyClassName: 'village-node-card',
-    caption: 'MEMORY WARD',
-    id: 'memory-ward',
-    left: '28%',
-    subtitle: '자기소개와 감정 기록이 축적되는 병동형 갤러리.',
-    tab: 'goods',
-    title: 'Memory Ward',
-    top: 1920,
-    width: 320
-  },
-  {
-    bodyClassName: 'village-node-card',
-    caption: 'RESONANCE GRID',
-    id: 'resonance-grid',
-    left: '72%',
-    subtitle: '랜덤 탐험과 공감 신호가 순환하는 실험층.',
-    tab: 'studio',
-    title: 'Resonance Grid',
-    top: 2240,
-    width: 310
-  },
-  {
-    bodyClassName: 'village-core-card',
-    caption: 'DEEP LAYER / DATING CORE',
-    id: 'deep-core',
-    left: '50%',
-    subtitle: '완주한 감정 기록과 매칭 로그가 쌓이는 지하 통제실.',
-    tab: 'diagram',
-    title: 'Midnight Dating Core',
-    top: 2860,
-    width: 420
-  }
-];
-
 const villageShopNodes: VillageShopNode[] = [
   {
     hint: '더블클릭: 커뮤니티 보드',
@@ -516,30 +435,12 @@ const villageShopNodes: VillageShopNode[] = [
     width: 338
   },
   {
-    hint: '더블클릭: 멤버십 영상',
-    id: 'studio-access-shop',
-    left: '74%',
-    tab: 'studio',
-    title: 'Tape Garden Booth',
-    top: 790,
-    width: 214
-  },
-  {
     hint: '더블클릭: 굿즈 판매',
     id: 'goods-access-shop',
     left: '28%',
     tab: 'goods',
     title: 'Goods Counter',
     top: 745,
-    width: 236
-  },
-  {
-    hint: '더블클릭: 시스템 다이어그램',
-    id: 'diagram-access-shop',
-    left: '50%',
-    tab: 'diagram',
-    title: 'System Shrine',
-    top: 1480,
     width: 236
   }
 ];
@@ -556,54 +457,6 @@ const goodsShopVariants = [
   {
     hint: '더블클릭: 비밀 굿즈 진열소',
     title: 'Candy Relic Shop'
-  }
-] as const;
-
-const apparelWorkflowNodes = [
-  {
-    align: 'center',
-    chip: 'FABRIC LINE',
-    color: 'rgba(194, 78, 78, 0.92)',
-    id: 'apparel-root',
-    label: '의류제작 시작',
-    x: 50,
-    y: 12
-  },
-  {
-    align: 'left',
-    chip: 'RAW ORDER',
-    color: 'rgba(205, 115, 65, 0.92)',
-    id: 'apparel-source',
-    label: '원부자재 발주',
-    x: 23,
-    y: 30
-  },
-  {
-    align: 'right',
-    chip: 'CLO SYSTEM',
-    color: 'rgba(177, 119, 52, 0.9)',
-    id: 'apparel-clo',
-    label: 'CLO 3D 설계',
-    x: 77,
-    y: 43
-  },
-  {
-    align: 'left',
-    chip: 'ARCHIVE',
-    color: 'rgba(157, 110, 58, 0.9)',
-    id: 'apparel-data',
-    label: '데이터 저장',
-    x: 24,
-    y: 58
-  },
-  {
-    align: 'right',
-    chip: 'HANDMADE',
-    color: 'rgba(161, 76, 54, 0.92)',
-    id: 'apparel-final',
-    label: '실물 제작',
-    x: 78,
-    y: 74
   }
 ] as const;
 
@@ -697,16 +550,6 @@ const villageShopVisualMeta: Record<
     tone: 'rgba(128, 60, 145, 0.9)'
   }
 };
-
-const veinEdges: Array<[string, string, string, number]> = [
-  ['atrium-heart', 'profile-lab', '#cf3535', 8],
-  ['atrium-heart', 'signal-lounge', '#a42828', 8],
-  ['profile-lab', 'memory-ward', '#8a2020', 9],
-  ['signal-lounge', 'resonance-grid', '#8d2d54', 9],
-  ['memory-ward', 'deep-core', '#8a2020', 11],
-  ['resonance-grid', 'deep-core', '#8d2d54', 11],
-  ['deep-core', 'apparel-tissue-map', '#c65a34', 12]
-];
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -885,14 +728,6 @@ const getSpriteSize = (preset: SpritePreset) => {
   return {
     height: sprite.length * PLAYER_SCALE,
     width: sprite[0].length * PLAYER_SCALE
-  };
-};
-
-const getFacilityCenter = (element: HTMLElement) => {
-  const rect = element.getBoundingClientRect();
-  return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2
   };
 };
 
@@ -3037,9 +2872,16 @@ export default function BioVillageLanding() {
         maxVerticalCamera
       );
       cameraYRef.current = targetY;
+      scrollYRef.current = targetY;
 
       if (Math.abs(window.scrollY - targetY) > 0.5) {
         window.scrollTo(0, targetY);
+      }
+
+      const nextWorldActive = targetY < WORLD_HEIGHT - 96;
+      if (worldActiveRef.current !== nextWorldActive) {
+        worldActiveRef.current = nextWorldActive;
+        setWorldActive(nextWorldActive);
       }
 
       const maxHorizontalCamera = Math.max(
@@ -3058,53 +2900,9 @@ export default function BioVillageLanding() {
       );
     };
 
-    const drawVein = (
-      from: { x: number; y: number },
-      to: { x: number; y: number },
-      color: string,
-      baseWidth: number,
-      time: number
-    ) => {
-      if (
-        (from.y < -100 && to.y < -100) ||
-        (from.y > window.innerHeight + 100 && to.y > window.innerHeight + 100)
-      ) {
-        return;
-      }
-
-      const pulse = Math.sin(time * 0.05 + baseWidth) * 0.5 + 0.5;
-      const currentWidth = baseWidth + pulse * 3.4;
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
-
-      backgroundContext.beginPath();
-      backgroundContext.moveTo(from.x, from.y);
-
-      for (let index = -1; index <= 1; index += 1) {
-        const cp1x = from.x + dx / 3 + dy * 0.18 * index;
-        const cp1y = from.y + dy / 3 - dx * 0.18 * index;
-        const cp2x = from.x + (dx * 2) / 3 - dy * 0.18 * index;
-        const cp2y = from.y + (dy * 2) / 3 + dx * 0.18 * index;
-        backgroundContext.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, to.x, to.y);
-      }
-
-      backgroundContext.strokeStyle = color;
-      backgroundContext.lineWidth = currentWidth;
-      backgroundContext.lineCap = 'round';
-      backgroundContext.shadowBlur = 10;
-      backgroundContext.shadowColor = 'rgba(255, 64, 64, 0.28)';
-      backgroundContext.stroke();
-
-      backgroundContext.strokeStyle = 'rgba(255,255,255,0.28)';
-      backgroundContext.lineWidth = currentWidth * 0.24;
-      backgroundContext.stroke();
-      backgroundContext.shadowBlur = 0;
-    };
-
     let time = 0;
 
     const animate = () => {
-      const currentScrollY = scrollYRef.current;
       const shouldRenderWorld =
         worldActiveRef.current && document.visibilityState === 'visible';
 
@@ -3124,6 +2922,7 @@ export default function BioVillageLanding() {
       updatePlayer();
       updateRemoteActors();
       updateCamera();
+      const currentScrollY = cameraYRef.current;
       syncPresenceIfNeeded();
       syncRealtimeMovementIfNeeded();
       syncRealtimeStateIfNeeded();
@@ -3164,20 +2963,6 @@ export default function BioVillageLanding() {
         );
         backgroundContext.fillStyle = cell.color;
         backgroundContext.fill();
-      });
-
-      veinEdges.forEach(([fromId, toId, color, width]) => {
-        const from = document.getElementById(fromId);
-        const to = document.getElementById(toId);
-        if (!from || !to) return;
-
-        drawVein(
-          getFacilityCenter(from),
-          getFacilityCenter(to),
-          color,
-          width,
-          time
-        );
       });
 
       const selectedId =
@@ -3375,20 +3160,6 @@ export default function BioVillageLanding() {
           animation: village-glitch-2 3s infinite linear alternate-reverse;
         }
 
-        .village-facility {
-          position: absolute;
-          z-index: 15;
-          transform: translate(-50%, -50%);
-          border: 1px solid rgba(180, 48, 48, 0.24);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,241,241,0.72));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.84),
-            0 18px 48px rgba(131, 26, 26, 0.08);
-          backdrop-filter: blur(8px);
-          animation: village-float 7.5s ease-in-out infinite;
-        }
-
         .village-interactive-structure {
           isolation: isolate;
           cursor: pointer;
@@ -3414,43 +3185,6 @@ export default function BioVillageLanding() {
 
         .village-interactive-structure:hover::after {
           animation: village-glint 1.05s ease;
-        }
-
-        .village-facility:hover {
-          transform: translate(-50%, calc(-50% - 4px));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.92),
-            0 24px 56px rgba(131, 26, 26, 0.14),
-            0 0 0 10px rgba(255, 160, 160, 0.1);
-          border-color: rgba(180, 48, 48, 0.34);
-        }
-
-        .village-node-card {
-          min-height: 180px;
-          padding: 1.35rem 1.3rem;
-          border-radius: 26px 38px 24px 42px / 32px 28px 36px 30px;
-        }
-
-        .village-atrium-card {
-          min-height: 210px;
-          padding: 1.5rem 1.4rem;
-          border-radius: 40px 52px 42px 58px / 34px 46px 40px 52px;
-          background:
-            radial-gradient(circle at top, rgba(255,255,255,0.98), rgba(255,226,226,0.82));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.92),
-            0 26px 64px rgba(153, 36, 36, 0.12);
-        }
-
-        .village-core-card {
-          min-height: 240px;
-          padding: 1.7rem 1.5rem;
-          border-radius: 38px 56px 42px 62px / 44px 38px 52px 40px;
-          background:
-            linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,232,232,0.78));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.94),
-            0 26px 72px rgba(155, 26, 26, 0.12);
         }
 
         .village-lab-chip {
@@ -3694,189 +3428,10 @@ export default function BioVillageLanding() {
             0 20px 42px rgba(130, 24, 24, 0.18);
         }
 
-        .workflow-tissue-map {
-          position: absolute;
-          z-index: 16;
-          width: min(820px, calc(100vw - 2.8rem));
-          transform: translate(-50%, -50%);
-          border: 1px solid rgba(178, 54, 54, 0.18);
-          border-radius: 44px 60px 42px 64px / 38px 54px 36px 58px;
-          background:
-            radial-gradient(circle at top, rgba(255,255,255,0.94), rgba(255,240,240,0.78)),
-            linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,246,246,0.64));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.88),
-            0 24px 70px rgba(121, 29, 29, 0.1),
-            0 0 0 14px rgba(255, 176, 176, 0.06);
-          backdrop-filter: blur(10px);
-          overflow: hidden;
-          pointer-events: none;
-        }
-
-        .workflow-tissue-map::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background:
-            radial-gradient(circle at 18% 22%, rgba(191, 89, 89, 0.08), transparent 18%),
-            radial-gradient(circle at 82% 34%, rgba(220, 132, 79, 0.08), transparent 16%),
-            radial-gradient(circle at 28% 82%, rgba(154, 92, 51, 0.07), transparent 18%),
-            repeating-linear-gradient(
-              0deg,
-              rgba(125, 46, 46, 0.012) 0px,
-              rgba(125, 46, 46, 0.012) 1px,
-              transparent 1px,
-              transparent 6px
-            );
-          mix-blend-mode: multiply;
-          opacity: 0.82;
-          pointer-events: none;
-        }
-
-        .workflow-tissue-inner {
-          position: relative;
-          z-index: 1;
-          padding: 1.4rem 1.2rem 1.8rem;
-        }
-
-        .workflow-tissue-stage {
-          position: relative;
-          min-height: 760px;
-          margin-top: 1rem;
-          border-radius: 30px 38px 28px 40px / 32px 28px 34px 30px;
-          background:
-            linear-gradient(180deg, rgba(255,255,255,0.52), rgba(253,244,244,0.34));
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.78);
-          overflow: hidden;
-        }
-
-        .workflow-tissue-svg {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-        }
-
-        .workflow-node {
-          position: absolute;
-          z-index: 2;
-          display: flex;
-          flex-direction: column;
-          gap: 0.58rem;
-          align-items: center;
-          width: 11rem;
-          transform: translate(-50%, -50%);
-          text-align: center;
-        }
-
-        .workflow-node[data-align='left'] {
-          align-items: flex-end;
-          text-align: right;
-        }
-
-        .workflow-node[data-align='right'] {
-          align-items: flex-start;
-          text-align: left;
-        }
-
-        .workflow-node-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          border-radius: 999px;
-          border: 1px solid rgba(186, 69, 69, 0.18);
-          background: rgba(255,255,255,0.7);
-          padding: 0.4rem 0.75rem;
-          font-size: 0.58rem;
-          letter-spacing: 0.22em;
-          text-transform: uppercase;
-          color: rgba(124, 46, 46, 0.72);
-        }
-
-        .workflow-node-label {
-          font-family: var(--font-display-kr);
-          font-size: 1rem;
-          font-weight: 700;
-          color: rgba(74, 14, 14, 0.94);
-          text-shadow: 0 1px 0 rgba(255,255,255,0.72);
-        }
-
-        .workflow-node-core {
-          position: relative;
-          width: 34px;
-          height: 34px;
-          border-radius: 999px;
-          border: 2px solid currentColor;
-          background: rgba(255,255,255,0.74);
-          box-shadow:
-            0 0 0 8px rgba(255,255,255,0.16),
-            0 0 24px currentColor;
-          color: inherit;
-        }
-
-        .workflow-node-core::before,
-        .workflow-node-core::after {
-          content: '';
-          position: absolute;
-          inset: 7px;
-          border-radius: 999px;
-          border: 1px solid currentColor;
-          opacity: 0.6;
-        }
-
-        .workflow-node-core::after {
-          inset: 13px;
-          background: currentColor;
-          border: none;
-          opacity: 0.84;
-        }
-
         @media (max-width: 767px) {
-          .village-node-card {
-            min-height: 140px;
-            padding: 1rem 0.9rem;
-          }
-
-          .village-atrium-card {
-            min-height: 168px;
-            padding: 1.15rem 1rem;
-          }
-
-          .village-core-card {
-            min-height: 200px;
-            padding: 1.3rem 1.1rem;
-          }
-
           .village-shop-card {
             border-radius: 1rem;
             padding: 0.82rem 0.85rem;
-          }
-
-          .workflow-tissue-map {
-            width: min(720px, calc(100vw - 1.35rem));
-            border-radius: 30px 38px 28px 40px / 34px 30px 36px 28px;
-          }
-
-          .workflow-tissue-inner {
-            padding: 1rem 0.95rem 1.15rem;
-          }
-
-          .workflow-tissue-stage {
-            min-height: 640px;
-          }
-
-          .workflow-node {
-            width: 8.1rem;
-          }
-
-          .workflow-node-label {
-            font-size: 0.81rem;
-          }
-
-          .workflow-node-chip {
-            padding: 0.32rem 0.55rem;
-            font-size: 0.5rem;
-            letter-spacing: 0.16em;
           }
 
           .village-castle-sign {
@@ -3970,12 +3525,6 @@ export default function BioVillageLanding() {
           <div className="absolute inset-x-0 top-[820px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-15" />
           <div className="absolute inset-x-0 top-[1670px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-10" />
           <div className="absolute inset-x-0 top-[3280px] h-5 bg-[repeating-linear-gradient(45deg,#cc0000,#cc0000_20px,#ffffff_20px,#ffffff_40px)] opacity-[0.08]" />
-          <div className="pointer-events-none absolute left-0 top-[870px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.4rem] font-black tracking-[0.12em] text-red-100 opacity-30 sm:text-5xl sm:tracking-[0.2em]">
-            PROFILE FIELD / SIGNAL WARD / MEMORY DATING CORE
-          </div>
-          <div className="pointer-events-none absolute left-0 top-[3345px] w-full px-4 text-center font-[var(--font-display-kr)] text-[1.15rem] font-black tracking-[0.18em] text-[rgba(181,101,101,0.24)] sm:text-[2.7rem]">
-            APPAREL TISSUE VAULT
-          </div>
         </div>
 
         <div
@@ -3985,36 +3534,6 @@ export default function BioVillageLanding() {
             width: `${worldWidth}px`
           }}
         >
-          {facilityNodes.map((node) => (
-            <article
-              key={node.id}
-              id={node.id}
-              data-avatar-ui="true"
-              role="button"
-              tabIndex={0}
-              className={`village-facility village-interactive-structure ${node.bodyClassName}`}
-              style={{
-                left: node.left,
-                top: `${node.top}px`,
-                width: node.width ? `${node.width}px` : undefined
-              }}
-              onDoubleClick={() => openVillageShop(node.tab, node.id)}
-              onTouchEnd={(event) =>
-                handleStructureTouchEnd(event, node.id, node.tab)
-              }
-            >
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
-                {node.caption}
-              </p>
-              <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.08rem] font-semibold text-[rgba(77,14,14,0.94)] sm:text-[1.45rem]">
-                {node.title}
-              </h3>
-              <p className="mt-3 text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
-                {node.subtitle}
-              </p>
-            </article>
-          ))}
-
           {renderedVillageShopNodes.map((shop) => {
             const visual = villageShopVisualMeta[shop.tab];
             const isGoodsCastle = shop.tab === 'goods';
@@ -4090,122 +3609,6 @@ export default function BioVillageLanding() {
               </article>
             );
           })}
-
-          <section
-            id="apparel-tissue-map"
-            data-avatar-ui="true"
-            className="workflow-tissue-map"
-            style={{
-              left: '50%',
-              top: '3735px'
-            }}
-          >
-            <div className="workflow-tissue-inner">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[rgba(154,52,52,0.56)]">
-                WORKFLOW TISSUE MAP
-              </p>
-              <h3 className="mt-3 font-[var(--font-display-kr)] text-[1.1rem] font-semibold text-[rgba(77,14,14,0.94)] sm:text-[1.5rem]">
-                의류 제작 다이어그램
-              </h3>
-              <p className="mt-3 max-w-[32rem] text-[12px] leading-relaxed text-[rgba(92,24,24,0.68)] sm:text-sm">
-                원부자재 발주부터 CLO 3D 설계, 데이터 저장, 실물 제작까지 하나의
-                줄기에서 뻗는 제작 조직도를 맵 깊숙한 구역에 이식했다.
-              </p>
-
-              <div className="workflow-tissue-stage">
-                <svg
-                  viewBox="0 0 720 760"
-                  className="workflow-tissue-svg"
-                  aria-hidden="true"
-                >
-                  <defs>
-                    <linearGradient
-                      id="apparelTissueCore"
-                      x1="360"
-                      y1="86"
-                      x2="360"
-                      y2="660"
-                      gradientUnits="userSpaceOnUse"
-                    >
-                      <stop offset="0%" stopColor="rgba(241,205,132,0.82)" />
-                      <stop offset="52%" stopColor="rgba(241,146,96,0.88)" />
-                      <stop offset="100%" stopColor="rgba(219,81,81,0.92)" />
-                    </linearGradient>
-                    <filter
-                      id="apparelTissueGlow"
-                      x="-50%"
-                      y="-50%"
-                      width="200%"
-                      height="200%"
-                    >
-                      <feGaussianBlur stdDeviation="9" />
-                    </filter>
-                  </defs>
-
-                  <path
-                    d="M360 92 L360 660"
-                    stroke="rgba(235,98,98,0.16)"
-                    strokeWidth="36"
-                    strokeLinecap="round"
-                    filter="url(#apparelTissueGlow)"
-                    fill="none"
-                  />
-                  <path
-                    d="M360 92 L360 660"
-                    stroke="url(#apparelTissueCore)"
-                    strokeWidth="16"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  <path
-                    d="M360 158 C320 184 255 214 176 232"
-                    stroke="rgba(232,176,102,0.82)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  <path
-                    d="M360 272 C405 290 480 318 546 344"
-                    stroke="rgba(217,164,89,0.8)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  <path
-                    d="M360 404 C306 426 232 454 178 482"
-                    stroke="rgba(196,140,85,0.82)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                  <path
-                    d="M360 532 C420 556 495 592 552 622"
-                    stroke="rgba(186,102,75,0.86)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                </svg>
-
-                {apparelWorkflowNodes.map((node) => (
-                  <div
-                    key={node.id}
-                    className="workflow-node"
-                    data-align={node.align}
-                    style={{
-                      color: node.color,
-                      left: `${node.x}%`,
-                      top: `${node.y}%`
-                    }}
-                  >
-                    <span className="workflow-node-chip">{node.chip}</span>
-                    <span className="workflow-node-core" />
-                    <p className="workflow-node-label">{node.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
           {poopDrops.map((drop) => (
             <div
