@@ -1170,30 +1170,31 @@ function drawActorSpeechBubble(
   if (lines.length === 0) return;
 
   context.save();
-  context.font = '600 12px "IBM Plex Sans KR", sans-serif';
+  context.font = '700 12px "IBM Plex Sans KR", sans-serif';
   context.textAlign = 'center';
   context.textBaseline = 'middle';
 
   const measuredWidth = Math.max(
     ...lines.map((line) => context.measureText(line).width)
   );
-  const boxWidth = Math.min(214, Math.max(96, measuredWidth + 26));
-  const lineHeight = 15;
-  const boxHeight = lines.length * lineHeight + 18;
+  const boxWidth = Math.min(196, Math.max(86, measuredWidth + 30));
+  const lineHeight = 16;
+  const boxHeight = lines.length * lineHeight + 20;
   const bubbleX = Math.min(
     Math.max(10, screenX - boxWidth / 2),
     Math.max(10, window.innerWidth - boxWidth - 10)
   );
-  const bubbleY = Math.max(8, screenY - height / 2 - boxHeight - 38);
+  const bubbleY = Math.max(8, screenY - height / 2 - boxHeight - 36);
   const tailHeight = 10;
   const tailCenterX = Math.min(
     Math.max(screenX, bubbleX + 18),
     bubbleX + boxWidth - 18
   );
 
-  context.shadowBlur = 18;
+  context.shadowBlur = 16;
+  context.shadowOffsetY = 5;
   context.shadowColor =
-    tone === 'self' ? 'rgba(164, 32, 32, 0.26)' : 'rgba(65, 105, 177, 0.18)';
+    tone === 'self' ? 'rgba(92, 20, 20, 0.26)' : 'rgba(18, 37, 78, 0.2)';
   drawSpeechBubbleShape(
     context,
     bubbleX,
@@ -1202,23 +1203,31 @@ function drawActorSpeechBubble(
     boxHeight,
     tailCenterX,
     tailHeight,
-    14
+    16
   );
   context.fillStyle =
-    tone === 'self' ? 'rgba(255, 247, 245, 0.98)' : 'rgba(255, 255, 255, 0.96)';
+    tone === 'self' ? 'rgba(255, 251, 249, 0.98)' : 'rgba(255, 255, 255, 0.98)';
   context.fill();
   context.shadowBlur = 0;
+  context.shadowOffsetY = 0;
   context.lineWidth = 1.2;
   context.strokeStyle =
-    tone === 'self' ? 'rgba(181, 52, 52, 0.42)' : 'rgba(95, 132, 221, 0.32)';
+    tone === 'self' ? 'rgba(217, 93, 93, 0.5)' : 'rgba(95, 132, 221, 0.38)';
   context.stroke();
 
-  context.fillStyle = tone === 'self' ? '#7c1616' : '#2d4674';
+  context.fillStyle =
+    tone === 'self' ? 'rgba(255, 168, 168, 0.72)' : 'rgba(164, 190, 255, 0.58)';
+  context.beginPath();
+  context.arc(bubbleX + boxWidth - 14, bubbleY + 12, 2.4, 0, Math.PI * 2);
+  context.arc(bubbleX + boxWidth - 22, bubbleY + 9, 1.8, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = tone === 'self' ? '#6f1515' : '#243f72';
   lines.forEach((line, index) => {
     context.fillText(
       line,
       bubbleX + boxWidth / 2,
-      bubbleY + 12 + lineHeight / 2 + index * lineHeight
+      bubbleY + 13 + lineHeight / 2 + index * lineHeight
     );
   });
   context.restore();

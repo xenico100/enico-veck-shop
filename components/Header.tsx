@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Menu, MessageCircle, SendHorizontal } from 'lucide-react';
+import { Menu, MessageCircle, SendHorizontal } from 'lucide-react';
 
 import {
   BIO_VILLAGE_CHAT_EVENT_MESSAGE,
@@ -42,7 +42,6 @@ const HOLD_EVENT_MAP: Record<
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const [activeHold, setActiveHold] = useState<HoldKind | null>(null);
-  const [chatExpanded, setChatExpanded] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<BioVillageChatEntry[]>([]);
   const [holdProgress, setHoldProgress] = useState(0);
@@ -288,142 +287,95 @@ export default function Header({ onMenuClick }: HeaderProps) {
     </button>
   );
 
+  const visibleChatMessages = chatMessages.slice(-4);
+
   return (
-    <header className="pointer-events-none fixed inset-x-0 bottom-3 top-auto z-40 px-3 sm:bottom-auto sm:left-auto sm:right-0 sm:top-0 sm:px-4 sm:pt-4 md:px-8 md:pt-6">
-      <div className="flex flex-col items-end gap-2">
-        <button
-          onClick={onMenuClick}
-          className="pointer-events-auto inline-flex items-center gap-2 border border-[rgba(96,24,24,0.9)] bg-[rgba(24,3,3,0.96)] px-3 py-2 font-[var(--font-brush)] text-[0.7rem] font-bold tracking-[0.16em] text-[rgba(255,241,236,0.96)] shadow-[0_10px_24px_rgba(0,0,0,0.34)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4"
-          aria-label="메뉴 열기"
+    <>
+      <div
+        data-avatar-ui="true"
+        className="pointer-events-none fixed left-3 top-3 z-40 w-[min(16rem,calc(100vw-10.25rem))] sm:left-4 sm:top-4 sm:w-[19rem] md:left-6 md:top-6"
+      >
+        <div
+          ref={chatLogRef}
+          className="max-h-[5.4rem] overflow-hidden pr-4 [mask-image:linear-gradient(180deg,#000_76%,transparent_100%)] sm:max-h-[7.35rem]"
         >
-          <span>ACCESS</span>
-          <Menu className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-[1px]" />
-        </button>
-
-        {renderHoldButton(
-          'poop',
-          '똥싸기',
-          'border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)]',
-          '똥싸기 버튼'
-        )}
-
-        {renderHoldButton(
-          'clean',
-          '똥치우기',
-          'border-[rgba(52,90,57,0.76)] bg-[rgba(18,43,22,0.94)]',
-          '똥치우기 버튼'
-        )}
-
-        <div className="pointer-events-auto w-full overflow-hidden rounded-[1.1rem] border border-[rgba(77,28,28,0.7)] bg-[linear-gradient(180deg,rgba(16,5,5,0.88),rgba(31,11,11,0.9))] shadow-[0_14px_32px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:w-[min(19.5rem,calc(100vw-1.5rem))] sm:rounded-[1.6rem] sm:bg-[linear-gradient(180deg,rgba(16,5,5,0.95),rgba(31,11,11,0.92))] sm:shadow-[0_18px_44px_rgba(0,0,0,0.34)]">
-          <div className="border-b border-[rgba(255,255,255,0.08)] px-3 py-2 sm:px-4 sm:py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="flex items-center gap-2 font-[var(--font-brush)] text-[0.72rem] font-bold tracking-[0.14em] text-[rgba(255,235,219,0.96)] sm:text-[0.78rem] sm:tracking-[0.16em]">
-                  <MessageCircle className="h-3.5 w-3.5 sm:hidden" />
-                  필드 채팅
+          {visibleChatMessages.length > 0 ? (
+            <div className="space-y-1.5 bg-[linear-gradient(90deg,rgba(0,0,0,0.62),rgba(0,0,0,0.3)_58%,rgba(0,0,0,0))] py-2 pl-2.5 pr-9 text-white shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+              {visibleChatMessages.map((message) => (
+                <p
+                  key={message.id}
+                  className="truncate text-[0.72rem] font-semibold leading-snug text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] sm:text-[0.78rem]"
+                >
+                  <span className="mr-1 text-[rgba(255,255,255,0.72)]">
+                    {message.author}
+                  </span>
+                  {message.text}
                 </p>
-                <p className="mt-1 hidden text-[0.65rem] leading-relaxed text-[rgba(255,226,214,0.62)] sm:block">
-                  입력하면 게임 채팅처럼 바로 올라가고, 머리 위 말풍선으로도
-                  보여요.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setChatExpanded((previous) => !previous)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] text-[rgba(255,232,224,0.82)] sm:hidden"
-                aria-label={
-                  chatExpanded ? '채팅 로그 접기' : '채팅 로그 펼치기'
-                }
-              >
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${chatExpanded ? '' : 'rotate-180'}`}
-                />
-              </button>
-              <span className="hidden rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[rgba(255,232,224,0.72)] sm:inline-flex">
-                live
-              </span>
+              ))}
             </div>
-          </div>
-
-          <div
-            ref={chatLogRef}
-            className={`space-y-2 overflow-y-auto px-2.5 py-2 transition-[max-height,padding] duration-200 sm:max-h-60 sm:px-3 sm:py-3 ${
-              chatExpanded
-                ? 'max-h-[7.5rem]'
-                : 'max-h-0 py-0 sm:max-h-60 sm:py-3'
-            }`}
-          >
-            {chatMessages.length === 0 ? (
-              <div className="rounded-[0.9rem] border border-dashed border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-2 text-[0.66rem] leading-relaxed text-[rgba(255,228,220,0.6)] sm:rounded-[1.2rem] sm:py-3 sm:text-[0.68rem]">
-                아직 말이 없어요.
-              </div>
-            ) : (
-              chatMessages.map((message) => {
-                const isSelf = message.tone === 'self';
-
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[88%] rounded-[0.95rem] px-2.5 py-1.5 sm:rounded-[1.15rem] sm:px-3 sm:py-2 ${
-                        isSelf
-                          ? 'border border-[rgba(255,179,160,0.22)] bg-[linear-gradient(180deg,rgba(139,42,42,0.92),rgba(107,18,18,0.96))] text-[rgba(255,244,240,0.98)]'
-                          : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.07)] text-[rgba(255,236,230,0.9)]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-[rgba(255,233,225,0.66)]">
-                          {message.author}
-                        </span>
-                        <span className="text-[0.52rem] text-[rgba(255,229,220,0.48)]">
-                          {new Date(message.sentAt).toLocaleTimeString(
-                            'ko-KR',
-                            {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }
-                          )}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[0.74rem] leading-relaxed sm:text-[0.78rem]">
-                        {message.text}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          <form
-            className="border-t border-[rgba(255,255,255,0.08)] p-2 sm:p-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submitChat();
-            }}
-          >
-            <div className="flex items-end gap-2">
-              <input
-                value={chatInput}
-                onChange={(event) => setChatInput(event.target.value)}
-                maxLength={BIO_VILLAGE_CHAT_MAX_LENGTH}
-                placeholder="말하기..."
-                className="min-w-0 flex-1 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.07)] px-3 py-2.5 text-[0.78rem] text-[rgba(255,244,240,0.96)] outline-none transition placeholder:text-[rgba(255,224,216,0.34)] focus:border-[rgba(255,196,181,0.32)] focus:bg-[rgba(255,255,255,0.1)] sm:rounded-[1.1rem] sm:py-3"
-              />
-              <button
-                type="submit"
-                disabled={!normalizeBioVillageChatText(chatInput)}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[rgba(255,182,163,0.2)] bg-[linear-gradient(180deg,rgba(155,52,52,0.96),rgba(121,23,23,0.98))] text-[rgba(255,248,244,0.96)] shadow-[0_14px_26px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45 sm:h-[46px] sm:w-[46px]"
-                aria-label="채팅 보내기"
-              >
-                <SendHorizontal className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+          ) : null}
         </div>
       </div>
-    </header>
+
+      <header
+        data-avatar-ui="true"
+        className="pointer-events-none fixed right-3 top-3 z-40 sm:right-4 sm:top-4 md:right-8 md:top-6"
+      >
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={onMenuClick}
+            className="pointer-events-auto inline-flex items-center gap-2 border border-[rgba(96,24,24,0.9)] bg-[rgba(24,3,3,0.96)] px-3 py-2 font-[var(--font-brush)] text-[0.7rem] font-bold tracking-[0.16em] text-[rgba(255,241,236,0.96)] shadow-[0_10px_24px_rgba(0,0,0,0.34)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4"
+            aria-label="메뉴 열기"
+          >
+            <span>ACCESS</span>
+            <Menu className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-[1px]" />
+          </button>
+
+          {renderHoldButton(
+            'poop',
+            '똥싸기',
+            'border-[rgba(96,24,24,0.76)] bg-[rgba(44,16,10,0.94)]',
+            '똥싸기 버튼'
+          )}
+
+          {renderHoldButton(
+            'clean',
+            '똥치우기',
+            'border-[rgba(52,90,57,0.76)] bg-[rgba(18,43,22,0.94)]',
+            '똥치우기 버튼'
+          )}
+
+          <div className="pointer-events-auto w-[8.75rem] sm:w-[15rem]">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitChat();
+              }}
+            >
+              <div className="flex items-end gap-2">
+                <span className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/50 text-white shadow-[0_10px_22px_rgba(0,0,0,0.24)] sm:inline-flex">
+                  <MessageCircle className="h-4 w-4" />
+                </span>
+                <input
+                  value={chatInput}
+                  onChange={(event) => setChatInput(event.target.value)}
+                  maxLength={BIO_VILLAGE_CHAT_MAX_LENGTH}
+                  placeholder="채팅"
+                  className="h-9 min-w-0 flex-1 rounded-full border border-white/15 bg-black/55 px-3 text-[0.76rem] font-semibold text-white outline-none shadow-[0_10px_22px_rgba(0,0,0,0.22)] transition placeholder:text-white/45 focus:border-white/35 focus:bg-black/70"
+                />
+                <button
+                  type="submit"
+                  disabled={!normalizeBioVillageChatText(chatInput)}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(255,182,163,0.2)] bg-[linear-gradient(180deg,rgba(155,52,52,0.96),rgba(121,23,23,0.98))] text-[rgba(255,248,244,0.96)] shadow-[0_12px_22px_rgba(0,0,0,0.24)] transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-45"
+                  aria-label="채팅 보내기"
+                >
+                  <SendHorizontal className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </header>
+    </>
   );
 }
