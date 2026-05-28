@@ -36,6 +36,8 @@ const REMOTE_SNAP_DISTANCE = 90;
 const PLAYER_MARGIN = 40;
 const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
+const CHAT_HISTORY_ENDPOINT = '/api/bio-village/chat';
+const CHAT_SEEN_MESSAGE_LIMIT = 180;
 const POOP_SETTLE_MS = 720;
 const POOP_TTL_MS = 1000 * 60 * 60 * 2;
 const CLEAN_SWEEP_MS = 860;
@@ -130,6 +132,14 @@ type SharedChatPayload = {
   label: string;
   sentAt: number;
   text: string;
+};
+
+type StoredChatPayload = {
+  actorId?: unknown;
+  author?: unknown;
+  id?: unknown;
+  sentAt?: unknown;
+  text?: unknown;
 };
 
 type ChatBubbleState = {
@@ -1244,6 +1254,8 @@ export default function BioVillageLanding() {
   const frameRef = useRef<number | null>(null);
   const cleanupAnimationsRef = useRef<CleanupAnimationState[]>([]);
   const chatBubblesRef = useRef<Record<string, ChatBubbleState>>({});
+  const seenChatMessageIdsRef = useRef<Set<string>>(new Set());
+  const seenChatMessageIdQueueRef = useRef<string[]>([]);
   const poopAnimationsRef = useRef<PoopAnimationState[]>([]);
   const poopSettleTimeoutsRef = useRef<Map<string, number>>(new Map());
   const poopExpiryTimeoutsRef = useRef<Map<string, number>>(new Map());
@@ -1399,6 +1411,27 @@ export default function BioVillageLanding() {
     ? villageShopTabMeta[activeVillageShopTab]
     : null;
 
+  const markChatMessageSeen = useCallback((id: string) => {
+    const normalizedId = id.trim();
+    if (!normalizedId) return true;
+
+    const seenIds = seenChatMessageIdsRef.current;
+    if (seenIds.has(normalizedId)) return false;
+
+    seenIds.add(normalizedId);
+    const queue = seenChatMessageIdQueueRef.current;
+    queue.push(normalizedId);
+
+    while (queue.length > CHAT_SEEN_MESSAGE_LIMIT) {
+      const staleId = queue.shift();
+      if (staleId) {
+        seenIds.delete(staleId);
+      }
+    }
+
+    return true;
+  }, []);
+
   const emitChatMessage = useCallback((entry: BioVillageChatEntry) => {
     window.dispatchEvent(
       new CustomEvent<BioVillageChatEntry>(BIO_VILLAGE_CHAT_EVENT_MESSAGE, {
@@ -1446,10 +1479,13 @@ export default function BioVillageLanding() {
       const normalized = normalizeBioVillageChatText(text);
       if (!normalized) return null;
 
+      const entryId = id ?? crypto.randomUUID();
+      if (!markChatMessageSeen(entryId)) return null;
+
       const entry: BioVillageChatEntry = {
         actorId,
         author,
-        id: id ?? crypto.randomUUID(),
+        id: entryId,
         sentAt: sentAt ?? Date.now(),
         text: normalized,
         tone
@@ -1467,7 +1503,7 @@ export default function BioVillageLanding() {
 
       return entry;
     },
-    [emitChatMessage, setActorChatBubble]
+    [emitChatMessage, markChatMessageSeen, setActorChatBubble]
   );
 
   const commitRemoteActors = useCallback((actors: ActorState[]) => {
@@ -1807,6 +1843,22 @@ export default function BioVillageLanding() {
     [publishChatMessage]
   );
 
+  const persistLocalChatMessage = useCallback((payload: SharedChatPayload) => {
+    void fetch(CHAT_HISTORY_ENDPOINT, {
+      body: JSON.stringify({
+        actorId: payload.actorId,
+        author: payload.label,
+        id: payload.id,
+        text: payload.text
+      }),
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      method: 'POST'
+    }).catch(() => undefined);
+  }, []);
+
   const sendLocalChatMessage = useCallback(
     (rawText: string) => {
       const normalized = normalizeBioVillageChatText(rawText);
@@ -1839,8 +1891,10 @@ export default function BioVillageLanding() {
           payload
         })
         .catch(() => undefined);
+
+      persistLocalChatMessage(payload);
     },
-    [publishChatMessage]
+    [persistLocalChatMessage, publishChatMessage]
   );
 
   const openGoodsCommercePortal = () => {
@@ -2007,6 +2061,68 @@ export default function BioVillageLanding() {
     const timer = window.setTimeout(() => setSaveState('idle'), 1400);
     return () => window.clearTimeout(timer);
   }, [saveState]);
+
+  useEffect(() => {
+    if (!participantKey) return;
+
+    let cancelled = false;
+
+    const loadRecentChatMessages = async () => {
+      try {
+        const response = await fetch(CHAT_HISTORY_ENDPOINT, {
+          cache: 'no-store'
+        });
+        if (!response.ok) return;
+
+        const payload = (await response.json().catch(() => null)) as {
+          data?: unknown;
+        } | null;
+        if (cancelled || !Array.isArray(payload?.data)) return;
+
+        payload.data.forEach((item) => {
+          const message = item as StoredChatPayload;
+          if (
+            typeof message.id !== 'string' ||
+            typeof message.actorId !== 'string' ||
+            typeof message.text !== 'string'
+          ) {
+            return;
+          }
+
+          const text = normalizeBioVillageChatText(message.text);
+          if (!text) return;
+
+          const author =
+            typeof message.author === 'string' && message.author.trim()
+              ? message.author.trim().slice(0, 40)
+              : 'Visitor';
+          const sentAt =
+            typeof message.sentAt === 'number' &&
+            Number.isFinite(message.sentAt)
+              ? message.sentAt
+              : Date.now();
+
+          publishChatMessage({
+            actorId: message.actorId,
+            author,
+            bubbleActorId: null,
+            id: message.id,
+            sentAt,
+            text,
+            tone: message.actorId === participantKey ? 'self' : 'remote'
+          });
+        });
+      } catch {
+        // Realtime chat still works if the short history endpoint is unavailable.
+      }
+    };
+
+    void loadRecentChatMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [participantKey, publishChatMessage]);
 
   useEffect(() => {
     const handleChatSend = (event: Event) => {
