@@ -28,16 +28,20 @@ const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
 const REMOTE_PLAYER_SPEED = 8.8;
-const REMOTE_SYNC_INTERVAL_MS = 180;
-const MOVEMENT_BROADCAST_INTERVAL_MS = 32;
-const PLAYER_STATE_BROADCAST_INTERVAL_MS = 900;
-const REMOTE_ACTOR_TIMEOUT_MS = 12_000;
+const REMOTE_SYNC_INTERVAL_MS = 1400;
+const MOVEMENT_BROADCAST_INTERVAL_MS = 55;
+const PLAYER_STATE_BROADCAST_INTERVAL_MS = 700;
+const REMOTE_ACTOR_TIMEOUT_MS = 15_000;
 const REMOTE_SNAP_DISTANCE = 90;
+const REMOTE_ROSTER_SYNC_INTERVAL_MS = 850;
+const CAMERA_FOLLOW_DEADBAND = 0.35;
 const PLAYER_MARGIN = 40;
 const PLAYER_SPAWN_Y = 520;
 const PRESENCE_CHANNEL = 'bio-village-presence-v1';
 const CHAT_HISTORY_ENDPOINT = '/api/bio-village/chat';
 const CHAT_SEEN_MESSAGE_LIMIT = 180;
+const PLAYER_STATE_FALLBACK_ENDPOINT = '/api/bio-village/players';
+const PLAYER_STATE_FALLBACK_SYNC_INTERVAL_MS = 1500;
 const POOP_SETTLE_MS = 720;
 const POOP_TTL_MS = 1000 * 60 * 60 * 2;
 const CLEAN_SWEEP_MS = 860;
@@ -140,6 +144,22 @@ type StoredChatPayload = {
   id?: unknown;
   sentAt?: unknown;
   text?: unknown;
+};
+
+type StoredPlayerPayload = {
+  dir?: unknown;
+  key?: unknown;
+  label?: unknown;
+  latestPoop?: unknown;
+  moving?: unknown;
+  palette?: unknown;
+  preset?: unknown;
+  profile?: unknown;
+  sentAt?: unknown;
+  vx?: unknown;
+  vy?: unknown;
+  x?: unknown;
+  y?: unknown;
 };
 
 type ChatBubbleState = {
@@ -563,6 +583,21 @@ const villageShopVisualMeta: Record<
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+const getFrameScale = (deltaMs: number) => clamp(deltaMs / 16.7, 0.35, 2.4);
+
+const getSmoothCameraValue = (
+  current: number,
+  target: number,
+  frameScale: number
+) => {
+  const distance = Math.abs(target - current);
+  if (distance <= CAMERA_FOLLOW_DEADBAND) return target;
+
+  const baseEase = distance > 520 ? 0.36 : distance > 220 ? 0.24 : 0.15;
+  const easedAmount = 1 - Math.pow(1 - baseEase, frameScale);
+  return current + (target - current) * easedAmount;
+};
 
 const getWorldWidth = (viewportWidth: number) =>
   viewportWidth < 768
@@ -1273,6 +1308,10 @@ export default function BioVillageLanding() {
   const lastMovementBroadcastRef = useRef(0);
   const lastMovementActiveRef = useRef(false);
   const lastStateBroadcastRef = useRef(0);
+  const lastRemoteRosterSyncRef = useRef(0);
+  const lastPlayerStateFallbackSyncRef = useRef(0);
+  const lastPlayerStateFallbackLoadRef = useRef(0);
+  const playerStateFallbackFetchInFlightRef = useRef(false);
   const cameraXRef = useRef(0);
   const cameraYRef = useRef(0);
   const scrollYRef = useRef(0);
@@ -1506,21 +1545,34 @@ export default function BioVillageLanding() {
     [emitChatMessage, markChatMessageSeen, setActorChatBubble]
   );
 
-  const commitRemoteActors = useCallback((actors: ActorState[]) => {
-    const sortedActors = [...actors].sort((left, right) =>
-      left.label.localeCompare(right.label)
-    );
+  const commitRemoteActors = useCallback(
+    (actors: ActorState[], options?: { notify?: boolean }) => {
+      const sortedActors = [...actors].sort((left, right) =>
+        left.label.localeCompare(right.label)
+      );
 
-    remoteActorsRef.current = sortedActors;
-    setOnlineVisitors(
-      sortedActors.map((actor) => ({
-        id: actor.id,
-        label: actor.label,
-        palette: actor.palette
-      }))
-    );
-    setRemoteRevision((previous) => previous + 1);
-  }, []);
+      remoteActorsRef.current = sortedActors;
+
+      const now =
+        typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const shouldNotify =
+        options?.notify !== false ||
+        now - lastRemoteRosterSyncRef.current > REMOTE_ROSTER_SYNC_INTERVAL_MS;
+
+      if (!shouldNotify) return;
+
+      lastRemoteRosterSyncRef.current = now;
+      setOnlineVisitors(
+        sortedActors.map((actor) => ({
+          id: actor.id,
+          label: actor.label,
+          palette: actor.palette
+        }))
+      );
+      setRemoteRevision((previous) => previous + 1);
+    },
+    []
+  );
 
   const removePoopAnimation = useCallback((id: string) => {
     poopAnimationsRef.current = poopAnimationsRef.current.filter(
@@ -1741,8 +1793,9 @@ export default function BioVillageLanding() {
         WORLD_HEIGHT - 100
       );
 
+      const previousActors = remoteActorsRef.current;
+      const isNewActor = !previousActors.some((actor) => actor.id === data.key);
       const nextActors = (() => {
-        const previousActors = remoteActorsRef.current;
         const actorIndex = previousActors.findIndex(
           (actor) => actor.id === data.key
         );
@@ -1803,7 +1856,7 @@ export default function BioVillageLanding() {
         return nextActors;
       })();
 
-      commitRemoteActors(nextActors);
+      commitRemoteActors(nextActors, { notify: isNewActor });
     },
     [commitRemoteActors]
   );
@@ -2348,10 +2401,11 @@ export default function BioVillageLanding() {
     if (!supabase || !participantKey) return;
 
     let cancelled = false;
+    let heartbeatIntervalId: number | null = null;
     setRealtimeStatus('connecting');
     const channel = supabase.channel(PRESENCE_CHANNEL, {
       config: {
-        broadcast: { ack: true, self: false },
+        broadcast: { ack: false, self: false },
         presence: { key: participantKey }
       }
     });
@@ -2435,7 +2489,26 @@ export default function BioVillageLanding() {
       });
     };
 
+    const requestPeerStates = async () => {
+      await channel.send({
+        type: 'broadcast',
+        event: 'player-state-request',
+        payload: {
+          key: participantKey,
+          requestedAt: Date.now()
+        }
+      });
+    };
+
     channel
+      .on('broadcast', { event: 'player-state-request' }, ({ payload }) => {
+        if (!payload || typeof payload !== 'object') return;
+
+        const data = payload as Record<string, unknown>;
+        if (data.key === participantKey) return;
+
+        void broadcastSelfState().catch(() => undefined);
+      })
       .on('broadcast', { event: 'player-move' }, ({ payload }) => {
         applyRemoteMovementPayload(payload);
       })
@@ -2482,11 +2555,27 @@ export default function BioVillageLanding() {
         removePoopDrop(data.dropId);
       })
       .on('presence', { event: 'sync' }, syncPresenceSnapshot)
+      .on('presence', { event: 'join' }, syncPresenceSnapshot)
+      .on('presence', { event: 'leave' }, syncPresenceSnapshot)
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setRealtimeStatus('online');
+          lastPresenceSyncRef.current = 0;
+          lastMovementBroadcastRef.current = 0;
+          lastStateBroadcastRef.current = 0;
+          lastMovementActiveRef.current = true;
+          if (heartbeatIntervalId !== null) {
+            window.clearInterval(heartbeatIntervalId);
+          }
+          heartbeatIntervalId = window.setInterval(() => {
+            if (cancelled) return;
+            void trackSelf()
+              .then(() => broadcastSelfState())
+              .catch(() => setRealtimeStatus('offline'));
+          }, REMOTE_SYNC_INTERVAL_MS);
           void trackSelf()
             .then(() => broadcastSelfState())
+            .then(() => requestPeerStates())
             .then(syncPresenceSnapshot)
             .catch(() => setRealtimeStatus('offline'));
           return;
@@ -2499,6 +2588,9 @@ export default function BioVillageLanding() {
 
     return () => {
       cancelled = true;
+      if (heartbeatIntervalId !== null) {
+        window.clearInterval(heartbeatIntervalId);
+      }
       commitRemoteActors([]);
       void channel.untrack().catch(() => undefined);
       void supabase.removeChannel(channel).catch(() => undefined);
@@ -2853,6 +2945,98 @@ export default function BioVillageLanding() {
         .catch(() => undefined);
     };
 
+    const syncPlayerStateFallbackIfNeeded = () => {
+      const key = participantKeyRef.current;
+      if (!key) return;
+
+      const now = performance.now();
+      if (
+        now - lastPlayerStateFallbackSyncRef.current <
+        PLAYER_STATE_FALLBACK_SYNC_INTERVAL_MS
+      ) {
+        return;
+      }
+
+      lastPlayerStateFallbackSyncRef.current = now;
+      const payload = buildMovementPayload(key, playerRef.current);
+      void fetch(PLAYER_STATE_FALLBACK_ENDPOINT, {
+        body: JSON.stringify({
+          ...payload,
+          latestPoop: latestSelfPoopRef.current
+        }),
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        method: 'POST'
+      }).catch(() => undefined);
+    };
+
+    const loadPlayerStateFallbackIfNeeded = () => {
+      const ownKey = participantKeyRef.current;
+      if (!ownKey || playerStateFallbackFetchInFlightRef.current) return;
+
+      const now = performance.now();
+      if (
+        now - lastPlayerStateFallbackLoadRef.current <
+        PLAYER_STATE_FALLBACK_SYNC_INTERVAL_MS
+      ) {
+        return;
+      }
+
+      lastPlayerStateFallbackLoadRef.current = now;
+      playerStateFallbackFetchInFlightRef.current = true;
+
+      void fetch(PLAYER_STATE_FALLBACK_ENDPOINT, {
+        cache: 'no-store'
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload: { data?: unknown } | null) => {
+          if (!Array.isArray(payload?.data)) return;
+
+          payload.data.forEach((item) => {
+            const state = item as StoredPlayerPayload;
+            const stateKey = typeof state.key === 'string' ? state.key : '';
+            if (!stateKey || stateKey === ownKey) return;
+
+            applyRemoteMovementPayload(state);
+
+            const latestPoop =
+              state.latestPoop && typeof state.latestPoop === 'object'
+                ? (state.latestPoop as Partial<SharedPoopPayload>)
+                : null;
+            if (
+              !latestPoop ||
+              typeof latestPoop.id !== 'string' ||
+              typeof latestPoop.actorId !== 'string' ||
+              typeof latestPoop.dropX !== 'number' ||
+              typeof latestPoop.dropY !== 'number'
+            ) {
+              return;
+            }
+
+            if (seenRemotePoopIdsRef.current.get(stateKey) === latestPoop.id) {
+              return;
+            }
+
+            seenRemotePoopIdsRef.current.set(stateKey, latestPoop.id);
+            startPoopSequence(
+              latestPoop.actorId,
+              latestPoop.dropX,
+              latestPoop.dropY,
+              latestPoop.id,
+              typeof latestPoop.createdAt === 'number'
+                ? latestPoop.createdAt
+                : Date.now()
+            );
+          });
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          playerStateFallbackFetchInFlightRef.current = false;
+        });
+    };
+
     const updatePlayer = () => {
       const player = playerRef.current;
       let dx = 0;
@@ -2979,22 +3163,28 @@ export default function BioVillageLanding() {
       });
     };
 
-    const updateCamera = () => {
+    const updateCamera = (frameScale: number) => {
       const player = playerRef.current;
       const maxVerticalCamera = Math.max(0, WORLD_HEIGHT - window.innerHeight);
-      const targetY = clamp(
+      const verticalTarget = clamp(
         player.y - window.innerHeight / 2,
         0,
         maxVerticalCamera
       );
-      cameraYRef.current = targetY;
-      scrollYRef.current = targetY;
+      const nextCameraY = getSmoothCameraValue(
+        cameraYRef.current,
+        verticalTarget,
+        frameScale
+      );
+      cameraYRef.current = nextCameraY;
+      scrollYRef.current = nextCameraY;
 
-      if (Math.abs(window.scrollY - targetY) > 0.5) {
-        window.scrollTo(0, targetY);
+      const scrollTarget = Math.round(nextCameraY);
+      if (Math.abs(window.scrollY - scrollTarget) > 0.5) {
+        window.scrollTo(0, scrollTarget);
       }
 
-      const nextWorldActive = targetY < WORLD_HEIGHT - 96;
+      const nextWorldActive = nextCameraY < WORLD_HEIGHT - 96;
       if (worldActiveRef.current !== nextWorldActive) {
         worldActiveRef.current = nextWorldActive;
         setWorldActive(nextWorldActive);
@@ -3009,7 +3199,11 @@ export default function BioVillageLanding() {
         0,
         maxHorizontalCamera
       );
-      cameraXRef.current = horizontalTarget;
+      cameraXRef.current = getSmoothCameraValue(
+        cameraXRef.current,
+        horizontalTarget,
+        frameScale
+      );
       applyWorldTransform(
         [worldBackdropRef.current, worldObjectsRef.current],
         cameraXRef.current
@@ -3017,8 +3211,12 @@ export default function BioVillageLanding() {
     };
 
     let time = 0;
+    let lastFrameAt = performance.now();
 
-    const animate = () => {
+    const animate = (frameAt: number) => {
+      const frameDeltaMs = clamp(frameAt - lastFrameAt || 16.7, 8, 50);
+      const frameScale = getFrameScale(frameDeltaMs);
+      lastFrameAt = frameAt;
       const shouldRenderWorld =
         worldActiveRef.current && document.visibilityState === 'visible';
 
@@ -3037,11 +3235,13 @@ export default function BioVillageLanding() {
       time += 1;
       updatePlayer();
       updateRemoteActors();
-      updateCamera();
+      updateCamera(frameScale);
       const currentScrollY = cameraYRef.current;
       syncPresenceIfNeeded();
       syncRealtimeMovementIfNeeded();
       syncRealtimeStateIfNeeded();
+      syncPlayerStateFallbackIfNeeded();
+      loadPlayerStateFallbackIfNeeded();
 
       backgroundContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
       backgroundContext.fillStyle = 'rgba(248, 249, 250, 0.24)';
@@ -3219,7 +3419,13 @@ export default function BioVillageLanding() {
         window.cancelAnimationFrame(frameRef.current);
       }
     };
-  }, [supabase, user?.id, user?.name]);
+  }, [
+    applyRemoteMovementPayload,
+    startPoopSequence,
+    supabase,
+    user?.id,
+    user?.name
+  ]);
 
   return (
     <section
