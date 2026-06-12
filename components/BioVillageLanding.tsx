@@ -2304,11 +2304,29 @@ export default function BioVillageLanding() {
         .catch(() => undefined);
     };
 
-    const handlePoopCleanTrigger = () => {
+    const handlePoopCleanTrigger = async () => {
       selfCleanupHoldingRef.current = false;
       const player = playerRef.current;
       const targetDrop = findNearbyPoopDrop(player);
       if (!targetDrop) return;
+
+      if (targetDrop.isPost) {
+        if (targetDrop.actorId !== user?.id) {
+          alert('다른 사람의 기록은 지울 수 없어요!');
+          return;
+        }
+        if (!window.confirm('이 똥 기록을 치우시겠어요? (글과 댓글이 모두 삭제됩니다)')) return;
+        
+        try {
+          const res = await fetch(`/api/community/posts/${encodeURIComponent(targetDrop.id)}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('삭제 실패');
+          removePoopDrop(targetDrop.id);
+          setPostRefreshTrigger(prev => prev + 1);
+        } catch (e) {
+          alert('삭제에 실패했어요.');
+        }
+        return;
+      }
 
       const actorId = participantKeyRef.current ?? 'self';
       startCleanupAnimation(actorId, targetDrop.id);
