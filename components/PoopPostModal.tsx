@@ -33,6 +33,7 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
   const isOwner = currentUserId === post.userId;
 
   const [commentContent, setCommentContent] = useState('');
+  const [anonymousName, setAnonymousName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +43,10 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
     e.preventDefault();
     if (submitting) return;
     if (!commentContent.trim()) return;
+    if (!currentUserId && !anonymousName.trim()) {
+      setError('닉네임을 입력해주세요.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -49,7 +54,11 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
       const response = await fetch('/api/community/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId: post.id, content: commentContent })
+        body: JSON.stringify({ 
+          postId: post.id, 
+          content: commentContent,
+          anonymousName: !currentUserId ? anonymousName.trim() : undefined
+        })
       });
       if (!response.ok) {
         throw new Error('댓글 저장 실패');
@@ -70,45 +79,47 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
         onClick={onClose}
       />
       
-      <div className="relative flex w-full max-w-[20rem] flex-col overflow-hidden rounded-[1.2rem] border border-[rgba(255,255,255,0.12)] bg-[rgba(32,18,10,0.96)] shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
+      <div className="relative flex w-full max-w-[22rem] flex-col overflow-hidden rounded-[0.8rem] border border-[rgba(255,255,255,0.12)] bg-[#f5f5f5] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[#ddd] bg-white px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="text-xl">💩</span>
-            <h3 className="font-[var(--font-display-kr)] text-[1.05rem] font-bold text-[#ffebdb]">
+            <h3 className="text-[1rem] font-bold text-[#333]">
               {post.title}
             </h3>
           </div>
           <button 
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgba(255,255,255,0.06)] text-white/70 transition hover:bg-[rgba(255,255,255,0.1)] hover:text-white"
+            className="flex h-7 w-7 items-center justify-center text-[#999] transition hover:text-[#333]"
           >
             ✕
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          <h2 className="mb-2 text-lg font-bold text-[#1c445c]">{post.title}</h2>
-          <div className="whitespace-pre-wrap text-sm text-[#2a5d7c] leading-relaxed">
+        <div className="flex-1 overflow-y-auto p-4 bg-white custom-scrollbar">
+          <h2 className="mb-2 text-lg font-bold text-[#222]">{post.title}</h2>
+          <div className="whitespace-pre-wrap text-[0.85rem] text-[#444] leading-relaxed">
             {cleanContent}
           </div>
 
-          {error && <p className="mt-4 text-xs text-red-500">{error}</p>}
+          {error && <p className="mt-4 text-xs font-semibold text-red-500">{error}</p>}
 
           {/* Comments */}
-          <div className="mt-6 border-t-2 border-dashed border-[#d0e6f5] pt-4">
-            <h3 className="mb-3 text-xs font-bold text-[#4a84a6]">댓글 ({post.comments?.length || 0})</h3>
-            <div className="flex flex-col gap-3">
+          <div className="mt-6 pt-4 border-t border-[#eee]">
+            <h3 className="mb-3 text-[0.8rem] font-bold text-[#666]">댓글 <span className="text-[#d31900]">{post.comments?.length || 0}</span></h3>
+            <div className="flex flex-col border-t border-[#ddd]">
               {post.comments?.map((comment) => (
-                <div key={comment.id} className="rounded-xl bg-white p-2.5 shadow-sm">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#1c445c]">{comment.authorName}</span>
-                    <span className="text-[9px] text-[#7ba5c2]">
-                      {new Date(comment.createdAt).toLocaleDateString()}
+                <div key={comment.id} className="border-b border-[#eee] py-3 px-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-[0.75rem] font-bold text-[#333]">
+                      {(comment as any).anonymous_name || comment.authorName || 'ㅇㅇ'}
+                    </span>
+                    <span className="text-[0.65rem] text-[#999]">
+                      {new Date(comment.createdAt).toLocaleDateString()} {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="text-xs text-[#2a5d7c]">{comment.content}</p>
+                  <p className="text-[0.8rem] text-[#444]">{comment.content}</p>
                 </div>
               ))}
             </div>
@@ -116,23 +127,36 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
         </div>
 
         {/* Comment Form */}
-        <div className="border-t-2 border-[#d0e6f5] bg-[#e0f2fe] p-3">
-          <form onSubmit={handleComment} className="flex gap-2">
-            <input
-              type="text"
-              value={commentContent}
-              onChange={(e) => setCommentContent(e.target.value)}
-              placeholder={currentUserId ? "댓글 남기기..." : "로그인 후 댓글을 남길 수 있습니다."}
-              disabled={!currentUserId || submitting}
-              className="flex-1 rounded-xl border-2 border-white bg-white px-3 py-2 text-xs text-[#1c445c] outline-none placeholder:text-[#9abcd4] focus:border-[#4a84a6]"
-            />
-            <button
-              type="submit"
-              disabled={!currentUserId || submitting || !commentContent.trim()}
-              className="rounded-xl bg-[#1c445c] px-4 text-xs font-bold text-white transition hover:bg-[#123042] disabled:opacity-50"
-            >
-              등록
-            </button>
+        <div className="border-t border-[#ddd] bg-[#fdfdfd] p-3">
+          <form onSubmit={handleComment} className="flex flex-col gap-2">
+            {!currentUserId && (
+              <input
+                type="text"
+                value={anonymousName}
+                onChange={(e) => setAnonymousName(e.target.value)}
+                placeholder="닉네임 (ㅇㅇ)"
+                maxLength={20}
+                disabled={submitting}
+                className="w-1/3 min-w-[100px] rounded border border-[#ccc] bg-white px-2 py-1.5 text-[0.75rem] text-[#333] outline-none focus:border-[#888]"
+              />
+            )}
+            <div className="flex gap-2">
+              <textarea
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                placeholder="댓글을 남겨보세요."
+                disabled={submitting}
+                rows={2}
+                className="flex-1 resize-none rounded border border-[#ccc] bg-white px-3 py-2 text-[0.8rem] text-[#333] outline-none focus:border-[#888]"
+              />
+              <button
+                type="submit"
+                disabled={submitting || !commentContent.trim() || (!currentUserId && !anonymousName.trim())}
+                className="rounded bg-[#3b4890] px-4 text-[0.8rem] font-bold text-white transition hover:bg-[#2c3670] disabled:opacity-50"
+              >
+                등록
+              </button>
+            </div>
           </form>
         </div>
       </div>

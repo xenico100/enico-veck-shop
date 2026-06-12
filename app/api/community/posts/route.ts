@@ -157,7 +157,8 @@ export async function GET() {
     let comments: Array<{
       id: string;
       post_id: string;
-      user_id: string;
+      user_id: string | null;
+      anonymous_name: string | null;
       content: string;
       created_at: string;
       updated_at: string;
@@ -173,7 +174,7 @@ export async function GET() {
     if (postIds.length > 0) {
       const { data: commentsData, error: commentsError } = await readClient
         .from('community_comments')
-        .select('id,post_id,user_id,content,created_at,updated_at')
+        .select('id,post_id,user_id,anonymous_name,content,created_at,updated_at')
         .in('post_id', postIds)
         .order('created_at', { ascending: true })
         .limit(2000);
@@ -189,7 +190,8 @@ export async function GET() {
         ? (commentsData as Array<{
             id: string;
             post_id: string;
-            user_id: string;
+            user_id: string | null;
+            anonymous_name: string | null;
             content: string;
             created_at: string;
             updated_at: string;
@@ -222,7 +224,7 @@ export async function GET() {
     const authorNameMap = admin
       ? await buildAuthorNameMap(admin, [
           ...posts.map((post) => post.user_id),
-          ...comments.map((comment) => comment.user_id)
+          ...comments.map((comment) => comment.user_id).filter((id): id is string => Boolean(id))
         ])
       : new Map<string, string>();
 
@@ -233,7 +235,8 @@ export async function GET() {
         id: comment.id,
         postId: comment.post_id,
         userId: comment.user_id,
-        authorName: authorNameMap.get(comment.user_id) || `회원 ${comment.user_id.slice(0, 8)}`,
+        anonymous_name: comment.anonymous_name,
+        authorName: comment.user_id ? (authorNameMap.get(comment.user_id) || `회원 ${comment.user_id.slice(0, 8)}`) : (comment.anonymous_name || '익명'),
         content: comment.content,
         createdAt: comment.created_at,
         updatedAt: comment.updated_at

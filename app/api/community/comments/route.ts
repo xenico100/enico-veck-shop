@@ -28,15 +28,14 @@ export async function POST(request: Request) {
       error: authError
     } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return jsonError('로그인이 필요합니다.', 401);
-    }
+    // Remove the hard block on non-logged-in users. We will allow anonymous users.
+    const userId = user?.id || null;
 
     const rateLimit = consumeRateLimit({
       key: buildRateLimitKey({
         request,
         scope: 'community-comment',
-        userId: user.id
+        userId: userId || 'anonymous'
       }),
       max: COMMENT_RATE_LIMIT_MAX,
       windowMs: COMMENT_RATE_LIMIT_WINDOW_MS
@@ -53,12 +52,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json().catch(() => ({}))) as CreateCommunityCommentBody;
+    const body = (await request.json().catch(() => ({}))) as CreateCommunityCommentBody & { anonymousName?: string };
     const postId = typeof body.postId === 'string' ? body.postId.trim() : '';
     const content = normalizeContent(body.content);
+    const anonymousName = typeof body.anonymousName === 'string' ? body.anonymousName.trim().slice(0, 30) : null;
 
     if (!postId || !content) {
       return jsonError('댓글 내용을 입력해 주세요.', 400);
+    }
+    if (!userId && !anonymousName) {
+      return jsonError('닉네임을 입력해 주세요.', 400);
     }
 
     const admin = createAdminClient();
@@ -80,10 +83,11 @@ export async function POST(request: Request) {
       .from('community_comments')
       .insert({
         post_id: postId,
-        user_id: user.id,
+        user_id: userId,
+        anonymous_name: userId ? null : anonymousName,
         content
       })
-      .select('id,post_id,user_id,content,created_at,updated_at')
+      .select('id,post_id,user_id,anonymous_name,content,created_at,updated_at')
       .single();
 
     if (error || !data) {
@@ -91,16 +95,18 @@ export async function POST(request: Request) {
       return jsonError('댓글 작성에 실패했습니다.', 500);
     }
 
-    const { data: userRow } = await (admin as any)
-      .from('users')
-      .select('id,full_name')
-      .eq('id', user.id)
-      .maybeSingle();
+    let authorName = anonymousName || '익명';
+    if (userId) {
+      const { data: userRow } = await (admin as any)
+        .from('users')
+        .select('id,full_name')
+        .eq('id', userId)
+        .maybeSingle();
 
-    const authorName =
-      typeof userRow?.full_name === 'string' && userRow.full_name.trim()
+      authorName = typeof userRow?.full_name === 'string' && userRow.full_name.trim()
         ? userRow.full_name.trim()
-        : `회원 ${user.id.slice(0, 8)}`;
+        : `회원 ${userId.slice(0, 8)}`;
+    }
 
     return NextResponse.json({
       data: {

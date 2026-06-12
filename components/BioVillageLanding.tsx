@@ -3908,7 +3908,8 @@ export default function BioVillageLanding() {
                   top: `${drop.y}px`,
                   transform: 'translate(-50%, -35%)'
                 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (isOwnNewPoop) setPoopWriteTarget(drop);
                   else if (isPost) setPoopPostViewTarget(drop);
                 }}
