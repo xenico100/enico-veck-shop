@@ -63,65 +63,28 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('정말 이 똥 기록을 치우시겠어요?')) return;
-    setSubmitting(true);
-    try {
-      const response = await fetch(`/api/community/posts/${encodeURIComponent(post.id)}`, {
-        method: 'DELETE'
-      });
-      if (!response.ok) throw new Error('삭제 실패');
-      if (onDelete) onDelete();
-      onClose();
-    } catch (err) {
-      setError('삭제에 실패했어요.');
-      setSubmitting(false);
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <button
-        type="button"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
-        disabled={submitting}
       />
       
-      <div className="relative z-[101] flex max-h-[80vh] w-full max-w-[340px] flex-col overflow-hidden rounded-[1.6rem] border-4 border-[#1c445c] bg-[#f0f8ff] shadow-[0_24px_60px_rgba(28,68,92,0.3)] animate-[spring-pop_0.4s_cubic-bezier(0.175,0.885,0.32,1.275)_forwards]">
-        
+      <div className="relative flex w-full max-w-[20rem] flex-col overflow-hidden rounded-[1.2rem] border border-[rgba(255,255,255,0.12)] bg-[rgba(32,18,10,0.96)] shadow-[0_20px_40px_rgba(0,0,0,0.4)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b-2 border-[#d0e6f5] bg-[#e0f2fe] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="text-xl">📜</span>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-[#1c445c]">{post.authorName}님의 기록</span>
-              <span className="text-[10px] text-[#4a84a6]">
-                {new Date(post.createdAt).toLocaleDateString()}
-              </span>
-            </div>
+            <span className="text-xl">💩</span>
+            <h3 className="font-[var(--font-display-kr)] text-[1.05rem] font-bold text-[#ffebdb]">
+              {post.title}
+            </h3>
           </div>
-          <div className="flex gap-2">
-            {isOwner && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={submitting}
-                className="rounded-full bg-red-100 p-1.5 text-xs text-red-600 transition hover:bg-red-200"
-                title="똥 치우기"
-              >
-                🗑️
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={submitting}
-              className="rounded-full bg-white p-1.5 text-[#1c445c] transition hover:bg-[#d0e6f5]"
-            >
-              ✕
-            </button>
-          </div>
+          <button 
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgba(255,255,255,0.06)] text-white/70 transition hover:bg-[rgba(255,255,255,0.1)] hover:text-white"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Content */}
