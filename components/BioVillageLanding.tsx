@@ -2676,7 +2676,7 @@ export default function BioVillageLanding() {
         const nextWorldActive = initialCamera.y < WORLD_HEIGHT - 96;
         worldActiveRef.current = nextWorldActive;
         setWorldActive(nextWorldActive);
-        window.scrollTo(0, initialCamera.y);
+        window.scrollTo({ left: 0, top: initialCamera.y, behavior: 'instant' });
       } else {
         const maxHorizontalCamera = Math.max(
           0,
@@ -3183,7 +3183,7 @@ export default function BioVillageLanding() {
 
       const scrollTarget = Math.round(nextCameraY);
       if (Math.abs(window.scrollY - scrollTarget) > 0.5) {
-        window.scrollTo(0, scrollTarget);
+        window.scrollTo({ left: 0, top: scrollTarget, behavior: 'instant' });
       }
 
       const nextWorldActive = nextCameraY < WORLD_HEIGHT - 96;
