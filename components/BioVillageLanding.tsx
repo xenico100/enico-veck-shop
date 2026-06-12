@@ -2797,6 +2797,8 @@ export default function BioVillageLanding() {
       const hitActor = findActorAtPoint(event.clientX, event.clientY);
       if (!hitActor) {
         setSelectedTarget(null);
+        playerRef.current.targetX = event.clientX + cameraXRef.current;
+        playerRef.current.targetY = event.clientY + window.scrollY;
         return;
       }
 
@@ -3433,7 +3435,7 @@ export default function BioVillageLanding() {
       className="relative isolate w-full overflow-hidden"
       style={{ minHeight: `${WORLD_HEIGHT}px` }}
     >
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes village-float {
           0% { transform: translateY(0px); }
           50% { transform: translateY(-6px); }
@@ -3767,7 +3769,7 @@ export default function BioVillageLanding() {
           }
 
         }
-      `}</style>
+      `}} />
 
       <canvas
         ref={backgroundCanvasRef}
