@@ -23,14 +23,6 @@ const StudioSectionWithSearchParams = dynamic(
     )
   }
 );
-const CommunityBoard = dynamic(() => import('../components/CommunityBoard'), {
-  ssr: false,
-  loading: () => (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-12 text-center text-sm text-stone-600 sm:px-6 lg:px-8">
-      커뮤니티를 불러오는 중...
-    </div>
-  )
-});
 const Footer = dynamic(() => import('../components/Footer'));
 const AuthModal = dynamic(() => import('../components/AuthModal'), {
   ssr: false
@@ -46,12 +38,6 @@ const DatingModal = dynamic(() => import('../components/DatingModal'), {
 });
 const ServicesSectionModal = dynamic(
   () => import('../components/ServicesSectionModal'),
-  {
-    ssr: false
-  }
-);
-const CommunityBoardModal = dynamic(
-  () => import('../components/CommunityBoardModal'),
   {
     ssr: false
   }
@@ -84,7 +70,6 @@ export default function LandingPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [datingOpen, setDatingOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
-  const [communityOpen, setCommunityOpen] = useState(false);
   const [datingHookLabel, setDatingHookLabel] = useState<string | null>(null);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
@@ -130,15 +115,6 @@ export default function LandingPage() {
       window.removeEventListener('services:open-modal', handleServicesHook);
   }, []);
 
-  useEffect(() => {
-    const handleCommunityHook = () => {
-      setCommunityOpen(true);
-    };
-
-    window.addEventListener('community:open-modal', handleCommunityHook);
-    return () =>
-      window.removeEventListener('community:open-modal', handleCommunityHook);
-  }, []);
 
   useEffect(() => {
     const handleAuthHook = (event: Event) => {
@@ -161,7 +137,6 @@ export default function LandingPage() {
           isOpen={isMenuOpen}
           onClose={() => setIsMenuOpen(false)}
           onCartClick={openCart}
-          onCommunityClick={() => setCommunityOpen(true)}
           onDatingClick={() => {
             setDatingHookLabel(null);
             setDatingOpen(true);
@@ -188,15 +163,6 @@ export default function LandingPage() {
         </Suspense>
       </div>
 
-      <section
-        id="community"
-        className="section-shell pb-24 pt-8 md:pt-14"
-        style={deferredSectionStyle}
-      >
-        <div className="tech-panel scanline animate-rise p-4 sm:p-6 md:p-8">
-          <CommunityBoard />
-        </div>
-      </section>
 
       <div style={deferredSectionStyle}>
         <Footer />
@@ -272,12 +238,6 @@ export default function LandingPage() {
           open={servicesOpen}
           onOpenCart={openCart}
           onOpenChange={setServicesOpen}
-        />
-      ) : null}
-      {communityOpen ? (
-        <CommunityBoardModal
-          open={communityOpen}
-          onOpenChange={setCommunityOpen}
         />
       ) : null}
     </main>

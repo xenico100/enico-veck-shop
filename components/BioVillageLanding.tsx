@@ -3893,68 +3893,7 @@ export default function BioVillageLanding() {
             width: `${worldWidth}px`
           }}
         >
-          {renderedVillageShopNodes.map((shop) => {
-            const visual = villageShopVisualMeta[shop.tab];
-            const isGoodsCastle = shop.tab === 'goods';
 
-            return (
-              <article
-                key={shop.id}
-                id={shop.id}
-                data-avatar-ui="true"
-                role="button"
-                tabIndex={0}
-                className={
-                  isGoodsCastle
-                    ? 'village-shop-card village-castle-shop village-interactive-structure'
-                      : 'village-shop-card village-interactive-structure'
-                }
-                style={{
-                  boxShadow:
-                    isGoodsCastle
-                      ? undefined
-                      : `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
-                  left: shop.left,
-                  top: `${shop.top}px`,
-                  width: `${shop.width}px`
-                }}
-                onDoubleClick={() => openVillageShop(shop.tab, shop.id)}
-                onTouchEnd={(event) =>
-                  handleStructureTouchEnd(event, shop.id, shop.tab)
-                }
-              >
-                {isGoodsCastle ? (
-                  <div className="village-castle-shell">
-                    <div className="village-castle-sign">굿즈샵</div>
-                    <img
-                      src="/images/bio-village/goods-castle-shop-cutout.png"
-                      alt="굿즈샵 성"
-                      className="village-castle-image"
-                      draggable={false}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <p
-                      className="relative z-[1] text-[9px] uppercase tracking-[0.26em]"
-                      style={{ color: visual.tone }}
-                    >
-                      {visual.chip}
-                    </p>
-                    <h3 className="relative z-[1] mt-3 font-[var(--font-display-kr)] text-[0.98rem] font-semibold text-[rgba(77,14,14,0.94)]">
-                      {shop.title}
-                    </h3>
-                    <p className="relative z-[1] mt-2 text-[11px] leading-relaxed text-[rgba(98,26,26,0.68)]">
-                      {shop.hint}
-                    </p>
-                    <p className="relative z-[1] mt-3 text-[9px] uppercase tracking-[0.22em] text-[rgba(150,50,50,0.54)]">
-                      dbl click / dbl tap
-                    </p>
-                  </>
-                )}
-              </article>
-            );
-          })}
 
           {poopDrops.map((drop) => {
             const isOwnNewPoop = !drop.isPost && drop.actorId === (participantKeyRef.current ?? 'self');
