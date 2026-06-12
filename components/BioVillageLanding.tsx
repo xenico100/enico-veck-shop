@@ -28,8 +28,8 @@ const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
 const PLAYER_SPEED = 5.8;
 const REMOTE_PLAYER_SPEED = 8.8;
-const REMOTE_SYNC_INTERVAL_MS = 1400;
-const MOVEMENT_BROADCAST_INTERVAL_MS = 55;
+const REMOTE_SYNC_INTERVAL_MS = 850;
+const MOVEMENT_BROADCAST_INTERVAL_MS = 120;
 const PLAYER_STATE_BROADCAST_INTERVAL_MS = 700;
 const REMOTE_ACTOR_TIMEOUT_MS = 15_000;
 const REMOTE_SNAP_DISTANCE = 90;
@@ -3138,10 +3138,10 @@ export default function BioVillageLanding() {
           };
         }
 
-        const smoothing = distance > 180 ? 0.22 : distance > 72 ? 0.18 : 0.14;
+        const smoothing = distance > 180 ? 0.22 : distance > 72 ? 0.16 : 0.12;
         const step = Math.min(
           distance,
-          Math.max(actor.speed * 1.05, distance * smoothing)
+          distance * smoothing + 0.5 // Pure lerp with a tiny minimum to keep it moving at the end
         );
         const vx = (dx / distance) * step;
         const vy = (dy / distance) * step;
