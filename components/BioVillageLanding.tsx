@@ -21,6 +21,8 @@ import {
   normalizeBioVillageChatText
 } from '@/utils/bio-village-chat';
 import { createClient } from '@/utils/supabase/client';
+import PoopWriteModal from '@/components/PoopWriteModal';
+import PoopPostModal from '@/components/PoopPostModal';
 
 const WORLD_HEIGHT = 4300;
 const MOBILE_WORLD_WIDTH = 1480;
@@ -105,6 +107,9 @@ type PoopDrop = {
   id: string;
   x: number;
   y: number;
+  isPost?: boolean;
+  postTitle?: string;
+  postData?: any;
 };
 
 type PoopAnimationState = {
@@ -168,7 +173,7 @@ type ChatBubbleState = {
   tone: Exclude<BioVillageChatTone, 'system'>;
 };
 
-type VillageShopTab = 'community' | 'diagram' | 'goods' | 'studio';
+type VillageShopTab = 'diagram' | 'goods' | 'studio';
 
 type VillageShopNode = {
   hint: string;
@@ -456,15 +461,6 @@ const paletteMap: Record<
 
 const villageShopNodes: VillageShopNode[] = [
   {
-    hint: '더블클릭: 커뮤니티 보드',
-    id: 'community-board-villa',
-    left: '82%',
-    tab: 'community',
-    title: 'Neo Villa Board',
-    top: 610,
-    width: 338
-  },
-  {
     hint: '더블클릭: 굿즈 판매',
     id: 'goods-access-shop',
     left: '28%',
@@ -497,22 +493,10 @@ const villageShopTabMeta: Record<
     description: string;
     notes: string[];
     primaryAction: string;
-    sectionId: 'about' | 'community' | 'services' | 'studio';
+    sectionId: 'about' | 'services' | 'studio';
     title: string;
   }
 > = {
-  community: {
-    badge: 'COMMUNITY VILLA',
-    description:
-      '게시글, 댓글, 공감 기록이 바로 열리는 커뮤니티 보드 전용 빌라.',
-    notes: [
-      '스크롤로 내려가는 대신 메뉴처럼 커뮤니티 보드 탭을 바로 띄운다.',
-      '맵 위에서 바로 보드 확인하고 닫으면 다시 탐험으로 복귀한다.'
-    ],
-    primaryAction: '커뮤니티 보드 열기',
-    sectionId: 'community',
-    title: 'Community Board Access'
-  },
   diagram: {
     badge: 'SYSTEM KIOSK',
     description:
@@ -559,11 +543,6 @@ const villageShopVisualMeta: Record<
     tone: string;
   }
 > = {
-  community: {
-    chip: 'BOARD',
-    glow: 'rgba(115, 126, 255, 0.18)',
-    tone: 'rgba(78, 106, 204, 0.9)'
-  },
   diagram: {
     chip: 'SYSTEM',
     glow: 'rgba(87, 120, 255, 0.16)',
@@ -786,7 +765,7 @@ const getActorScreenPosition = (
 });
 
 const pruneExpiredPoops = (drops: PoopDrop[], now = Date.now()) =>
-  drops.filter((drop) => now - drop.createdAt < POOP_TTL_MS);
+  drops.filter((drop) => drop.isPost || now - drop.createdAt < POOP_TTL_MS);
 
 const wrapSpeechBubbleLines = (
   text: string,
@@ -1373,10 +1352,52 @@ export default function BioVillageLanding() {
     'connecting' | 'offline' | 'online'
   >('connecting');
   const [poopDrops, setPoopDrops] = useState<PoopDrop[]>([]);
+  const [poopWriteTarget, setPoopWriteTarget] = useState<PoopDrop | null>(null);
+  const [poopPostViewTarget, setPoopPostViewTarget] = useState<PoopDrop | null>(null);
+  const [postRefreshTrigger, setPostRefreshTrigger] = useState(0);
 
   useEffect(() => {
     poopDropsRef.current = poopDrops;
   }, [poopDrops]);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchPostPoops = async () => {
+      try {
+        const response = await fetch('/api/community/posts');
+        const payload = await response.json();
+        if (payload.data && mounted) {
+          const loadedPoops: PoopDrop[] = payload.data.map((post: any) => {
+            let x = Math.random() * 800 + 100;
+            let y = Math.random() * 600 + 200;
+            const match = post.content.match(/\[POS:(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)\]/);
+            if (match) {
+              x = parseFloat(match[1]);
+              y = parseFloat(match[2]);
+            }
+            return {
+              actorId: post.userId,
+              createdAt: new Date(post.createdAt).getTime(),
+              id: post.id,
+              x,
+              y,
+              isPost: true,
+              postTitle: post.title,
+              postData: post
+            };
+          });
+          setPoopDrops((prev) => {
+            const nonPosts = prev.filter((p) => !p.isPost);
+            return [...nonPosts, ...loadedPoops];
+          });
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    void fetchPostPoops();
+    return () => { mounted = false; };
+  }, [postRefreshTrigger]);
 
   selectedTargetRef.current = selectedTarget;
   participantKeyRef.current = participantKey;
@@ -1968,10 +1989,6 @@ export default function BioVillageLanding() {
     tab: VillageShopTab,
     structureId?: string | null
   ) => {
-    if (structureId === 'community-board-villa') {
-      openCommunityBoardPortal();
-      return;
-    }
 
     if (structureId === 'goods-access-shop') {
       openGoodsCommercePortal();
@@ -1983,7 +2000,7 @@ export default function BioVillageLanding() {
   };
 
   const jumpToVillageSection = (
-    sectionId: 'about' | 'community' | 'services' | 'studio'
+    sectionId: 'about' | 'services' | 'studio'
   ) => {
     setActiveVillageShopTab(null);
 
@@ -3861,7 +3878,6 @@ export default function BioVillageLanding() {
           {renderedVillageShopNodes.map((shop) => {
             const visual = villageShopVisualMeta[shop.tab];
             const isGoodsCastle = shop.tab === 'goods';
-            const isCommunityVilla = shop.tab === 'community';
 
             return (
               <article
@@ -3873,13 +3889,11 @@ export default function BioVillageLanding() {
                 className={
                   isGoodsCastle
                     ? 'village-shop-card village-castle-shop village-interactive-structure'
-                    : isCommunityVilla
-                      ? 'village-shop-card village-community-shop village-interactive-structure'
                       : 'village-shop-card village-interactive-structure'
                 }
                 style={{
                   boxShadow:
-                    isGoodsCastle || isCommunityVilla
+                    isGoodsCastle
                       ? undefined
                       : `inset 0 1px 0 rgba(255,255,255,0.92), 0 16px 34px rgba(130, 24, 24, 0.12), 0 0 0 10px ${visual.glow}`,
                   left: shop.left,
@@ -3898,16 +3912,6 @@ export default function BioVillageLanding() {
                       src="/images/bio-village/goods-castle-shop-cutout.png"
                       alt="굿즈샵 성"
                       className="village-castle-image"
-                      draggable={false}
-                    />
-                  </div>
-                ) : isCommunityVilla ? (
-                  <div className="village-community-shell">
-                    <div className="village-community-sign">커뮤니티 보드</div>
-                    <img
-                      src="/images/bio-village/community-board-villa.png"
-                      alt="커뮤니티 보드 빌라"
-                      className="village-community-image"
                       draggable={false}
                     />
                   </div>
@@ -3934,34 +3938,57 @@ export default function BioVillageLanding() {
             );
           })}
 
-          {poopDrops.map((drop) => (
-            <div
-              key={drop.id}
-              className="pointer-events-none absolute z-[12] h-[28px] w-[30px]"
-              style={{
-                left: `${drop.x}px`,
-                top: `${drop.y}px`,
-                transform: 'translate(-50%, -35%)'
-              }}
-            >
-              <div className="absolute bottom-[-3px] left-1/2 h-[8px] w-[22px] -translate-x-1/2 rounded-full bg-[rgba(45,20,8,0.16)] blur-[3px]" />
-              {poopPixelPattern.map((pixel, index) => (
-                <span
-                  key={`${drop.id}-${index}`}
-                  className="absolute block h-[5px] w-[5px]"
-                  style={{
-                    backgroundColor: pixel.color,
-                    boxShadow:
-                      pixel.color === '#8a571f'
-                        ? 'inset 0 1px 0 rgba(255,222,182,0.28)'
-                        : undefined,
-                    left: `${pixel.x}px`,
-                    top: `${pixel.y}px`
-                  }}
-                />
-              ))}
-            </div>
-          ))}
+          {poopDrops.map((drop) => {
+            const isOwnNewPoop = !drop.isPost && drop.actorId === (participantKeyRef.current ?? 'self');
+            const isPost = drop.isPost;
+
+            return (
+              <div
+                key={drop.id}
+                className={`absolute z-[12] h-[28px] w-[30px] ${isOwnNewPoop || isPost ? 'cursor-pointer' : 'pointer-events-none'}`}
+                style={{
+                  left: `${drop.x}px`,
+                  top: `${drop.y}px`,
+                  transform: 'translate(-50%, -35%)'
+                }}
+                onClick={() => {
+                  if (isOwnNewPoop) setPoopWriteTarget(drop);
+                  else if (isPost) setPoopPostViewTarget(drop);
+                }}
+              >
+                <div className="absolute bottom-[-3px] left-1/2 h-[8px] w-[22px] -translate-x-1/2 rounded-full bg-[rgba(45,20,8,0.16)] blur-[3px]" />
+                {poopPixelPattern.map((pixel, index) => (
+                  <span
+                    key={`${drop.id}-${index}`}
+                    className="absolute block h-[5px] w-[5px]"
+                    style={{
+                      backgroundColor: pixel.color,
+                      boxShadow:
+                        pixel.color === '#8a571f'
+                          ? 'inset 0 1px 0 rgba(255,222,182,0.28)'
+                          : undefined,
+                      left: `${pixel.x}px`,
+                      top: `${pixel.y}px`
+                    }}
+                  />
+                ))}
+
+                {isOwnNewPoop && (
+                  <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-[0.6rem] border border-[rgba(90,40,20,0.15)] bg-[rgba(255,248,242,0.92)] px-2 py-1 text-[10px] font-semibold tracking-[-0.02em] text-[#6b3512] shadow-[0_4px_12px_rgba(90,40,20,0.1)] backdrop-blur-md transition-transform hover:scale-105 active:scale-95">
+                    똥에 기록 남기기 📝
+                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent border-t-[rgba(255,248,242,0.92)]" />
+                  </div>
+                )}
+
+                {isPost && (
+                  <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-[0.6rem] border border-[rgba(20,60,90,0.15)] bg-[rgba(242,250,255,0.92)] px-2 py-1 text-[10px] font-semibold tracking-[-0.02em] text-[#124b6b] shadow-[0_4px_12px_rgba(20,60,90,0.1)] backdrop-blur-md transition-transform hover:scale-105 active:scale-95">
+                    {drop.postTitle || '기록된 똥 📜'}
+                    <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent border-t-[rgba(242,250,255,0.92)]" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -4472,6 +4499,29 @@ export default function BioVillageLanding() {
           </div>
         </div>
       ) : null}
+      {poopWriteTarget && (
+        <PoopWriteModal
+          dropId={poopWriteTarget.id}
+          dropX={poopWriteTarget.x}
+          dropY={poopWriteTarget.y}
+          onClose={() => setPoopWriteTarget(null)}
+          onSuccess={() => {
+            setPoopWriteTarget(null);
+            setPostRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
+      {poopPostViewTarget && poopPostViewTarget.postData && (
+        <PoopPostModal
+          post={poopPostViewTarget.postData}
+          onClose={() => setPoopPostViewTarget(null)}
+          onDelete={() => {
+            setPoopPostViewTarget(null);
+            setPostRefreshTrigger(prev => prev + 1);
+          }}
+          onCommentAdded={() => setPostRefreshTrigger(prev => prev + 1)}
+        />
+      )}
     </section>
   );
 }
