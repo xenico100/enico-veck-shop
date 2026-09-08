@@ -958,7 +958,7 @@ export default function ServicesSection({
               onMouseLeave={handleMouseLeave}
             >
               {servicesLoading && renderServiceSkeletonCards(4)}
-              {!servicesLoading && filteredServices.length === 0 && (
+              {!servicesLoading && !servicesError && filteredServices.length === 0 && (
                 <div className="flex min-h-[360px] w-full items-center justify-center border-t border-cyan-100/12 py-8 text-center text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
                 </div>
@@ -1056,7 +1056,7 @@ export default function ServicesSection({
           >
             <div className="scrollbar-hide flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1">
               {servicesLoading && renderServiceSkeletonCards(3, true)}
-              {!servicesLoading && filteredServices.length === 0 && (
+              {!servicesLoading && !servicesError && filteredServices.length === 0 && (
                 <div className="flex min-h-[280px] w-full items-center justify-center border-t border-cyan-100/12 py-6 text-center text-sm text-cyan-50/75">
                   등록된 서비스 게시글이 없습니다.
                 </div>

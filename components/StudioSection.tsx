@@ -2405,8 +2405,7 @@ export default function StudioSection({
               <>
                 {studioPosts.length === 0 ? (
                   <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/[0.08] px-5 py-4 text-sm text-cyan-50/78">
-                    실제 Studio 게시물이 아직 부족해서 줄별 placeholder 카드로
-                    채워져 있습니다.
+                    {postsError ? '스튜디오에 연결할 수 없습니다.' : '아직 공개된 작품이 없습니다.'}
                     {postsError ? (
                       <p className="mt-2 text-xs text-red-300/90">
                         {postsError}
@@ -2418,7 +2417,7 @@ export default function StudioSection({
                     {postsError}
                   </div>
                 ) : null}
-                {displayRows.map((row, rowIndex) => renderRow(row, rowIndex))}
+                {studioPosts.length > 0 && displayRows.map((row, rowIndex) => renderRow(row, rowIndex))}
               </>
             )}
           </div>

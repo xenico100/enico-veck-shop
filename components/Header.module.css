@@ -1,0 +1,98 @@
+.hud {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  font-family: Arial, sans-serif;
+  letter-spacing: 0;
+}
+.brand {
+  position: absolute;
+  left: 20px;
+  top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #263a32;
+  text-decoration: none;
+  pointer-events: auto;
+}
+.brand b {
+  font-size: 27px;
+  line-height: 1;
+  color: #a92243;
+}
+.brand span {
+  font-size: 12px;
+  border-left: 1px solid #9db9ab;
+  padding-left: 12px;
+}
+.hud header {
+  top: 16px;
+  right: 20px;
+}
+.hud header > div {
+  gap: 8px;
+}
+.hud header button {
+  font-family: Arial, sans-serif;
+  letter-spacing: 0;
+  border-radius: 6px;
+  box-shadow: 0 3px 0 #b5c8bd;
+  background: #fff !important;
+  color: #263a32 !important;
+  border: 1px solid #b5c8bd;
+  min-height: 40px;
+  font-size: 12px;
+}
+.hud header button:hover {
+  background: #edf6f0 !important;
+}
+.hud header button:focus-visible,
+.hud input:focus-visible,
+.brand:focus-visible {
+  outline: 3px solid #a92243;
+  outline-offset: 3px;
+}
+.hud header input {
+  font-family: Arial, sans-serif;
+  border-radius: 6px;
+  background: #fff !important;
+  color: #263a32 !important;
+  box-shadow: none;
+  border: 1px solid #b5c8bd;
+  height: 40px;
+}
+.hud header input::placeholder {
+  color: #597667 !important;
+}
+.hud > div[data-avatar-ui] {
+  top: 76px;
+  width: min(300px, calc(100vw - 200px));
+}
+.hud > div[data-avatar-ui] p {
+  font-family: Arial, sans-serif;
+  letter-spacing: 0;
+}
+@media (max-width: 600px) {
+  .brand {
+    left: 12px;
+    top: 18px;
+    gap: 8px;
+  }
+  .brand b {
+    font-size: 24px;
+  }
+  .brand span {
+    display: none;
+  }
+  .hud header {
+    right: 12px;
+    top: 12px;
+  }
+  .hud > div[data-avatar-ui] {
+    left: 12px;
+    top: 60px;
+    width: calc(100vw - 178px);
+  }
+}

@@ -66,7 +66,8 @@ export default function SideMenu({
   };
 
   const handleCommunityClick = () => {
-    onCommunityClick?.();
+    if (onCommunityClick) onCommunityClick();
+    else window.location.assign('/community');
     onClose();
   };
 

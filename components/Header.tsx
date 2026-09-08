@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Menu, MessageCircle, SendHorizontal } from 'lucide-react';
+import styles from './Header.module.css';
 
 import {
   BIO_VILLAGE_CHAT_EVENT_MESSAGE,
@@ -262,6 +263,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
       onPointerUp={() => stopHold()}
       onPointerLeave={() => stopHold()}
       onPointerCancel={() => stopHold()}
+      onKeyDown={(event) => {
+        if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
+          event.preventDefault();
+          beginHold(kind);
+        }
+      }}
+      onKeyUp={(event) => {
+        if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); stopHold(); }
+      }}
+      onBlur={() => stopHold()}
       onMouseDown={startHoldMouse(kind)}
       onMouseUp={() => stopHold()}
       onMouseLeave={() => stopHold()}
@@ -290,7 +301,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const visibleChatMessages = chatMessages.slice(-4);
 
   return (
-    <>
+    <div className={styles.hud}>
+      <a className={styles.brand} href="#home" data-avatar-ui="true"><b>夢想人</b><span>몽상인 광장</span></a>
       <div
         data-avatar-ui="true"
         className="pointer-events-none fixed left-3 top-3 z-40 w-[min(16rem,calc(100vw-10.25rem))] sm:left-4 sm:top-4 sm:w-[19rem] md:left-6 md:top-6"
@@ -327,7 +339,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             className="pointer-events-auto inline-flex items-center gap-2 border border-[rgba(96,24,24,0.9)] bg-[rgba(24,3,3,0.96)] px-3 py-2 font-[var(--font-brush)] text-[0.7rem] font-bold tracking-[0.16em] text-[rgba(255,241,236,0.96)] shadow-[0_10px_24px_rgba(0,0,0,0.34)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4"
             aria-label="메뉴 열기"
           >
-            <span>ACCESS</span>
+            <span>메뉴</span>
             <Menu className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-[1px]" />
           </button>
 
@@ -361,6 +373,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   onChange={(event) => setChatInput(event.target.value)}
                   maxLength={BIO_VILLAGE_CHAT_MAX_LENGTH}
                   placeholder="채팅"
+                  aria-label="광장 채팅"
                   className="h-9 min-w-0 flex-1 rounded-full border border-white/15 bg-black/55 px-3 text-[0.76rem] font-semibold text-white outline-none shadow-[0_10px_22px_rgba(0,0,0,0.22)] transition placeholder:text-white/45 focus:border-white/35 focus:bg-black/70"
                 />
                 <button
@@ -376,6 +389,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
       </header>
-    </>
+    </div>
   );
 }

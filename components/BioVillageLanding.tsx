@@ -9,6 +9,7 @@ import {
   useState
 } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { Navigation } from 'lucide-react';
 
 import { useAuth } from '@/app/context/AuthContext';
 import {
@@ -23,6 +24,8 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import PoopWriteModal from '@/components/PoopWriteModal';
 import PoopPostModal from '@/components/PoopPostModal';
+
+import { dreamPoints, readCollected, drawVillageGround, DREAM_COUNT } from '@/utils/village-exploration';
 
 const WORLD_HEIGHT = 4300;
 const MOBILE_WORLD_WIDTH = 1480;
@@ -1326,6 +1329,15 @@ export default function BioVillageLanding() {
   });
 
   const [worldActive, setWorldActive] = useState(true);
+  const collectedRef = useRef<Set<number>>(new Set());
+  const [collectedCount, setCollectedCount] = useState(0);
+  const [collectionSaved, setCollectionSaved] = useState(true);
+  useEffect(() => {
+    try {
+      collectedRef.current = new Set(readCollected(localStorage.getItem('mongsangin-dreams-v1')));
+      setCollectedCount(collectedRef.current.size);
+    } catch { setCollectionSaved(false); }
+  }, []);
   const [worldWidth, setWorldWidth] = useState(DESKTOP_MIN_WORLD_WIDTH);
   const [participantKey, setParticipantKey] = useState<string | null>(null);
   const [appearance, setAppearance] = useState<AppearanceState>({
@@ -1982,7 +1994,7 @@ export default function BioVillageLanding() {
   const openCommunityBoardPortal = () => {
     setSelectedTarget(null);
     setActiveVillageShopTab(null);
-    window.dispatchEvent(new CustomEvent('community:open-modal'));
+    window.location.assign('/community');
   };
 
   const openVillageShop = (
@@ -2000,13 +2012,13 @@ export default function BioVillageLanding() {
   };
 
   const jumpToVillageSection = (
-    sectionId: 'about' | 'services' | 'studio'
+    sectionId: 'about' | 'services' | 'studio' | 'community'
   ) => {
     setActiveVillageShopTab(null);
 
     if (sectionId === 'community') {
       window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('community:open-modal'));
+        window.location.assign('/community');
       }, 80);
       return;
     }
@@ -3074,8 +3086,9 @@ export default function BioVillageLanding() {
         });
     };
 
-    const updatePlayer = () => {
+    const updatePlayer = (frameScale: number) => {
       const player = playerRef.current;
+      const step = player.speed * frameScale;
       let dx = 0;
       let dy = 0;
 
@@ -3092,16 +3105,16 @@ export default function BioVillageLanding() {
         player.targetX = null;
         player.targetY = null;
         const length = Math.hypot(dx, dy) || 1;
-        player.vx = (dx / length) * player.speed;
-        player.vy = (dy / length) * player.speed;
+        player.vx = (dx / length) * step;
+        player.vy = (dy / length) * step;
       } else if (player.targetX !== null && player.targetY !== null) {
         const targetDx = player.targetX - player.x;
         const targetDy = player.targetY - player.y;
         const distance = Math.hypot(targetDx, targetDy);
 
-        if (distance > player.speed) {
-          player.vx = (targetDx / distance) * player.speed;
-          player.vy = (targetDy / distance) * player.speed;
+        if (distance > step) {
+          player.vx = (targetDx / distance) * step;
+          player.vy = (targetDy / distance) * step;
         } else {
           player.x = player.targetX;
           player.y = player.targetY;
@@ -3270,7 +3283,7 @@ export default function BioVillageLanding() {
       }
 
       time += 1;
-      updatePlayer();
+      updatePlayer(frameScale);
       updateRemoteActors();
       updateCamera(frameScale);
       const currentScrollY = cameraYRef.current;
@@ -3283,6 +3296,24 @@ export default function BioVillageLanding() {
       backgroundContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
       backgroundContext.fillStyle = 'rgba(248, 249, 250, 0.24)';
       backgroundContext.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      drawVillageGround(backgroundContext, window.innerWidth, window.innerHeight, cameraXRef.current, currentScrollY, worldWidthRef.current);
+      for (const point of dreamPoints(worldWidthRef.current)) {
+        if (collectedRef.current.has(point.id)) continue;
+        if (Math.hypot(playerRef.current.x - point.x, playerRef.current.y - point.y) < 38) {
+          collectedRef.current.add(point.id);
+          setCollectedCount(collectedRef.current.size);
+          try { localStorage.setItem('mongsangin-dreams-v1', JSON.stringify(Array.from(collectedRef.current))); }
+          catch { setCollectionSaved(false); }
+          continue;
+        }
+        const x = point.x - cameraXRef.current;
+        const y = point.y - currentScrollY + Math.sin(time * 0.045 + point.id) * 5;
+        backgroundContext.fillStyle = '#7863b5';
+        backgroundContext.fillRect(x - 4, y - 12, 8, 24);
+        backgroundContext.fillRect(x - 12, y - 4, 24, 8);
+        backgroundContext.fillStyle = '#fff';
+        backgroundContext.fillRect(x - 3, y - 3, 6, 6);
+      }
       avatarContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
       cellsRef.current.forEach((cell) => {
@@ -3429,12 +3460,20 @@ export default function BioVillageLanding() {
       frameRef.current = window.requestAnimationFrame(animate);
     };
 
+    const clearMovement = () => {
+      keysRef.current = {};
+      playerRef.current.vx = 0;
+      playerRef.current.vy = 0;
+      playerRef.current.targetX = null;
+      playerRef.current.targetY = null;
+    };
     resize();
     handleScroll();
     window.addEventListener('resize', resize);
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', clearMovement);
     window.addEventListener('contextmenu', handleContextMenu);
     window.addEventListener('click', handleClick);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -3447,6 +3486,7 @@ export default function BioVillageLanding() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', clearMovement);
       window.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('click', handleClick);
       window.removeEventListener('touchstart', handleTouchStart);
@@ -3470,6 +3510,16 @@ export default function BioVillageLanding() {
       className="relative isolate w-full overflow-hidden"
       style={{ minHeight: `${WORLD_HEIGHT}px` }}
     >
+      {worldActive && <div data-avatar-ui="true" style={{ position: 'fixed', bottom: 22, left: 16, zIndex: 35, background: '#fff', color: '#233c34', border: '1px solid #afc9ba', borderRadius: 6, padding: '12px 16px', fontFamily: 'system-ui, sans-serif', fontSize: 13, maxWidth: 'calc(100vw - 32px)', boxShadow: '0 4px 0 #afc9ba', pointerEvents: 'none' }}>
+        <strong>광장의 꿈 조각</strong><span style={{ marginLeft: 16, color: '#7853a0' }}>{collectedCount} / {DREAM_COUNT}</span>
+        {collectedCount < DREAM_COUNT && <button type="button" title="다음 꿈 조각으로 이동" aria-label="다음 꿈 조각으로 이동" style={{ pointerEvents: 'auto', marginLeft: 12, padding: 6, border: '1px solid #afc9ba', borderRadius: 4, background: '#edf6f0', color: '#263a32', verticalAlign: 'middle' }} onClick={() => {
+          const next = dreamPoints(worldWidthRef.current).filter(point => !collectedRef.current.has(point.id)).sort((a, b) => Math.hypot(a.x - playerRef.current.x, a.y - playerRef.current.y) - Math.hypot(b.x - playerRef.current.x, b.y - playerRef.current.y))[0];
+          if (next) { playerRef.current.targetX = next.x; playerRef.current.targetY = next.y; }
+        }}><Navigation size={16} /></button>}
+        <progress aria-label="꿈 조각 수집" value={collectedCount} max={DREAM_COUNT} style={{ display: 'block', width: 180, height: 7, marginTop: 8, accentColor: '#7853a0' }} />
+        {collectedCount === DREAM_COUNT && <div role="status" style={{ marginTop: 8 }}>광장 탐험 완료!</div>}
+        {!collectionSaved && <div role="status">진행 상황은 이번 방문에만 유지됩니다.</div>}
+      </div>}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes village-float {
           0% { transform: translateY(0px); }

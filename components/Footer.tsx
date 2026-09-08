@@ -1,6 +1,6 @@
 'use client';
 
-import { BRAND_NAME } from '@/utils/branding';
+import { BRAND_NAME, CONTACT_EMAIL, YOUTUBE_URL, DESIGNER_BRAND_URL } from '@/utils/branding';
 
 export default function Footer() {
   return (
@@ -21,9 +21,7 @@ export default function Footer() {
           <div>
             <p className="section-kicker !tracking-[0.24em]">Contact</p>
             <div className="mt-3 space-y-1.5 text-sm text-[rgba(222,193,185,0.74)]">
-              <p>070@zeus-studio.net</p>
-              <p>+82 2-1234-5678</p>
-              <p>서울 강남구 양재천로 551 4F</p>
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
             </div>
           </div>
 
@@ -31,22 +29,22 @@ export default function Footer() {
             <p className="section-kicker !tracking-[0.24em]">Network</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <a
-                href="#"
+                href={DESIGNER_BRAND_URL}
                 className="y2k-button y2k-button-ghost y2k-button-fade-tight min-h-9 px-3 !text-[0.68rem] no-underline"
               >
-                Instagram
+                ENICO VECK
               </a>
               <a
-                href="#"
+                href={YOUTUBE_URL}
                 className="y2k-button y2k-button-ghost y2k-button-fade-tight min-h-9 px-3 !text-[0.68rem] no-underline"
               >
                 YouTube
               </a>
               <a
-                href="#"
+                href="/community"
                 className="y2k-button y2k-button-ghost y2k-button-fade-tight min-h-9 px-3 !text-[0.68rem] no-underline"
               >
-                Facebook
+                Community
               </a>
             </div>
           </div>
