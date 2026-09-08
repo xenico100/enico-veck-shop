@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { User } from '@supabase/supabase-js';
 
 import { createClient } from '@/utils/supabase/client';
+import { resolveUserRoleForUserLike } from '@/utils/service-posts';
 
 type AuthUser = {
   id: string;
@@ -32,14 +33,19 @@ const mapUser = (user: User | null): AuthUser | null => {
   const name = (metadata.full_name as string | undefined)
     ?? (metadata.name as string | undefined)
     ?? fallbackName;
+  const appMetadata =
+    user.app_metadata && typeof user.app_metadata === 'object'
+      ? (user.app_metadata as Record<string, unknown>)
+      : null;
 
   return {
     id: user.id,
     name,
     email: user.email ?? '',
-    role:
-      (user.app_metadata?.role as string | undefined) ??
-      (user.user_metadata?.role as string | undefined)
+    role: resolveUserRoleForUserLike({
+      email: user.email ?? null,
+      app_metadata: appMetadata
+    })
   };
 };
 

@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { X, ShoppingCart } from 'lucide-react';
+import { ShieldCheck, X, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
+import { isAdminRoleValue } from '@/utils/service-posts';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -39,6 +40,8 @@ export default function SideMenu({
   const totalItems = itemCount;
   const isAuthenticated = !!auth?.isAuthenticated;
   const user = auth?.user;
+  const isAdmin =
+    isAuthenticated && !auth?.loading && isAdminRoleValue(user?.role);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
@@ -141,6 +144,18 @@ export default function SideMenu({
                 )}
               </li>
             ))}
+            {isAdmin && (
+              <li>
+                <a
+                  href="/admin"
+                  onClick={onClose}
+                  className="flex items-center gap-2 border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] no-underline transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
+                >
+                  <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+                  <span>관리자</span>
+                </a>
+              </li>
+            )}
           </ul>
 
           <div className="mt-4 space-y-2 border-t border-[rgba(92,15,15,0.44)] pt-4 sm:mt-5 sm:pt-5">

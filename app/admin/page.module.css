@@ -1,0 +1,496 @@
+.root {
+  --admin-ink: #1c1111;
+  --admin-ink-soft: #735f5f;
+  --admin-red: #d10000;
+  --admin-red-deep: #8d0000;
+  --admin-rule: #e6dada;
+  --admin-rule-strong: #cdaaaa;
+  --admin-surface: #fcf9f9;
+
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #fff;
+  color: var(--admin-ink);
+  font-family: var(--font-sans), 'Noto Sans KR', 'Pretendard', sans-serif;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.root h1,
+.root h2,
+.root h3,
+.root h4,
+.root h5,
+.root h6 {
+  margin: 0;
+  color: var(--admin-ink) !important;
+  font-family: var(--font-sans), 'Noto Sans KR', 'Pretendard', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+.root button,
+.root input,
+.root select,
+.root textarea {
+  font-family: inherit;
+  letter-spacing: 0;
+}
+
+.root ::selection {
+  background: rgba(209, 0, 0, 0.16);
+  color: var(--admin-ink);
+}
+
+.sidebar {
+  display: flex;
+  width: 16rem;
+  flex: 0 0 16rem;
+  flex-direction: column;
+  border-right: 1px solid var(--admin-rule);
+  background: #fff;
+  padding: 2rem 1.35rem 1.5rem;
+}
+
+.sidebarHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.brandLink {
+  display: inline-flex;
+  flex-direction: column;
+  color: var(--admin-red-deep);
+  text-decoration: none;
+}
+
+.brandLink:focus-visible {
+  outline: 2px solid var(--admin-red);
+  outline-offset: 0.35rem;
+}
+
+.brandLogo {
+  font-family: var(--font-brush), var(--font-display-kr), serif !important;
+  font-size: 2rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.brandKorean {
+  margin-top: 0.3rem;
+  color: var(--admin-ink-soft);
+  font-family: var(--font-brush), var(--font-display-kr), serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  line-height: 1;
+}
+
+.adminLabel,
+.sectionKicker {
+  color: var(--admin-red);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.navigation {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 3.4rem;
+}
+
+.navLink,
+.returnLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  color: var(--admin-ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.navLink {
+  border-left: 2px solid transparent;
+  padding: 0.65rem 0.75rem;
+}
+
+.navLink:hover,
+.navLink:focus-visible,
+.returnLink:hover,
+.returnLink:focus-visible {
+  color: var(--admin-red);
+}
+
+.navLink:focus-visible,
+.returnLink:focus-visible {
+  outline: 2px solid var(--admin-red);
+  outline-offset: 0.2rem;
+}
+
+.navLinkSelected {
+  border-left-color: var(--admin-red);
+  background: var(--admin-surface);
+  color: var(--admin-red-deep);
+}
+
+.returnLink {
+  margin-top: auto;
+  border-top: 1px solid var(--admin-rule);
+  padding: 1.2rem 0.75rem 0.1rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.main {
+  min-width: 0;
+  flex: 1;
+  background: #fff;
+  padding: clamp(1.5rem, 4vw, 4rem) clamp(1.25rem, 5vw, 5rem);
+}
+
+.mainInner {
+  width: min(100%, 58rem);
+  margin: 0 auto;
+}
+
+.mainHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--admin-rule);
+  padding-bottom: 1.35rem;
+}
+
+.pageTitle {
+  font-size: clamp(1.55rem, 2vw, 2rem);
+  line-height: 1.2;
+}
+
+.storageStatus {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 9.5rem;
+  color: var(--admin-ink-soft);
+}
+
+.storageMark {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 0.5rem;
+  margin-top: 0.35rem;
+  background: var(--admin-ink-soft);
+}
+
+.storageStatus.saved .storageMark {
+  background: #2e6b4d;
+}
+
+.storageStatus.unsaved .storageMark {
+  background: var(--admin-red);
+}
+
+.storageLabel,
+.storageState {
+  display: block;
+}
+
+.storageLabel {
+  color: var(--admin-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.storageState {
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+}
+
+.editorSection {
+  padding-top: 2.6rem;
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+
+.editorForm {
+  width: 100%;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(12rem, 0.75fr);
+  gap: 2rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.fieldLabel {
+  color: var(--admin-ink);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-bottom: 1px solid var(--admin-rule-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--admin-ink);
+  font-size: 1rem;
+  outline: 0;
+  padding: 0.65rem 0;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #a18b8b;
+  opacity: 1;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--admin-red);
+  box-shadow: 0 2px 0 var(--admin-red);
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.field select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 2rem;
+}
+
+.selectIcon {
+  position: absolute;
+  top: 50%;
+  right: 0.15rem;
+  pointer-events: none;
+  color: var(--admin-red-deep);
+  transform: translateY(-50%);
+}
+
+.bodyField {
+  margin-top: 2.5rem;
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 21rem;
+  resize: vertical;
+  border: 1px solid var(--admin-rule-strong);
+  border-radius: 2px;
+  background: var(--admin-surface);
+  color: var(--admin-ink);
+  font-size: 1rem;
+  line-height: 1.8;
+  outline: 0;
+  padding: 1rem;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--admin-rule);
+  padding-top: 1.2rem;
+}
+
+.storageNote {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  max-width: 18rem;
+  margin: 0;
+  color: var(--admin-ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.storageNote svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--admin-red-deep);
+}
+
+.actionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.8rem;
+  border: 1px solid var(--admin-rule-strong);
+  border-radius: 2px;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--admin-red);
+  outline-offset: 2px;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--admin-red);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.clearButton {
+  background: #fff;
+  color: var(--admin-ink-soft);
+}
+
+.saveButton {
+  border-color: var(--admin-red-deep);
+  background: #fff;
+  color: var(--admin-red-deep);
+}
+
+.feedback {
+  min-height: 1.45rem;
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.success {
+  color: #2e6b4d;
+}
+
+.info {
+  color: var(--admin-ink-soft);
+}
+
+.error {
+  color: var(--admin-red-deep);
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .root {
+    display: block;
+    overflow: visible;
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--admin-rule);
+    padding: 1.25rem;
+  }
+
+  .sidebarHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .navigation {
+    margin-top: 1.4rem;
+  }
+
+  .returnLink {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .main {
+    padding: 1.5rem 1.25rem 2.5rem;
+  }
+
+  .mainHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .storageStatus {
+    min-width: 0;
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+  }
+
+  .bodyField {
+    margin-top: 1.8rem;
+  }
+
+  .formActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .storageNote {
+    max-width: none;
+  }
+
+  .actionGroup {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 430px) {
+  .actionGroup {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+}
