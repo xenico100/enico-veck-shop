@@ -50,8 +50,8 @@
 }
 .map {
   position: fixed;
-  right: 16px;
-  bottom: 22px;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   z-index: 45;
   font-family: Arial, sans-serif;
 }
@@ -63,9 +63,11 @@
   background: #fff;
   border: 1px solid #a8c2b5;
   border-radius: 4px;
-  min-height: 42px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 10px 14px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 .mapToggle {
   margin-left: auto;
@@ -77,6 +79,12 @@
   right: 0;
   display: grid;
   width: 180px;
+  max-height: calc(
+    100dvh - 92px - env(safe-area-inset-top, 0px) -
+      env(safe-area-inset-bottom, 0px)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 8px;
   background: #f4f8f5;
   border: 1px solid #a8c2b5;

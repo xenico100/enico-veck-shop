@@ -20,8 +20,10 @@
   background: #213b465c;
 }
 .room {
+  --room-header-height: calc(76px + env(safe-area-inset-top, 0px));
   position: fixed;
-  inset: 0;
+  inset: var(--village-viewport-top, 0px) 0 auto;
+  height: var(--village-viewport-height, 100dvh);
   z-index: 47;
   background: #e5ede4;
   overflow: hidden;
@@ -34,6 +36,7 @@
 .exhibit button,
 .letterDesk button {
   cursor: pointer;
+  touch-action: manipulation;
   transition:
     background 0.16s,
     transform 0.16s;
@@ -53,11 +56,13 @@
   cursor: default;
 }
 .roomHeader {
-  flex: 0 0 76px;
+  flex: 0 0 var(--room-header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 32px;
+  padding: calc(12px + env(safe-area-inset-top, 0px))
+    max(32px, env(safe-area-inset-right, 0px)) 12px
+    max(32px, env(safe-area-inset-left, 0px));
   background: #f5f6ee;
   border-bottom: 2px solid #9db9ad;
   gap: 16px;
@@ -86,7 +91,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 42px;
+  min-height: 44px;
   padding: 10px 16px;
   border: 1px solid #9bb4ab;
   background: #f7f9f3;
@@ -95,8 +100,8 @@
   font-weight: 600;
 }
 .icon {
-  width: 42px;
-  flex: 0 0 42px;
+  width: 44px;
+  flex: 0 0 44px;
   padding: 10px;
 }
 .primary {
@@ -112,6 +117,7 @@
   min-height: 0;
   flex: 1;
   overflow: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
 }
@@ -245,6 +251,7 @@
   border-top: 4px solid #355950;
   flex-shrink: 0;
   min-height: 218px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
 }
 .portrait {
   width: 86px;
@@ -302,20 +309,21 @@
   padding: 8px 0;
   font-size: 13px;
   font-weight: 650;
-  min-height: 36px;
+  min-height: 44px;
 }
 .choices button:hover {
   color: #b44664;
 }
 .activity {
   position: absolute;
-  inset: 76px 0 0;
+  inset: var(--room-header-height) 0 0;
   z-index: 2;
   background: #e8eee7;
   display: flex;
   flex-direction: column;
 }
 .activityHeader {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -331,8 +339,12 @@
 .activityContent {
   flex: 1;
   overflow-y: auto;
-  padding: 28px;
+  padding: 28px max(28px, env(safe-area-inset-right, 0px))
+    max(28px, env(safe-area-inset-bottom, 0px))
+    max(28px, env(safe-area-inset-left, 0px));
   min-height: 0;
+  overscroll-behavior: contain;
+  scroll-padding-block: 20px;
 }
 .letterDesk {
   width: 100%;
@@ -376,7 +388,7 @@
   padding: 12px 4px;
   color: #29493e;
   outline-offset: 3px;
-  font-size: 13px;
+  font-size: 16px;
   border: 0;
 }
 .pageTurn {
@@ -436,7 +448,7 @@
   border: 1px solid #b8c9bb;
   padding: 12px;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 400;
   line-height: 1.8;
   color: #2f4a44;
@@ -492,7 +504,7 @@
   display: inline-flex;
   gap: 7px;
   align-items: center;
-  min-height: 36px;
+  min-height: 44px;
   font-size: 12px;
 }
 .fine {
@@ -609,10 +621,16 @@
   font-size: 10px;
 }
 .journal {
+  --journal-bottom: calc(118px + env(safe-area-inset-bottom, 0px));
   position: fixed;
   z-index: 44;
-  left: 18px;
-  bottom: 108px;
+  left: max(18px, env(safe-area-inset-left, 0px));
+  bottom: var(--journal-bottom);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(
+    100dvh - var(--journal-bottom) - max(70px, env(safe-area-inset-top, 0px))
+  );
   width: 288px;
   max-width: calc(100vw - 84px);
   background: #fcfcf2;
@@ -620,6 +638,7 @@
   box-shadow: 3px 4px 0 #284c4033;
 }
 .journalToggle {
+  flex-shrink: 0;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -651,6 +670,9 @@
 }
 .journalBody {
   padding: 0 16px 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .journalBody p {
   font-size: 12px;
@@ -700,7 +722,8 @@
   background: #f6f8f0;
   color: #355547;
   border: 1px solid #a6bcac;
-  font-size: 12px;
+  font-size: 16px;
+  min-height: 44px;
 }
 .objectStage {
   position: relative;
@@ -798,15 +821,25 @@
   }
 }
 @media (max-width: 600px) {
+  .room {
+    --room-header-height: calc(66px + env(safe-area-inset-top, 0px));
+  }
   .roomHeader {
-    flex-basis: 66px;
-    padding: 10px 16px;
+    padding: calc(10px + env(safe-area-inset-top, 0px))
+      max(16px, env(safe-area-inset-right, 0px)) 10px
+      max(16px, env(safe-area-inset-left, 0px));
+    gap: 8px;
   }
   .roomHeader h2 {
     font-size: 18px;
   }
-  .activity {
-    top: 66px;
+  .roomHeader > .actions {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .roomHeader .exit {
+    white-space: nowrap;
+    padding-inline: 12px;
   }
   .scene {
     min-height: 280px;
@@ -840,7 +873,9 @@
   }
   .dialogue {
     min-height: 270px;
-    padding: 18px 18px 22px;
+    padding: 18px max(18px, env(safe-area-inset-right, 0px))
+      max(22px, env(safe-area-inset-bottom, 0px))
+      max(18px, env(safe-area-inset-left, 0px));
     gap: 12px;
   }
   .portrait {
@@ -871,19 +906,31 @@
     line-height: 1.5;
   }
   .activityHeader {
-    padding: 10px 14px;
+    padding: 10px max(14px, env(safe-area-inset-right, 0px)) 10px
+      max(14px, env(safe-area-inset-left, 0px));
   }
   .activityHeader > span {
     display: none;
   }
   .activityContent {
-    padding: 20px 16px;
+    padding: 20px max(16px, env(safe-area-inset-right, 0px))
+      max(20px, env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
   }
   .deskHeader h2 {
     font-size: 20px;
   }
   .paper {
     padding: 22px 20px;
+  }
+  .paper textarea {
+    height: 180px;
+    min-height: 112px;
+  }
+  .postmark {
+    width: 80px;
+    margin-bottom: 14px;
+    padding: 6px;
   }
   .paper h3 {
     font-size: 22px;
@@ -892,9 +939,8 @@
     font-size: 14px;
   }
   .journal {
-    left: 14px;
+    left: max(14px, env(safe-area-inset-left, 0px));
     width: 250px;
-    bottom: 106px;
   }
   .puzzle h2 {
     font-size: 23px;
@@ -914,11 +960,11 @@
   .objectStage {
     gap: 4px;
     padding: 12px 8px;
-    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
   }
   .objectStage .icon {
-    width: 36px;
-    min-height: 40px;
+    width: 44px;
+    min-height: 44px;
     padding: 8px;
   }
   .objectStage figure {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ShieldCheck, X, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
@@ -42,11 +42,42 @@ export default function SideMenu({
   const user = auth?.user;
   const isAdmin =
     isAuthenticated && !auth?.loading && isAdminRoleValue(user?.role);
+  const menuRef = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    document.body.style.overflow = 'hidden';
+    menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeRef.current();
+      }
+      if (event.key !== 'Tab') return;
+      const elements = menuRef.current?.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), a[href]'
+      );
+      if (!elements?.length) return;
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected)
+        previousFocus.focus();
     };
   }, [isOpen]);
 
@@ -84,6 +115,9 @@ export default function SideMenu({
     }
   };
 
+  // A hidden dialog still pauses the village engine and remains focusable.
+  if (!isOpen) return null;
+
   return (
     <>
       <div
@@ -94,10 +128,20 @@ export default function SideMenu({
       />
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-[18rem] max-w-[90vw] flex-col overflow-hidden border-l border-[rgba(103,14,14,0.72)] bg-[linear-gradient(180deg,rgba(15,0,0,0.98),rgba(7,0,0,0.96))] shadow-[-30px_0_80px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-transform duration-300 sm:w-[24rem] sm:max-w-[90vw] ${
+        ref={menuRef}
+        style={{
+          top: 'var(--village-viewport-top, 0px)',
+          bottom: 'auto',
+          height: 'var(--village-viewport-height, 100dvh)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
+        className={`fixed inset-y-0 right-0 z-50 flex w-[18rem] max-w-[90vw] flex-col overflow-hidden border-l border-[rgba(103,14,14,0.72)] bg-[linear-gradient(180deg,rgba(15,0,0,0.98),rgba(7,0,0,0.96))] shadow-[-30px_0_80px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-transform duration-300 [&_button]:!min-h-11 [&_a]:flex [&_a]:min-h-11 [&_a]:items-center sm:w-[24rem] sm:max-w-[90vw] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         role="dialog"
+        aria-label="마을 메뉴"
         aria-modal="true"
         data-avatar-ui="true"
         onClick={event => event.stopPropagation()}
@@ -132,7 +176,7 @@ export default function SideMenu({
                         ? handleCommunityClick
                         : handleDatingClick
                     }
-                    className="block w-full border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 text-left font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
+                    className="block w-full border-b border-[rgba(92,15,15,0.34)] bg-transparent px-1 py-2.5 text-left font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
                   >
                     {item.label}
                   </button>

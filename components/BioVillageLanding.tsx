@@ -3557,15 +3557,15 @@ export default function BioVillageLanding() {
       className="relative isolate w-full overflow-hidden"
       style={{ minHeight: `${WORLD_HEIGHT}px` }}
     >
-      {worldActive && <div data-avatar-ui="true" style={{ position: 'fixed', bottom: 22, left: 16, zIndex: 35, background: '#fff', color: '#233c34', border: '1px solid #afc9ba', borderRadius: 6, padding: '12px 16px', fontFamily: 'system-ui, sans-serif', fontSize: 13, maxWidth: 'calc(100vw - 32px)', boxShadow: '0 4px 0 #afc9ba', pointerEvents: 'none' }}>
-        <strong>광장의 꿈 조각</strong><span style={{ marginLeft: 16, color: '#7853a0' }}>{collectedCount} / {DREAM_COUNT}</span>
-        {collectedCount < DREAM_COUNT && <button type="button" title="다음 꿈 조각으로 이동" aria-label="다음 꿈 조각으로 이동" style={{ pointerEvents: 'auto', marginLeft: 12, padding: 6, border: '1px solid #afc9ba', borderRadius: 4, background: '#edf6f0', color: '#263a32', verticalAlign: 'middle' }} onClick={() => {
+      {worldActive && <div data-avatar-ui="true" style={{ position: 'fixed', bottom: 'calc(22px + env(safe-area-inset-bottom, 0px))', left: 'max(16px, env(safe-area-inset-left, 0px))', zIndex: 35, background: '#fff', color: '#233c34', border: '1px solid #afc9ba', borderRadius: 6, padding: '10px 12px', display: 'grid', gridTemplateColumns: 'auto auto 44px', alignItems: 'center', gap: 8, fontFamily: 'system-ui, sans-serif', fontSize: 12, maxWidth: 'calc(100vw - 86px)', boxShadow: '0 4px 0 #afc9ba', pointerEvents: 'none' }}>
+        <strong>광장의 꿈 조각</strong><span style={{ color: '#7853a0', whiteSpace: 'nowrap' }}>{collectedCount} / {DREAM_COUNT}</span>
+        {collectedCount < DREAM_COUNT && <button type="button" title="다음 꿈 조각으로 이동" aria-label="다음 꿈 조각으로 이동" style={{ pointerEvents: 'auto', padding: 12, minWidth: 44, minHeight: 44, border: '1px solid #afc9ba', borderRadius: 4, background: '#edf6f0', color: '#263a32', verticalAlign: 'middle' }} onClick={() => {
           const next = dreamPoints(worldWidthRef.current).filter(point => !collectedRef.current.has(point.id)).sort((a, b) => Math.hypot(a.x - playerRef.current.x, a.y - playerRef.current.y) - Math.hypot(b.x - playerRef.current.x, b.y - playerRef.current.y))[0];
           if (next) { playerRef.current.targetX = next.x; playerRef.current.targetY = next.y; }
         }}><Navigation size={16} /></button>}
-        <progress aria-label="꿈 조각 수집" value={collectedCount} max={DREAM_COUNT} style={{ display: 'block', width: 180, height: 7, marginTop: 8, accentColor: '#7853a0' }} />
-        {collectedCount === DREAM_COUNT && <div role="status" style={{ marginTop: 8 }}>광장 탐험 완료!</div>}
-        {!collectionSaved && <div role="status">진행 상황은 이번 방문에만 유지됩니다.</div>}
+        <progress aria-label="꿈 조각 수집" value={collectedCount} max={DREAM_COUNT} style={{ display: 'block', gridColumn: '1 / -1', width: '100%', height: 7, accentColor: '#7853a0' }} />
+        {collectedCount === DREAM_COUNT && <div role="status" style={{ gridColumn: '1 / -1' }}>광장 탐험 완료!</div>}
+        {!collectionSaved && <div role="status" style={{ gridColumn: '1 / -1' }}>진행 상황은 이번 방문에만 유지됩니다.</div>}
       </div>}
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes village-float {

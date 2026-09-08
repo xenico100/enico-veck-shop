@@ -8,8 +8,8 @@
 }
 .brand {
   position: absolute;
-  left: 20px;
-  top: 18px;
+  left: max(20px, env(safe-area-inset-left, 0px));
+  top: calc(18px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -28,8 +28,8 @@
   padding-left: 12px;
 }
 .hud header {
-  top: 16px;
-  right: 20px;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: max(20px, env(safe-area-inset-right, 0px));
 }
 .hud header > div {
   gap: 8px;
@@ -42,7 +42,8 @@
   background: #fff !important;
   color: #263a32 !important;
   border: 1px solid #b5c8bd;
-  min-height: 40px;
+  min-height: 44px;
+  min-width: 44px;
   font-size: 12px;
 }
 .hud header button:hover {
@@ -61,7 +62,8 @@
   color: #263a32 !important;
   box-shadow: none;
   border: 1px solid #b5c8bd;
-  height: 40px;
+  height: 44px;
+  font-size: 16px;
 }
 .hud header input::placeholder {
   color: #597667 !important;
@@ -76,8 +78,8 @@
 }
 @media (max-width: 600px) {
   .brand {
-    left: 12px;
-    top: 18px;
+    left: max(12px, env(safe-area-inset-left, 0px));
+    top: calc(18px + env(safe-area-inset-top, 0px));
     gap: 8px;
   }
   .brand b {
@@ -87,8 +89,8 @@
     display: none;
   }
   .hud header {
-    right: 12px;
-    top: 12px;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    top: calc(12px + env(safe-area-inset-top, 0px));
   }
   .hud > div[data-avatar-ui] {
     left: 12px;

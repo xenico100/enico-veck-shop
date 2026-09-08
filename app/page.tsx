@@ -8,6 +8,7 @@ import MainContent from '../components/MainContent';
 import { useAuth } from './context/AuthContext';
 import VillageInterior from '@/components/VillageInterior';
 import VillageStoryJournal from '@/components/VillageStoryJournal';
+import { observeVillageViewport } from '@/utils/village-viewport';
 import {
   findBuilding,
   VILLAGE_BUILDING_EVENT,
@@ -45,6 +46,7 @@ type AuthHookDetail = {
 };
 
 export default function LandingPage() {
+  useEffect(() => observeVillageViewport(window), []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
 

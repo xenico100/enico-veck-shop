@@ -41,3 +41,23 @@ The migrations and role-policy changes above came from the previous integration 
 - The repository still has 74 pre-existing TypeScript diagnostics outside the changed modules, primarily legacy Supabase types and unused design exports/UI dependencies. Changed story/game modules typecheck without diagnostics. The existing build configuration skips type validation; build success is not a clean repository-wide typecheck.
 - The inherited hold-to-poop/cleanup mechanism remains connected but its long-hold timing was not revalidated by the browser automation in this story pass. The persistent record read/write path was verified independently.
 - Local Chrome verification does not establish that a remote hosting deployment has completed.
+
+## Mobile Audit (2026-09-09)
+
+Found and fixed during the final mobile pass:
+
+- Closing the old menu left a hidden `role=dialog` in the DOM, which paused the village engine indefinitely. Closed menus now unmount; focus, Escape and body-scroll cleanup are scoped to the open menu.
+- The expanded journal started at y=-20.9 in an 844 x 390 landscape viewport. It now starts at y=70, remains within the screen, and scrolls internally. The map destination list is also height-bounded.
+- Primary room, map, menu, chat and collection controls now have at least 44px touch targets. The 320px store header keeps its title, cart and exit in one row.
+- Letter/search/chat inputs use 16px text. The letter composer uses a shorter mobile textarea and retains its existing session draft when leaving and reopening the workbench.
+- Portalled rooms track the visual viewport height and offset, with a window-resize fallback and native pinch-zoom preservation. Safe-area padding was added around room content and fixed controls. The implementation follows the [VisualViewport API](https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport); real keyboard behavior still requires device testing.
+- Dating and Community menu buttons now explicitly use a transparent background, fixing their inherited light-on-light rendering.
+
+Verification coverage:
+
+- `node test/village-mobile.browser.mjs` runs an isolated anonymous Chromium session against the local production server. It checks 320 x 700, 390 x 844 and 844 x 390: journal bounds, menu-open/close, no hidden dialog after close, actual walking into the store, all six room headers, minimum header-button sizes, horizontal overflow and uncaught browser errors. It does not publish content or perform purchases. The optional runner uses pinned `agent-browser@0.37.1` via npx.
+- Signed-in Chrome/Playwright: 320px menu visibility and contrast, administrator link, menu focus wrap and Escape, map-to-store walking after menu close, store-to-cart and visible cart controls.
+- Signed-in letter draft entered at 390 x 844, then resized to 390 x 390 to simulate reduced available height. Scrolling reached the enabled publish button; leaving/reopening the workbench restored title and body. The test draft was cleared without publication.
+- Seventeen Node tests pass, including new viewport keyboard-height/pan, zoom and listener-cleanup cases. The production build passes. The existing 74 unrelated TypeScript diagnostics remain unchanged; no diagnostics reference the mobile changes.
+
+These are desktop Chromium viewport tests, not physical touchscreen, iPhone Safari, on-screen keyboard, native back-swipe, or remote deployment verification. Safe-area behavior is implemented but has not been observed on a notched physical device in this pass. The other payment/media/long-hold limits above still apply.
