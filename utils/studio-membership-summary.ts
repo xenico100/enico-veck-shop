@@ -159,7 +159,7 @@ const normalizeIso = (value: unknown) => {
   return parsed.toISOString();
 };
 
-const hasMissingOrdersMetadataColumnError = (error: unknown) => {
+const hasMissingMembershipOrderColumnsError = (error: unknown) => {
   if (!error || typeof error !== 'object') return false;
   const row = error as Record<string, unknown>;
   const message = typeof row.message === 'string' ? row.message : '';
@@ -167,8 +167,9 @@ const hasMissingOrdersMetadataColumnError = (error: unknown) => {
   const hint = typeof row.hint === 'string' ? row.hint : '';
   const combined = `${message} ${details} ${hint}`.toLowerCase();
   return (
-    combined.includes('orders.metadata') ||
-    (combined.includes('metadata') && combined.includes('orders'))
+    combined.includes('orders') &&
+    ['metadata', 'user_id', 'status'].some((column) => combined.includes(column)) &&
+    (row.code === '42703' || combined.includes('does not exist'))
   );
 };
 
@@ -433,7 +434,8 @@ export async function getStudioMembershipSummaryMapForUsers(
     .order('created_at', { ascending: false });
 
   if (membershipChangeQuery.error) {
-    if (!hasMissingOrdersMetadataColumnError(membershipChangeQuery.error)) {
+    // Older commerce schemas do not support optional scheduled membership changes.
+    if (!hasMissingMembershipOrderColumnsError(membershipChangeQuery.error)) {
       console.error(
         '[studio-membership-summary] membership change orders query failed',
         membershipChangeQuery.error

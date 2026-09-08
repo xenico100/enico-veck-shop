@@ -26,6 +26,7 @@ import {
   type ServicePost
 } from '@/utils/service-posts';
 import { extractServiceContentText } from '@/utils/service-content';
+import VillageExhibit from './VillageExhibit';
 
 const categories = [ALL_SERVICE_CATEGORIES_LABEL, ...SERVICE_CATEGORIES];
 
@@ -96,12 +97,14 @@ const serviceSwatchBgClasses: Record<string, string> = {
 };
 
 type ServicesSectionProps = {
+  game?: boolean;
   mode?: 'modal' | 'page';
   onOpenCart?: () => void;
   sectionId?: string;
 };
 
 export default function ServicesSection({
+  game = false,
   mode = 'page',
   onOpenCart,
   sectionId = 'services'
@@ -191,9 +194,11 @@ export default function ServicesSection({
     const images =
       Array.isArray(post.image_urls) && post.image_urls.length > 0
         ? post.image_urls.filter(Boolean)
-        : [
-            'https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
-          ];
+        : game
+          ? []
+          : [
+              'https://images.unsplash.com/photo-1769509068789-f242b5a6fc47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080'
+            ];
     const category =
       normalizeServiceCategory(post.category?.trim()) || SERVICE_CATEGORIES[0];
     const summary = post.summary?.trim() || category;
@@ -217,7 +222,7 @@ export default function ServicesSection({
       priceAmount: typeof post.price_from === 'number' ? post.price_from : null,
       currency: post.currency || 'KRW',
       category,
-      image: images[0],
+      image: images[0] || '',
       images,
       colors: categoryColorPresets[category] ?? [
         '#1a1a1a',
@@ -873,264 +878,294 @@ export default function ServicesSection({
         </div>
       ) : null}
 
-      <div
-        className={`mx-auto w-full tech-panel scanline animate-rise ${
-          isModalMode
-            ? 'max-w-none rounded-none p-3 sm:p-4 md:p-5'
-            : 'max-w-7xl p-4 sm:p-5 md:p-8'
-        }`}
-      >
-        {/* Title */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="section-kicker">Goods</p>
-            <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">
-              Mongsangin Goods
-            </h2>
-          </div>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                setCreateError(null);
-                setCreateMessage(null);
-                setIsCreateModalOpen(true);
-              }}
-              className={adminWriteButtonClass}
-            >
-              <Plus className="h-4 w-4" />
-              게시물 작성
-            </button>
-          )}
-        </div>
-
-        {/* Category Tabs */}
-        <div className="mb-10 overflow-x-auto pb-2 md:mb-12">
-          <div className={segmentedContainerClass}>
-            {categories.map((category) => (
-              <PillTab
-                key={category}
-                onClick={() => handleCategoryChange(category)}
-                active={activeCategory === category}
-                className="whitespace-nowrap"
-              >
-                {category}
-              </PillTab>
-            ))}
-          </div>
-        </div>
-
-        {/* Services Carousel */}
-        <div className="relative">
-          {servicesError && (
-            <div className="mb-6 rounded-2xl border border-red-300/30 bg-red-300/10 p-4 text-sm text-red-100">
-              {servicesError}
+      {game ? (
+        <VillageExhibit
+          kind="goods"
+          items={serviceItems.map((item) => ({
+            ...item,
+            subtitle: item.price
+          }))}
+          loading={servicesLoading}
+          error={servicesError}
+          onRetry={() => void fetchServices()}
+          onInspect={(id) => {
+            const item = serviceItems.find((i) => i.id === id);
+            if (item) void openServiceDetail(item);
+          }}
+          onCreate={
+            isAdmin
+              ? () => {
+                  setCreateError(null);
+                  setCreateMessage(null);
+                  setIsCreateModalOpen(true);
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <div
+          className={`mx-auto w-full tech-panel scanline animate-rise ${
+            isModalMode
+              ? 'max-w-none rounded-none p-3 sm:p-4 md:p-5'
+              : 'max-w-7xl p-4 sm:p-5 md:p-8'
+          }`}
+        >
+          {/* Title */}
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="section-kicker">Goods</p>
+              <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">
+                Mongsangin Goods
+              </h2>
             </div>
-          )}
-
-          {/* Desktop: Scrollable Row */}
-          <div
-            className={`hidden md:block relative transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}
-          >
-            {/* Left Arrow */}
-            {canScrollLeft && (
+            {isAdmin && (
               <button
-                onClick={() => handleScroll('left')}
-                className={`absolute left-0 top-1/2 z-10 -ml-6 -translate-y-1/2 ${arrowButtonClass}`}
-                aria-label="이전 서비스"
+                type="button"
+                onClick={() => {
+                  setCreateError(null);
+                  setCreateMessage(null);
+                  setIsCreateModalOpen(true);
+                }}
+                className={adminWriteButtonClass}
               >
-                <ChevronLeft className="h-5 w-5" />
+                <Plus className="h-4 w-4" />
+                게시물 작성
               </button>
             )}
+          </div>
 
-            {/* Scrollable Container */}
+          {/* Category Tabs */}
+          <div className="mb-10 overflow-x-auto pb-2 md:mb-12">
+            <div className={segmentedContainerClass}>
+              {categories.map((category) => (
+                <PillTab
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  active={activeCategory === category}
+                  className="whitespace-nowrap"
+                >
+                  {category}
+                </PillTab>
+              ))}
+            </div>
+          </div>
+
+          {/* Services Carousel */}
+          <div className="relative">
+            {servicesError && (
+              <div className="mb-6 rounded-2xl border border-red-300/30 bg-red-300/10 p-4 text-sm text-red-100">
+                {servicesError}
+              </div>
+            )}
+
+            {/* Desktop: Scrollable Row */}
             <div
-              ref={containerRef}
-              className={`scrollbar-hide flex gap-6 overflow-x-auto scroll-smooth ${
-                isDraggingUi ? 'cursor-grabbing' : 'cursor-grab'
-              }`}
-              onScroll={(e) =>
-                setScrollPosition((e.target as HTMLDivElement).scrollLeft)
-              }
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
+              className={`hidden md:block relative transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}
             >
-              {servicesLoading && renderServiceSkeletonCards(4)}
-              {!servicesLoading && !servicesError && filteredServices.length === 0 && (
-                <div className="flex min-h-[360px] w-full items-center justify-center border-t border-cyan-100/12 py-8 text-center text-cyan-50/75">
-                  등록된 서비스 게시글이 없습니다.
-                </div>
+              {/* Left Arrow */}
+              {canScrollLeft && (
+                <button
+                  onClick={() => handleScroll('left')}
+                  className={`absolute left-0 top-1/2 z-10 -ml-6 -translate-y-1/2 ${arrowButtonClass}`}
+                  aria-label="이전 서비스"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
               )}
-              {!servicesLoading &&
-                filteredServices.map((service, index) => {
-                  const previewDescription =
-                    extractServiceContentText(service.description) ||
-                    '상세 설명이 준비 중입니다.';
-                  return (
-                    <div
-                      key={index}
-                      className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 hover:border-cyan-200/35 ${
-                        !isChanging
-                          ? 'opacity-100 translate-y-0'
-                          : 'opacity-0 translate-y-4'
-                      }`}
-                    >
-                      {/* Image */}
-                      <div className="relative flex h-64 w-full items-center justify-center bg-transparent p-0">
-                        <img
-                          src={service.image}
-                          alt={service.title}
-                          className="w-full h-full object-contain"
-                          draggable="false"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
 
-                      {/* Color Options */}
-                      <div className="flex justify-center gap-2 py-4">
-                        {service.colors.map((color, idx) => (
-                          <div
-                            key={idx}
-                            className={`h-3 w-3 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
+              {/* Scrollable Container */}
+              <div
+                ref={containerRef}
+                className={`scrollbar-hide flex gap-6 overflow-x-auto scroll-smooth ${
+                  isDraggingUi ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
+                onScroll={(e) =>
+                  setScrollPosition((e.target as HTMLDivElement).scrollLeft)
+                }
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+              >
+                {servicesLoading && renderServiceSkeletonCards(4)}
+                {!servicesLoading &&
+                  !servicesError &&
+                  filteredServices.length === 0 && (
+                    <div className="flex min-h-[360px] w-full items-center justify-center border-t border-cyan-100/12 py-8 text-center text-cyan-50/75">
+                      등록된 서비스 게시글이 없습니다.
+                    </div>
+                  )}
+                {!servicesLoading &&
+                  filteredServices.map((service, index) => {
+                    const previewDescription =
+                      extractServiceContentText(service.description) ||
+                      '상세 설명이 준비 중입니다.';
+                    return (
+                      <div
+                        key={index}
+                        className={`flex-shrink-0 w-[280px] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-5 transition-all duration-300 hover:border-cyan-200/35 ${
+                          !isChanging
+                            ? 'opacity-100 translate-y-0'
+                            : 'opacity-0 translate-y-4'
+                        }`}
+                      >
+                        {/* Image */}
+                        <div className="relative flex h-64 w-full items-center justify-center bg-transparent p-0">
+                          <img
+                            src={service.image}
+                            alt={service.title}
+                            className="w-full h-full object-contain"
+                            draggable="false"
+                            loading="lazy"
+                            decoding="async"
                           />
-                        ))}
-                      </div>
+                        </div>
 
-                      {/* Content */}
-                      <div className="flex flex-1 flex-col px-0 pb-0 pt-5">
-                        <h3 className="mb-1 break-words text-xl leading-tight tracking-tight text-white">
-                          {service.title}
-                        </h3>
-                        <p className="mb-3 break-words text-xs text-cyan-100/55">
-                          {service.subtitle}
-                        </p>
-                        <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line flex-1">
-                          {previewDescription}
-                        </p>
-                        <p className="mb-4 break-words text-sm text-white">
-                          {service.price}
-                        </p>
+                        {/* Color Options */}
+                        <div className="flex justify-center gap-2 py-4">
+                          {service.colors.map((color, idx) => (
+                            <div
+                              key={idx}
+                              className={`h-3 w-3 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
+                            />
+                          ))}
+                        </div>
 
-                        {/* Buttons */}
-                        <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
-                          <Button
-                            type="button"
-                            onClick={() => openServiceDetail(service)}
-                            className={servicePrimaryButtonClass}
-                          >
-                            더 알아보기
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleAddToCart(service)}
-                            className={serviceSecondaryButtonClass}
-                          >
-                            장바구니 담기
-                          </Button>
+                        {/* Content */}
+                        <div className="flex flex-1 flex-col px-0 pb-0 pt-5">
+                          <h3 className="mb-1 break-words text-xl leading-tight tracking-tight text-white">
+                            {service.title}
+                          </h3>
+                          <p className="mb-3 break-words text-xs text-cyan-100/55">
+                            {service.subtitle}
+                          </p>
+                          <p className="text-xs text-cyan-50/68 leading-relaxed mb-4 whitespace-pre-line flex-1">
+                            {previewDescription}
+                          </p>
+                          <p className="mb-4 break-words text-sm text-white">
+                            {service.price}
+                          </p>
+
+                          {/* Buttons */}
+                          <div className="flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center">
+                            <Button
+                              type="button"
+                              onClick={() => openServiceDetail(service)}
+                              className={servicePrimaryButtonClass}
+                            >
+                              더 알아보기
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleAddToCart(service)}
+                              className={serviceSecondaryButtonClass}
+                            >
+                              장바구니 담기
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
+
+              {/* Right Arrow */}
+              {canScrollRight && (
+                <button
+                  onClick={() => handleScroll('right')}
+                  className={`absolute right-0 top-1/2 z-10 -mr-6 -translate-y-1/2 ${arrowButtonClass}`}
+                  aria-label="다음 서비스"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
             </div>
 
-            {/* Right Arrow */}
-            {canScrollRight && (
-              <button
-                onClick={() => handleScroll('right')}
-                className={`absolute right-0 top-1/2 z-10 -mr-6 -translate-y-1/2 ${arrowButtonClass}`}
-                aria-label="다음 서비스"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            )}
-          </div>
-
-          {/* Mobile: Simple Scroll */}
-          <div
-            className={`md:hidden overflow-x-auto pb-4 transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}
-          >
-            <div className="scrollbar-hide flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1">
-              {servicesLoading && renderServiceSkeletonCards(3, true)}
-              {!servicesLoading && !servicesError && filteredServices.length === 0 && (
-                <div className="flex min-h-[280px] w-full items-center justify-center border-t border-cyan-100/12 py-6 text-center text-sm text-cyan-50/75">
-                  등록된 서비스 게시글이 없습니다.
-                </div>
-              )}
-              {!servicesLoading &&
-                filteredServices.map((service, index) => {
-                  const previewDescription =
-                    extractServiceContentText(service.description) ||
-                    '상세 설명이 준비 중입니다.';
-                  return (
-                    <div
-                      key={index}
-                      className={`flex-shrink-0 snap-start w-[calc((100vw-3.25rem)/3)] min-w-[6.6rem] max-w-[7.8rem] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-3 transition-all duration-300 ${
-                        !isChanging
-                          ? 'opacity-100 translate-y-0'
-                          : 'opacity-0 translate-y-4'
-                      }`}
-                    >
-                      {/* Image */}
-                      <div className="relative flex h-24 w-full items-center justify-center bg-transparent p-0">
-                        <img
-                          src={service.image}
-                          alt={service.title}
-                          className="w-full h-full object-contain"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-
-                      {/* Color Options */}
-                      <div className="hidden justify-center gap-1.5 py-2">
-                        {service.colors.map((color, idx) => (
-                          <div
-                            key={idx}
-                            className={`h-2.5 w-2.5 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
+            {/* Mobile: Simple Scroll */}
+            <div
+              className={`md:hidden overflow-x-auto pb-4 transition-opacity duration-150 ${isChanging ? 'opacity-0' : 'opacity-100'}`}
+            >
+              <div className="scrollbar-hide flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1">
+                {servicesLoading && renderServiceSkeletonCards(3, true)}
+                {!servicesLoading &&
+                  !servicesError &&
+                  filteredServices.length === 0 && (
+                    <div className="flex min-h-[280px] w-full items-center justify-center border-t border-cyan-100/12 py-6 text-center text-sm text-cyan-50/75">
+                      등록된 서비스 게시글이 없습니다.
+                    </div>
+                  )}
+                {!servicesLoading &&
+                  filteredServices.map((service, index) => {
+                    const previewDescription =
+                      extractServiceContentText(service.description) ||
+                      '상세 설명이 준비 중입니다.';
+                    return (
+                      <div
+                        key={index}
+                        className={`flex-shrink-0 snap-start w-[calc((100vw-3.25rem)/3)] min-w-[6.6rem] max-w-[7.8rem] flex flex-col overflow-hidden border-t border-cyan-200/16 pt-3 transition-all duration-300 ${
+                          !isChanging
+                            ? 'opacity-100 translate-y-0'
+                            : 'opacity-0 translate-y-4'
+                        }`}
+                      >
+                        {/* Image */}
+                        <div className="relative flex h-24 w-full items-center justify-center bg-transparent p-0">
+                          <img
+                            src={service.image}
+                            alt={service.title}
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                            decoding="async"
                           />
-                        ))}
-                      </div>
+                        </div>
 
-                      {/* Content */}
-                      <div className="px-0 pb-0 pt-3">
-                        <h3 className="mb-1 break-words text-[0.76rem] font-medium leading-tight tracking-tight text-white">
-                          {service.title}
-                        </h3>
-                        <p className="mb-3 break-words text-[0.68rem] text-white/84">
-                          {service.price}
-                        </p>
+                        {/* Color Options */}
+                        <div className="hidden justify-center gap-1.5 py-2">
+                          {service.colors.map((color, idx) => (
+                            <div
+                              key={idx}
+                              className={`h-2.5 w-2.5 rounded-full border border-cyan-50/40 ${getSwatchClass(color)}`}
+                            />
+                          ))}
+                        </div>
 
-                        {/* Buttons */}
-                        <div className="flex flex-col items-stretch gap-1.5">
-                          <Button
-                            type="button"
-                            onClick={() => openServiceDetail(service)}
-                            className={`${servicePrimaryButtonClass} !min-h-8 !px-1.5 !text-[0.58rem] !tracking-[0.03em]`}
-                          >
-                            더 알아보기
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleAddToCart(service)}
-                            className={`${serviceSecondaryButtonClass} !min-h-8 !px-1.5 !text-[0.58rem] !tracking-[0.03em]`}
-                          >
-                            장바구니 담기
-                          </Button>
+                        {/* Content */}
+                        <div className="px-0 pb-0 pt-3">
+                          <h3 className="mb-1 break-words text-[0.76rem] font-medium leading-tight tracking-tight text-white">
+                            {service.title}
+                          </h3>
+                          <p className="mb-3 break-words text-[0.68rem] text-white/84">
+                            {service.price}
+                          </p>
+
+                          {/* Buttons */}
+                          <div className="flex flex-col items-stretch gap-1.5">
+                            <Button
+                              type="button"
+                              onClick={() => openServiceDetail(service)}
+                              className={`${servicePrimaryButtonClass} !min-h-8 !px-1.5 !text-[0.58rem] !tracking-[0.03em]`}
+                            >
+                              더 알아보기
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleAddToCart(service)}
+                              className={`${serviceSecondaryButtonClass} !min-h-8 !px-1.5 !text-[0.58rem] !tracking-[0.03em]`}
+                            >
+                              장바구니 담기
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       {isAdmin && isCreateModalOpen && (
         <div
           className="fixed inset-0 z-[72] flex items-end justify-center bg-black/70 p-2 pt-10 sm:items-center sm:p-4"
@@ -1423,15 +1458,29 @@ export default function ServicesSection({
       )}
       {/* Service Detail Modal */}
       <ServiceDetailModal
+        game={game}
         isOpen={isModalOpen}
         service={selectedService}
         onClose={closeServiceDetail}
-        onDelete={isAdmin && selectedService ? async () => {
-          const response = await fetch(`/api/service-posts/${selectedService.id}`, { method: 'DELETE' });
-          if (!response.ok) { const result = await response.json().catch(() => ({})); setDetailError(result.message || '상품을 삭제하지 못했습니다.'); return; }
-          closeServiceDetail();
-          await fetchServices();
-        } : undefined}
+        onDelete={
+          isAdmin && selectedService
+            ? async () => {
+                const response = await fetch(
+                  `/api/service-posts/${selectedService.id}`,
+                  { method: 'DELETE' }
+                );
+                if (!response.ok) {
+                  const result = await response.json().catch(() => ({}));
+                  setDetailError(
+                    result.message || '상품을 삭제하지 못했습니다.'
+                  );
+                  return;
+                }
+                closeServiceDetail();
+                await fetchServices();
+              }
+            : undefined
+        }
         isLoading={detailLoading}
         error={detailError}
         onAddToCart={handleAddToCart}

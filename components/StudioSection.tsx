@@ -26,6 +26,8 @@ import {
 
 import { useAuth } from '@/app/context/AuthContext';
 import StudioProtectedMedia from '@/components/StudioProtectedMedia';
+import VillageExhibit from './VillageExhibit';
+import adventure from './VillageAdventure.module.css';
 import StudioSubscribeButton from '@/components/StudioSubscribeButton';
 import { useToast } from '@/components/ui/Toasts/use-toast';
 import { createClient } from '@/utils/supabase/client';
@@ -100,6 +102,7 @@ type StudioShortsMediaState = {
 };
 
 type StudioSectionProps = {
+  game?: boolean;
   studioPostIdFromQuery: string | null;
   queryString: string;
 };
@@ -343,12 +346,16 @@ const clampShortsVolume = (value: number) =>
   Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
 function StudioDetailModal({
+  game = false,
+  onDelete,
   post,
   onClose,
   onOpenShorts,
   viewerMembershipTierLevel,
   viewerMembershipTierLoading
 }: {
+  game?: boolean;
+  onDelete?: () => Promise<void>;
   post: StudioPost | null;
   onClose: () => void;
   onOpenShorts: (postId: string) => void;
@@ -356,6 +363,13 @@ function StudioDetailModal({
   viewerMembershipTierLoading: boolean;
 }) {
   const { user, loading: authLoading } = useAuth();
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  useEffect(() => {
+    setDeleteConfirmed(false);
+    setDeleteError('');
+  }, [post?.id]);
   const hasActiveMembership = viewerMembershipTierLevel > 0;
 
   const requiredTierLevel = post?.required_membership_level ?? 0;
@@ -365,6 +379,128 @@ function StudioDetailModal({
     requiredTierLevel > 0 &&
     !viewerMembershipTierLoading &&
     viewerMembershipTierLevel < requiredTierLevel;
+
+  if (game)
+    return (
+      <DialogPrimitive.Root
+        open={Boolean(post)}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
+      >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className={adventure.inspectionOverlay} />
+          <DialogPrimitive.Content
+            className={`${adventure.room} ${adventure.inspection}`}
+            aria-describedby={undefined}
+            data-avatar-ui="true"
+          >
+            <header className={adventure.roomHeader}>
+              <DialogPrimitive.Title>루의 상영실</DialogPrimitive.Title>
+              <DialogPrimitive.Close className={adventure.exit}>
+                <X size={18} />
+                상영실로
+              </DialogPrimitive.Close>
+            </header>
+            <div className={adventure.activityContent}>
+              <div className={adventure.exhibit}>
+                {post && (
+                  <>
+                    <div className={adventure.artDescription}>
+                      {post.image_url && (
+                        <img
+                          src={post.image_url}
+                          alt={post.title || '제목 없는 작품'}
+                        />
+                      )}
+                      <h2>{post.title || '제목 없는 작품'}</h2>
+                      {authLoading || viewerMembershipTierLoading ? (
+                        <p role="status">관람 권한을 확인하고 있어요...</p>
+                      ) : isRowTierLocked ? (
+                        <div>
+                          <p>{requiredTierLabel} 관람권이 필요한 작품입니다.</p>
+                          {user ? (
+                            <StudioSubscribeButton
+                              studioPostId={post.id}
+                              className={adventure.primary}
+                            />
+                          ) : (
+                            <Link className={adventure.primary} href="/signin">
+                              로그인
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          <p>{post.content}</p>
+                          <StudioProtectedMedia studioPostId={post.id} />
+                        </>
+                      )}
+                    </div>
+                    <button
+                      className={adventure.textButton}
+                      onClick={() => {
+                        onClose();
+                        onOpenShorts(post.id);
+                      }}
+                    >
+                      <Clapperboard size={17} />
+                      연속 상영
+                    </button>
+                    {deleteError && (
+                      <p role="alert" className={adventure.error}>
+                        {deleteError}
+                      </p>
+                    )}
+                    {onDelete && (
+                      <div className={adventure.actions}>
+                        <button
+                          className={adventure.textButton}
+                          disabled={deleting}
+                          onClick={async () => {
+                            if (!deleteConfirmed) {
+                              setDeleteConfirmed(true);
+                              return;
+                            }
+                            setDeleting(true);
+                            try {
+                              await onDelete();
+                            } catch (e) {
+                              setDeleteError(
+                                e instanceof Error
+                                  ? e.message
+                                  : '작품을 회수하지 못했어요.'
+                              );
+                            } finally {
+                              setDeleting(false);
+                            }
+                          }}
+                        >
+                          {deleting
+                            ? '회수 중...'
+                            : deleteConfirmed
+                              ? '작품 삭제 확인'
+                              : '작품 회수'}
+                        </button>
+                        {deleteConfirmed && (
+                          <button
+                            className={adventure.textButton}
+                            disabled={deleting}
+                            onClick={() => setDeleteConfirmed(false)}
+                          >
+                            취소
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    );
 
   return (
     <DialogPrimitive.Root
@@ -638,7 +774,7 @@ function StudioWriteModal({
                 Write
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-1 text-sm text-white/55">
-                Studio 게시물을 작성하면 바로 마퀴 행에 반영됩니다.
+                모두에게 공개할 작품
               </DialogPrimitive.Description>
             </div>
             <button
@@ -1749,6 +1885,7 @@ function StudioShortsModal({
 }
 
 export default function StudioSection({
+  game = false,
   studioPostIdFromQuery,
   queryString
 }: StudioSectionProps) {
@@ -1822,18 +1959,19 @@ export default function StudioSection({
     setPostsError(null);
 
     try {
-      let queryResult = await (supabase as never)
-        .from('studio_posts')
-        .select(
-          'id,title,content,image_url,created_at,required_membership_level'
-        )
-        .order('created_at', { ascending: false });
+      let queryResult: { data: StudioPost[] | null; error: unknown } =
+        await supabase
+          .from('studio_posts')
+          .select(
+            'id,title,content,image_url,created_at,required_membership_level'
+          )
+          .order('created_at', { ascending: false });
 
       if (
         queryResult.error &&
         hasMissingRequiredMembershipLevelColumnError(queryResult.error)
       ) {
-        const fallbackQuery = await (supabase as never)
+        const fallbackQuery = await supabase
           .from('studio_posts')
           .select('id,title,content,image_url,created_at')
           .order('created_at', { ascending: false });
@@ -1841,10 +1979,12 @@ export default function StudioSection({
         queryResult = {
           ...fallbackQuery,
           data: Array.isArray(fallbackQuery.data)
-            ? fallbackQuery.data.map((row) => ({
-                ...row,
-                required_membership_level: 0
-              }))
+            ? fallbackQuery.data.map(
+                (row: Omit<StudioPost, 'required_membership_level'>) => ({
+                  ...row,
+                  required_membership_level: 0
+                })
+              )
             : fallbackQuery.data
         };
       }
@@ -2026,25 +2166,26 @@ export default function StudioSection({
     setWriteError(null);
 
     try {
-      let insertResult = await (supabase as never)
-        .from('studio_posts')
-        .insert({
-          title,
-          content,
-          image_url: imageUrl || '',
-          user_id: user.id,
-          required_membership_level: 0
-        })
-        .select(
-          'id,title,content,image_url,created_at,required_membership_level'
-        )
-        .single();
+      let insertResult: { data: StudioPost | null; error: unknown } =
+        await supabase
+          .from('studio_posts')
+          .insert({
+            title,
+            content,
+            image_url: imageUrl || '',
+            user_id: user.id,
+            required_membership_level: 0
+          })
+          .select(
+            'id,title,content,image_url,created_at,required_membership_level'
+          )
+          .single();
 
       if (
         insertResult.error &&
         hasMissingRequiredMembershipLevelColumnError(insertResult.error)
       ) {
-        insertResult = await (supabase as never)
+        insertResult = await supabase
           .from('studio_posts')
           .insert({
             title,
@@ -2059,7 +2200,7 @@ export default function StudioSection({
           insertResult = {
             ...insertResult,
             data: {
-              ...(insertResult.data as Record<string, unknown>),
+              ...insertResult.data,
               required_membership_level: 0
             }
           };
@@ -2333,117 +2474,177 @@ export default function StudioSection({
         }
       `}</style>
 
-      <section
-        id="studio"
-        className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-14 text-white md:px-8 md:py-24"
-      >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-[12%] top-[16%] h-56 w-56 rounded-full bg-[#430606]/24 blur-3xl" />
-          <div className="absolute right-[12%] bottom-[14%] h-64 w-64 rounded-full bg-[#2a5318]/16 blur-3xl" />
-        </div>
-        <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
-          <div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-2">
-              <p className="section-kicker">Studio</p>
-              <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">
-                Studio Flux
-              </h2>
-              <p className="max-w-2xl text-sm leading-relaxed text-cyan-50/72 md:text-base">
-                무료 일반 멤버십은 체험판 3개만 공개되고, 월 4,900은 가로 영상,
-                월 13,900은 숏폼, 월 79,000은 포토+글 블로그를 이용합니다.
-              </p>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11px] uppercase tracking-[0.18em] text-cyan-50/50">
-                  현재 권한
-                </span>
-                <span className="inline-flex items-center rounded-full border border-cyan-100/25 bg-cyan-200/10 px-3 py-1 text-xs text-cyan-50/90">
-                  {viewerMembershipTierLoading
-                    ? '확인중...'
-                    : viewerMembershipLabel}
-                </span>
+      {game ? (
+        <VillageExhibit
+          kind="studio"
+          items={studioPosts.map((post) => ({
+            id: post.id,
+            title: post.title || '제목 없는 작품',
+            image: post.image_url,
+            subtitle: post.required_membership_label || '',
+            category:
+              normalizeRequiredMembershipLevel(
+                post.required_membership_level
+              ) === 0
+                ? '공개 작품'
+                : '멤버십 작품'
+          }))}
+          loading={postsLoading}
+          error={postsError}
+          onRetry={() => void fetchStudioPosts()}
+          onInspect={(id) => {
+            const post = studioPosts.find((p) => p.id === id);
+            if (post) setSelectedPost(post);
+          }}
+          onCreate={isAdmin ? handleOpenWrite : undefined}
+        />
+      ) : (
+        <section
+          id="studio"
+          className="relative flex min-h-screen max-w-full flex-col justify-center overflow-hidden px-4 py-14 text-white md:px-8 md:py-24"
+        >
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute left-[12%] top-[16%] h-56 w-56 rounded-full bg-[#430606]/24 blur-3xl" />
+            <div className="absolute right-[12%] bottom-[14%] h-64 w-64 rounded-full bg-[#2a5318]/16 blur-3xl" />
+          </div>
+          <div className="mx-auto w-full max-w-7xl tech-panel scanline animate-rise p-4 sm:p-5 md:p-8">
+            <div className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-2">
+                <p className="section-kicker">Studio</p>
+                <h2 className="section-title !mt-2 !text-[clamp(1.8rem,4vw,3rem)]">
+                  Studio Flux
+                </h2>
+                <p className="max-w-2xl text-sm leading-relaxed text-cyan-50/72 md:text-base">
+                  무료 일반 멤버십은 체험판 3개만 공개되고, 월 4,900은 가로
+                  영상, 월 13,900은 숏폼, 월 79,000은 포토+글 블로그를
+                  이용합니다.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-cyan-50/50">
+                    현재 권한
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-cyan-100/25 bg-cyan-200/10 px-3 py-1 text-xs text-cyan-50/90">
+                    {viewerMembershipTierLoading
+                      ? '확인중...'
+                      : viewerMembershipLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 md:self-start">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleOpenWrite}
+                    className="inline-flex min-h-10 items-center gap-2 rounded border border-cyan-100/30 px-4 text-sm"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    작품 등록
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleOpenShorts(studioPostIdFromQuery)}
+                  disabled={shortsPosts.length === 0}
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 text-sm font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+                >
+                  <Clapperboard className="h-4 w-4" />
+                  숏폼 보기
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 md:self-start">
-              {isAdmin && <button type="button" onClick={handleOpenWrite} className="inline-flex min-h-10 items-center gap-2 rounded border border-cyan-100/30 px-4 text-sm"><ImageIcon className="h-4 w-4" />작품 등록</button>}
+            <div className="mb-12 space-y-4">
+              {postsLoading ? (
+                Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map(
+                  (_, rowIndex) => (
+                    <div
+                      key={`studio-skeleton-row-${rowIndex}`}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        className="flex gap-4"
+                        style={{ width: 'fit-content' }}
+                      >
+                        {Array.from({ length: 3 }).map((__, cardIndex) => (
+                          <div
+                            key={`studio-skeleton-${rowIndex}-${cardIndex}`}
+                            className="h-[140px] w-[min(13.75rem,calc(100vw-3rem))] overflow-hidden rounded-xl border border-cyan-100/20 bg-cyan-200/[0.06] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
+                          >
+                            <div className="h-full w-full animate-pulse bg-cyan-100/[0.08]" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )
+              ) : (
+                <>
+                  {studioPosts.length === 0 ? (
+                    <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/[0.08] px-5 py-4 text-sm text-cyan-50/78">
+                      {postsError
+                        ? '스튜디오에 연결할 수 없습니다.'
+                        : '아직 공개된 작품이 없습니다.'}
+                      {postsError ? (
+                        <p className="mt-2 text-xs text-red-300/90">
+                          {postsError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : postsError ? (
+                    <div className="rounded-2xl border border-red-300/30 bg-red-500/10 px-5 py-4 text-sm text-red-100">
+                      {postsError}
+                    </div>
+                  ) : null}
+                  {studioPosts.length > 0 &&
+                    displayRows.map((row, rowIndex) =>
+                      renderRow(row, rowIndex)
+                    )}
+                </>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
               <button
                 type="button"
-                onClick={() => handleOpenShorts(studioPostIdFromQuery)}
-                disabled={shortsPosts.length === 0}
-                className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border border-cyan-100/30 bg-cyan-200/10 px-4 text-sm font-semibold text-cyan-50 transition hover:bg-cyan-200/20 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+                onClick={togglePlayPause}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 backdrop-blur-md transition-colors hover:bg-cyan-200/24 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={isPlaying ? '일시정지' : '재생'}
+                disabled={displayRows.every((row) =>
+                  row.posts.every((post) => post.is_placeholder)
+                )}
               >
-                <Clapperboard className="h-4 w-4" />
-                숏폼 보기
+                {isPlaying ? (
+                  <Pause className="h-5 w-5 text-cyan-50" fill="currentColor" />
+                ) : (
+                  <Play className="h-5 w-5 text-cyan-50" fill="currentColor" />
+                )}
               </button>
             </div>
           </div>
-
-          <div className="mb-12 space-y-4">
-            {postsLoading ? (
-              Array.from({ length: STUDIO_ROW_ACCESS_RULES.length }).map(
-                (_, rowIndex) => (
-                  <div
-                    key={`studio-skeleton-row-${rowIndex}`}
-                    className="overflow-hidden"
-                  >
-                    <div
-                      className="flex gap-4"
-                      style={{ width: 'fit-content' }}
-                    >
-                      {Array.from({ length: 3 }).map((__, cardIndex) => (
-                        <div
-                          key={`studio-skeleton-${rowIndex}-${cardIndex}`}
-                          className="h-[140px] w-[min(13.75rem,calc(100vw-3rem))] overflow-hidden rounded-xl border border-cyan-100/20 bg-cyan-200/[0.06] shadow-[0_14px_34px_rgba(0,0,0,0.28)] md:h-[240px] md:w-[400px] md:rounded-2xl"
-                        >
-                          <div className="h-full w-full animate-pulse bg-cyan-100/[0.08]" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              )
-            ) : (
-              <>
-                {studioPosts.length === 0 ? (
-                  <div className="rounded-2xl border border-cyan-100/20 bg-cyan-200/[0.08] px-5 py-4 text-sm text-cyan-50/78">
-                    {postsError ? '스튜디오에 연결할 수 없습니다.' : '아직 공개된 작품이 없습니다.'}
-                    {postsError ? (
-                      <p className="mt-2 text-xs text-red-300/90">
-                        {postsError}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : postsError ? (
-                  <div className="rounded-2xl border border-red-300/30 bg-red-500/10 px-5 py-4 text-sm text-red-100">
-                    {postsError}
-                  </div>
-                ) : null}
-                {studioPosts.length > 0 && displayRows.map((row, rowIndex) => renderRow(row, rowIndex))}
-              </>
-            )}
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={togglePlayPause}
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-cyan-100/28 bg-cyan-200/12 backdrop-blur-md transition-colors hover:bg-cyan-200/24 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label={isPlaying ? '일시정지' : '재생'}
-              disabled={displayRows.every((row) =>
-                row.posts.every((post) => post.is_placeholder)
-              )}
-            >
-              {isPlaying ? (
-                <Pause className="h-5 w-5 text-cyan-50" fill="currentColor" />
-              ) : (
-                <Play className="h-5 w-5 text-cyan-50" fill="currentColor" />
-              )}
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <StudioDetailModal
+        game={game}
+        onDelete={
+          isAdmin && selectedPost
+            ? async () => {
+                const response = await fetch(
+                  `/api/admin/studio-posts/${selectedPost.id}`,
+                  { method: 'DELETE' }
+                );
+                if (!response.ok) {
+                  const result = await response.json().catch(() => ({}));
+                  throw new Error(
+                    result.message || '작품을 회수하지 못했어요.'
+                  );
+                }
+                handleCloseSelectedPost();
+                await fetchStudioPosts();
+              }
+            : undefined
+        }
         post={selectedPost}
         onClose={handleCloseSelectedPost}
         onOpenShorts={handleOpenShorts}

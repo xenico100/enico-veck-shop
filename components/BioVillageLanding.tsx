@@ -3509,8 +3509,10 @@ export default function BioVillageLanding() {
       keysRef.current = {};
       playerRef.current.vx = 0;
       playerRef.current.vy = 0;
-      playerRef.current.targetX = null;
-      playerRef.current.targetY = null;
+      if (!pendingBuildingRef.current) {
+        playerRef.current.targetX = null;
+        playerRef.current.targetY = null;
+      }
     };
     resize();
     handleScroll();
@@ -3905,7 +3907,7 @@ export default function BioVillageLanding() {
         ref={backgroundCanvasRef}
         className="pointer-events-none fixed inset-0 z-[8] h-full w-full"
         style={{
-          filter: 'contrast(1.08) saturate(1.18)',
+          imageRendering: 'pixelated',
           opacity: worldActive ? 1 : 0,
           transition: 'opacity 180ms ease'
         }}
@@ -3917,7 +3919,7 @@ export default function BioVillageLanding() {
           background:
             'linear-gradient(rgba(255,255,255,0) 50%, rgba(0,0,0,0.03) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03))',
           backgroundSize: '100% 4px, 3px 100%',
-          opacity: worldActive ? 0.72 : 0,
+          opacity: 0,
           transition: 'opacity 180ms ease'
         }}
       />
@@ -3938,7 +3940,7 @@ export default function BioVillageLanding() {
           transition: 'opacity 180ms ease'
         }}
       >
-        <div className="rounded-full border border-[rgba(186,57,57,0.18)] bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(255,241,241,0.8))] px-3.5 py-2 shadow-[0_12px_30px_rgba(107,21,21,0.12)] backdrop-blur-xl">
+        <div className="border border-[#9cb8a8] bg-[#f7f9ef] px-3 py-2 shadow-sm">
           <p className="flex items-center gap-1.5 text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[rgba(140,52,52,0.62)]">
             <span
               className={`h-2 w-2 rounded-full ${

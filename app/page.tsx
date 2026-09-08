@@ -7,6 +7,7 @@ import Header from '../components/Header';
 import MainContent from '../components/MainContent';
 import { useAuth } from './context/AuthContext';
 import VillageInterior from '@/components/VillageInterior';
+import VillageStoryJournal from '@/components/VillageStoryJournal';
 import {
   findBuilding,
   VILLAGE_BUILDING_EVENT,
@@ -68,12 +69,14 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
+    const arrival = findBuilding(
+      new URLSearchParams(window.location.search).get('room')
+    );
+    if (arrival) setInterior(arrival.id);
     const enter = (event: Event) => {
       const building = findBuilding((event as CustomEvent).detail);
       if (!building) return;
-      if (building.id === 'profile') setMyPageOpen(true);
-      else if (building.id === 'dating') setDatingOpen(true);
-      else setInterior(building.id);
+      setInterior(building.id);
     };
     window.addEventListener(VILLAGE_BUILDING_EVENT, enter);
     return () => window.removeEventListener(VILLAGE_BUILDING_EVENT, enter);
@@ -140,6 +143,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     const handleAuthHook = (event: Event) => {
+      setInterior(null);
       const detail = (event as CustomEvent<AuthHookDetail>).detail;
       setAuthMode(detail?.mode === 'signup' ? 'signup' : 'login');
       setAuthError(null);
@@ -174,9 +178,18 @@ export default function LandingPage() {
       ) : null}
 
       <MainContent />
+      <VillageStoryJournal />
       <VillageInterior
         building={interior}
         onClose={() => setInterior(null)}
+        onProfile={() => {
+          setInterior(null);
+          openMyPage();
+        }}
+        onDating={() => {
+          setInterior(null);
+          setDatingOpen(true);
+        }}
         onCart={() => {
           setInterior(null);
           openCart();
