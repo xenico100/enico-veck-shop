@@ -179,8 +179,7 @@ export const resolveUserRoleForUserLike = (user?: {
 
   const explicitRole =
     user.role ??
-    (typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : null) ??
-    (typeof user.user_metadata?.role === 'string' ? user.user_metadata.role : null);
+    (typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : null);
 
   return normalizeUserRoleValue(explicitRole);
 };

@@ -24,10 +24,12 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import PoopWriteModal from '@/components/PoopWriteModal';
 import PoopPostModal from '@/components/PoopPostModal';
+import VillageBuildings from '@/components/VillageBuildings';
+import { buildingDoor, findBuilding, VILLAGE_BUILDING_EVENT, VILLAGE_TRAVEL_EVENT, VILLAGE_PAUSE_EVENT, type VillageBuildingId } from '@/utils/village-buildings';
 
 import { dreamPoints, readCollected, drawVillageGround, DREAM_COUNT } from '@/utils/village-exploration';
 
-const WORLD_HEIGHT = 4300;
+const WORLD_HEIGHT = 1800;
 const MOBILE_WORLD_WIDTH = 1480;
 const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
@@ -1269,6 +1271,16 @@ export default function BioVillageLanding() {
   const worldBackdropRef = useRef<HTMLDivElement | null>(null);
   const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
+  const pendingBuildingRef = useRef<VillageBuildingId | null>(null);
+  const pausedRef = useRef(false);
+  const travelToBuilding = useCallback((id: VillageBuildingId) => {
+    const door = buildingDoor(id, worldWidthRef.current);
+    pendingBuildingRef.current = id;
+    playerRef.current.targetX = door.x;
+    playerRef.current.targetY = door.y;
+    keysRef.current = {};
+    setSelectedTarget(null);
+  }, []);
   const cleanupAnimationsRef = useRef<CleanupAnimationState[]>([]);
   const chatBubblesRef = useRef<Record<string, ChatBubbleState>>({});
   const seenChatMessageIdsRef = useRef<Set<string>>(new Set());
@@ -1367,10 +1379,28 @@ export default function BioVillageLanding() {
   const [poopWriteTarget, setPoopWriteTarget] = useState<PoopDrop | null>(null);
   const [poopPostViewTarget, setPoopPostViewTarget] = useState<PoopDrop | null>(null);
   const [postRefreshTrigger, setPostRefreshTrigger] = useState(0);
+  useEffect(() => {
+    const travel = (event: Event) => {
+      const building = findBuilding((event as CustomEvent).detail);
+      if (building) travelToBuilding(building.id);
+    };
+    const pause = (event: Event) => {
+      pausedRef.current = Boolean((event as CustomEvent).detail);
+      if (pausedRef.current) { keysRef.current = {}; playerRef.current.targetX = null; playerRef.current.targetY = null; }
+    };
+    window.addEventListener(VILLAGE_TRAVEL_EVENT, travel);
+    window.addEventListener(VILLAGE_PAUSE_EVENT, pause);
+    return () => { window.removeEventListener(VILLAGE_TRAVEL_EVENT, travel); window.removeEventListener(VILLAGE_PAUSE_EVENT, pause); };
+  }, [travelToBuilding]);
 
   useEffect(() => {
     poopDropsRef.current = poopDrops;
   }, [poopDrops]);
+  useEffect(() => {
+    const refresh = () => setPostRefreshTrigger(value => value + 1);
+    window.addEventListener('village:posts-changed', refresh);
+    return () => window.removeEventListener('village:posts-changed', refresh);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -1380,8 +1410,9 @@ export default function BioVillageLanding() {
         const payload = await response.json();
         if (payload.data && mounted) {
           const loadedPoops: PoopDrop[] = payload.data.map((post: any) => {
-            let x = Math.random() * 800 + 100;
-            let y = Math.random() * 600 + 200;
+            const hash = hashParticipantKey(post.id);
+            let x = worldWidthRef.current / 2 + (hash % 360) - 180;
+            let y = 440 + (Math.floor(hash / 360) % 250);
             const match = post.content.match(/\[POS:(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)\]/);
             if (match) {
               x = parseFloat(match[1]);
@@ -1402,6 +1433,7 @@ export default function BioVillageLanding() {
             const nonPosts = prev.filter((p) => !p.isPost);
             return [...nonPosts, ...loadedPoops];
           });
+          setPoopPostViewTarget(previous => previous ? loadedPoops.find(drop => drop.id === previous.id) ?? null : null);
         }
       } catch (err) {
         // ignore
@@ -2781,7 +2813,8 @@ export default function BioVillageLanding() {
         target instanceof HTMLTextAreaElement ||
         target?.isContentEditable;
 
-      if (isTypingTarget) return;
+      if (isTypingTarget || pausedRef.current || document.querySelector('[role="dialog"]')) return;
+      if (event.key in directions || ['w','W','a','A','s','S','d','D'].includes(event.key)) pendingBuildingRef.current = null;
 
       if (
         event.key in directions ||
@@ -2836,6 +2869,7 @@ export default function BioVillageLanding() {
 
     const handleClick = (event: MouseEvent) => {
       if (Date.now() < ignoreClickUntilRef.current) return;
+      if (pausedRef.current) return;
 
       const target = event.target as HTMLElement | null;
       if (target?.closest('[data-avatar-ui="true"]')) return;
@@ -2843,6 +2877,7 @@ export default function BioVillageLanding() {
 
       const hitActor = findActorAtPoint(event.clientX, event.clientY);
       if (!hitActor) {
+        pendingBuildingRef.current = null;
         setSelectedTarget(null);
         playerRef.current.targetX = event.clientX + cameraXRef.current;
         playerRef.current.targetY = event.clientY + window.scrollY;
@@ -2857,6 +2892,7 @@ export default function BioVillageLanding() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
+      if (pausedRef.current || document.querySelector('[role="dialog"]')) { touchStateRef.current = null; return; }
       if (event.touches.length !== 1) {
         touchStateRef.current = null;
         return;
@@ -3283,9 +3319,18 @@ export default function BioVillageLanding() {
       }
 
       time += 1;
-      updatePlayer(frameScale);
+      if (!pausedRef.current && !document.querySelector('[role="dialog"]')) updatePlayer(frameScale);
       updateRemoteActors();
-      updateCamera(frameScale);
+      if (!pausedRef.current && !document.querySelector('[role="dialog"]')) updateCamera(frameScale);
+      if (pendingBuildingRef.current && !pausedRef.current) {
+        const id = pendingBuildingRef.current;
+        const door = buildingDoor(id, worldWidthRef.current);
+        if (Math.hypot(playerRef.current.x - door.x, playerRef.current.y - door.y) < 18) {
+          pendingBuildingRef.current = null;
+          playerRef.current.targetX = null; playerRef.current.targetY = null;
+          window.dispatchEvent(new CustomEvent(VILLAGE_BUILDING_EVENT, { detail: id }));
+        }
+      }
       const currentScrollY = cameraYRef.current;
       syncPresenceIfNeeded();
       syncRealtimeMovementIfNeeded();
@@ -3945,6 +3990,7 @@ export default function BioVillageLanding() {
         >
 
 
+          <VillageBuildings width={worldWidth} active={worldActive} onTravel={travelToBuilding} />
           {poopDrops.map((drop) => {
             const isOwnNewPoop = !drop.isPost && drop.actorId === (participantKeyRef.current ?? 'self');
             const isPost = drop.isPost;
@@ -3952,6 +3998,11 @@ export default function BioVillageLanding() {
             return (
               <div
                 key={drop.id}
+                data-avatar-ui="true"
+                role={isOwnNewPoop || isPost ? 'button' : undefined}
+                tabIndex={isOwnNewPoop || isPost ? 0 : undefined}
+                aria-label={isOwnNewPoop ? '똥에 기록 남기기' : drop.postTitle || '기록 열기'}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (isOwnNewPoop) setPoopWriteTarget(drop); else if (isPost) setPoopPostViewTarget(drop); } }}
                 className={`absolute z-[12] h-[28px] w-[30px] ${isOwnNewPoop || isPost ? 'cursor-pointer' : 'pointer-events-none'}`}
                 style={{
                   left: `${drop.x}px`,
@@ -4514,6 +4565,7 @@ export default function BioVillageLanding() {
           dropY={poopWriteTarget.y}
           onClose={() => setPoopWriteTarget(null)}
           onSuccess={() => {
+            setPoopDrops(previous => previous.filter(drop => drop.id !== poopWriteTarget.id));
             setPoopWriteTarget(null);
             setPostRefreshTrigger(prev => prev + 1);
           }}

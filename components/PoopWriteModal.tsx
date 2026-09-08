@@ -49,7 +49,7 @@ export default function PoopWriteModal({ dropId, dropX, dropY, onClose, onSucces
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label="똥에 기록 남기기" data-avatar-ui="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -79,6 +79,7 @@ export default function PoopWriteModal({ dropId, dropX, dropY, onClose, onSucces
           <input
             type="text"
             placeholder="제목을 적어주세요!"
+            aria-label="기록 제목"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={submitting}
@@ -87,6 +88,8 @@ export default function PoopWriteModal({ dropId, dropX, dropY, onClose, onSucces
           />
           <textarea
             placeholder="어떤 이야기를 남길까요?"
+            aria-label="기록 내용"
+            maxLength={9900}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             disabled={submitting}

@@ -42,6 +42,8 @@ export function drawVillageGround(
   ctx.fillStyle = '#eaf0ef';
   ctx.fillRect(center - 110, 0, 220, 4300);
   ctx.fillRect(0, 420, worldWidth, 200);
+  ctx.fillRect(0, 975, worldWidth, 100);
+  ctx.fillRect(0, 1505, worldWidth, 100);
   ctx.strokeStyle = '#c4d3ce';
   ctx.lineWidth = 1;
   for (let y = Math.floor(cameraY / 48) * 48; y < cameraY + height; y += 48) {
@@ -54,7 +56,7 @@ export function drawVillageGround(
   for (let y = 120; y < 4300; y += 240) {
     if (y < cameraY - 100 || y > cameraY + height + 100 || (y > 350 && y < 700))
       continue;
-    for (const x of [center - 350, center + 350]) {
+    for (const x of [center - 550, center + 550]) {
       ctx.fillStyle = '#a8c7b4';
       ctx.fillRect(x - 42, y + 36, 96, 18);
       ctx.fillStyle = '#655c64';

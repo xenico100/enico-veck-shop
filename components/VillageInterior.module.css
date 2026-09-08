@@ -1,0 +1,112 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: #19352bcc;
+  z-index: 46;
+}
+.room {
+  position: fixed;
+  inset: 4vh max(16px, calc((100vw - 1200px) / 2));
+  z-index: 47;
+  display: flex;
+  flex-direction: column;
+  background: #f5f7f5;
+  color: #263a32;
+  border: 4px solid #486c5e;
+  border-radius: 6px;
+  box-shadow: 0 8px 0 #183b2c;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 2px solid #bfd0c5;
+  background: #fff;
+  flex-shrink: 0;
+}
+.header span {
+  font-size: 11px;
+  color: #687f72;
+}
+.header h2 {
+  font-family: Arial, sans-serif !important;
+  font-size: 21px;
+  letter-spacing: 0 !important;
+  margin: 4px 0 0;
+  color: #263a32 !important;
+}
+.exit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #e8f1eb;
+  color: #263a32;
+  border: 1px solid #b4c8bb;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: inherit;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.content {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+  overscroll-behavior: contain;
+}
+.content > main {
+  min-height: 0;
+}
+.content h1,
+.content h2,
+.content h3 {
+  letter-spacing: 0 !important;
+}
+.content :global(.tech-panel) {
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: #f7faf7 !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+.content :global(.y2k-button) {
+  border-radius: 4px !important;
+  font-family: Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+  animation: none !important;
+}
+.content :global(.section-kicker) {
+  font-family: Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+}
+.content section h2 {
+  font-family: Arial, sans-serif !important;
+  font-size: 24px !important;
+}
+.content section { min-height: 0 !important; padding: 24px 16px !important; }
+.content :global(#studio) p,
+.content :global(#studio) span,
+.content :global(#studio) [class*='text-cyan'],
+.content :global(#studio) button { color: #334b40 !important; }
+.content :global(#studio) button { background-color: #e5eee8 !important; border-radius: 4px !important; }
+.content :global(#studio) > div:first-child { display: none; }
+.content :global(#studio) [class*='bg-cyan'] { background-color: #e9f1eb !important; }
+.exit:focus-visible {
+  outline: 3px solid #ad3755;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .room {
+    inset: 8px;
+  }
+  .header {
+    padding: 12px;
+  }
+  .header h2 {
+    font-size: 18px;
+  }
+}

@@ -2365,6 +2365,7 @@ export default function StudioSection({
             </div>
 
             <div className="flex items-center gap-2 md:self-start">
+              {isAdmin && <button type="button" onClick={handleOpenWrite} className="inline-flex min-h-10 items-center gap-2 rounded border border-cyan-100/30 px-4 text-sm"><ImageIcon className="h-4 w-4" />작품 등록</button>}
               <button
                 type="button"
                 onClick={() => handleOpenShorts(studioPostIdFromQuery)}

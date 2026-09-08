@@ -1,29 +1,20 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
 import Header from '../components/Header';
 import MainContent from '../components/MainContent';
 import { useAuth } from './context/AuthContext';
+import VillageInterior from '@/components/VillageInterior';
+import {
+  findBuilding,
+  VILLAGE_BUILDING_EVENT,
+  VILLAGE_PAUSE_EVENT,
+  type VillageBuildingId
+} from '@/utils/village-buildings';
 
 const SideMenu = dynamic(() => import('../components/SideMenu'));
-const AboutSection = dynamic(() => import('../components/AboutSection'), {
-  loading: () => <div className="min-h-[640px]" />
-});
-const ServicesSection = dynamic(() => import('../components/ServicesSection'));
-const StudioSectionWithSearchParams = dynamic(
-  () => import('../components/StudioSectionWithSearchParams'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center text-sm text-stone-600 sm:px-6 lg:px-8">
-        Studio 콘텐츠를 불러오는 중...
-      </div>
-    )
-  }
-);
-const Footer = dynamic(() => import('../components/Footer'));
 const AuthModal = dynamic(() => import('../components/AuthModal'), {
   ssr: false
 });
@@ -52,11 +43,6 @@ type AuthHookDetail = {
   mode?: 'login' | 'signup';
 };
 
-const deferredSectionStyle = {
-  containIntrinsicSize: '960px',
-  contentVisibility: 'auto'
-} as const;
-
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasOpenedMenu, setHasOpenedMenu] = useState(false);
@@ -70,6 +56,7 @@ export default function LandingPage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [datingOpen, setDatingOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [interior, setInterior] = useState<VillageBuildingId | null>(null);
   const [datingHookLabel, setDatingHookLabel] = useState<string | null>(null);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
 
@@ -79,6 +66,42 @@ export default function LandingPage() {
     setHasOpenedMenu(true);
     setIsMenuOpen(true);
   };
+
+  useEffect(() => {
+    const enter = (event: Event) => {
+      const building = findBuilding((event as CustomEvent).detail);
+      if (!building) return;
+      if (building.id === 'profile') setMyPageOpen(true);
+      else if (building.id === 'dating') setDatingOpen(true);
+      else setInterior(building.id);
+    };
+    window.addEventListener(VILLAGE_BUILDING_EVENT, enter);
+    return () => window.removeEventListener(VILLAGE_BUILDING_EVENT, enter);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(VILLAGE_PAUSE_EVENT, {
+        detail: Boolean(
+          interior ||
+          authOpen ||
+          myPageOpen ||
+          cartOpen ||
+          datingOpen ||
+          servicesOpen ||
+          isMenuOpen
+        )
+      })
+    );
+  }, [
+    interior,
+    authOpen,
+    myPageOpen,
+    cartOpen,
+    datingOpen,
+    servicesOpen,
+    isMenuOpen
+  ]);
 
   useEffect(() => {
     const handleDatingHook = (event: Event) => {
@@ -107,14 +130,13 @@ export default function LandingPage() {
 
   useEffect(() => {
     const handleServicesHook = () => {
-      setServicesOpen(true);
+      setInterior('goods');
     };
 
     window.addEventListener('services:open-modal', handleServicesHook);
     return () =>
       window.removeEventListener('services:open-modal', handleServicesHook);
   }, []);
-
 
   useEffect(() => {
     const handleAuthHook = (event: Event) => {
@@ -147,26 +169,19 @@ export default function LandingPage() {
             setAuthOpen(true);
           }}
           onMyPageClick={openMyPage}
+          onCommunityClick={() => setInterior('community')}
         />
       ) : null}
 
       <MainContent />
-      <div style={deferredSectionStyle}>
-        <AboutSection />
-      </div>
-      <div style={deferredSectionStyle}>
-        <ServicesSection onOpenCart={openCart} />
-      </div>
-      <div className="relative" style={deferredSectionStyle}>
-        <Suspense fallback={<div>Loading...</div>}>
-          <StudioSectionWithSearchParams />
-        </Suspense>
-      </div>
-
-
-      <div style={deferredSectionStyle}>
-        <Footer />
-      </div>
+      <VillageInterior
+        building={interior}
+        onClose={() => setInterior(null)}
+        onCart={() => {
+          setInterior(null);
+          openCart();
+        }}
+      />
 
       {/* ✅ 로그인 / 회원가입 모달 (서비스 팝업과 동일한 방식) */}
       {authOpen ? (

@@ -1426,6 +1426,12 @@ export default function ServicesSection({
         isOpen={isModalOpen}
         service={selectedService}
         onClose={closeServiceDetail}
+        onDelete={isAdmin && selectedService ? async () => {
+          const response = await fetch(`/api/service-posts/${selectedService.id}`, { method: 'DELETE' });
+          if (!response.ok) { const result = await response.json().catch(() => ({})); setDetailError(result.message || '상품을 삭제하지 못했습니다.'); return; }
+          closeServiceDetail();
+          await fetchServices();
+        } : undefined}
         isLoading={detailLoading}
         error={detailError}
         onAddToCart={handleAddToCart}

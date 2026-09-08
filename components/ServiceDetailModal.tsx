@@ -7,6 +7,7 @@ import { parseServiceContentBlocks } from '@/utils/service-content';
 interface ServiceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onDelete?: () => Promise<void>;
   service: {
     id: string;
     title: string;
@@ -36,6 +37,7 @@ interface ServiceDetailModalProps {
 export function ServiceDetailModal({
   isOpen,
   onClose,
+  onDelete,
   service,
   isLoading = false,
   error = null,
@@ -47,6 +49,9 @@ export function ServiceDetailModal({
 }: ServiceDetailModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  useEffect(() => setDeleteConfirmed(false), [service?.id]);
 
   // 이미지 배열 (없으면 기본 이미지 사용)
   const images = service?.images?.length
@@ -291,6 +296,7 @@ export function ServiceDetailModal({
                 장바구니에 담기
               </button>
             )}
+            {onDelete && <div className="mt-4 flex gap-3 text-sm"><button type="button" disabled={deleting} onClick={async () => { if (!deleteConfirmed) { setDeleteConfirmed(true); return; } setDeleting(true); try { await onDelete(); } finally { setDeleting(false); } }}>{deleting ? '삭제 중...' : deleteConfirmed ? '상품 삭제 확인' : '상품 게시글 삭제'}</button>{deleteConfirmed && <button type="button" disabled={deleting} onClick={() => setDeleteConfirmed(false)}>취소</button>}</div>}
           </div>
             </>
           )}

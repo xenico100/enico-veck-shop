@@ -81,4 +81,6 @@ test('a forged user metadata admin role is rejected by the safe auth projection'
 
   assert.equal(resolveAuthRole(forgedUser), 'user');
   assert.equal(hasAuthAdminAccess(forgedUser), false);
+  assert.equal(isAdminUserLike(forgedUser), false);
+  assert.equal(isAdminUserLike({ email: 'member@example.com', user_metadata: { role: 'admin' } }), false);
 });

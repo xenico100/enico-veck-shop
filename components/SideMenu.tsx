@@ -99,6 +99,8 @@ export default function SideMenu({
         }`}
         role="dialog"
         aria-modal="true"
+        data-avatar-ui="true"
+        onClick={event => event.stopPropagation()}
       >
         <div className="sticky top-0 z-10 shrink-0 border-b border-[rgba(103,14,14,0.64)] bg-[repeating-linear-gradient(45deg,rgba(22,0,0,0.98),rgba(22,0,0,0.98)_10px,rgba(9,0,0,0.98)_10px,rgba(9,0,0,0.98)_20px)] px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center justify-between gap-4">
@@ -137,7 +139,12 @@ export default function SideMenu({
                 ) : (
                   <a
                     href={item.href}
-                    onClick={onClose}
+                    onClick={(event) => {
+                      const destinations: Record<string, string> = { '#about': 'about', '#services': 'goods', '#studio': 'studio' };
+                      const destination = destinations[item.href];
+                      if (destination) { event.preventDefault(); window.dispatchEvent(new CustomEvent('village:travel', { detail: destination })); }
+                      onClose();
+                    }}
                     className="block border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] no-underline transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
                   >
                     {item.label}

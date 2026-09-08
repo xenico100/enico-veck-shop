@@ -36,6 +36,19 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
   const [anonymousName, setAnonymousName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const deletePost = async () => {
+    if (deleting) return;
+    setDeleting(true); setError(null);
+    try {
+      const response = await fetch(`/api/community/posts/${post.id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('기록을 삭제하지 못했습니다.');
+      onDelete?.(); onClose();
+    } catch (reason) { setError(reason instanceof Error ? reason.message : '삭제 실패'); }
+    finally { setDeleting(false); }
+  };
 
   const cleanContent = post.content.replace(/\[POS:\d+(?:\.\d+)?,\d+(?:\.\d+)?\]$/, '').trim();
 
@@ -73,13 +86,13 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label="똥 기록" data-avatar-ui="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      <div className="relative flex w-full max-w-[22rem] flex-col overflow-hidden rounded-[0.8rem] border border-[rgba(255,255,255,0.12)] bg-[#f5f5f5] shadow-2xl">
+      <div className="relative flex max-h-[calc(100dvh-32px)] w-full max-w-[22rem] flex-col overflow-hidden rounded-[0.8rem] border border-[rgba(255,255,255,0.12)] bg-[#f5f5f5] shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#ddd] bg-white px-4 py-3">
           <div className="flex items-center gap-2">
@@ -90,6 +103,7 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
           </div>
           <button 
             onClick={onClose}
+            aria-label="기록 닫기"
             className="flex h-7 w-7 items-center justify-center text-[#999] transition hover:text-[#333]"
           >
             ✕
@@ -102,6 +116,7 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
           <div className="whitespace-pre-wrap text-[0.85rem] text-[#444] leading-relaxed">
             {cleanContent}
           </div>
+          {isOwner && <div className="mt-4 flex gap-3 text-xs text-red-700"><button type="button" disabled={deleting} onClick={() => confirmDelete ? void deletePost() : setConfirmDelete(true)}>{deleting ? '삭제 중...' : confirmDelete ? '삭제 확인' : '기록 삭제'}</button>{confirmDelete && <button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)}>취소</button>}</div>}
 
           {error && <p className="mt-4 text-xs font-semibold text-red-500">{error}</p>}
 
@@ -145,6 +160,8 @@ export default function PoopPostModal({ post, onClose, onDelete, onCommentAdded 
                 value={commentContent}
                 onChange={(e) => setCommentContent(e.target.value)}
                 placeholder="댓글을 남겨보세요."
+                aria-label="댓글 내용"
+                maxLength={2000}
                 disabled={submitting}
                 rows={2}
                 className="flex-1 resize-none rounded border border-[#ccc] bg-white px-3 py-2 text-[0.8rem] text-[#333] outline-none focus:border-[#888]"
