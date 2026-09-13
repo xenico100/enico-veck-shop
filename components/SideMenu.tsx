@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { ShieldCheck, X, ShoppingCart } from 'lucide-react';
+import { ExternalLink, ShieldCheck, X, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { isAdminRoleValue } from '@/utils/service-posts';
+import { getUnifiedAdminUrl } from '@/utils/unified-admin';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export default function SideMenu({
   const user = auth?.user;
   const isAdmin =
     isAuthenticated && !auth?.loading && isAdminRoleValue(user?.role);
+  const unifiedAdminUrl = isAdmin ? getUnifiedAdminUrl('mongsangin') : null;
   const menuRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -197,16 +199,32 @@ export default function SideMenu({
               </li>
             ))}
             {isAdmin && (
-              <li>
-                <a
-                  href="/admin"
-                  onClick={onClose}
-                  className="flex items-center gap-2 border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] no-underline transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
-                >
-                  <ShieldCheck aria-hidden="true" className="h-4 w-4" />
-                  <span>관리자</span>
-                </a>
-              </li>
+              <>
+                <li>
+                  <a
+                    href="/admin"
+                    onClick={onClose}
+                    className="flex items-center gap-2 border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] no-underline transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
+                  >
+                    <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+                    <span>관리자</span>
+                  </a>
+                </li>
+                {unifiedAdminUrl ? (
+                  <li>
+                    <a
+                      href={unifiedAdminUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={onClose}
+                      className="flex items-center gap-2 border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] no-underline transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
+                    >
+                      <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                      <span>통합 관리자</span>
+                    </a>
+                  </li>
+                ) : null}
+              </>
             )}
           </ul>
 
