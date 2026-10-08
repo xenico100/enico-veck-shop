@@ -14,7 +14,7 @@ export const villageBuildings = [
   {
     id: 'goods',
     name: '몽상 잡화점',
-    caption: '의류 · 디지털 굿즈',
+    caption: '실제 의류 · 디지털 굿즈',
     x: 350,
     y: 310,
     color: '#348574',

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Menu, MessageCircle, SendHorizontal } from 'lucide-react';
+import { Menu, MessageCircle, SendHorizontal, Shirt } from 'lucide-react';
+import { VILLAGE_BUILDING_EVENT } from '@/utils/village-buildings';
 import styles from './Header.module.css';
 
 import {
@@ -270,7 +271,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
         }
       }}
       onKeyUp={(event) => {
-        if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); stopHold(); }
+        if (event.key === ' ' || event.key === 'Enter') {
+          event.preventDefault();
+          stopHold();
+        }
       }}
       onBlur={() => stopHold()}
       onMouseDown={startHoldMouse(kind)}
@@ -302,7 +306,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <div className={styles.hud}>
-      <a className={styles.brand} href="#home" data-avatar-ui="true"><b>夢想人</b><span>몽상인 광장</span></a>
+      <a className={styles.brand} href="#home" data-avatar-ui="true">
+        <b>夢想人</b>
+        <span>몽상인 광장</span>
+      </a>
       <div
         data-avatar-ui="true"
         className="pointer-events-none fixed left-3 top-3 z-40 w-[min(16rem,calc(100vw-10.25rem))] sm:left-4 sm:top-4 sm:w-[19rem] md:left-6 md:top-6"
@@ -334,14 +341,29 @@ export default function Header({ onMenuClick }: HeaderProps) {
         className="pointer-events-none fixed right-3 top-3 z-40 sm:right-4 sm:top-4 md:right-8 md:top-6"
       >
         <div className="flex flex-col items-end gap-2">
-          <button
-            onClick={onMenuClick}
-            className="pointer-events-auto inline-flex items-center gap-2 border border-[rgba(96,24,24,0.9)] bg-[rgba(24,3,3,0.96)] px-3 py-2 font-[var(--font-brush)] text-[0.7rem] font-bold tracking-[0.16em] text-[rgba(255,241,236,0.96)] shadow-[0_10px_24px_rgba(0,0,0,0.34)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4"
-            aria-label="메뉴 열기"
-          >
-            <span>메뉴</span>
-            <Menu className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-[1px]" />
-          </button>
+          <div className={styles.quickLinks}>
+            <button
+              type="button"
+              className={styles.shopLink}
+              aria-label="실제 의류 상점 열기"
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent(VILLAGE_BUILDING_EVENT, { detail: 'goods' })
+                )
+              }
+            >
+              <Shirt size={17} aria-hidden="true" />
+              <span>실제 의류</span>
+            </button>
+            <button
+              onClick={onMenuClick}
+              className="pointer-events-auto inline-flex items-center gap-2 border border-[rgba(96,24,24,0.9)] bg-[rgba(24,3,3,0.96)] px-3 py-2 font-[var(--font-brush)] text-[0.7rem] font-bold tracking-[0.16em] text-[rgba(255,241,236,0.96)] shadow-[0_10px_24px_rgba(0,0,0,0.34)] transition-transform duration-200 hover:-translate-y-[1px] sm:px-4"
+              aria-label="메뉴 열기"
+            >
+              <span>메뉴</span>
+              <Menu className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-[1px]" />
+            </button>
+          </div>
 
           {renderHoldButton(
             'poop',

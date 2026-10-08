@@ -10,7 +10,7 @@ import {
 import './styles/tailwind.css';
 import './styles/theme.css';
 import Providers from './providers';
-import { BRAND_NAME } from '@/utils/branding';
+import { BRAND_NAME, SITE_URL } from '@/utils/branding';
 
 const sansFont = Noto_Sans_KR({
   subsets: ['latin'],
@@ -42,15 +42,25 @@ const brushFont = Song_Myung({
   weight: ['400']
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.URL ||
-  'http://localhost:3000';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.URL || SITE_URL;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: BRAND_NAME,
-  description: `${BRAND_NAME}은 코딩, 미디어, 패션에 대해 알려주는 커뮤니티 사이트입니다.`
+  title: {
+    default: `${BRAND_NAME} 몽상인 — 픽셀 커뮤니티 게임`,
+    template: `%s | 몽상인`
+  },
+  description:
+    '마을을 걷고, 이야기를 나누고, 직접 만든 옷을 만나는 픽셀 커뮤니티 게임. 몽상 잡화점에서 ENICO VECK의 실제 의류를 만나보세요.',
+  openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: 'Mongsangin · 몽상인',
+    title: '몽상인 — 픽셀 커뮤니티 게임',
+    description:
+      '광장, 이야기, 퀘스트와 실제 의류 상점이 연결된 작은 온라인 마을.',
+    url: SITE_URL
+  }
 };
 
 export const viewport: Viewport = {

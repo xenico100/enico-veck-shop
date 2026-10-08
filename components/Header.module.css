@@ -34,6 +34,27 @@
 .hud header > div {
   gap: 8px;
 }
+.quickLinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+.shopLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  font-weight: 700;
+}
+.hud header .shopLink {
+  background: #315e57 !important;
+  color: #fff !important;
+  border-color: #315e57;
+}
+.hud header .shopLink:hover {
+  background: #244941 !important;
+}
 .hud header button {
   font-family: Arial, sans-serif;
   letter-spacing: 0;

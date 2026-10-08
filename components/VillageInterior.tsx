@@ -26,7 +26,9 @@ import {
 import { useVillageStory } from './useVillageStory';
 import VillageRoomArt, { ResidentSprite } from './VillageRoomArt';
 import styles from './VillageAdventure.module.css';
-const Services = dynamic(() => import('./ServicesSection'));
+const Shop = dynamic(() => import('./VillageShop'), {
+  loading: () => <p role="status">잡화점 진열대를 준비하는 중...</p>
+});
 const Studio = dynamic(() => import('./StudioSectionWithSearchParams'), {
   ssr: false
 });
@@ -94,8 +96,8 @@ function Room({
           {building === 'goods' && (
             <button
               className={styles.icon}
-              aria-label="잡화점 장바구니"
-              title="장바구니"
+              aria-label="디지털·제작 의뢰 장바구니"
+              title="디지털·제작 의뢰 장바구니"
               onClick={onCart}
             >
               <ShoppingBag size={20} />
@@ -220,12 +222,7 @@ function Room({
               ) : building === 'community' ? (
                 <Letters />
               ) : building === 'goods' ? (
-                <Services
-                  mode="modal"
-                  game
-                  onOpenCart={onCart}
-                  sectionId="village-goods"
-                />
+                <Shop onOpenCart={onCart} />
               ) : building === 'studio' ? (
                 <Studio game />
               ) : building === 'about' ? (

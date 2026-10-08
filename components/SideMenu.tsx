@@ -6,6 +6,7 @@ import { useAuth } from '@/app/context/AuthContext';
 import { useCart } from '@/app/context/CartContext';
 import { isAdminRoleValue } from '@/utils/service-posts';
 import { getUnifiedAdminUrl } from '@/utils/unified-admin';
+import { CONTACT_EMAIL } from '@/utils/branding';
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -18,12 +19,13 @@ interface SideMenuProps {
 }
 
 const menuItems = [
-  { label: 'Home', href: '#home' },
-  { label: 'About', href: '#about' },
-  { label: 'Dating', action: 'dating' as const },
-  { label: 'Goods', href: '#services' },
-  { label: 'Studio', href: '#studio' },
-  { label: 'Community', action: 'community' as const }
+  { label: '몽상인 광장', href: '#home' },
+  { label: '몽상 잡화점 · 실제 의류', href: '#services' },
+  { label: '똥 우체국 · 커뮤니티', action: 'community' as const },
+  { label: '필름 극장', href: '#studio' },
+  { label: '만남의 카페', action: 'dating' as const },
+  { label: '제작 연구소', href: '#about' },
+  { label: '몽상인 소개 · 운영 안내', href: '/about' }
 ];
 
 export default function SideMenu({
@@ -146,14 +148,14 @@ export default function SideMenu({
         aria-label="마을 메뉴"
         aria-modal="true"
         data-avatar-ui="true"
-        onClick={event => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="sticky top-0 z-10 shrink-0 border-b border-[rgba(103,14,14,0.64)] bg-[repeating-linear-gradient(45deg,rgba(22,0,0,0.98),rgba(22,0,0,0.98)_10px,rgba(9,0,0,0.98)_10px,rgba(9,0,0,0.98)_20px)] px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="section-kicker !text-[0.58rem]">Navigation</p>
               <p className="display-font text-[0.92rem] font-semibold tracking-[0.1em] text-[rgba(251,227,220,0.96)] sm:text-base sm:tracking-[0.12em]">
-                Wayfinder Index
+                마을 안내
               </p>
             </div>
             <button
@@ -186,9 +188,20 @@ export default function SideMenu({
                   <a
                     href={item.href}
                     onClick={(event) => {
-                      const destinations: Record<string, string> = { '#about': 'about', '#services': 'goods', '#studio': 'studio' };
+                      const destinations: Record<string, string> = {
+                        '#about': 'about',
+                        '#services': 'goods',
+                        '#studio': 'studio'
+                      };
                       const destination = destinations[item.href];
-                      if (destination) { event.preventDefault(); window.dispatchEvent(new CustomEvent('village:travel', { detail: destination })); }
+                      if (destination) {
+                        event.preventDefault();
+                        window.dispatchEvent(
+                          new CustomEvent('village:travel', {
+                            detail: destination
+                          })
+                        );
+                      }
                       onClose();
                     }}
                     className="block border-b border-[rgba(92,15,15,0.34)] px-1 py-2.5 font-[var(--font-brush)] text-[0.82rem] font-medium tracking-[0.06em] text-[rgba(231,204,198,0.92)] no-underline transition hover:text-white sm:py-3 sm:text-base sm:tracking-[0.08em]"
@@ -243,8 +256,16 @@ export default function SideMenu({
               className="y2k-button y2k-button-primary y2k-button-fade-micro w-full justify-center !min-h-9 !px-3 !text-[0.66rem] !tracking-[0.12em] sm:!min-h-[2.35rem] sm:!px-[0.95rem] sm:!text-[0.82rem] sm:!tracking-[0.14em]"
             >
               <ShoppingCart className="h-4 w-4" />
-              CART{totalItems > 0 ? ` (${totalItems})` : ''}
+              디지털·제작 의뢰 장바구니
+              {totalItems > 0 ? ` (${totalItems})` : ''}
             </button>
+
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="break-all px-1 py-2 text-sm text-[rgba(231,204,198,0.92)]"
+            >
+              문의 · {CONTACT_EMAIL}
+            </a>
 
             {isAuthenticated ? (
               <>
