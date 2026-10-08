@@ -96,8 +96,8 @@ function Room({
           {building === 'goods' && (
             <button
               className={styles.icon}
-              aria-label="디지털·제작 의뢰 장바구니"
-              title="디지털·제작 의뢰 장바구니"
+              aria-label="마을 굿즈·의뢰 장바구니"
+              title="마을 굿즈·의뢰 장바구니"
               onClick={onCart}
             >
               <ShoppingBag size={20} />

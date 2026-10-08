@@ -18,9 +18,7 @@ import styles from './VillageShop.module.css';
 
 const OFFICIAL_STORE_URL = 'https://enicoveck.com';
 const Services = dynamic(() => import('./ServicesSection'), {
-  loading: () => (
-    <p role="status">디지털 상품과 제작 의뢰를 불러오는 중이에요.</p>
-  )
+  loading: () => <p role="status">마을 상품과 제작 의뢰를 불러오는 중이에요.</p>
 });
 
 type ApparelProduct = {
@@ -390,7 +388,7 @@ export default function VillageShop({
           </Tabs.Trigger>
           <Tabs.Trigger className={styles.tab} value="digital">
             <Sparkles size={18} aria-hidden="true" />
-            디지털·제작 의뢰
+            마을 굿즈·의뢰
           </Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content className={styles.panel} value="apparel">
@@ -548,9 +546,9 @@ export default function VillageShop({
         <Tabs.Content className={styles.panel} value="digital">
           <div className={styles.digitalNotice}>
             <div>
-              <h3>디지털 상품·제작 의뢰</h3>
+              <h3>마을 굿즈·제작 의뢰</h3>
               <p>
-                각 상품의 파일 제공 방식과 제작 범위는 상세 안내에서 확인해
+                상품 구성, 파일 제공 방식과 제작 범위는 상세 안내에서 확인해
                 주세요.
               </p>
             </div>
@@ -560,7 +558,7 @@ export default function VillageShop({
               type="button"
             >
               <ShoppingBag size={18} aria-hidden="true" />
-              디지털·제작 장바구니
+              마을 굿즈 장바구니
             </button>
           </div>
           <Services

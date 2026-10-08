@@ -256,7 +256,7 @@ export default function SideMenu({
               className="y2k-button y2k-button-primary y2k-button-fade-micro w-full justify-center !min-h-9 !px-3 !text-[0.66rem] !tracking-[0.12em] sm:!min-h-[2.35rem] sm:!px-[0.95rem] sm:!text-[0.82rem] sm:!tracking-[0.14em]"
             >
               <ShoppingCart className="h-4 w-4" />
-              디지털·제작 의뢰 장바구니
+              마을 굿즈·의뢰 장바구니
               {totalItems > 0 ? ` (${totalItems})` : ''}
             </button>
 
