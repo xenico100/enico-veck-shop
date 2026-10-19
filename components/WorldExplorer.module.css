@@ -1,0 +1,1054 @@
+.world {
+  --ink: #183e39;
+  --paper: #f6f2e7;
+  --orange: #df633f;
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  min-height: 480px;
+  overflow: hidden;
+  background: #b7bcc5;
+  color: var(--ink);
+  font-family: var(--font-sans), sans-serif;
+}
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  touch-action: none;
+  outline: none;
+}
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 3px,
+    #333b3d06 4px
+  );
+  opacity: 0.5;
+}
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 26px 36px;
+}
+.brand {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  text-decoration: none;
+  color: var(--ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+.brand small {
+  display: block;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+  margin-top: 3px;
+}
+.brandMark {
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper);
+  width: 40px;
+  height: 40px;
+  font-family: serif;
+  font-size: 23px;
+}
+.version {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.version i,
+.footer i {
+  width: 4px;
+  height: 4px;
+  display: inline-block;
+  background: #4a6f59;
+  border-radius: 50%;
+}
+.tools {
+  display: flex;
+  margin-left: auto;
+  gap: 5px;
+}
+.tools button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 13px;
+  border: 1px solid #34584d38;
+  background: #f7f5edc9;
+  backdrop-filter: blur(8px);
+  font-size: 11px;
+  color: var(--ink);
+  border-radius: 3px;
+}
+.world button {
+  cursor: pointer;
+}
+.world button:focus-visible,
+.world a:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 4px;
+}
+.world button:hover {
+  filter: brightness(0.96);
+}
+.sceneNotice {
+  position: absolute;
+  top: 99px;
+  left: 36px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  padding: 7px 10px;
+  background: #f5f1e5c9;
+  border: 1px solid #53685b27;
+  border-radius: 2px;
+}
+.noticeDot {
+  width: 5px;
+  height: 5px;
+  background: var(--orange);
+  border-radius: 50%;
+}
+.location {
+  position: absolute;
+  right: 38px;
+  top: 112px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.location small {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  color: #426257;
+}
+.reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #fef4dcaa;
+  font-size: 19px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #203f3944;
+}
+.welcome {
+  position: absolute;
+  left: 7.3%;
+  top: 27%;
+  padding: 34px 36px 32px;
+  background: #f6f2e7ed;
+  box-shadow: 0 12px 70px #28423914;
+  border: 1px solid #ffffff8c;
+  border-radius: 2px;
+  max-width: 570px;
+}
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.11em;
+  color: #688076;
+  display: block;
+}
+.welcome h1 {
+  font-family: var(--font-display-kr), serif;
+  font-size: clamp(27px, 3.25vw, 45px);
+  line-height: 1.55;
+  letter-spacing: -0.06em;
+  font-weight: 500;
+  margin: 23px 0 17px;
+}
+.welcome h1 em {
+  font-style: normal;
+  color: #688170;
+}
+.welcome p {
+  font-size: 12px;
+  line-height: 1.95;
+  color: #64756b;
+}
+.welcomeActions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin: 28px 0 25px;
+}
+.welcomeActions > button:not(.primary) {
+  font-size: 11px;
+  border-bottom: 1px solid #a6b0a2;
+  padding: 9px 0;
+}
+.primary {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  min-height: 46px;
+  padding: 13px 19px;
+  font-size: 12px;
+  text-decoration: none;
+  border-radius: 2px;
+}
+.welcome small {
+  font-size: 9px;
+  color: #7c887b;
+}
+.footer {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #f8f3df;
+  text-shadow: 0 1px 5px #183e3980;
+}
+.footer > span:first-child {
+  font-family: var(--font-mono), monospace;
+  font-size: 8px;
+  letter-spacing: 0.03em;
+}
+.footer i {
+  background: #f6e4a3;
+  margin: 0 8px;
+}
+.footer a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+.desktopHelp {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.world kbd {
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  padding: 2px 4px;
+  opacity: 0.8;
+}
+.destination {
+  position: absolute;
+  top: 154px;
+  right: 36px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--paper);
+  padding: 10px 12px;
+  font-size: 11px;
+  border: 1px solid #58695c33;
+  border-radius: 2px;
+}
+.destination > span {
+  font-size: 9px;
+  color: #87907f;
+}
+.destination b {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--orange);
+}
+.nearCard {
+  position: absolute;
+  left: 50%;
+  bottom: 77px;
+  transform: translateX(-50%);
+  width: min(500px, calc(100% - 40px));
+  padding: 16px 18px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  background: var(--paper);
+  box-shadow: 0 10px 35px #163d3922;
+  border-radius: 2px;
+  border: 1px solid #ffffff80;
+}
+.nearIcon {
+  height: 46px;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  background: #e4e8da;
+}
+.nearCard > span:nth-child(2) {
+  display: grid;
+  gap: 3px;
+}
+.nearCard small {
+  font-family: var(--font-mono), monospace;
+  font-size: 8px;
+  color: #819081;
+}
+.nearCard strong {
+  font-size: 14px;
+}
+.nearCard > span span {
+  font-size: 10px;
+  color: #7b887a;
+}
+.nearCard button {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 10px;
+  min-height: 44px;
+}
+.pauseCard {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100% - 40px));
+  background: var(--paper);
+  padding: 35px;
+  box-shadow: 0 12px 60px #183e3925;
+  text-align: center;
+}
+.pauseCard h2 {
+  font-family: var(--font-display-kr), serif;
+  font-size: 23px;
+  margin: 19px 0 26px;
+}
+.pauseCard button {
+  display: flex;
+  margin: 10px auto;
+  gap: 9px;
+  align-items: center;
+  font-size: 11px;
+  min-height: 44px;
+}
+.graphicsError {
+  position: absolute;
+  left: 50%;
+  top: 140px;
+  transform: translateX(-50%);
+  max-width: 520px;
+  width: calc(100% - 40px);
+  padding: 15px;
+  background: #f7e6d9;
+  font-size: 12px;
+  z-index: 4;
+}
+.graphicsError button {
+  display: block;
+  text-decoration: underline;
+  margin-top: 9px;
+}
+.touchControls {
+  display: none;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #102a2b66;
+  backdrop-filter: blur(6px);
+}
+.panel,
+.detailPanel {
+  --ink: #183e39;
+  --paper: #f6f2e7;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 91;
+  max-height: calc(100dvh - 50px);
+  width: min(570px, calc(100% - 40px));
+  background: var(--paper);
+  color: var(--ink);
+  padding: 30px;
+  overflow: auto;
+  box-shadow: 0 22px 90px #132e3b40;
+  border: 1px solid #fff9;
+  border-radius: 3px;
+  font-family: var(--font-sans), sans-serif;
+}
+.panel button,
+.detailPanel button {
+  cursor: pointer;
+}
+.panel button:focus-visible,
+.panel a:focus-visible,
+.detailPanel button:focus-visible,
+.detailPanel a:focus-visible {
+  outline: 3px solid #df633f;
+  outline-offset: 3px;
+}
+.mapPanel {
+  width: min(690px, calc(100% - 40px));
+}
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.panelHeader h2 {
+  font-family: var(--font-display-kr), serif;
+  font-size: 25px;
+  font-weight: 500;
+  margin-top: 9px;
+  letter-spacing: -0.03em;
+}
+.close {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  background: #e8e9df;
+  border: 1px solid #52675326;
+  border-radius: 2px;
+}
+.description {
+  font-size: 11px;
+  color: #7b887b;
+  line-height: 1.8;
+  margin: 16px 0 22px;
+}
+.map {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  background: #dce1d3;
+  margin-bottom: 16px;
+  border: 1px solid #d2d6c5;
+  image-rendering: pixelated;
+}
+.buildingList {
+  display: flex;
+  flex-direction: column;
+}
+.buildingRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-top: 1px solid #d9dece;
+}
+.buildingNumber {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  width: 21px;
+}
+.buildingRow > button:first-of-type {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 44px;
+  text-align: left;
+  flex: 1;
+}
+.buildingRow strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.buildingRow small {
+  font-size: 10px;
+  color: #7d897b;
+}
+.routeButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  min-height: 44px;
+  padding: 0 6px;
+  color: #658071;
+}
+.detailDescription {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #6a7d6f;
+  margin: 22px 0;
+}
+.projectNote {
+  background: #e9ecdf;
+  padding: 17px;
+  margin-bottom: 25px;
+}
+.projectNote p {
+  font-size: 11px;
+  line-height: 1.85;
+  color: #72816e;
+  margin-top: 12px;
+}
+.sampleBadge {
+  display: inline-block;
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  color: #8d7651;
+  border: 1px solid #cdbd9c;
+  padding: 4px 7px;
+  background: #f4ebd8;
+}
+.walkLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: #71836f;
+}
+.workshop {
+  background: #e9ecdf;
+  padding: 24px;
+  margin: 20px 0;
+  color: #5f7361;
+}
+.workshop h3 {
+  font-size: 17px;
+  color: var(--ink);
+  margin: 15px 0 12px;
+  font-weight: 500;
+}
+.workshop p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 13px 0;
+}
+.workshop > small {
+  display: block;
+  font-size: 10px;
+  margin: 15px 0;
+}
+.workshop dl {
+  font-size: 11px;
+}
+.workshop dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #d0d8c8;
+}
+.workshop dd {
+  color: var(--ink);
+}
+.workshop ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0 24px;
+}
+.workshop li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin: 12px 0;
+}
+.workshop li > span:last-child {
+  text-align: right;
+}
+.workshop li small {
+  display: block;
+  font-size: 9px;
+  color: #8d9382;
+  margin-top: 4px;
+}
+.lockIllustration {
+  width: 70px;
+  height: 70px;
+  border: 1px solid #c8d0be;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.soundInfo {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #71816f;
+  padding: 20px;
+  background: #e8ecde;
+}
+@media (min-width: 1000px) {
+  .mapPanel .buildingList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 25px;
+  }
+  .mapPanel .buildingRow {
+    gap: 9px;
+  }
+  .mapPanel .routeButton {
+    font-size: 9px;
+  }
+}
+@media (max-width: 760px) {
+  .world {
+    min-height: 400px;
+  }
+  .header {
+    padding: 17px 18px;
+    gap: 8px;
+  }
+  .brand {
+    font-size: 10px;
+    gap: 8px;
+  }
+  .brandMark {
+    width: 34px;
+    height: 34px;
+    font-size: 21px;
+  }
+  .brand small {
+    font-size: 8px;
+  }
+  .version {
+    display: none;
+  }
+  .tools {
+    gap: 3px;
+  }
+  .tools button {
+    padding: 0;
+    width: 40px;
+    min-width: 40px;
+    height: 44px;
+    background: #f6f2e7b3;
+  }
+  .tools button span {
+    display: none;
+  }
+  .tools button svg {
+    width: 17px;
+  }
+  .sceneNotice {
+    top: 77px;
+    left: 18px;
+    font-size: 8px;
+    padding: 7px;
+  }
+  .sceneNotice > span:last-child {
+    display: none;
+  }
+  .location {
+    top: 119px;
+    right: 20px;
+    font-size: 10px;
+    gap: 7px;
+  }
+  .location svg {
+    width: 18px;
+  }
+  .welcome {
+    top: 24%;
+    left: 20px;
+    right: 20px;
+    max-width: 470px;
+    padding: 25px 24px;
+  }
+  .eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.07em;
+  }
+  .welcome h1 {
+    font-size: 29px;
+    line-height: 1.6;
+    margin: 21px 0 17px;
+  }
+  .welcome p {
+    font-size: 11px;
+  }
+  .welcomeActions {
+    gap: 15px;
+    margin: 23px 0;
+  }
+  .welcomeActions .primary {
+    font-size: 11px;
+    padding: 11px 13px;
+    gap: 8px;
+  }
+  .welcomeActions > button:not(.primary) {
+    font-size: 10px;
+  }
+  .welcome small {
+    font-size: 8px;
+  }
+  .footer {
+    left: 20px;
+    right: 20px;
+    bottom: max(17px, env(safe-area-inset-bottom));
+    font-size: 9px;
+  }
+  .footer > span:first-child {
+    font-size: 7px;
+    max-width: 180px;
+  }
+  .desktopHelp {
+    display: none;
+  }
+  .destination {
+    top: 165px;
+    right: 20px;
+    font-size: 10px;
+    gap: 6px;
+  }
+  .nearCard {
+    bottom: 170px;
+    padding: 12px;
+    gap: 9px;
+  }
+  .nearIcon {
+    width: 35px;
+    height: 40px;
+  }
+  .nearCard strong {
+    font-size: 12px;
+  }
+  .nearCard > span span {
+    font-size: 9px;
+  }
+  .nearCard button {
+    font-size: 9px;
+    gap: 6px;
+  }
+  .nearCard kbd {
+    display: none;
+  }
+  .touchControls {
+    display: flex;
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 62px;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .joystick {
+    width: 94px;
+    height: 94px;
+    border: 1px solid #f5f0df85;
+    border-radius: 50%;
+    background: #e8e8d625;
+    display: grid;
+    place-items: center;
+    touch-action: none;
+    pointer-events: auto;
+    position: relative;
+  }
+  .joystick > span {
+    width: 40px;
+    height: 40px;
+    background: #f5f0dfad;
+    border: 1px solid #fff9;
+    border-radius: 50%;
+    box-shadow: 0 3px 15px #173e3a1c;
+  }
+  .joystick small {
+    position: absolute;
+    bottom: -19px;
+    font-size: 8px;
+    color: #f8f3df;
+  }
+  .touchHint {
+    font-size: 9px;
+    color: #f8f3df;
+    text-shadow: 0 1px 4px #173e39;
+  }
+  .panel,
+  .detailPanel {
+    padding: 22px;
+    width: calc(100% - 26px);
+    max-height: calc(100dvh - 28px);
+  }
+  .panelHeader h2 {
+    font-size: 23px;
+  }
+  .description {
+    font-size: 10px;
+    margin: 14px 0 17px;
+  }
+  .buildingRow {
+    gap: 10px;
+    padding: 9px 0;
+  }
+  .buildingRow strong {
+    font-size: 11px;
+  }
+  .buildingRow small {
+    font-size: 9px;
+  }
+  .routeButton {
+    font-size: 9px;
+  }
+  .detailDescription {
+    font-size: 12px;
+  }
+  .workshop {
+    padding: 20px;
+  }
+  .graphicsError {
+    top: 115px;
+  }
+}
+@media (max-width: 360px) {
+  .header {
+    padding: 14px 13px;
+  }
+  .brand {
+    font-size: 9px;
+  }
+  .brandMark {
+    width: 29px;
+    height: 31px;
+  }
+  .tools button {
+    width: 35px;
+    min-width: 35px;
+  }
+  .welcome {
+    left: 13px;
+    right: 13px;
+    padding: 23px 18px;
+  }
+  .welcome h1 {
+    font-size: 25px;
+  }
+  .welcomeActions {
+    gap: 10px;
+  }
+  .welcomeActions .primary {
+    font-size: 10px;
+    gap: 6px;
+    padding: 10px;
+  }
+  .footer > span:first-child {
+    max-width: 140px;
+  }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .welcome {
+    top: 22%;
+    left: 7%;
+    padding: 17px 24px;
+  }
+  .welcome h1 {
+    font-size: 24px;
+    margin: 12px 0 7px;
+  }
+  .welcome p {
+    font-size: 10px;
+  }
+  .welcomeActions {
+    margin: 12px 0;
+  }
+  .welcome small {
+    display: none;
+  }
+  .sceneNotice {
+    top: 72px;
+  }
+  .footer {
+    bottom: 12px;
+  }
+  .touchControls {
+    bottom: 37px;
+  }
+  .nearCard {
+    left: auto;
+    right: 20px;
+    transform: none;
+    bottom: 55px;
+    width: 350px;
+  }
+  .location {
+    top: 87px;
+  }
+  .destination {
+    top: 126px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world * {
+    scroll-behavior: auto !important;
+  }
+}
+.sceneLabels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.sceneLabels > span {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  background: #f6f2e7cd;
+  border: 1px solid #324e3f27;
+  border-radius: 2px;
+  font-size: 9px;
+  box-shadow: 0 2px 7px #173e3911;
+}
+.sceneLabels > span::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  height: 12px;
+  left: 50%;
+  top: 100%;
+  background: #f6f2e7aa;
+}
+@media (pointer: coarse) {
+  .touchControls {
+    display: flex;
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 62px;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .joystick {
+    width: 94px;
+    height: 94px;
+    border: 1px solid #f5f0df85;
+    border-radius: 50%;
+    background: #e8e8d625;
+    display: grid;
+    place-items: center;
+    touch-action: none;
+    pointer-events: auto;
+    position: relative;
+  }
+  .joystick > span {
+    width: 40px;
+    height: 40px;
+    background: #f5f0dfad;
+    border: 1px solid #fff9;
+    border-radius: 50%;
+    box-shadow: 0 3px 15px #173e3a1c;
+  }
+  .joystick small {
+    position: absolute;
+    bottom: -19px;
+    font-size: 8px;
+    color: #f8f3df;
+  }
+  .touchHint {
+    font-size: 9px;
+    color: #f8f3df;
+    text-shadow: 0 1px 4px #173e39;
+  }
+  .desktopHelp {
+    display: none;
+  }
+  .nearCard {
+    bottom: 170px;
+  }
+}
+@media (pointer: coarse) and (max-height: 560px) {
+  .touchControls {
+    bottom: 37px;
+  }
+  .nearCard {
+    bottom: 55px;
+    left: auto;
+    right: 20px;
+    transform: none;
+    width: min(350px, calc(100% - 145px));
+  }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .world {
+    min-height: 0;
+    height: 100svh;
+  }
+}
+.welcome h1 {
+  color: var(--ink);
+  letter-spacing: -0.04em;
+}
+.world button:not(.primary):not(.tools button),
+.panel button:not(.primary),
+.detailPanel button:not(.primary) {
+  box-shadow: none;
+}
+.welcomeActions > button:not(.primary),
+.nearCard button,
+.routeButton,
+.buildingRow > button:first-of-type,
+.walkLink {
+  background: transparent;
+  border-radius: 0;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+}
+.nearCard button {
+  border-bottom: 0;
+}
+.welcome h1,
+.pauseCard h2,
+.panelHeader h2,
+.workshop h3 {
+  font-family: var(--font-display-kr), serif !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.04em !important;
+  color: var(--ink) !important;
+  text-shadow: none;
+}
+.buildingRow > button:first-of-type,
+.routeButton,
+.walkLink,
+.pauseCard > button:not(.primary) {
+  border: 0;
+  background: transparent;
+}
+.close {
+  border-style: solid;
+}
