@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 import { useAuth } from '@/app/context/AuthContext';
-import VillageInterior from '@/components/VillageInterior';
 import {
   findBuilding,
   VILLAGE_BUILDING_EVENT,
@@ -12,6 +11,9 @@ import {
   type VillageBuildingId
 } from '@/utils/village-buildings';
 
+const VillageInterior = dynamic(() => import('@/components/VillageInterior'), {
+  ssr: false
+});
 const AuthModal = dynamic(() => import('@/components/AuthModal'), {
   ssr: false
 });
@@ -122,13 +124,15 @@ export default function WorldVillageAdapter({
 
   return (
     <>
-      <VillageInterior
-        building={interior}
-        onClose={() => setInterior(null)}
-        onCart={() => openModal('cart')}
-        onProfile={() => openModal('profile')}
-        onDating={() => openModal('dating')}
-      />
+      {interior && (
+        <VillageInterior
+          building={interior}
+          onClose={() => setInterior(null)}
+          onCart={() => openModal('cart')}
+          onProfile={() => openModal('profile')}
+          onDating={() => openModal('dating')}
+        />
+      )}
       {modal === 'auth' && (
         <AuthModal
           open

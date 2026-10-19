@@ -89,7 +89,7 @@ test('analog touch magnitude below one changes speed without accelerating diagon
     { forward: -1, right: -1 },
     1 / 30
   );
-  assert.ok(reverse.x < 0 && reverse.z < 0);
+  assert.ok(reverse.x > 0 && reverse.z < 0);
 });
 
 test('background-tab delta and malformed input cannot teleport the player', () => {
@@ -135,7 +135,7 @@ test('a circular player stops before building walls, including the private works
 
 test('substepped movement slides along a facade instead of freezing both axes', () => {
   const start = { ...initialWorldPose, x: -4, z: 3.43 };
-  const pose = walk(start, { forward: 1, right: 1 }, 12);
+  const pose = walk(start, { forward: 1, right: -1 }, 12);
   assert.ok(pose.x > start.x + 1);
   assert.ok(pose.z <= 3.44 + 1e-7);
   assert.ok(worldPositionIsWalkable(pose.x, pose.z));
@@ -155,14 +155,14 @@ test('every world edge stops the player with radius clearance', () => {
     {
       x: WORLD_BOUNDS.maxX - 1,
       z: 0,
-      input: { right: 1, forward: 0 },
+      input: { right: -1, forward: 0 },
       key: 'x',
       expected: WORLD_BOUNDS.maxX - PLAYER_RADIUS
     },
     {
       x: WORLD_BOUNDS.minX + 1,
       z: 0,
-      input: { right: -1, forward: 0 },
+      input: { right: 1, forward: 0 },
       key: 'x',
       expected: WORLD_BOUNDS.minX + PLAYER_RADIUS
     },

@@ -1,7 +1,7 @@
 import { villageBuildings } from './village-buildings';
 import type { VillageBuildingId } from './village-buildings';
 
-/** Temporary, hand-built collision scene. This is NOT the approved Blender village. */
+/** Destination metadata shared by the proxy and approved-asset scenes. */
 export type WorldBuilding = {
   id: string;
   name: string;
@@ -17,9 +17,9 @@ export type WorldBuilding = {
 
 export const WORLD_BOUNDS = {
   minX: -36,
-  maxX: 40,
-  minZ: -20,
-  maxZ: 27
+  maxX: 44,
+  minZ: -30,
+  maxZ: 28
 } as const;
 export const PLAYER_RADIUS = 0.36;
 export const WORLD_MOVE_SPEED = 4.8;
@@ -89,7 +89,7 @@ export const proxyHome: WorldCollider = {
   width: 5.2,
   depth: 4.4
 };
-const colliders: readonly WorldCollider[] = [
+const defaultColliders: readonly WorldCollider[] = [
   ...worldBuildings,
   ...plazaPillars,
   proxyHome
@@ -99,21 +99,34 @@ const clamp = (value: number, min: number, max: number) =>
 const finite = (value: number, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
 
-export function worldPositionIsWalkable(x: number, z: number): boolean {
+export type WorldMovementOptions = {
+  colliders?: readonly WorldCollider[];
+  radius?: number;
+  speedScale?: number;
+};
+
+export function worldPositionIsWalkable(
+  x: number,
+  z: number,
+  options: WorldMovementOptions = {}
+): boolean {
+  const radius = clamp(
+    finite(options.radius ?? PLAYER_RADIUS, PLAYER_RADIUS),
+    0.04,
+    1
+  );
   if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
   if (
-    x < WORLD_BOUNDS.minX + PLAYER_RADIUS ||
-    x > WORLD_BOUNDS.maxX - PLAYER_RADIUS ||
-    z < WORLD_BOUNDS.minZ + PLAYER_RADIUS ||
-    z > WORLD_BOUNDS.maxZ - PLAYER_RADIUS
+    x < WORLD_BOUNDS.minX + radius ||
+    x > WORLD_BOUNDS.maxX - radius ||
+    z < WORLD_BOUNDS.minZ + radius ||
+    z > WORLD_BOUNDS.maxZ - radius
   )
     return false;
-  return !colliders.some((box) => {
+  return !(options.colliders ?? defaultColliders).some((box) => {
     const nearestX = clamp(x, box.x - box.width / 2, box.x + box.width / 2);
     const nearestZ = clamp(z, box.z - box.depth / 2, box.z + box.depth / 2);
-    return (
-      (x - nearestX) ** 2 + (z - nearestZ) ** 2 < PLAYER_RADIUS ** 2 - 1e-8
-    );
+    return (x - nearestX) ** 2 + (z - nearestZ) ** 2 < radius ** 2 - 1e-8;
   });
 }
 
@@ -121,8 +134,14 @@ export function worldPositionIsWalkable(x: number, z: number): boolean {
 export function stepWorldMovement(
   pose: WorldPose,
   input: WorldInput,
-  dt: number
+  dt: number,
+  options: WorldMovementOptions = {}
 ): WorldPose {
+  const radius = clamp(
+    finite(options.radius ?? PLAYER_RADIUS, PLAYER_RADIUS),
+    0.04,
+    1
+  );
   const yaw = finite(pose.yaw);
   let x = finite(pose.x, initialWorldPose.x);
   let z = finite(pose.z, initialWorldPose.z);
@@ -131,31 +150,31 @@ export function stepWorldMovement(
   const right = finite(input.right);
   const length = Math.max(1, Math.hypot(forward, right));
   // A resumed/background tab never makes the player jump across the scene.
-  const distance = WORLD_MOVE_SPEED * clamp(finite(dt), 0, 0.05);
+  const distance =
+    WORLD_MOVE_SPEED *
+    clamp(finite(options.speedScale ?? 1, 1), 0, 1) *
+    clamp(finite(dt), 0, 0.05);
   const dx =
-    (Math.sin(yaw) * (forward / length) + Math.cos(yaw) * (right / length)) *
+    (Math.sin(yaw) * (forward / length) - Math.cos(yaw) * (right / length)) *
     distance;
   const dz =
-    (Math.cos(yaw) * (forward / length) - Math.sin(yaw) * (right / length)) *
+    (Math.cos(yaw) * (forward / length) + Math.sin(yaw) * (right / length)) *
     distance;
   // Circle-vs-AABB checks in small substeps prevent tunneling and slide along walls.
-  const steps = Math.max(
-    1,
-    Math.ceil(Math.hypot(dx, dz) / (PLAYER_RADIUS / 3))
-  );
+  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dz) / (radius / 3)));
   for (let i = 0; i < steps; i++) {
     const nextX = clamp(
       x + dx / steps,
-      WORLD_BOUNDS.minX + PLAYER_RADIUS,
-      WORLD_BOUNDS.maxX - PLAYER_RADIUS
+      WORLD_BOUNDS.minX + radius,
+      WORLD_BOUNDS.maxX - radius
     );
-    if (worldPositionIsWalkable(nextX, z)) x = nextX;
+    if (worldPositionIsWalkable(nextX, z, options)) x = nextX;
     const nextZ = clamp(
       z + dz / steps,
-      WORLD_BOUNDS.minZ + PLAYER_RADIUS,
-      WORLD_BOUNDS.maxZ - PLAYER_RADIUS
+      WORLD_BOUNDS.minZ + radius,
+      WORLD_BOUNDS.maxZ - radius
     );
-    if (worldPositionIsWalkable(x, nextZ)) z = nextZ;
+    if (worldPositionIsWalkable(x, nextZ, options)) z = nextZ;
   }
   return { x, z, yaw, pitch };
 }

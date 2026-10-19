@@ -5,6 +5,7 @@ import {
   worldRoads
 } from './world-layout';
 import type { WorldPose } from './world-layout';
+import { worldCameraBasis } from './world-camera';
 
 /** Procedural collision-test scenery only. No approved village or character asset is embedded. */
 type RGB = [number, number, number];
@@ -562,13 +563,7 @@ export function createWorldRenderer(canvas: HTMLCanvasElement): WorldRenderer {
     resize,
     render(pose, _time) {
       if (lost || disposed || !program) return;
-      const sy = Math.sin(pose.yaw),
-        cy = Math.cos(pose.yaw),
-        sp = Math.sin(pose.pitch),
-        cp = Math.cos(pose.pitch);
-      const right: Point = [cy, 0, -sy];
-      const up: Point = [-sy * sp, cp, -cy * sp];
-      const forward: Point = [sy * cp, sp, cy * cp];
+      const { right, up, forward } = worldCameraBasis(pose);
       const eye: Point = [pose.x, 1.65, pose.z];
       const dot = (v: Point) => v[0] * eye[0] + v[1] * eye[1] + v[2] * eye[2];
       const view = new Float32Array([

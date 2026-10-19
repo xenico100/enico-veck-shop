@@ -113,7 +113,7 @@ export async function readOwnerWorkshop(): Promise<WorkshopResult> {
           notice:
             '화면 검증용 샘플입니다. 실제 제작·백업·복원 검증 상태는 모두 미확인이며 연결된 상태 원천이 없습니다.',
           latestPreview: { url: '/world', label: '현재 로컬 시제품' },
-          version: 'prototype-0.1 · 샘플 버전',
+          version: 'prototype-0.2 · 샘플 버전',
           stages: [
             {
               id: 'making',

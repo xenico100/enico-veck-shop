@@ -27,9 +27,16 @@ import {
   worldRoads,
   WORLD_BOUNDS,
   type WorldBuilding,
-  type WorldPose
+  type WorldPose,
+  type WorldMovementOptions
 } from '@/utils/world-layout';
-import { createWorldRenderer } from '@/utils/world-renderer';
+import {
+  createWorldRenderer,
+  type WorldRenderer
+} from '@/utils/world-renderer';
+import { createAssetWorldRenderer } from '@/utils/world-asset-renderer';
+import { loadWorldGlb, type WorldGlbScene } from '@/utils/world-glb';
+import { parseWorldCollisionMap } from '@/utils/world-collisions';
 import {
   initialWorldAnimation,
   stepWorldAnimation
@@ -75,6 +82,10 @@ export default function WorldExplorer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const poseRef = useRef<WorldPose>({ ...arrivalPose });
   const animationRef = useRef({ ...initialWorldAnimation });
+  const movementOptions = useRef<WorldMovementOptions>({});
+  const [assetState, setAssetState] = useState<'loading' | 'ready' | 'error'>(
+    'loading'
+  );
   const keys = useRef(new Set<string>());
   const stick = useRef({ forward: 0, right: 0 });
   const cameraDrag = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -96,7 +107,7 @@ export default function WorldExplorer() {
   const [locked, setLocked] = useState(false);
   const [thumb, setThumb] = useState({ x: 0, y: 0 });
   const [workshop, setWorkshop] = useState<WorkshopState>({ loading: false });
-  const near = findNearbyBuilding(pose);
+  const near = findNearbyBuilding(pose, assetState === 'ready' ? 1.5 : 3.4);
   const paused =
     !started ||
     manualPause ||
@@ -125,10 +136,22 @@ export default function WorldExplorer() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    let renderer: ReturnType<typeof createWorldRenderer>;
+    let renderer: WorldRenderer;
+    let assetRenderer: ReturnType<typeof createAssetWorldRenderer> | null =
+      null;
+    let disposed = false;
+    let loadedScene: WorldGlbScene | null = null;
+    let characterAnchor: { x: number; y: number; z: number } | null = null;
+    let characterRequested = false;
+    const controller = new AbortController();
+    canvas.dataset.worldScene = 'placeholder';
+    canvas.dataset.worldAssetState = 'loading';
+    canvas.dataset.worldCharacterState = 'unloaded';
     try {
       renderer = createWorldRenderer(canvas);
     } catch {
+      canvas.dataset.worldAssetState = 'error';
+      setAssetState('error');
       setGraphicsError(
         '이 브라우저에서 3D 화면을 시작하지 못했습니다. 지도와 목록에서 모든 공간을 살펴볼 수 있습니다.'
       );
@@ -139,6 +162,96 @@ export default function WorldExplorer() {
     let lastUi = 0;
     let dirty = true;
     let previousPose = { ...poseRef.current };
+    let actualFirstFrame = false;
+    Promise.all([
+      loadWorldGlb('/world-assets/village.glb', {
+        signal: controller.signal
+      }).then((scene) => {
+        if (disposed || controller.signal.aborted) {
+          scene.dispose();
+          throw new DOMException('Cancelled', 'AbortError');
+        }
+        loadedScene = scene;
+        return scene;
+      }),
+      fetch('/world-assets/colliders.json', { signal: controller.signal }).then(
+        async (response) => {
+          if (!response.ok) throw new Error('충돌 지도를 불러오지 못했습니다.');
+          return parseWorldCollisionMap(await response.json());
+        }
+      )
+    ])
+      .then(([scene, collisionMap]) => {
+        if (disposed) {
+          scene.dispose();
+          return;
+        }
+        renderer.dispose();
+        try {
+          assetRenderer = createAssetWorldRenderer(canvas, scene);
+          renderer = assetRenderer;
+        } catch (error) {
+          renderer = createWorldRenderer(canvas);
+          throw error;
+        }
+        movementOptions.current = {
+          colliders: collisionMap.colliders,
+          radius: 0.144,
+          speedScale: 0.4
+        };
+        characterAnchor = collisionMap.characterAnchor;
+        canvas.dataset.worldScene = 'approved-village';
+        canvas.dataset.worldAssetState = 'ready';
+        performance.mark('world:asset-ready');
+        setAssetState('ready');
+        dirty = true;
+      })
+      .catch((error: unknown) => {
+        if (
+          process.env.NODE_ENV === 'development' &&
+          !controller.signal.aborted
+        )
+          console.warn('World asset initialization failed', error);
+        controller.abort();
+        loadedScene?.dispose();
+        if (!disposed) {
+          canvas.dataset.worldAssetState = 'error';
+          setAssetState('error');
+        }
+      });
+    const requestCharacter = () => {
+      if (
+        characterRequested ||
+        !assetRenderer ||
+        !characterAnchor ||
+        Math.hypot(
+          poseRef.current.x - characterAnchor.x,
+          poseRef.current.z - characterAnchor.z
+        ) > 6
+      )
+        return;
+      characterRequested = true;
+      canvas.dataset.worldCharacterState = 'loading';
+      loadWorldGlb('/world-assets/companion.glb', { signal: controller.signal })
+        .then((scene) => {
+          if (disposed || !assetRenderer) {
+            scene.dispose();
+            return;
+          }
+          try {
+            assetRenderer.addScene(scene);
+          } catch (error) {
+            scene.dispose();
+            throw error;
+          }
+          canvas.dataset.worldCharacterState = 'ready';
+          performance.mark('world:character-ready');
+          dirty = true;
+        })
+        .catch(() => {
+          if (!disposed) canvas.dataset.worldCharacterState = 'error';
+        });
+    };
     const resize = () => {
       renderer.resize();
       dirty = true;
@@ -163,10 +276,12 @@ export default function WorldExplorer() {
         poseRef.current = stepWorldMovement(
           poseRef.current,
           { forward, right },
-          dt
+          dt,
+          movementOptions.current
         );
         dirty = true;
       }
+      requestCharacter();
       const nextAnimation = stepWorldAnimation(
         previousPose,
         poseRef.current,
@@ -190,13 +305,17 @@ export default function WorldExplorer() {
       }
       if (dirty) {
         renderer.render(poseRef.current, time / 1000);
+        if (assetRenderer && !actualFirstFrame) {
+          performance.mark('world:first-frame');
+          actualFirstFrame = true;
+        }
         if (time - lastUi > 120) {
           setPose({ ...poseRef.current });
           setLabels(
             worldBuildings.flatMap((building) => {
               const point = renderer.project({
                 x: building.x,
-                y: 4.8,
+                y: assetRenderer ? 2.8 : 4.8,
                 z: building.z
               });
               return point?.visible &&
@@ -228,12 +347,28 @@ export default function WorldExplorer() {
         '3D 연결이 중단되었습니다. 지도로 계속 둘러보거나 화면을 새로고침해 주세요.'
       );
     };
+    const restored = () =>
+      requestAnimationFrame(() => {
+        if (disposed) return;
+        setGraphicsError(
+          assetRenderer?.stats.restoreFailed
+            ? '3D 화면을 복구하지 못했습니다. 지도로 계속 둘러보거나 새로고침해 주세요.'
+            : ''
+        );
+        dirty = true;
+      });
     canvas.addEventListener('webglcontextlost', lost);
+    canvas.addEventListener('webglcontextrestored', restored);
     return () => {
+      disposed = true;
+      controller.abort();
       cancelAnimationFrame(frame);
       observer.disconnect();
       canvas.removeEventListener('webglcontextlost', lost);
+      canvas.removeEventListener('webglcontextrestored', restored);
       renderer.dispose();
+      if (!assetRenderer) loadedScene?.dispose();
+      movementOptions.current = {};
     };
   }, []);
 
@@ -300,7 +435,7 @@ export default function WorldExplorer() {
         pausedRef.current
       )
         return;
-      poseRef.current.yaw += event.movementX * 0.003;
+      poseRef.current.yaw -= event.movementX * 0.003;
       poseRef.current.pitch = Math.max(
         -0.65,
         Math.min(0.5, poseRef.current.pitch - event.movementY * 0.003)
@@ -394,11 +529,18 @@ export default function WorldExplorer() {
   };
 
   return (
-    <main className={styles.world}>
+    <main
+      className={styles.world}
+      data-scene={assetState === 'ready' ? 'approved' : 'proxy'}
+    >
       <canvas
         ref={canvasRef}
         className={styles.canvas}
-        aria-label="몽상인 임시 3D 충돌 테스트 마을"
+        aria-label={
+          assetState === 'ready'
+            ? '몽상인 실제 마을 GLB 시제품 · 캐릭터 모션 임시'
+            : '몽상인 임시 3D 충돌 테스트 마을'
+        }
         tabIndex={0}
         onClick={() => {
           if (!paused && matchMedia('(pointer:fine)').matches) {
@@ -424,7 +566,7 @@ export default function WorldExplorer() {
         onPointerMove={(event) => {
           const drag = cameraDrag.current;
           if (!drag || drag.id !== event.pointerId || paused) return;
-          poseRef.current.yaw += (event.clientX - drag.x) * 0.006;
+          poseRef.current.yaw -= (event.clientX - drag.x) * 0.006;
           poseRef.current.pitch = Math.max(
             -0.65,
             Math.min(
@@ -451,14 +593,19 @@ export default function WorldExplorer() {
         ))}
       </div>
       <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="기존 몽상인 마을로">
+        <Link
+          href="/"
+          prefetch={false}
+          className={styles.brand}
+          aria-label="기존 몽상인 마을로"
+        >
           <span className={styles.brandMark}>夢</span>
           <span>
             MONGSANGIN<small>산책하는 작업 지도</small>
           </span>
         </Link>
         <span className={styles.version}>
-          WORLD / 0.1 <i /> SOLO
+          WORLD / 0.2 <i /> SOLO
         </span>
         <nav aria-label="탐색 도구" className={styles.tools}>
           <button onClick={() => setView('map')} aria-label="지도 열기">
@@ -482,8 +629,13 @@ export default function WorldExplorer() {
         </nav>
       </header>
       <aside className={styles.sceneNotice}>
-        <span className={styles.noticeDot} /> 임시 충돌 테스트 장면{' '}
-        <span>· 원본 마을 모델 적용 전</span>
+        <span className={styles.noticeDot} />
+        {assetState === 'ready'
+          ? '실제 마을 자산 · 웹 변환 검증 중'
+          : assetState === 'loading'
+            ? '임시 충돌 장면 · 실제 자산 로딩 중'
+            : '임시 충돌 장면 · 실제 자산 로딩 실패'}
+        <span>· 몽상녀·최종 모션 적용 대기</span>
       </aside>
       <aside className={styles.location} aria-label="현재 위치">
         <Compass size={20} style={{ transform: `rotate(${-pose.yaw}rad)` }} />
@@ -525,13 +677,16 @@ export default function WorldExplorer() {
           <p>
             작은 마을을 산책하며 프로젝트를 찾아보세요.
             <br />
-            지금은 이동과 충돌을 검증하는 임시 장면입니다.
+            {assetState === 'ready'
+              ? '승인된 실제 마을 자산의 웹 변환을 검증하는 버전입니다.'
+              : '지금은 이동과 충돌을 검증하는 임시 장면입니다.'}
           </p>
           <div className={styles.welcomeActions}>
             <button
               className={styles.primary}
               onClick={() => {
                 setStarted(true);
+                performance.mark('world:interactive');
                 setManualPause(false);
                 canvasRef.current?.focus();
               }}
@@ -594,7 +749,7 @@ export default function WorldExplorer() {
           {locked ? '마우스 시점 · Esc 해제' : '화면 클릭 또는 드래그로 시점'}{' '}
           <kbd>E</kbd> 공간
         </span>
-        <Link href="/">
+        <Link href="/" prefetch={false}>
           <ArrowLeft size={13} /> 기존 마을
         </Link>
       </footer>
@@ -901,8 +1056,10 @@ export default function WorldExplorer() {
                 <div className={styles.projectNote}>
                   <span className={styles.sampleBadge}>3D 연결 시제품</span>
                   <p>
-                    건물의 형태와 캐릭터는 이동 검증용 임시 표현입니다. 기존
-                    공간의 커뮤니티·상점·로그인 기능으로 연결됩니다.
+                    {assetState === 'ready'
+                      ? '건물은 실제 마을 자산이며 캐릭터·모션은 최종 적용 전입니다.'
+                      : '건물의 형태와 캐릭터는 이동 검증용 임시 표현입니다.'}{' '}
+                    기존 공간의 커뮤니티·상점·로그인 기능으로 연결됩니다.
                   </p>
                 </div>
                 <button

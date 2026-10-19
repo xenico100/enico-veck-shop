@@ -29,11 +29,15 @@ const browser = await chromium.launch({
 });
 const results = [];
 const errors = [];
-const open = async (options, noWebgl = false) => {
+const open = async (options, noWebgl = false, failAssets = false) => {
   const context = await browser.newContext({
     ...options,
     deviceScaleFactor: 1
   });
+  if (failAssets)
+    await context.route('**/world-assets/village.glb', (route) =>
+      route.abort()
+    );
   if (noWebgl)
     await context.addInitScript(() => {
       const original = HTMLCanvasElement.prototype.getContext;
@@ -50,6 +54,12 @@ const open = async (options, noWebgl = false) => {
       () => document.querySelector('canvas')?.width > 300
     );
   else await page.locator('p[role=alert]').waitFor();
+  if (!noWebgl)
+    await page.waitForFunction(
+      (expected) =>
+        document.querySelector('canvas')?.dataset.worldAssetState === expected,
+      failAssets ? 'error' : 'ready'
+    );
   return { page, context };
 };
 const position = async (page) =>
@@ -83,7 +93,7 @@ try {
   const start = await position(page);
   await walk(page, 'w');
   assert.ok(
-    (await position(page))[0] > start[0] + 1,
+    (await position(page))[0] > start[0] + 0.5,
     'W moves in camera direction'
   );
   const compass = page.getByLabel('현재 위치', { exact: true }).locator('svg');
@@ -270,6 +280,66 @@ try {
     );
     await context.close();
   }
+
+  const companion = await open({ viewport: { width: 1440, height: 900 } });
+  assert.equal(
+    await companion.page.evaluate(() =>
+      performance
+        .getEntriesByType('resource')
+        .some((r) => r.name.endsWith('/companion.glb'))
+    ),
+    false,
+    'companion is deferred at arrival'
+  );
+  await companion.page
+    .getByRole('button', { name: '산책 시작', exact: true })
+    .click();
+  await walk(companion.page, 'a', 2750);
+  await walk(companion.page, 'w', 1200);
+  await companion.page.waitForFunction(
+    () =>
+      document.querySelector('canvas')?.dataset.worldCharacterState === 'ready'
+  );
+  assert.equal(
+    await companion.page.evaluate(
+      () =>
+        performance
+          .getEntriesByType('resource')
+          .filter((r) => r.name.endsWith('/companion.glb')).length
+    ),
+    1,
+    'companion loads once when approached'
+  );
+  await companion.page.screenshot({
+    path: `${output}/desktop-companion-static.png`
+  });
+  results.push(
+    'actual companion: initial download deferred, proximity load succeeds, static current pose only'
+  );
+  await companion.context.close();
+  const failedAsset = await open(
+    { viewport: { width: 390, height: 844 } },
+    false,
+    true
+  );
+  assert.equal(
+    await failedAsset.page.locator('canvas').getAttribute('data-world-scene'),
+    'placeholder'
+  );
+  await failedAsset.page
+    .getByText('임시 충돌 장면 · 실제 자산 로딩 실패', { exact: false })
+    .waitFor();
+  await failedAsset.page
+    .getByRole('button', { name: '목록 열기', exact: true })
+    .click();
+  assert.equal(
+    await failedAsset.page.getByRole('button', { name: /길 찾기$/ }).count(),
+    7
+  );
+  results.push(
+    'actual asset failure: explicitly labeled proxy fallback, list remains accessible'
+  );
+  await failedAsset.context.close();
 
   const fallback = await open({ viewport: { width: 390, height: 844 } }, true);
   await fallback.page

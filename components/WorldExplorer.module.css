@@ -1052,3 +1052,12 @@
 .close {
   border-style: solid;
 }
+.world[data-scene='approved'] .brand,
+.world[data-scene='approved'] .version,
+.world[data-scene='approved'] .location {
+  color: #f5f0df;
+  text-shadow: 0 1px 4px #132c36;
+}
+.world[data-scene='approved'] .location small {
+  color: #e4e6d8;
+}
