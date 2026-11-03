@@ -51,7 +51,7 @@ const open = async (options, noWebgl = false, failAssets = false) => {
   await page.goto(`${origin}/world`, { waitUntil: 'networkidle' });
   if (!noWebgl)
     await page.waitForFunction(
-      () => document.querySelector('canvas')?.width > 300
+      () => document.querySelector('canvas')?.width >= 160
     );
   else await page.locator('p[role=alert]').waitFor();
   if (!noWebgl)
@@ -294,8 +294,9 @@ try {
   await companion.page
     .getByRole('button', { name: '산책 시작', exact: true })
     .click();
-  await walk(companion.page, 'a', 2750);
-  await walk(companion.page, 'w', 1200);
+  // The game starts at the west end of the street; walk east, then toward the house.
+  await walk(companion.page, 'w', 7000);
+  await walk(companion.page, 'a', 1200);
   await companion.page.waitForFunction(
     () =>
       document.querySelector('canvas')?.dataset.worldCharacterState === 'ready'
@@ -329,8 +330,9 @@ try {
   await failedAsset.page
     .getByText('임시 충돌 장면 · 실제 자산 로딩 실패', { exact: false })
     .waitFor();
+  // Before starting, the title menu is the entry point to the accessible list.
   await failedAsset.page
-    .getByRole('button', { name: '목록 열기', exact: true })
+    .getByRole('button', { name: '목록으로 둘러보기', exact: true })
     .click();
   assert.equal(
     await failedAsset.page.getByRole('button', { name: /길 찾기$/ }).count(),

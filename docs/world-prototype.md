@@ -1,5 +1,7 @@
 # `/world` retro exploration prototype
 
+> **Update:** `/world` is now the game *몽상인 — 잠들지 않는 마을* (story, night systems, PS1 renderer, procedural audio). See [world-game.md](./world-game.md). The notes below describe the original prototype layer it builds on.
+
 The additive `/world` prototype preserves the existing homepage, community, shop, login, resident center, café, and Studio. It is for local review, with no remote push or deployment.
 
 - Branch: `codex/retro-world-prototype-20261019`

@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import WorldExplorer from '@/components/WorldExplorer';
 
 export const metadata: Metadata = {
-  title: '산책하는 작업 지도 · 3D 시제품',
-  description: '몽상인 마을의 이동과 충돌을 확인하는 단독 탐색 시제품입니다.',
+  title: '몽상인 · 잠들지 않는 마을',
+  description:
+    '자정이 지난 몽상로에서 첫 문장을 되찾는 PS1 감성의 1인칭 밤 산책 게임입니다.',
   robots: { index: false, follow: false }
 };
 
