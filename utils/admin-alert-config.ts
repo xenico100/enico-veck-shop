@@ -21,6 +21,12 @@ export const getAdminSignupEmailConfig = () => {
   return {
     to: normalizeText(process.env.SIGNUP_NOTIFICATION_EMAIL) || existing.to,
     from: normalizeText(process.env.SIGNUP_NOTIFICATION_FROM_EMAIL) || existing.from,
-    resendApiKey: normalizeText(process.env.SIGNUP_NOTIFICATION_RESEND_API_KEY) || existing.resendApiKey
+    resendApiKey: normalizeText(process.env.SIGNUP_NOTIFICATION_RESEND_API_KEY) || existing.resendApiKey,
+    relaySecret: normalizeText(process.env.SIGNUP_NOTIFICATION_RELAY_SECRET)
   };
+};
+
+export const isAdminSignupEmailConfigured = () => {
+  const config = getAdminSignupEmailConfig();
+  return Boolean(config.resendApiKey || Buffer.byteLength(config.relaySecret) >= 48);
 };

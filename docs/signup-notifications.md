@@ -6,6 +6,8 @@
 
 `SIGNUP_NOTIFICATION_ENABLED_AT`에 알림 활성화 시각의 ISO 8601 값을 설정하면 그 이전 가입은 알리지 않습니다. 값이 잘못되면 발송을 중단하며, 미설정 시에는 기존 24시간 제한만 적용합니다. 익명 여부는 Auth의 `is_anonymous` boolean을 최우선으로 판단하고, 값이 없는 예전 응답에서만 provider metadata를 참고합니다.
 
+몽상인에 직접 Resend 키가 없으면 서버 전용 `SIGNUP_NOTIFICATION_RELAY_SECRET`(48바이트 이상)을 사용해 고정된 에니코 HTTPS 가입 알림 relay로 요청합니다. 에니코의 기존 발신자·수신자·키로 전송하며 그 키를 몽상인에 넘기지 않습니다. 요청에는 사이트 구분·회원 ID·가입 시각만 포함합니다. 직접 키가 있는 경우에는 relay를 사용하지 않고, 직접 발송 실패 후 다른 경로로 재발송하지 않습니다. 두 경로는 같은 고정 본문과 Resend 멱등 키를 사용하며 유효한 공급자 영수증을 받아야 완료 처리합니다.
+
 DB webhook은 해당 프로젝트의 `auth.users` INSERT에만 연결하고, 목적지는 운영 사이트의 위 경로로 지정합니다. 본문에는 전체 Auth 레코드를 보내지 않아도 됩니다. 아래 최소 형식이면 충분합니다.
 
 ```json
@@ -26,5 +28,7 @@ DB webhook은 해당 프로젝트의 `auth.users` INSERT에만 연결하고, 목
 DB webhook은 외부 메일 응답을 가입 트랜잭션에 동기로 연결하지 않는 비동기 전달을 사용해야 합니다. 메일 요청 timeout은 10초이며, webhook 호출 timeout은 이보다 넉넉하게 지정합니다. 이 코드를 배포하는 것과 DB webhook/운영 환경변수를 실제 설정하는 것은 별도 단계입니다.
 
 동일한 비밀 헤더로 `POST /api/auth/signup-sweep`를 주기적으로 호출하면 발송되지 않은 신규 계정을 재확인합니다. 페이지당 1,000명·최대 20페이지, 한 번에 최대 10명·동시 2건으로 제한하고 시간 예산이 부족하면 다음 호출로 남깁니다. 응답에는 `notified`, `skipped`, `failed`, `scanned`, `pages`, `anonymous`, `emailMissing`, `partial`, `more` 집계만 포함합니다. 한도·실패로 미처리 작업이 있으면 `partial`과 `more`는 true입니다.
+
+운영 연결은 이 저장소의 `supabase/migrations/*_signup_notifications.sql`을 기준으로 합니다. 몽상인 Auth INSERT는 즉시 웹훅을 요청하고, 몽상인의 pg_cron이 5분마다 몽상인·에니코 두 사이트의 signup sweep를 호출합니다. 에니코 DB의 직접 INSERT 웹훅은 선택 사항이며, 에니코는 callback·브라우저 보조 처리와 5분 주기 서버 sweep로 이메일 미인증 신규 가입도 확인합니다. 공급자 영수증은 발송 수락 기록이며 수신함 도착 확인과 구분합니다.
 
 검증은 `node --test test/admin-member-profiles.test.mjs test/signup-webhook.test.mjs`로 수행합니다. 테스트는 Auth와 Resend를 mock하며 실계정 생성·실메일 발송을 하지 않습니다.

@@ -9,7 +9,7 @@ const hooks = registerHooks({ resolve(specifier, context, nextResolve) {
 after(() => hooks.deregister());
 const { createSignupWebhookHandler, SIGNUP_ALERT_MARKER } = await import('../utils/signup-webhook.ts');
 const { sendSignupNotificationEmail } = await import('../utils/signup-notification-email.ts');
-const { getAdminEmailConfig, getAdminSignupEmailConfig } = await import('../utils/admin-alert-config.ts');
+const { getAdminEmailConfig, getAdminSignupEmailConfig, isAdminSignupEmailConfigured } = await import('../utils/admin-alert-config.ts');
 
 const SECRET = 'test-only-webhook-secret-with-32-characters';
 const USER_ID = '11111111-2222-4333-8444-555555555555';
@@ -37,6 +37,7 @@ const setup = (options = {}) => {
   const handler = createSignupWebhookHandler({
     secret: () => options.secret ?? SECRET,
     enabledAt: () => options.enabledAt,
+    isConfigured: options.configured === undefined ? undefined : () => options.configured,
     getUser: async (id) => { calls.lookups.push(id); return user; },
     notify: async (record) => {
       calls.notifications.push(record);
@@ -227,20 +228,53 @@ test('unconfigured mail does not call a provider and non-OK response is a failur
 test('dedicated signup credentials override only signup mail while sales settings stay unchanged', () => {
   const values = {
     RESEND_API_KEY: 'fixture-sales-key', SALES_ALERT_FROM_EMAIL: 'sales@example.com', SALES_ALERT_TO_EMAIL: 'sales-owner@example.com',
-    SIGNUP_NOTIFICATION_RESEND_API_KEY: 'fixture-signup-only-key', SIGNUP_NOTIFICATION_FROM_EMAIL: 'signup@example.com', SIGNUP_NOTIFICATION_EMAIL: 'signup-owner@example.com'
+    SIGNUP_NOTIFICATION_RESEND_API_KEY: 'fixture-signup-only-key', SIGNUP_NOTIFICATION_FROM_EMAIL: 'signup@example.com', SIGNUP_NOTIFICATION_EMAIL: 'signup-owner@example.com', SIGNUP_NOTIFICATION_RELAY_SECRET: ''
   };
   const saved = Object.fromEntries(Object.keys(values).map(key => [key, process.env[key]]));
   try {
     Object.assign(process.env, values);
-    assert.deepEqual(getAdminSignupEmailConfig(), { resendApiKey: 'fixture-signup-only-key', from: 'signup@example.com', to: 'signup-owner@example.com' });
+    assert.deepEqual(getAdminSignupEmailConfig(), { resendApiKey: 'fixture-signup-only-key', from: 'signup@example.com', to: 'signup-owner@example.com', relaySecret: '' });
     assert.deepEqual(getAdminEmailConfig(), { resendApiKey: 'fixture-sales-key', from: 'sales@example.com', to: 'sales-owner@example.com' });
     delete process.env.SIGNUP_NOTIFICATION_RESEND_API_KEY;
     delete process.env.SIGNUP_NOTIFICATION_FROM_EMAIL;
     delete process.env.SIGNUP_NOTIFICATION_EMAIL;
-    assert.deepEqual(getAdminSignupEmailConfig(), getAdminEmailConfig());
+    assert.deepEqual(getAdminSignupEmailConfig(), { ...getAdminEmailConfig(), relaySecret: '' });
+    delete process.env.RESEND_API_KEY;
+    process.env.SIGNUP_NOTIFICATION_RELAY_SECRET = 'fixture-relay-secret-that-is-at-least-forty-eight-bytes-long';
+    assert.equal(isAdminSignupEmailConfigured(), true);
+    assert.equal(getAdminEmailConfig().resendApiKey, '');
+    process.env.SIGNUP_NOTIFICATION_RELAY_SECRET = 'short';
+    assert.equal(isAdminSignupEmailConfigured(), false);
   } finally {
     for (const [key, value] of Object.entries(saved)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
     }
   }
+});
+
+test('missing direct key uses only the fixed authenticated server relay and forwards no member contact/config', async () => {
+  const calls = [];
+  const relaySecret = 'fixture-relay-secret-that-is-at-least-forty-eight-bytes-long';
+  const result = await sendSignupNotificationEmail(member(), { to: 'ignored@example.com', from: 'ignored@example.com', resendApiKey: '', relaySecret },
+    async (url, init) => { calls.push([url, init]); return new Response('{"id":"relay-provider-receipt"}'); });
+  assert.deepEqual(result, { sent: true }); assert.equal(calls.length, 1);
+  const [url, init] = calls[0];
+  assert.equal(url, 'https://enicoveck.com/api/auth/signup-relay'); assert.equal(init.redirect, 'error');
+  assert.equal(init.headers['x-signup-relay-secret'], relaySecret); assert.equal(init.headers.Authorization, undefined);
+  assert.deepEqual(JSON.parse(init.body), { site: 'mongsangin', userId: USER_ID, createdAt: member().created_at });
+  assert.ok(!init.body.includes('new-member@example.com')); assert.ok(!init.body.includes('ignored@example.com'));
+});
+
+test('relay failures or invalid receipts cannot mark signup; direct key never falls back after rejection', async () => {
+  const relaySecret = 'fixture-relay-secret-that-is-at-least-forty-eight-bytes-long';
+  for (const body of ['{}', '{"id":" "}', 'not-json']) {
+    assert.deepEqual(await sendSignupNotificationEmail(member(), { to: '', from: '', resendApiKey: '', relaySecret },
+      async () => new Response(body)), { sent: false });
+  }
+  const urls = [];
+  assert.deepEqual(await sendSignupNotificationEmail(member(), { to: 'owner@example.com', from: 'sender@example.com', resendApiKey: 'fixture-key', relaySecret },
+    async url => { urls.push(url); return new Response('{"message":"private role error"}', { status: 403 }); }), { sent: false });
+  assert.deepEqual(urls, ['https://api.resend.com/emails']);
+  const disabled = setup({ configured: false });
+  assert.equal((await disabled.handler(request())).status, 503); assert.equal(disabled.calls.lookups.length, 0);
 });

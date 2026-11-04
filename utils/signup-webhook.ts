@@ -17,6 +17,7 @@ export type SignupRecord = {
 export type SignupNotificationDependencies = {
   secret: () => string | undefined;
   enabledAt?: () => string | undefined;
+  isConfigured?: () => boolean;
   getUser: (id: string) => Promise<SignupRecord | null>;
   notify: (user: SignupRecord) => Promise<{ sent: boolean }>;
   markNotified: (id: string, sentAt: string) => Promise<void>;
@@ -56,6 +57,7 @@ async function readEvent(request: Request): Promise<{ status: 400 | 413 } | { ev
 export async function processSignupUser(userId: string, dependencies: SignupNotificationDependencies) {
   const cutoff = parseSignupCutoff(dependencies.enabledAt?.());
   if (!cutoff.ok) throw new Error('Notification cutoff is invalid');
+  if (dependencies.isConfigured && !dependencies.isConfigured()) throw new Error('Signup notifications are not configured');
   const user = await dependencies.getUser(userId);
   if (!user || user.id !== userId) return 'missing_user';
   const email = user.email?.trim() ?? '';

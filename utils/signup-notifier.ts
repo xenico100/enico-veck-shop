@@ -1,6 +1,6 @@
 import 'server-only';
 import { createAdminClient } from '@/utils/supabase/adminClient';
-import { getAdminSignupEmailConfig } from '@/utils/admin-alert-config';
+import { getAdminSignupEmailConfig, isAdminSignupEmailConfigured } from '@/utils/admin-alert-config';
 import { sendSignupNotificationEmail } from '@/utils/signup-notification-email';
 import { SIGNUP_ALERT_MARKER, type SignupNotificationDependencies } from '@/utils/signup-webhook';
 
@@ -8,6 +8,7 @@ export function getSignupNotificationDependencies(): SignupNotificationDependenc
   return {
     secret: () => process.env.SIGNUP_NOTIFICATION_WEBHOOK_SECRET,
     enabledAt: () => process.env.SIGNUP_NOTIFICATION_ENABLED_AT,
+    isConfigured: isAdminSignupEmailConfigured,
     getUser: async id => {
       const { data, error } = await createAdminClient({ timeoutMs: 5_000 }).auth.admin.getUserById(id);
       if (error) {
