@@ -23,8 +23,7 @@ const browser = await chromium.launch({
   chromiumSandbox: false,
   args: [
     '--enable-webgl',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader'
+    ...(process.env.WORLD_TEST_NATIVE_GPU === '1' ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
   ]
 });
 const results = [];
@@ -58,7 +57,8 @@ const open = async (options, noWebgl = false, failAssets = false) => {
     await page.waitForFunction(
       (expected) =>
         document.querySelector('canvas')?.dataset.worldAssetState === expected,
-      failAssets ? 'error' : 'ready'
+      failAssets ? 'error' : 'ready',
+      { timeout: 60000 }
     );
   return { page, context };
 };
@@ -90,12 +90,23 @@ try {
   });
   await page.screenshot({ path: `${output}/desktop-welcome.png` });
   await page.getByRole('button', { name: '산책 시작', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('canvas')?.dataset.worldCharacterRig === 'articulated');
+  await page.screenshot({ path: `${output}/desktop-player-dog.png` });
+  const gameCanvas = page.locator('canvas');
+  await page.waitForFunction(() => document.querySelector('canvas')?.dataset.worldAvatarState === 'ready');
+  assert.equal(await gameCanvas.getAttribute('data-camera-mode'), 'third');
+  const beforeViewChange = await position(page);
+  await page.keyboard.press('v');
+  await page.waitForFunction(() => document.querySelector('canvas')?.dataset.cameraMode === 'first');
+  assert.equal(await gameCanvas.getAttribute('data-avatar-opacity'), '0.00');
+  assert.deepEqual(await position(page), beforeViewChange, 'view changes do not move the player');
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('mongsangin.world.settings.v1')).camera), 'first');
+  await page.keyboard.press('v');
+  await page.waitForFunction(() => document.querySelector('canvas')?.dataset.cameraMode === 'third');
   const start = await position(page);
-  await walk(page, 'w');
-  assert.ok(
-    (await position(page))[0] > start[0] + 0.5,
-    'W moves in camera direction'
-  );
+  await walk(page, 'w', 1200);
+  const moved = await position(page);
+  assert.ok(moved[0] > start[0] + 0.5, `W moves in camera direction: ${start} → ${moved}`);
   const compass = page.getByLabel('현재 위치', { exact: true }).locator('svg');
   const heading = await compass.getAttribute('style');
   await page.mouse.move(1050, 610);
@@ -132,10 +143,13 @@ try {
     await page.locator('[role=dialog] a[href*="drive.google.com"]').count(),
     0
   );
-  await page.getByRole('button', { name: '기존 계정으로 로그인' }).waitFor();
+  const workshopStatus = process.env.WORLD_TEST_WORKSHOP_UNCONFIGURED === '1' ? 503 : 401;
+  if (workshopStatus === 401) await page.getByRole('button', { name: '기존 계정으로 로그인' }).waitFor();
+  else await page.getByText('작업실을 아직 사용할 수 없습니다.', { exact: true }).waitFor();
   await page.screenshot({ path: `${output}/desktop-workshop-locked.png` });
   const denied = await page.request.get(`${origin}/api/world/workshop`);
-  assert.equal(denied.status(), 401);
+  assert.equal(denied.status(), workshopStatus);
+  if (workshopStatus === 503) assert.equal((await denied.json()).code, 'WORKSHOP_UNAVAILABLE');
   assert.match(denied.headers()['cache-control'], /private.*no-store/);
   assert.equal(
     JSON.stringify(await denied.json()).includes('drive.google.com'),
@@ -146,7 +160,7 @@ try {
   });
   assert.equal(
     forged.status(),
-    401,
+    workshopStatus,
     'client role headers/cookies do not grant owner access'
   );
   await page.getByRole('button', { name: '공간 정보 닫기' }).click();
@@ -191,7 +205,7 @@ try {
     false
   );
   results.push(
-    'desktop: WASD, mouse camera, map/list, modal pause/resume, existing shop adapter, anonymous/forged-owner denial'
+    'desktop: WASD, mouse camera, first/third-person toggle and saved setting, map/list, modal pause/resume, existing shop adapter, anonymous/forged-owner denial'
   );
   await context.close();
 
@@ -208,7 +222,12 @@ try {
     await page.screenshot({
       path: `${output}/mobile-${width}x${height}-welcome.png`
     });
+    await page.getByRole('button', { name: '설정', exact: true }).click();
+    await assertFits(page, '[role=dialog]');
+    await page.getByRole('radio', { name: '1인칭', exact: true }).click();
+    await page.getByRole('button', { name: '닫기', exact: true }).click();
     await page.getByRole('button', { name: '산책 시작', exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('canvas')?.dataset.cameraMode === 'first');
     const pad = page.getByRole('group', { name: '터치 이동 패드' });
     await pad.waitFor({ state: 'visible' });
     await assertFits(page, '[aria-label="터치 이동 패드"]');
@@ -289,12 +308,14 @@ try {
         .some((r) => r.name.endsWith('/companion.glb'))
     ),
     false,
-    'companion is deferred at arrival'
+    'companion is deferred on the title screen'
   );
   await companion.page
     .getByRole('button', { name: '산책 시작', exact: true })
     .click();
-  // The game starts at the west end of the street; walk east, then toward the house.
+  await companion.page.waitForFunction(() => document.querySelector('canvas')?.dataset.worldCharacterRig === 'articulated');
+  const dogBefore = await companion.page.locator('canvas').getAttribute('data-dog-position');
+  // Starting the walk loads the approved companion once, independent of the old indoor anchor.
   await walk(companion.page, 'w', 7000);
   await walk(companion.page, 'a', 1200);
   await companion.page.waitForFunction(
@@ -309,13 +330,15 @@ try {
           .filter((r) => r.name.endsWith('/companion.glb')).length
     ),
     1,
-    'companion loads once when approached'
+    'companion loads once after the walk starts'
   );
+  assert.notEqual(await companion.page.locator('canvas').getAttribute('data-dog-position'), dogBefore, 'companion follows the moving player');
+  assert.equal(await companion.page.locator('canvas').getAttribute('data-world-avatar-state'), 'ready');
   await companion.page.screenshot({
-    path: `${output}/desktop-companion-static.png`
+    path: `${output}/desktop-companion-following.png`
   });
   results.push(
-    'actual companion: initial download deferred, proximity load succeeds, static current pose only'
+    'actual companion: title download deferred, one walk-start load, articulated following rig'
   );
   await companion.context.close();
   const failedAsset = await open(

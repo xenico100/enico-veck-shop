@@ -5,6 +5,7 @@ import type {
   WorldRenderLight
 } from './world-asset-renderer';
 import { billboardMatrix, cameraMatrix, modelMatrix } from './world-props';
+import { buildMongsangnyeoInstances, buildCompanionInstances, multiplyCharacterMatrix, type DogRig } from './world-characters';
 import type { WorldPose } from './world-layout';
 import {
   BATTERIES,
@@ -63,6 +64,11 @@ export type SceneInput = {
   settings: WorldSettings;
   fx: SceneFx;
   eyeOffset: number;
+  eyeY?: number;
+  player?: { pose: WorldPose; yaw: number; speed: number; gait: number; opacity: number };
+  dogRig?: DogRig;
+  titleLogo?: boolean;
+  aspect?: number;
   /** Title-screen camera: hides HUD-only effects such as the flashlight beam. */
   attract?: boolean;
 };
@@ -85,9 +91,32 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
   const dawn = state.chapter >= 4;
   const blackout = state.blackout > 0;
   const basis = worldCameraBasis(pose);
-  const eye: Point = [pose.x, EYE + input.eyeOffset, pose.z];
+  const eye: Point = [pose.x, input.eyeY ?? EYE + input.eyeOffset, pose.z];
+  const playerPose = input.player?.pose ?? pose;
+  const flashBasis = worldCameraBasis(playerPose);
+  const flashOrigin: Point = [playerPose.x, 0.55, playerPose.z];
   const instances: WorldRenderInstance[] = [];
   const lights: WorldRenderLight[] = [];
+  if (input.player) instances.push(...buildMongsangnyeoInstances(
+    input.player.pose, input.player.yaw, input.player.speed, input.player.gait, time, input.player.opacity
+  ));
+  if (input.dogRig && !input.attract) {
+    instances.push(...buildCompanionInstances(state.dog, input.dogRig, time));
+    if (state.dog.mode === 'sniff') for (let i = 0; i < 3; i++) {
+      const drift = ((time * 0.6 + i / 3) % 1) * 0.4;
+      instances.push({ mesh: 'glow', model: billboardMatrix(
+        state.dog.x + Math.sin(state.dog.yaw) * (0.3 + drift), 0.28 + drift * 0.5,
+        state.dog.z + Math.cos(state.dog.yaw) * (0.3 + drift), 0.018, basis
+      ), tint: [0.5, 0.8, 1, 0.7 - drift], blend: 'add' });
+    }
+  }
+  if (input.titleLogo) {
+    const portrait = (input.aspect ?? 1.5) < 0.85;
+    instances.push({ mesh: 'title.voxel', noFog: true, model: multiplyCharacterMatrix(
+      cameraMatrix(eye, basis, [portrait ? 0 : 0.72, portrait ? 0.64 : 0.45, -2.5]),
+      modelMatrix(0, 0, 0, Math.sin(time * 0.45) * 0.09, portrait ? 0.7 : 1)
+    ) });
+  }
   const flick = (seed: number, rate: number) => hash(Math.floor(time * rate) + seed * 31.7);
   const near = (x: number, z: number, range: number) =>
     Math.hypot(x - pose.x, z - pose.z) < range;
@@ -374,7 +403,7 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
   if (flashlight > 0)
     instances.push({
       mesh: 'beam',
-      model: cameraMatrix(eye, basis, [0.09, -0.11, 0]),
+      model: cameraMatrix(flashOrigin, flashBasis, [0.09, -0.11, 0]),
       tint: [1, 0.94, 0.78, 0.32 * flashlight],
       blend: 'add'
     });
@@ -385,7 +414,7 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
       (Math.hypot(b.x - pose.x, b.z - pose.z) - b.radius * 0.5)
   );
 
-  const danger = sceneDanger(state, pose);
+  const danger = sceneDanger(state, playerPose);
   const warp = settings.wobble
     ? Math.min(1.6, danger * 1.3 + (1 - state.breath / 100) * 0.7 + (blackout ? 0.2 : 0))
     : 0;
@@ -401,6 +430,9 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
     ambientFill: dawn ? 1.6 : 0.85,
     warp,
     eyeOffset: input.eyeOffset,
+    eyeY: input.eyeY,
+    flashOrigin,
+    flashDirection: flashBasis.forward,
     roll: shake ? (hash(time * 37) - 0.5) * 0.05 * shake : 0,
     psx: {
       snap: settings.jitter,

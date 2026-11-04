@@ -670,7 +670,8 @@
   background: linear-gradient(#efe6cf, #e2d6b7);
   box-shadow: 0 30px 80px #000, inset 0 0 40px rgba(120, 90, 40, 0.25);
 }
-.noteCard .eyebrow {
+.noteCard .eyebrow,
+.endingCard .eyebrow {
   color: #7d6a4c;
 }
 .noteCard h2 {
@@ -1515,6 +1516,133 @@
   letter-spacing: 0.02em !important;
   color: var(--bone) !important;
   text-shadow: none !important;
+}
+
+/* PS1 memory-card windows: static bevels keep the permanent HUD cheap. */
+.menu,
+.panel,
+.detailPanel,
+.pauseCard,
+.dialogue,
+.graphicsError,
+.chapterCard,
+.objective,
+.location,
+.sceneNotice,
+.destination,
+.prompt,
+.memoryCard,
+.toasts p {
+  border: 2px solid;
+  border-color: #8b8791 #28232f #17151e #b3a7a5;
+  border-radius: 1px;
+  outline: 1px solid #111019;
+  outline-offset: 1px;
+  background-color: #171620;
+  background-image: repeating-linear-gradient(0deg, #ffffff03 0 1px, transparent 1px 3px),
+    linear-gradient(135deg, #302c3bdb, #15131ef5 65%);
+  box-shadow: inset 1px 1px 0 #d0b79b35, inset -2px -2px 0 #0009,
+    2px 2px 0 #706171, 4px 4px 0 #2e2837, 6px 6px 0 #08080bd9;
+}
+.menu {
+  padding: 12px;
+  min-width: 230px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.menu button { width: 100%; text-align: left; }
+.world kbd,
+.panel kbd,
+.menu button,
+.tools button,
+.pauseCard button,
+.touchActions button,
+.segmented button,
+.routeButton,
+.close,
+.primary {
+  border-radius: 1px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #716777 #211e28 #17141c #8f8187;
+  box-shadow: inset 1px 1px 0 #e6d0ad1f, inset -1px -1px 0 #0008, 2px 2px 0 #050509b3;
+}
+.menu button:hover,
+.menu button:focus-visible,
+.segmented button[aria-checked='true'] {
+  background: #49404e;
+  color: #ffe2a4;
+  border-color: #d9bb8d #5d4654 #352938 #d5ba94;
+}
+.menu button:active,
+.tools button:active,
+.pauseCard button:active { box-shadow: inset 2px 2px 0 #0008; }
+.chapterCard { padding: 22px 18px; box-sizing: border-box; }
+.memoryCard { padding: 6px 9px; }
+.dialogue {
+  transform: translateX(-50%) perspective(1000px) rotateX(3deg);
+}
+.noteCard,
+.endingCard {
+  border: 3px solid;
+  border-color: #fff1cd #6b533d #4e3c2b #ddc29a;
+  box-shadow: inset 2px 2px 0 #fff6d5, inset -2px -2px 0 #ad9270, 4px 4px 0 #8a6c4b,
+    7px 7px 0 #3c302b, 10px 10px 0 #000a;
+}
+.noteCard {
+  transform: translate(-50%, -50%) perspective(900px) rotateX(2deg) rotateY(-3deg) rotateZ(-1deg);
+}
+.endingCard {
+  box-sizing: border-box;
+  color: #1c1b18;
+  background: repeating-linear-gradient(0deg, #ffffff16 0 1px, transparent 1px 3px),
+    linear-gradient(#efe6cf, #e2d6b7);
+  animation-timing-function: steps(5, end);
+}
+.panel,
+.detailPanel,
+.pauseCard {
+  transform: translate(-50%, -50%) perspective(1200px) rotateX(1deg) rotateY(-0.8deg);
+}
+.panel[data-state='open'],
+.detailPanel[data-state='open'],
+.pauseCard,
+.noteCard { animation: psxPopupIn 0.16s steps(3, end); }
+.dialogue,
+.prompt,
+.chapterCard,
+.toasts p { animation-timing-function: steps(5, end); }
+.titleWord {
+  text-shadow: 1px 1px 0 #b4a1a7, 2px 2px 0 #806a80, 3px 3px 0 #4c3d55, 5px 5px 0 #19131f;
+}
+.title[data-voxel-logo='true'] .titleWord {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.title[data-voxel-logo='true'] h1 small { margin-top: 0; }
+.chapterCard h2,
+.pauseCard h2,
+.panelHeader h2 { text-shadow: 1px 1px 0 #9b8190, 2px 2px 0 #57405f, 4px 4px 0 #080710 !important; }
+@keyframes psxPopupIn {
+  from { opacity: 0; scale: 0.94; }
+  to { opacity: 1; scale: 1; }
+}
+@media (max-width: 700px) {
+  .panel,
+  .detailPanel,
+  .pauseCard { transform: translate(-50%, -50%); }
+  .menu { min-width: min(230px, 100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .detailPanel,
+  .pauseCard,
+  .noteCard { animation: none; }
 }
 .noteCard h2,
 .endingCard h2 {

@@ -23,6 +23,7 @@ const output = resolve(
 const viewport = { width: 1440, height: 900 };
 const walkDurationMs = 3000;
 const includeCharacter = process.env.WORLD_PERF_CHARACTER === '1';
+const nativeGpu = process.env.WORLD_TEST_NATIVE_GPU === '1';
 const requireRealAsset = process.env.WORLD_PERF_ALLOW_PROXY !== '1';
 const browser = await chromium.launch({
   headless: true,
@@ -30,8 +31,7 @@ const browser = await chromium.launch({
   chromiumSandbox: false,
   args: [
     '--enable-webgl',
-    '--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader'
+    ...(nativeGpu ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
   ]
 });
 
@@ -562,7 +562,7 @@ try {
     captured.canvas.width <= 960 && captured.canvas.height <= 720;
   const report = {
     scenario: includeCharacter
-      ? 'village-plus-static-companion'
+      ? 'village-with-articulated-companion'
       : 'village-arrival',
     environment: {
       browser: await browser.version(),
@@ -572,13 +572,15 @@ try {
       deviceScaleFactor: 1,
       localOriginOnly: true,
       headless: true,
-      swiftShaderRequested: true,
+      swiftShaderRequested: !nativeGpu,
       renderer: captured.probe.renderer,
       vendor: captured.probe.vendor,
       cache:
         'fresh unauthenticated browser context; server/OS caches are not controlled',
       caveat:
-        'SwiftShader software rendering and instrumentation affect timings. This bounded desktop snapshot is not native GPU or mobile performance and has no FPS pass threshold.'
+        nativeGpu
+          ? 'Headless rendering and instrumentation affect timings. This bounded desktop snapshot is not mobile performance and has no FPS pass threshold.'
+          : 'SwiftShader software rendering and instrumentation affect timings. This bounded desktop snapshot is not native GPU or mobile performance and has no FPS pass threshold.'
     },
     readiness: {
       ...captured.canvas,

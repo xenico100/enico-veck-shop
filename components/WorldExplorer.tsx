@@ -49,6 +49,8 @@ import {
   stepWorldAnimation
 } from '@/utils/world-animation';
 import { createWorldProps } from '@/utils/world-props';
+import { resolveWorldCamera } from '@/utils/world-camera';
+import { createWorldCharacterMeshes, createCompanionRig, createWorldTitleLogo, type DogRig } from '@/utils/world-characters';
 import {
   CLUES,
   FRAGMENTS,
@@ -206,6 +208,7 @@ export default function WorldExplorer() {
   const joystickDrag = useRef<{ id: number; x: number; y: number } | null>(null);
   const lastSaveRef = useRef(0);
   const [assetState, setAssetState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [titleLogoReady, setTitleLogoReady] = useState(false);
   const [phase, setPhase] = useState<Phase>('title');
   const [pose, setPose] = useState<WorldPose>({ ...START_POSE });
   const [hud, setHud] = useState<HudSnapshot>(() =>
@@ -488,6 +491,9 @@ export default function WorldExplorer() {
     let loadedScene: WorldGlbScene | null = null;
     let characterAnchor: { x: number; y: number; z: number } | null = null;
     let characterRequested = false;
+    let dogRig: DogRig | undefined;
+    let titleLogoAvailable = false;
+    let avatarYaw = START_POSE.yaw;
     const controller = new AbortController();
     canvas.dataset.worldScene = 'placeholder';
     canvas.dataset.worldAssetState = 'loading';
@@ -532,7 +538,13 @@ export default function WorldExplorer() {
         renderer.dispose();
         try {
           assetRenderer = createAssetWorldRenderer(canvas, scene);
-          assetRenderer.registerMeshes(createWorldProps());
+          const logo = createWorldTitleLogo();
+          titleLogoAvailable = Boolean(logo?.vertexCount);
+          assetRenderer.registerMeshes({ ...createWorldProps(), ...createWorldCharacterMeshes(),
+            ...(logo ? { 'title.voxel': logo } : {}) });
+          setTitleLogoReady(titleLogoAvailable);
+          canvas.dataset.worldAvatarState = 'ready';
+          canvas.dataset.worldTitle3d = titleLogoAvailable ? 'ready' : 'fallback';
           renderer = assetRenderer;
         } catch (error) {
           renderer = createWorldRenderer(canvas);
@@ -564,7 +576,7 @@ export default function WorldExplorer() {
         characterRequested ||
         !assetRenderer ||
         !characterAnchor ||
-        Math.hypot(poseRef.current.x - characterAnchor.x, poseRef.current.z - characterAnchor.z) > 6
+        phaseRef.current !== 'playing'
       )
         return;
       characterRequested = true;
@@ -576,12 +588,15 @@ export default function WorldExplorer() {
             return;
           }
           try {
-            assetRenderer.addScene(scene);
+            dogRig = createCompanionRig(scene, characterAnchor!);
+            assetRenderer.registerMeshes(dogRig.meshes);
+            scene.dispose();
           } catch (error) {
             scene.dispose();
             throw error;
           }
           canvas.dataset.worldCharacterState = 'ready';
+          canvas.dataset.worldCharacterRig = 'articulated';
           performance.mark('world:character-ready');
         })
         .catch(() => {
@@ -645,6 +660,12 @@ export default function WorldExplorer() {
         Math.min(dt, 0.05),
         pausedRef.current
       );
+      const dx = poseRef.current.x - previousPose.x, dz = poseRef.current.z - previousPose.z;
+      if (state.flashlight.on && state.flashlight.owned) avatarYaw = poseRef.current.yaw;
+      else if (Math.hypot(dx, dz) > 0.0001) {
+        const targetYaw = Math.atan2(dx, dz);
+        avatarYaw += Math.atan2(Math.sin(targetYaw - avatarYaw), Math.cos(targetYaw - avatarYaw)) * Math.min(1, dt * 14);
+      }
       previousPose = { ...poseRef.current };
       const previousAnimation = animationRef.current;
       animationRef.current = nextAnimation;
@@ -659,14 +680,21 @@ export default function WorldExplorer() {
       }
 
       const seconds = time / 1000;
+      const titlePlayer: WorldPose = { x: -19.2, z: 0.85, yaw: 0, pitch: 0 };
+      const follow = resolveWorldCamera(poseRef.current, movementOptions.current.colliders, settings.camera, eyeOffset);
+      const orbit = seconds * 0.045 + 0.4;
       const viewPose: WorldPose = playing
-        ? { ...poseRef.current }
+        ? { ...follow.pose }
         : {
-            x: -12 + Math.sin(seconds * 0.045) * 6,
-            z: 0.2,
-            yaw: Math.PI / 2 + Math.sin(seconds * 0.06) * 0.55,
-            pitch: 0.04
+            x: titlePlayer.x + Math.sin(orbit) * 2.2,
+            z: titlePlayer.z + Math.cos(orbit) * 2.2,
+            yaw: orbit + Math.PI,
+            pitch: -0.22
           };
+      canvas.dataset.cameraMode = settings.camera;
+      canvas.dataset.avatarOpacity = String(follow.opacity.toFixed(2));
+      canvas.dataset.dogMode = state.dog.mode;
+      canvas.dataset.dogPosition = `${state.dog.x.toFixed(3)},${state.dog.z.toFixed(3)}`;
       if (fx.shake > 0) {
         const amount = fx.shakeAmount * Math.min(1, fx.shake);
         viewPose.yaw += (Math.sin(seconds * 53) + Math.sin(seconds * 31)) * 0.006 * amount;
@@ -685,6 +713,12 @@ export default function WorldExplorer() {
             settings,
             fx,
             eyeOffset,
+            eyeY: playing ? follow.eyeY : 0.9,
+            player: { pose: playing ? poseRef.current : titlePlayer, yaw: playing ? avatarYaw : 0,
+              speed: playing ? speed : 0, gait: bob, opacity: playing ? follow.opacity : 1 },
+            dogRig,
+            titleLogo: !playing && titleLogoAvailable,
+            aspect: canvas.clientWidth / Math.max(1, canvas.clientHeight),
             attract: !playing
           })
         );
@@ -807,6 +841,8 @@ export default function WorldExplorer() {
       if (!started) return;
       if (event.code === 'KeyE') act();
       if (event.code === 'KeyF') toggleLight();
+      if (event.code === 'KeyV' && !view && !selected && !adapterPause && !ending)
+        updateSettings({ ...settingsRef.current, camera: settingsRef.current.camera === 'third' ? 'first' : 'third' });
       if (event.code === 'KeyM' && !adapterPause && !selected && !ending)
         setView((current) => (current === 'map' ? null : 'map'));
       if (event.code === 'KeyL' && !adapterPause && !selected && !ending)
@@ -1087,6 +1123,7 @@ export default function WorldExplorer() {
       )}
       {!started ? (
         <TitleScreen
+          logoReady={titleLogoReady && !graphicsError}
           loading={assetState === 'loading'}
           failed={assetState === 'error'}
           saveLabel={saveLabel}
@@ -1164,7 +1201,7 @@ export default function WorldExplorer() {
         <span className={styles.desktopHelp}>
           <kbd>WASD</kbd> 이동 <kbd>Shift</kbd> 달리기 <Mouse size={12} />{' '}
           {locked ? '마우스 시점 · Esc 해제' : '클릭/드래그로 시점'} <kbd>E</kbd> 행동 <kbd>F</kbd> 손전등{' '}
-          <kbd>J</kbd> 일지
+          <kbd>J</kbd> 일지 <kbd>V</kbd> 시점
         </span>
         <Link href="/" prefetch={false}>
           <ArrowLeft size={12} /> 기존 마을

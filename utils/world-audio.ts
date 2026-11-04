@@ -267,6 +267,15 @@ export function createWorldAudio(): WorldAudio | null {
       if (disposed || ctx.state !== 'running') return;
       const now = ctx.currentTime;
       switch (name) {
+        case 'bark':
+          tone(155, now, 0.12, 0.13, 'sawtooth', master, 90);
+          burst(now, 0.16, 0.12, 'bandpass', 650, 1.8);
+          tone(125, now + 0.18, 0.07, 0.12, 'triangle', master, 80);
+          break;
+        case 'growl':
+          tone(66, now, 0.1, 0.7, 'sawtooth', master, 49);
+          burst(now, 0.12, 0.6, 'lowpass', 290, 1.1);
+          break;
         case 'pickup':
           tone(660, now, 0.12, 0.18, 'triangle');
           tone(990, now + 0.08, 0.1, 0.3, 'triangle');

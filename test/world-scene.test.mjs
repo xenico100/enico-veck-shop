@@ -10,7 +10,8 @@ const hooks = registerHooks({
         './world-layout',
         './village-buildings',
         './world-game',
-        './world-props'
+        './world-props',
+        './world-characters'
       ].includes(specifier)
     )
       return nextResolve(`${specifier}.ts`, context);

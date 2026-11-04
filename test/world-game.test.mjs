@@ -220,3 +220,14 @@ test('interaction prefers what the camera faces', () => {
   const facingFlashlight = game.findInteractable(state, pose(-19.9, 2.0, Math.atan2(0.3, 0.55)));
   assert.equal(facingFlashlight?.id, 'flashlight');
 });
+
+
+test('nearby companion does not take priority over reachable story interactions', () => {
+  const state = game.createGameState();
+  const fragment = game.FRAGMENTS[0];
+  const player = pose(fragment.x, fragment.z + 1.2);
+  state.dog = { ...game.createDog(player), x: player.x, z: player.z + 0.1 };
+  assert.equal(game.findInteractable(state, player)?.id, fragment.id);
+  take(state, fragment.id);
+  assert.equal(game.findInteractable(state, player)?.kind, 'dog');
+});

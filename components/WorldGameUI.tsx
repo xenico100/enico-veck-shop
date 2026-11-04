@@ -56,6 +56,7 @@ export function formatPlayTime(seconds: number) {
 }
 
 export function TitleScreen({
+  logoReady,
   loading,
   failed,
   saveLabel,
@@ -68,6 +69,7 @@ export function TitleScreen({
   onSettings,
   onList
 }: {
+  logoReady: boolean;
   loading: boolean;
   failed: boolean;
   saveLabel: string | null;
@@ -81,12 +83,12 @@ export function TitleScreen({
   onList(): void;
 }) {
   return (
-    <section className={styles.title} aria-labelledby="world-title">
+    <section className={styles.title} aria-labelledby="world-title" data-voxel-logo={logoReady}>
       <div className={styles.titleMark} aria-hidden="true">
         夢想人
       </div>
       <h1 id="world-title">
-        몽상인
+        <span className={styles.titleWord}>몽상인</span>
         <small>잠들지 않는 마을</small>
       </h1>
       <p className={styles.titleLead}>
@@ -133,7 +135,7 @@ export function TitleScreen({
         )}
       </p>
       <small className={styles.titleFoot}>
-        WASD 이동 · Shift 달리기 · 마우스 시점 · E 행동 · F 손전등 · J 일지 · M 지도
+        WASD 이동 · Shift 달리기 · 마우스 시점 · V 시점 전환 · E 행동 · F 손전등 · J 일지 · M 지도
       </small>
     </section>
   );
@@ -382,6 +384,12 @@ export function SettingsPanel({
     <div className={styles.settings}>
       <fieldset className={styles.settingGroup}>
         <legend>화면</legend>
+        <div className={styles.segmented} role="radiogroup" aria-label="시점">
+          {([['third', '3인칭'], ['first', '1인칭']] as const).map(([value, label]) => (
+            <button key={value} role="radio" aria-checked={settings.camera === value}
+              onClick={() => onChange({ ...settings, camera: value })}>{label}</button>
+          ))}
+        </div>
         <div className={styles.segmented} role="radiogroup" aria-label="해상도">
           {(
             [

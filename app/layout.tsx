@@ -21,7 +21,7 @@ const sansFont = Noto_Sans_KR({
 const displayFont = Libre_Bodoni({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['600', '700']
+  weight: 'variable'
 });
 
 const displayKrFont = Noto_Serif_KR({

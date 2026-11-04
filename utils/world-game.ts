@@ -29,6 +29,8 @@ export type SoundCue =
   | 'wake'
   | 'click'
   | 'empty'
+  | 'bark'
+  | 'growl'
   | 'ending';
 
 export type DialogueLine = { speaker: string; text: string };
@@ -44,6 +46,14 @@ export type GameEvent =
   | { type: 'wake'; text: string }
   | { type: 'ending' }
   | { type: 'save' };
+
+export type DogState = {
+  x: number; z: number; yaw: number;
+  mode: 'follow' | 'sit' | 'guard' | 'sniff';
+  timer: number;
+  trail: { x: number; z: number }[];
+  petCooldown: number;
+};
 
 export type GameState = {
   version: 1;
@@ -67,6 +77,7 @@ export type GameState = {
   phoneRinging: boolean;
   playTime: number;
   wakeCount: number;
+  dog: DogState;
 };
 
 export const CHAPTERS = [
@@ -251,6 +262,7 @@ export type Interactable = {
     | 'phone'
     | 'vending'
     | 'mailbox'
+    | 'dog'
     | 'door';
   label: string;
   verb: string;
@@ -264,6 +276,11 @@ const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 const finite = (value: unknown, fallback: number) =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+export function createDog(pose: Pick<WorldPose, 'x' | 'z' | 'yaw'>): DogState {
+  return { x: pose.x - Math.sin(pose.yaw) * 0.65, z: pose.z - Math.cos(pose.yaw) * 0.65,
+    yaw: pose.yaw, mode: 'follow', timer: 2, trail: [{ x: pose.x, z: pose.z }], petCooldown: 0 };
+}
 
 export function createGameState(): GameState {
   return {
@@ -280,7 +297,8 @@ export function createGameState(): GameState {
     blackoutPending: 0,
     phoneRinging: false,
     playTime: 0,
-    wakeCount: 0
+    wakeCount: 0,
+    dog: createDog(START_POSE)
   };
 }
 
@@ -464,6 +482,8 @@ export function availableInteractables(state: GameState): Interactable[] {
       z: PROPS.door.z,
       radius: 1.6
     });
+  list.push({ id: 'veckdog', kind: 'dog', label: '벡독', verb: '쓰다듬기',
+    x: state.dog.x, y: 0.3, z: state.dog.z, radius: 1 });
   return list;
 }
 
@@ -474,6 +494,7 @@ export function findInteractable(
 ): Interactable | null {
   const { forward } = worldCameraBasis({ yaw: pose.yaw, pitch: 0 });
   let best: Interactable | null = null;
+  let companion: Interactable | null = null;
   let bestScore = Infinity;
   for (const item of availableInteractables(state)) {
     const dx = item.x - pose.x;
@@ -481,13 +502,18 @@ export function findInteractable(
     const distance = Math.hypot(dx, dz);
     if (distance > item.radius) continue;
     const facing = distance > 0.01 ? (dx * forward[0] + dz * forward[2]) / distance : 1;
+    // Petting is a fallback so the companion cannot obscure story interactions.
+    if (item.kind === 'dog') {
+      if (facing >= 0.45) companion = item;
+      continue;
+    }
     const score = distance - facing * 0.45;
     if (score < bestScore) {
       best = item;
       bestScore = score;
     }
   }
-  return best;
+  return best ?? companion;
 }
 
 function enterChapter(state: GameState, index: number, events: GameEvent[]) {
@@ -576,6 +602,14 @@ export function interact(state: GameState, id: string): GameEvent[] {
   const target = availableInteractables(state).find((item) => item.id === id);
   if (!target) return events;
   switch (target.kind) {
+    case 'dog':
+      if (state.dog.petCooldown <= 0) {
+        state.breath = Math.min(100, state.breath + 25);
+        state.dog.petCooldown = 40;
+        events.push({ type: 'sound', cue: 'bark' });
+        events.push({ type: 'toast', text: '벡독의 따뜻한 털. 숨이 조금 편해졌다.', tone: 'info' });
+      } else events.push({ type: 'toast', text: '벡독이 손바닥에 코를 기댄다.', tone: 'info' });
+      break;
     case 'flashlight':
       state.flashlight = { owned: true, on: true, battery: 100 };
       events.push({ type: 'sound', cue: 'pickup' });
@@ -805,10 +839,73 @@ export function flashlightHits(
 
 export type StepInput = { pose: WorldPose; dt: number };
 
+/** Follows the actual walked polyline, never a straight line through a house. */
+export function stepDog(state: GameState, pose: WorldPose, dt: number): GameEvent[] {
+  const dog = state.dog;
+  const events: GameEvent[] = [];
+  dog.petCooldown = Math.max(0, dog.petCooldown - dt);
+  dog.timer = Math.max(0, dog.timer - dt);
+  const end = dog.trail[dog.trail.length - 1];
+  // Wake/checkpoint travel is a discontinuity, not a walked segment through walls.
+  if (end && Math.hypot(end.x - pose.x, end.z - pose.z) > 2) {
+    dog.x = pose.x; dog.z = pose.z; dog.trail = [];
+  }
+  if (!end || Math.hypot(end.x - pose.x, end.z - pose.z) > 0.08)
+    dog.trail.push({ x: pose.x, z: pose.z });
+  if (Math.hypot(dog.x - pose.x, dog.z - pose.z) > 7) {
+    const safe = dog.trail.length > 6 ? dog.trail[dog.trail.length - 6] : pose;
+    dog.x = safe.x; dog.z = safe.z;
+    dog.trail = dog.trail.length > 6 ? dog.trail.slice(-5) : [{ x: pose.x, z: pose.z }];
+  }
+  if (dog.trail.length > 256) {
+    dog.trail = dog.trail.slice(-256);
+    // Rejoin a known walked point before discarding history; never cut to it through a wall.
+    dog.x = dog.trail[0].x; dog.z = dog.trail[0].z;
+  }
+  const threat = shadowActive(state) && Math.hypot(dog.x - state.shadow.x, dog.z - state.shadow.z) < 3.2;
+  if (threat) {
+    dog.yaw = Math.atan2(state.shadow.x - dog.x, state.shadow.z - dog.z);
+    dog.mode = 'guard';
+    if (dog.timer <= 0) { events.push({ type: 'sound', cue: 'growl' }); dog.timer = 8; }
+    return events;
+  }
+  let remaining = 0;
+  let point: { x: number; z: number } = dog;
+  for (const next of dog.trail) {
+    remaining += Math.hypot(next.x - point.x, next.z - point.z);
+    point = next;
+  }
+  let budget = Math.min(dt * 2.8, Math.max(0, remaining - 0.8));
+  const moved = budget > 0.005;
+  while (budget > 0.0001 && dog.trail.length) {
+    const next = dog.trail[0];
+    const dx = next.x - dog.x, dz = next.z - dog.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance < 0.015) { dog.trail.shift(); continue; }
+    dog.yaw = Math.atan2(dx, dz);
+    const step = Math.min(budget, distance);
+    dog.x += dx / distance * step; dog.z += dz / distance * step;
+    budget -= step;
+    if (step >= distance) dog.trail.shift();
+  }
+  dog.mode = moved ? 'follow' : 'sit';
+  if (!moved && state.chapter >= 1 && state.chapter < 4) {
+    const nearest = FRAGMENTS.filter(item => !state.collected.includes(item.id))
+      .sort((a, b) => Math.hypot(a.x - dog.x, a.z - dog.z) - Math.hypot(b.x - dog.x, b.z - dog.z))[0];
+    if (nearest && Math.hypot(nearest.x - dog.x, nearest.z - dog.z) < 8) {
+      dog.mode = 'sniff';
+      dog.yaw = Math.atan2(nearest.x - dog.x, nearest.z - dog.z);
+      if (dog.timer <= 0) { events.push({ type: 'sound', cue: 'bark' }); dog.timer = 12; }
+    }
+  }
+  return events;
+}
+
 export function stepGame(state: GameState, input: StepInput): GameEvent[] {
   const events: GameEvent[] = [];
   const dt = clamp(finite(input.dt, 0), 0, 0.1);
   const { pose } = input;
+  events.push(...stepDog(state, pose, dt));
   state.playTime += dt;
   if (state.chapter >= 4) {
     state.breath = Math.min(100, state.breath + dt * 10);
@@ -954,8 +1051,9 @@ const KNOWN_IDS = new Set<string>([
 ]);
 
 export function serializeGame(state: GameState, pose: WorldPose): string {
+  const { dog: _transientDog, ...saved } = state;
   return JSON.stringify({
-    ...state,
+    ...saved,
     pose: { x: pose.x, z: pose.z, yaw: pose.yaw, pitch: pose.pitch },
     savedAt: Date.now()
   });
@@ -1012,19 +1110,24 @@ export function parseGameSave(
     z: clamp(finite(checkpoint.z, START_POSE.z), -28, 26),
     yaw: finite(checkpoint.yaw, START_POSE.yaw)
   };
-  return {
-    state,
-    pose: {
+  const restoredPose = {
       x: clamp(finite(pose.x, state.checkpoint.x), -34, 42),
       z: clamp(finite(pose.z, state.checkpoint.z), -28, 26),
       yaw: finite(pose.yaw, START_POSE.yaw),
       pitch: clamp(finite(pose.pitch, 0), -0.65, 0.5)
-    },
+    };
+  state.dog = createDog(restoredPose);
+  state.dog.x = restoredPose.x;
+  state.dog.z = restoredPose.z;
+  return {
+    state,
+    pose: restoredPose,
     savedAt: finite(data.savedAt, 0)
   };
 }
 
 export type WorldSettings = {
+  camera: 'third' | 'first';
   pixel: 'psx' | 'crisp' | 'sharp';
   jitter: boolean;
   dither: boolean;
@@ -1035,6 +1138,7 @@ export type WorldSettings = {
 };
 
 export const defaultWorldSettings: WorldSettings = {
+  camera: 'third',
   pixel: 'psx',
   jitter: true,
   dither: true,
@@ -1056,6 +1160,7 @@ export function parseWorldSettings(raw: unknown): WorldSettings {
   if (!value || typeof value !== 'object') return { ...defaultWorldSettings };
   const data = value as Record<string, unknown>;
   return {
+    camera: data.camera === 'first' ? 'first' : 'third',
     pixel: data.pixel === 'crisp' || data.pixel === 'sharp' ? data.pixel : 'psx',
     jitter: data.jitter !== false,
     dither: data.dither !== false,

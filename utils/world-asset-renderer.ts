@@ -47,6 +47,8 @@ export type WorldRenderInstance = {
   tint?: [number, number, number, number];
   /** Linear emissive color; replaces the mesh material emission. */
   emissive?: Point;
+  /** Soft emission follows vertex/material color, preserving dark character clothing and fur. */
+  surfaceLighting?: boolean;
   blend?: 'opaque' | 'alpha' | 'add';
   noFog?: boolean;
   /** Sky layer draws first, without depth writes. */
@@ -70,6 +72,10 @@ export type WorldRenderFrame = {
   /** Dream wobble applied to every vertex. */
   warp: number;
   eyeOffset: number;
+  /** Absolute rendering eye and independent player-held flashlight. */
+  eyeY?: number;
+  flashOrigin?: Point;
+  flashDirection?: Point;
   roll?: number;
   psx: { snap: boolean; dither: boolean; affine: number };
   /** Screen-space treatment done in-shader instead of stacked DOM layers. */
@@ -202,6 +208,7 @@ uniform vec4 uLights[${MAX_LIGHTS}];
 uniform vec3 uLightColors[${MAX_LIGHTS}];
 uniform float uLightCount;
 uniform vec3 uFlashDirection;
+uniform vec3 uFlashOrigin;
 uniform float uFlash;
 uniform vec2 uResolution;
 uniform vec3 uScreen;
@@ -252,7 +259,7 @@ void main() {
     lighting += uLightColors[i] * falloff * falloff * wrap;
   }
   if (uFlash > 0.0) {
-    vec3 toSurface = vWorldPosition - uEye;
+    vec3 toSurface = vWorldPosition - uFlashOrigin;
     float reach = length(toSurface);
     vec3 direction = toSurface / max(reach, 0.001);
     float cone = smoothstep(0.86, 0.965, dot(direction, uFlashDirection));
@@ -607,6 +614,7 @@ export function createAssetWorldRenderer(
         'uParticle',
         'uParticleEye',
         'uEye',
+        'uFlashOrigin',
         'uTexture',
         'uHasTexture',
         'uBaseColor',
@@ -740,7 +748,7 @@ export function createAssetWorldRenderer(
       uniforms.uEmissiveStrength,
       instance?.emissive ? 1 : (material.emissiveStrength ?? 1)
     );
-    const glowing = instance ? true : batch.lightSource;
+    const glowing = instance?.surfaceLighting ? false : instance ? true : batch.lightSource;
     gl.uniform1f(uniforms.uEmissiveMode, glowing ? 1 : 0);
     gl.uniform1f(uniforms.uLightSources, instance ? 1 : frame.lightSources);
     gl.uniform1f(uniforms.uUnlit, material.unlit ? 1 : 0);
@@ -814,7 +822,7 @@ export function createAssetWorldRenderer(
           up[2] * c - right[2] * s
         ];
       }
-      const eye: Point = [pose.x, EYE_HEIGHT + frame.eyeOffset, pose.z];
+      const eye: Point = [pose.x, frame.eyeY ?? EYE_HEIGHT + frame.eyeOffset, pose.z];
       const dot = (point: Point) =>
         point[0] * eye[0] + point[1] * eye[1] + point[2] * eye[2];
       const view = new Float32Array([
@@ -896,7 +904,8 @@ export function createAssetWorldRenderer(
       gl.uniform4fv(uniforms.uLights, lightData);
       gl.uniform3fv(uniforms.uLightColors, lightColorData);
       gl.uniform1f(uniforms.uLightCount, lights.length);
-      gl.uniform3f(uniforms.uFlashDirection, ...forward);
+      gl.uniform3f(uniforms.uFlashOrigin, ...(frame.flashOrigin ?? eye));
+      gl.uniform3f(uniforms.uFlashDirection, ...(frame.flashDirection ?? forward));
       gl.uniform1f(uniforms.uFlash, frame.flashlight);
       gl.uniform2f(uniforms.uResolution, canvas.width, canvas.height);
       const screenFx = frame.screen ?? { vignette: 0, danger: 0, scanlines: 0 };
