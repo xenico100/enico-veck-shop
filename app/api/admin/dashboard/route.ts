@@ -2,14 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminApiContext } from '@/utils/admin-api';
 import { FORCED_ADMIN_EMAIL, resolveUserRoleForUserLike } from '@/utils/service-posts';
 import { getStudioMembershipSummaryMapForUsers, type StudioMembershipSummary } from '@/utils/studio-membership-summary';
-
-type ProfileRow = {
-  id: string;
-  full_name?: string | null;
-  name?: string | null;
-  phone?: string | null;
-  address?: string | null;
-};
+import { loadAdminMemberProfiles } from '@/utils/admin-member-profiles';
 
 type SubscriptionRow = {
   user_id: string;
@@ -142,26 +135,19 @@ export async function GET() {
   }
 
   const warnings: DashboardWarningMap = {};
-  let profileData: ProfileRow[] = [];
-  const profileSelect = await (adminClient as any)
-    .from('users')
-    .select('id,full_name,name,phone,address');
-
-  if (profileSelect.error) {
-    const fallback = await (adminClient as any).from('users').select('id,full_name');
-    if (fallback.error) {
-      warnings.profiles =
-        profileSelect.error.message || fallback.error.message || '프로필 정보를 불러오지 못했습니다.';
-      console.error('[admin/dashboard] profile query failed', {
-        primary: profileSelect.error,
-        fallback: fallback.error
-      });
-      profileData = [];
-    } else {
-      profileData = (fallback.data ?? []) as ProfileRow[];
-    }
-  } else {
-    profileData = (profileSelect.data ?? []) as ProfileRow[];
+  const profiles = await loadAdminMemberProfiles(adminClient as any);
+  if (profiles.error) {
+    console.error('[admin/dashboard] profile query failed', { code: profiles.error.code });
+    return NextResponse.json(
+      { message: '회원 연락처 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 }
+    );
+  }
+  const profileData = profiles.data;
+  if (profiles.missingColumns.length) {
+    warnings.profiles =
+      `회원정보 일부 항목을 불러올 수 없습니다 (${profiles.missingColumns.join(', ')}). ` +
+      '프로필 컬럼 마이그레이션을 확인해 주세요.';
   }
 
   const [authUsersResult, { data: subscriptionData, error: subscriptionError }] =
@@ -190,7 +176,7 @@ export async function GET() {
     studioPostsQuery = {
       ...fallbackQuery,
       data: Array.isArray(fallbackQuery.data)
-        ? fallbackQuery.data.map((row) => ({ ...row, required_membership_level: 0 }))
+        ? fallbackQuery.data.map((row: Record<string, unknown>) => ({ ...row, required_membership_level: 0 }))
         : fallbackQuery.data
     };
   }

@@ -1,4 +1,5 @@
 import 'server-only';
+import { getAdminEmailConfig } from '@/utils/admin-alert-config';
 
 type SalesNotificationItem = {
   title: string;
@@ -30,8 +31,6 @@ type SendAdminSalesNotificationInput = {
     proofImageUrl?: string | null;
   } | null;
 };
-
-const DEFAULT_ALERT_TO_EMAIL = 'morba9850@gmail.com';
 
 const normalizeText = (value: unknown) =>
   typeof value === 'string' ? value.trim() : '';
@@ -67,19 +66,9 @@ const getAlertConfig = () => {
     return { disabled: true as const };
   }
 
-  const to =
-    normalizeText(process.env.SALES_ALERT_TO_EMAIL) || DEFAULT_ALERT_TO_EMAIL;
-  const from =
-    normalizeText(process.env.SALES_ALERT_FROM_EMAIL) ||
-    normalizeText(process.env.RESEND_FROM_EMAIL) ||
-    'onboarding@resend.dev';
-  const resendApiKey = normalizeText(process.env.RESEND_API_KEY);
-
   return {
     disabled: false as const,
-    to,
-    from,
-    resendApiKey
+    ...getAdminEmailConfig()
   };
 };
 

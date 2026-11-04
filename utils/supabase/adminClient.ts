@@ -13,7 +13,7 @@ export const canCreateAdminClient = () => {
   return Boolean(supabaseUrl && serviceRoleKey);
 };
 
-export const createAdminClient = () => {
+export const createAdminClient = (options: { timeoutMs?: number } = {}) => {
   const { supabaseUrl, serviceRoleKey } = getAdminClientEnv();
   if (!supabaseUrl) {
     throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL for Supabase admin client.');
@@ -22,5 +22,9 @@ export const createAdminClient = () => {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY for Supabase admin client.');
   }
 
-  return createClient<Database>(supabaseUrl, serviceRoleKey);
+  return createClient<Database>(supabaseUrl, serviceRoleKey, options.timeoutMs ? {
+    global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, {
+      ...init, signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(options.timeoutMs!)]) : AbortSignal.timeout(options.timeoutMs!),
+    }) }
+  } : undefined);
 };

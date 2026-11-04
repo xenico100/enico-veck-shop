@@ -1619,12 +1619,12 @@ export default function MyPageAdminPanel({ enabled }: Props) {
                           가입: {formatDate(member.created_at)} · 최근 로그인:{' '}
                           {formatDate(member.last_sign_in_at)}
                         </p>
-                        {(member.phone || member.address) && (
-                          <p className="mt-1 text-xs text-white/45">
-                            {member.phone ? `전화: ${member.phone}` : ''}{' '}
-                            {member.address ? `· 주소: ${member.address}` : ''}
-                          </p>
-                        )}
+                        <p className="mt-1 break-words text-xs text-white/65">
+                          휴대폰: {member.phone?.trim() || '미등록'}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap break-words text-xs text-white/65">
+                          주소: {member.address?.trim() || '미등록'}
+                        </p>
                         <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
