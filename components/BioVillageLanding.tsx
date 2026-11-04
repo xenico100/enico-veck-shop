@@ -10,6 +10,7 @@ import {
 } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Navigation } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { useAuth } from '@/app/context/AuthContext';
 import {
@@ -25,7 +26,10 @@ import { createClient } from '@/utils/supabase/client';
 import PoopWriteModal from '@/components/PoopWriteModal';
 import PoopPostModal from '@/components/PoopPostModal';
 import VillageBuildings from '@/components/VillageBuildings';
+import VillageWorldPortal from '@/components/VillageWorldPortal';
+import WorldPortalLoading from '@/components/WorldPortalLoading';
 import { buildingDoor, findBuilding, VILLAGE_BUILDING_EVENT, VILLAGE_TRAVEL_EVENT, VILLAGE_PAUSE_EVENT, type VillageBuildingId } from '@/utils/village-buildings';
+import { getVillageWorldPortal, WORLD_PORTAL_HREF } from '@/utils/village-world-portal';
 
 import { dreamPoints, readCollected, drawVillageGround, DREAM_COUNT } from '@/utils/village-exploration';
 
@@ -1257,6 +1261,7 @@ const buildRemoteActorsFromPresence = (
 };
 
 export default function BioVillageLanding() {
+  const router = useRouter();
   const { loading: authLoading, user } = useAuth();
   const supabase = useMemo(() => {
     try {
@@ -1272,8 +1277,15 @@ export default function BioVillageLanding() {
   const worldObjectsRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const pendingBuildingRef = useRef<VillageBuildingId | null>(null);
+  const worldPortalTravelRef = useRef(false);
+  const worldPortalTransferRef = useRef(false);
+  const worldPortalBlockedRef = useRef(false);
+  const worldPortalNavigationRef = useRef(false);
+  const worldPortalTimerRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   const travelToBuilding = useCallback((id: VillageBuildingId) => {
+    if (worldPortalTransferRef.current) return;
+    worldPortalTravelRef.current = false;
     const door = buildingDoor(id, worldWidthRef.current);
     pendingBuildingRef.current = id;
     playerRef.current.targetX = door.x;
@@ -1341,6 +1353,7 @@ export default function BioVillageLanding() {
   });
 
   const [worldActive, setWorldActive] = useState(true);
+  const [worldPortalTransitioning, setWorldPortalTransitioning] = useState(false);
   const collectedRef = useRef<Set<number>>(new Set());
   const [collectedCount, setCollectedCount] = useState(0);
   const [collectionSaved, setCollectionSaved] = useState(true);
@@ -1379,6 +1392,74 @@ export default function BioVillageLanding() {
   const [poopWriteTarget, setPoopWriteTarget] = useState<PoopDrop | null>(null);
   const [poopPostViewTarget, setPoopPostViewTarget] = useState<PoopDrop | null>(null);
   const [postRefreshTrigger, setPostRefreshTrigger] = useState(0);
+
+  const cancelWorldPortalTransfer = useCallback(() => {
+    if (worldPortalTimerRef.current !== null) {
+      window.clearTimeout(worldPortalTimerRef.current);
+      worldPortalTimerRef.current = null;
+    }
+    const navigationStarted = worldPortalNavigationRef.current;
+    worldPortalNavigationRef.current = false;
+    worldPortalTransferRef.current = false;
+    worldPortalTravelRef.current = false;
+    worldPortalBlockedRef.current = true;
+    pendingBuildingRef.current = null;
+    keysRef.current = {};
+    const player = playerRef.current;
+    player.targetX = null;
+    player.targetY = null;
+    player.vx = 0;
+    player.vy = 0;
+    setWorldPortalTransitioning(false);
+    if (navigationStarted) router.replace('/', { scroll: false });
+  }, [router]);
+
+  const beginWorldPortalTransfer = useCallback(() => {
+    if (worldPortalTransferRef.current || pausedRef.current || document.querySelector('[role="dialog"]')) return;
+    worldPortalTransferRef.current = true;
+    worldPortalTravelRef.current = false;
+    worldPortalNavigationRef.current = false;
+    pendingBuildingRef.current = null;
+    keysRef.current = {};
+    const player = playerRef.current;
+    player.targetX = null;
+    player.targetY = null;
+    player.vx = 0;
+    player.vy = 0;
+    setSelectedTarget(null);
+    setWorldPortalTransitioning(true);
+    router.prefetch(WORLD_PORTAL_HREF);
+    worldPortalTimerRef.current = window.setTimeout(() => {
+      worldPortalTimerRef.current = null;
+      if (!worldPortalTransferRef.current) return;
+      worldPortalNavigationRef.current = true;
+      try {
+        router.push(WORLD_PORTAL_HREF);
+      } catch {
+        cancelWorldPortalTransfer();
+      }
+    }, 450);
+  }, [cancelWorldPortalTransfer, router]);
+
+  const travelToWorldPortal = useCallback(() => {
+    if (worldPortalTransferRef.current || pausedRef.current || document.querySelector('[role="dialog"]')) return;
+    const portal = getVillageWorldPortal(worldWidthRef.current);
+    pendingBuildingRef.current = null;
+    worldPortalTravelRef.current = true;
+    worldPortalBlockedRef.current = false;
+    keysRef.current = {};
+    playerRef.current.targetX = portal.x;
+    playerRef.current.targetY = portal.y;
+    setSelectedTarget(null);
+    router.prefetch(WORLD_PORTAL_HREF);
+  }, [router]);
+
+  useEffect(() => () => {
+    if (worldPortalTimerRef.current !== null) {
+      window.clearTimeout(worldPortalTimerRef.current);
+    }
+  }, []);
+
   useEffect(() => {
     const travel = (event: Event) => {
       const building = findBuilding((event as CustomEvent).detail);
@@ -1386,6 +1467,7 @@ export default function BioVillageLanding() {
     };
     const pause = (event: Event) => {
       pausedRef.current = Boolean((event as CustomEvent).detail);
+      if (pausedRef.current) worldPortalTravelRef.current = false;
       if (pausedRef.current) { keysRef.current = {}; playerRef.current.targetX = null; playerRef.current.targetY = null; }
     };
     window.addEventListener(VILLAGE_TRAVEL_EVENT, travel);
@@ -2813,8 +2895,11 @@ export default function BioVillageLanding() {
         target instanceof HTMLTextAreaElement ||
         target?.isContentEditable;
 
-      if (isTypingTarget || pausedRef.current || document.querySelector('[role="dialog"]')) return;
-      if (event.key in directions || ['w','W','a','A','s','S','d','D'].includes(event.key)) pendingBuildingRef.current = null;
+      if (isTypingTarget || pausedRef.current || worldPortalTransferRef.current || document.querySelector('[role="dialog"]')) return;
+      if (event.key in directions || ['w','W','a','A','s','S','d','D'].includes(event.key)) {
+        pendingBuildingRef.current = null;
+        worldPortalTravelRef.current = false;
+      }
 
       if (
         event.key in directions ||
@@ -2857,11 +2942,14 @@ export default function BioVillageLanding() {
     };
 
     const handleContextMenu = (event: MouseEvent) => {
+      if (worldPortalTransferRef.current) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest('[data-avatar-ui="true"]')) return;
       if (window.scrollY >= WORLD_HEIGHT - 96) return;
 
       event.preventDefault();
+      pendingBuildingRef.current = null;
+      worldPortalTravelRef.current = false;
       playerRef.current.targetX = event.clientX + cameraXRef.current;
       playerRef.current.targetY = event.clientY + window.scrollY;
       setSelectedTarget(null);
@@ -2869,7 +2957,7 @@ export default function BioVillageLanding() {
 
     const handleClick = (event: MouseEvent) => {
       if (Date.now() < ignoreClickUntilRef.current) return;
-      if (pausedRef.current) return;
+      if (pausedRef.current || worldPortalTransferRef.current) return;
 
       const target = event.target as HTMLElement | null;
       if (target?.closest('[data-avatar-ui="true"]')) return;
@@ -2878,6 +2966,7 @@ export default function BioVillageLanding() {
       const hitActor = findActorAtPoint(event.clientX, event.clientY);
       if (!hitActor) {
         pendingBuildingRef.current = null;
+        worldPortalTravelRef.current = false;
         setSelectedTarget(null);
         playerRef.current.targetX = event.clientX + cameraXRef.current;
         playerRef.current.targetY = event.clientY + window.scrollY;
@@ -2892,7 +2981,7 @@ export default function BioVillageLanding() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
-      if (pausedRef.current || document.querySelector('[role="dialog"]')) { touchStateRef.current = null; return; }
+      if (pausedRef.current || worldPortalTransferRef.current || document.querySelector('[role="dialog"]')) { touchStateRef.current = null; return; }
       if (event.touches.length !== 1) {
         touchStateRef.current = null;
         return;
@@ -2925,7 +3014,7 @@ export default function BioVillageLanding() {
       const current = touchStateRef.current;
       touchStateRef.current = null;
 
-      if (!current || current.targetIsUi || current.moved) return;
+      if (!current || current.targetIsUi || current.moved || worldPortalTransferRef.current) return;
       if (window.scrollY >= WORLD_HEIGHT - 96) return;
 
       const touch = event.changedTouches[0];
@@ -2944,6 +3033,8 @@ export default function BioVillageLanding() {
       }
 
       setSelectedTarget(null);
+      pendingBuildingRef.current = null;
+      worldPortalTravelRef.current = false;
       playerRef.current.targetX = touch.clientX + cameraXRef.current;
       playerRef.current.targetY = touch.clientY + window.scrollY;
     };
@@ -3319,9 +3410,27 @@ export default function BioVillageLanding() {
       }
 
       time += 1;
-      if (!pausedRef.current && !document.querySelector('[role="dialog"]')) updatePlayer(frameScale);
+      const player = playerRef.current;
+      const previousPlayerX = player.x;
+      const previousPlayerY = player.y;
+      const canMove = !pausedRef.current && !worldPortalTransferRef.current && !document.querySelector('[role="dialog"]');
+      if (canMove) updatePlayer(frameScale);
       updateRemoteActors();
-      if (!pausedRef.current && !document.querySelector('[role="dialog"]')) updateCamera(frameScale);
+      if (canMove) updateCamera(frameScale);
+      if (canMove) {
+        const portal = getVillageWorldPortal(worldWidthRef.current);
+        const distance = Math.hypot(player.x - portal.x, player.y - portal.y);
+        if (distance > portal.radius + 8) worldPortalBlockedRef.current = false;
+        const moved = Math.hypot(player.x - previousPlayerX, player.y - previousPlayerY) > 0.01;
+        if (!pendingBuildingRef.current && !worldPortalBlockedRef.current && (worldPortalTravelRef.current || moved) && distance <= portal.radius) {
+          beginWorldPortalTransfer();
+        }
+      }
+      avatarCanvas.dataset.playerX = player.x.toFixed(2);
+      avatarCanvas.dataset.playerY = player.y.toFixed(2);
+      avatarCanvas.dataset.worldPortalState = worldPortalTransferRef.current
+        ? 'loading'
+        : worldPortalTravelRef.current ? 'approaching' : 'idle';
       if (pendingBuildingRef.current && !pausedRef.current) {
         const id = pendingBuildingRef.current;
         const door = buildingDoor(id, worldWidthRef.current);
@@ -3545,6 +3654,7 @@ export default function BioVillageLanding() {
     };
   }, [
     applyRemoteMovementPayload,
+    beginWorldPortalTransfer,
     startPoopSequence,
     supabase,
     user?.id,
@@ -3557,6 +3667,9 @@ export default function BioVillageLanding() {
       className="relative isolate w-full overflow-hidden"
       style={{ minHeight: `${WORLD_HEIGHT}px` }}
     >
+      {worldPortalTransitioning && (
+        <WorldPortalLoading onCancel={cancelWorldPortalTransfer} />
+      )}
       {worldActive && <div data-avatar-ui="true" style={{ position: 'fixed', bottom: 'calc(22px + env(safe-area-inset-bottom, 0px))', left: 'max(16px, env(safe-area-inset-left, 0px))', zIndex: 35, background: '#fff', color: '#233c34', border: '1px solid #afc9ba', borderRadius: 6, padding: '10px 12px', display: 'grid', gridTemplateColumns: 'auto auto 44px', alignItems: 'center', gap: 8, fontFamily: 'system-ui, sans-serif', fontSize: 12, maxWidth: 'calc(100vw - 86px)', boxShadow: '0 4px 0 #afc9ba', pointerEvents: 'none' }}>
         <strong>광장의 꿈 조각</strong><span style={{ color: '#7853a0', whiteSpace: 'nowrap' }}>{collectedCount} / {DREAM_COUNT}</span>
         {collectedCount < DREAM_COUNT && <button type="button" title="다음 꿈 조각으로 이동" aria-label="다음 꿈 조각으로 이동" style={{ pointerEvents: 'auto', padding: 12, minWidth: 44, minHeight: 44, border: '1px solid #afc9ba', borderRadius: 4, background: '#edf6f0', color: '#263a32', verticalAlign: 'middle' }} onClick={() => {
@@ -3993,6 +4106,12 @@ export default function BioVillageLanding() {
 
 
           <VillageBuildings width={worldWidth} active={worldActive} onTravel={travelToBuilding} />
+          <VillageWorldPortal
+            width={worldWidth}
+            active={worldActive}
+            transitioning={worldPortalTransitioning}
+            onTravel={travelToWorldPortal}
+          />
           {poopDrops.map((drop) => {
             const isOwnNewPoop = !drop.isPost && drop.actorId === (participantKeyRef.current ?? 'self');
             const isPost = drop.isPost;

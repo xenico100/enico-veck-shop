@@ -2,6 +2,8 @@
 
 `/world`는 몽상녀와 벡독이 함께 걷는 짧은 밤 산책 게임입니다. 기본은 3인칭이며 1인칭으로도 바꿀 수 있습니다. 승인된 마을 GLB와 기존 공간(우체국·잡화점·극장·주민 센터·카페·제작 연구소·dot 작업실) 연결 위에 PS1 시대의 질감과 밤의 이야기를 얹었습니다.
 
+홈페이지의 기존 픽셀 마을에서는 중앙 분수 오른쪽 **WORLD 포탈**로 들어갑니다. 포탈을 클릭·터치하면 캐릭터가 입구까지 걸어가고, 직접 걸어서 들어가도 전체 화면 로딩을 거쳐 `/world`로 이동합니다. 이동이 지연되면 10초 후 **마을에 머무르기**로 취소할 수 있습니다. 기존 홈페이지와 공간 링크는 그대로 유지합니다.
+
 ## 이야기와 진행
 
 자정이 지난 몽상로에서 눈을 뜬 플레이어는 마을이 잃어버린 "첫 문장"을 되찾아야 합니다.
@@ -69,6 +71,7 @@ WASD/방향키 이동, Shift 달리기, 클릭(포인터 잠금) 또는 드래�
 node --test test/*.test.mjs
 ./node_modules/.bin/tsc --noEmit -p test/tsconfig.world.json
 WORLD_TEST_URL=http://127.0.0.1:3214 PLAYWRIGHT_MODULE=… node test/world.browser.mjs
+WORLD_TEST_URL=http://127.0.0.1:3214 PLAYWRIGHT_MODULE=… node test/village-world-portal.browser.mjs
 # 소유자 설정이 없는 플레이스홀더 환경에서는 WORLD_TEST_WORKSHOP_UNCONFIGURED=1 추가
 ```
 
