@@ -29,13 +29,22 @@ export function resolveWorldCamera(
   player: WorldPose,
   colliders: readonly WorldCollider[] = [],
   mode: 'third' | 'first' = 'third',
-  bob = 0
+  bob = 0,
+  riding = false
 ): WorldFollowCamera {
-  if (mode === 'first') return { pose: { ...player }, eyeY: 0.66 + bob, opacity: 0 };
-  const pitch = Math.max(-0.85, Math.min(0.35, player.pitch - 0.18));
+  if (mode === 'first')
+    return {
+      pose: { ...player },
+      eyeY: 0.66 + (riding ? 0.22 : 0) + bob,
+      opacity: 0
+    };
+  const backDist = riding ? 1.65 : 1.25;
+  const sideOffset = riding ? 0.22 : 0.18;
+  const baseEyeY = riding ? 0.82 : 0.62;
+  const pitch = Math.max(-0.85, Math.min(0.35, player.pitch - (riding ? 0.2 : 0.18)));
   const basis = worldCameraBasis({ yaw: player.yaw, pitch });
-  const dx = -basis.forward[0] * 1.25 + basis.right[0] * 0.18;
-  const dz = -basis.forward[2] * 1.25 + basis.right[2] * 0.18;
+  const dx = -basis.forward[0] * backDist + basis.right[0] * sideOffset;
+  const dz = -basis.forward[2] * backDist + basis.right[2] * sideOffset;
   let fraction = 1;
   for (const box of colliders) {
     let enter = 0, exit = 1;
@@ -58,7 +67,7 @@ export function resolveWorldCamera(
   const distance = Math.hypot(dx, dz) * fraction;
   return {
     pose: { x: player.x + dx * fraction, z: player.z + dz * fraction, yaw: player.yaw, pitch },
-    eyeY: 0.62 - basis.forward[1] * 1.25 * fraction + bob * 0.25,
+    eyeY: baseEyeY - basis.forward[1] * backDist * fraction + bob * 0.25,
     opacity: Math.max(0, Math.min(1, (distance - 0.18) / 0.3))
   };
 }

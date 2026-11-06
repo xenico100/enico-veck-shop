@@ -1,5 +1,10 @@
 import { worldCameraBasis } from './world-camera';
-import type { WorldCollider, WorldPose } from './world-layout';
+import {
+  seoulLandmarks,
+  seoulWaterColliders,
+  type WorldCollider,
+  type WorldPose
+} from './world-layout';
 
 /**
  * Story, objectives and night systems for the /world game.
@@ -10,6 +15,7 @@ export const GAME_SAVE_KEY = 'mongsangin.world.save.v1';
 export const GAME_SETTINGS_KEY = 'mongsangin.world.settings.v1';
 export const FRAGMENT_TOTAL = 8;
 export const CLUE_TOTAL = 3;
+export const RIDE_SPEED_MULTIPLIER = 2.15;
 
 export type GamePoint = { x: number; y: number; z: number };
 export type ShadowState = 'dormant' | 'roam' | 'hunt' | 'flee' | 'gone';
@@ -48,8 +54,11 @@ export type GameEvent =
   | { type: 'save' };
 
 export type DogState = {
-  x: number; z: number; yaw: number;
-  mode: 'follow' | 'sit' | 'guard' | 'sniff';
+  x: number;
+  z: number;
+  yaw: number;
+  mode: 'follow' | 'sit' | 'guard' | 'sniff' | 'ride';
+  riding?: boolean;
   timer: number;
   trail: { x: number; z: number }[];
   petCooldown: number;
@@ -81,21 +90,30 @@ export type GameState = {
 };
 
 export const CHAPTERS = [
-  { title: '프롤로그 · 눈을 뜨다', subtitle: '자정이 지난 몽상로' },
+  { title: '프롤로그 · 눈을 뜨다', subtitle: '자정이 지난 몽상로 · 서울의 밤' },
   { title: '1장 · 꺼지지 않는 가로등', subtitle: '흩어진 꿈 조각을 줍는 밤' },
   { title: '2장 · 반송된 이름들', subtitle: '마을의 그림자들에게 말을 걸 것' },
   { title: '3장 · 첫 문장', subtitle: '모든 조각이 모이면 문이 열린다' },
   { title: '에필로그 · 새벽', subtitle: '몽상인은 잠들지 않는다' }
 ] as const;
 
-/** Street lamp heads measured from the approved village GLB. */
+/** Street lamp heads measured from the approved village GLB + expanded Seoul districts. */
 export const WORLD_LAMPS = [
   { id: 'lamp-west', x: -19.2, y: 2.55, z: 1.6 },
   { id: 'lamp-crossing', x: -16.8, y: 2.55, z: -1.6 },
   { id: 'lamp-post', x: -7.6, y: 2.55, z: 1.6 },
   { id: 'lamp-plaza', x: 5.2, y: 2.55, z: 1.6 },
   { id: 'lamp-east', x: 16.8, y: 2.55, z: 1.6 },
-  { id: 'lamp-viaduct', x: 26, y: 2.55, z: -1.6 }
+  { id: 'lamp-viaduct', x: 26, y: 2.55, z: -1.6 },
+  // Expanded Seoul avenue lamps
+  { id: 'lamp-gwanghwamun', x: 1.2, y: 2.8, z: -58 },
+  { id: 'lamp-botanic', x: -64, y: 2.7, z: -2 },
+  { id: 'lamp-hongdae', x: -46, y: 2.7, z: 24 },
+  { id: 'lamp-namsan', x: 38, y: 2.8, z: 24 },
+  { id: 'lamp-seongsu', x: 64, y: 2.7, z: -2 },
+  { id: 'lamp-yeouido', x: -24, y: 2.8, z: 36 },
+  { id: 'lamp-gangnam', x: 26, y: 2.9, z: 66 },
+  { id: 'lamp-jamsil', x: 68, y: 2.9, z: 66 }
 ] as const;
 export const LAMP_SAFE_RADIUS = 2.7;
 
@@ -104,11 +122,15 @@ export const WORLD_GLOWS = [
   { x: -13, y: 2.2, z: -2.7, radius: 3.2, color: [1, 0.25, 0.42] },
   { x: -9.1, y: 0.4, z: 1.45, radius: 2.2, color: [1, 0.72, 0.4] },
   { x: 6.3, y: 0.4, z: -1.5, radius: 2.2, color: [1, 0.72, 0.4] },
-  { x: 20, y: 4, z: -11.5, radius: 4.5, color: [0.25, 0.9, 0.85] }
+  { x: 20, y: 4, z: -11.5, radius: 4.5, color: [0.25, 0.9, 0.85] },
+  { x: -52, y: 2.4, z: 28, radius: 5.5, color: [1, 0.28, 0.65] },
+  { x: 46, y: 6.5, z: 28, radius: 7, color: [0.35, 0.65, 1] },
+  { x: 26, y: 4.5, z: 72, radius: 6, color: [0.3, 0.85, 0.95] }
 ] as const;
 
-/** Footprints missing from the original collider export (north houses, east wall) and new props. */
+/** Footprints missing from the original collider export (north houses, east wall), new props, and Seoul landmarks/river. */
 export const GAME_COLLIDERS: readonly WorldCollider[] = [
+  // First 6 entries are the north houses (used by WorldExplorer map).
   { x: -21.6, z: -16.79, width: 4.8, depth: 4 },
   { x: -15.6, z: -16.02, width: 4.8, depth: 5.04 },
   { x: -9.2, z: -17.01, width: 4.8, depth: 4 },
@@ -127,7 +149,15 @@ export const GAME_COLLIDERS: readonly WorldCollider[] = [
   { x: 11.6, z: 2.8, width: 0.4, depth: 0.4 },
   { x: -8.05, z: -2.52, width: 0.62, depth: 0.32 },
   { x: 9.46, z: -2.52, width: 0.62, depth: 0.32 },
-  { x: 14.35, z: 3.04, width: 0.62, depth: 0.32 }
+  { x: 14.35, z: 3.04, width: 0.62, depth: 0.32 },
+  // Expanded Seoul landmarks & Han River water segments
+  ...seoulLandmarks.map((item) => ({
+    x: item.x,
+    z: item.z,
+    width: item.width,
+    depth: item.depth
+  })),
+  ...seoulWaterColliders
 ];
 
 export const PROPS = {
@@ -278,8 +308,16 @@ const finite = (value: unknown, fallback: number) =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 
 export function createDog(pose: Pick<WorldPose, 'x' | 'z' | 'yaw'>): DogState {
-  return { x: pose.x - Math.sin(pose.yaw) * 0.65, z: pose.z - Math.cos(pose.yaw) * 0.65,
-    yaw: pose.yaw, mode: 'follow', timer: 2, trail: [{ x: pose.x, z: pose.z }], petCooldown: 0 };
+  return {
+    x: pose.x - Math.sin(pose.yaw) * 0.65,
+    z: pose.z - Math.cos(pose.yaw) * 0.65,
+    yaw: pose.yaw,
+    mode: 'follow',
+    riding: false,
+    timer: 2,
+    trail: [{ x: pose.x, z: pose.z }],
+    petCooldown: 0
+  };
 }
 
 export function createGameState(): GameState {
@@ -300,6 +338,34 @@ export function createGameState(): GameState {
     wakeCount: 0,
     dog: createDog(START_POSE)
   };
+}
+
+export function toggleRideDog(
+  state: GameState,
+  pose?: Pick<WorldPose, 'x' | 'z' | 'yaw'>
+): GameEvent[] {
+  const next = !state.dog.riding;
+  state.dog.riding = next;
+  if (next) {
+    state.dog.mode = 'ride';
+    if (pose) {
+      state.dog.x = pose.x;
+      state.dog.z = pose.z;
+      state.dog.yaw = pose.yaw;
+      state.dog.trail = [{ x: pose.x, z: pose.z }];
+    }
+    return [
+      { type: 'sound', cue: 'bark' },
+      { type: 'toast', text: '벡독에 올라탔다 · 빠르게 달릴 수 있다 (R 내리기)', tone: 'item' }
+    ];
+  }
+  state.dog.mode = 'follow';
+  if (pose) {
+    state.dog.x = pose.x - Math.sin(pose.yaw) * 0.65;
+    state.dog.z = pose.z - Math.cos(pose.yaw) * 0.65;
+    state.dog.yaw = pose.yaw;
+  }
+  return [{ type: 'toast', text: '벡독에서 내렸다.', tone: 'info' }];
 }
 
 export const fragmentCount = (state: GameState) =>
@@ -330,20 +396,20 @@ export function objective(state: GameState): { title: string; detail: string } {
   const fragments = fragmentCount(state);
   if (state.chapter >= 4)
     return {
-      title: '새벽의 마을을 자유롭게 걷기',
-      detail: `꿈 조각 ${fragments}/${FRAGMENTS.length} · 쪽지 ${noteCount(state)}/${NOTES.length}`
+      title: '새벽의 서울과 마을을 자유롭게 산책하기',
+      detail: `꿈 조각 ${fragments}/${FRAGMENTS.length} · 쪽지 ${noteCount(state)}/${NOTES.length} · R 벡독 라이딩`
     };
   if (!state.flashlight.owned)
     return {
       title: '서쪽 가로등 아래에서 손전등을 찾기',
-      detail: '빛이 있는 곳으로 걸어가 보세요'
+      detail: '빛이 있는 곳으로 걸어가거나 R 키로 벡독을 타 보세요'
     };
   if (state.blackout > 0 || state.blackoutPending > 0)
     return { title: '빛을 지키기', detail: '손전등(F)을 그것에게 비추면 물러납니다' };
   if (state.chapter <= 1)
     return {
       title: `흩어진 꿈 조각 모으기 (${Math.min(fragments, 3)}/3)`,
-      detail: '푸르게 떠 있는 조각을 찾아 E로 줍기'
+      detail: '푸르게 떠 있는 조각을 찾아 E로 줍기 · R 벡독 타기'
     };
   if (state.chapter === 2) {
     const clues = clueCount(state);
@@ -364,7 +430,7 @@ export function objective(state: GameState): { title: string; detail: string } {
   if (!doorOpen(state))
     return {
       title: `꿈 조각 모두 모으기 (${fragments}/${FRAGMENTS.length})`,
-      detail: '지도(M)에서 아직 가보지 않은 길을 확인하세요'
+      detail: '지도(M)에서 아직 가보지 않은 길을 확인하세요 · R 벡독 타기'
     };
   return { title: '철길 너머의 문으로', detail: '고가 철로 아래를 지나 동쪽으로' };
 }
@@ -482,8 +548,16 @@ export function availableInteractables(state: GameState): Interactable[] {
       z: PROPS.door.z,
       radius: 1.6
     });
-  list.push({ id: 'veckdog', kind: 'dog', label: '벡독', verb: '쓰다듬기',
-    x: state.dog.x, y: 0.3, z: state.dog.z, radius: 1 });
+  list.push({
+    id: 'veckdog',
+    kind: 'dog',
+    label: '벡독',
+    verb: state.dog.riding ? '쓰다듬기' : '쓰다듬기',
+    x: state.dog.x,
+    y: 0.3,
+    z: state.dog.z,
+    radius: 1
+  });
   return list;
 }
 
@@ -504,7 +578,7 @@ export function findInteractable(
     const facing = distance > 0.01 ? (dx * forward[0] + dz * forward[2]) / distance : 1;
     // Petting is a fallback so the companion cannot obscure story interactions.
     if (item.kind === 'dog') {
-      if (facing >= 0.45) companion = item;
+      if (!state.dog.riding && facing >= 0.45) companion = item;
       continue;
     }
     const score = distance - facing * 0.45;
@@ -599,6 +673,7 @@ function talk(state: GameState, npc: NpcId, events: GameEvent[]) {
 
 export function interact(state: GameState, id: string): GameEvent[] {
   const events: GameEvent[] = [];
+  if (id === 'veckdog-ride') return toggleRideDog(state);
   const target = availableInteractables(state).find((item) => item.id === id);
   if (!target) return events;
   switch (target.kind) {
@@ -818,8 +893,8 @@ function moveShadow(
       }
     }
   }
-  shadow.x = clamp(nextX, -34, 42);
-  shadow.z = clamp(nextZ, -28, 26);
+  shadow.x = clamp(nextX, -92, 92);
+  shadow.z = clamp(nextZ, -80, 80);
 }
 
 /** Flashlight cone test from the eye toward the shadow's chest. */
@@ -845,6 +920,14 @@ export function stepDog(state: GameState, pose: WorldPose, dt: number): GameEven
   const events: GameEvent[] = [];
   dog.petCooldown = Math.max(0, dog.petCooldown - dt);
   dog.timer = Math.max(0, dog.timer - dt);
+  if (dog.riding) {
+    dog.x = pose.x;
+    dog.z = pose.z;
+    dog.yaw = pose.yaw;
+    dog.mode = 'ride';
+    dog.trail = [{ x: pose.x, z: pose.z }];
+    return events;
+  }
   const end = dog.trail[dog.trail.length - 1];
   // Wake/checkpoint travel is a discontinuity, not a walked segment through walls.
   if (end && Math.hypot(end.x - pose.x, end.z - pose.z) > 2) {
@@ -1105,17 +1188,21 @@ export function parseGameSave(
   if (state.chapter >= 4) state.shadow.state = 'gone';
   const pose = (data.pose ?? {}) as Record<string, unknown>;
   const checkpoint = (data.checkpoint ?? {}) as Record<string, unknown>;
+  const rawCpX = finite(checkpoint.x, START_POSE.x);
+  const rawCpZ = finite(checkpoint.z, START_POSE.z);
   state.checkpoint = {
-    x: clamp(finite(checkpoint.x, START_POSE.x), -34, 42),
-    z: clamp(finite(checkpoint.z, START_POSE.z), -28, 26),
+    x: rawCpX > 96 ? 42 : rawCpX < -96 ? -34 : clamp(rawCpX, -94, 94),
+    z: rawCpZ > 84 ? 26 : rawCpZ < -84 ? -28 : clamp(rawCpZ, -82, 82),
     yaw: finite(checkpoint.yaw, START_POSE.yaw)
   };
+  const rawPoseX = finite(pose.x, state.checkpoint.x);
+  const rawPoseZ = finite(pose.z, state.checkpoint.z);
   const restoredPose = {
-      x: clamp(finite(pose.x, state.checkpoint.x), -34, 42),
-      z: clamp(finite(pose.z, state.checkpoint.z), -28, 26),
-      yaw: finite(pose.yaw, START_POSE.yaw),
-      pitch: clamp(finite(pose.pitch, 0), -0.65, 0.5)
-    };
+    x: rawPoseX > 96 ? 42 : rawPoseX < -96 ? -34 : clamp(rawPoseX, -94, 94),
+    z: rawPoseZ > 84 ? 26 : rawPoseZ < -84 ? -28 : clamp(rawPoseZ, -82, 82),
+    yaw: finite(pose.yaw, START_POSE.yaw),
+    pitch: clamp(finite(pose.pitch, 0), -0.65, 0.5)
+  };
   state.dog = createDog(restoredPose);
   state.dog.x = restoredPose.x;
   state.dog.z = restoredPose.z;

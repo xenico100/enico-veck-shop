@@ -33,7 +33,7 @@ import { getVillageWorldPortal, WORLD_PORTAL_HREF } from '@/utils/village-world-
 
 import { dreamPoints, readCollected, drawVillageGround, DREAM_COUNT } from '@/utils/village-exploration';
 
-const WORLD_HEIGHT = 1800;
+const WORLD_HEIGHT = 2400;
 const MOBILE_WORLD_WIDTH = 1480;
 const DESKTOP_MIN_WORLD_WIDTH = 1280;
 const PLAYER_SCALE = 5;
@@ -838,6 +838,7 @@ function drawActor(
   options?: {
     isCleaning?: boolean;
     isPooping?: boolean;
+    isRidingDog?: boolean;
     isSelf?: boolean;
     isSelected?: boolean;
   }
@@ -845,7 +846,7 @@ function drawActor(
   const sprite = spriteSets[actor.preset][actor.dir];
   const palette = paletteMap[actor.palette];
   const { width, height } = getSpriteSize(actor.preset);
-  const squatOffset = options?.isPooping ? 8 : 0;
+  const squatOffset = options?.isPooping ? 8 : options?.isRidingDog ? -14 : 0;
   const strainJitter = options?.isPooping
     ? Math.sin(performance.now() / 72) * 1.15
     : 0;
@@ -854,7 +855,9 @@ function drawActor(
     : 0;
   const bounce =
     (actor.vx !== 0 || actor.vy !== 0) && Math.floor(actor.animFrame) % 2 === 0
-      ? -4
+      ? options?.isRidingDog
+        ? -7
+        : -4
       : 0;
   const screenX = actor.x - cameraX;
   const screenY = actor.y - scrollY;
@@ -881,6 +884,45 @@ function drawActor(
       ? 'rgba(225, 58, 58, 0.65)'
       : 'rgba(87, 144, 255, 0.7)';
     context.stroke();
+    context.restore();
+  }
+
+  if (options?.isRidingDog) {
+    // Draw pixel VeckDog mount under the rider
+    const facingLeft = actor.dir === 'left';
+    const dirSign = facingLeft ? -1 : 1;
+    const stride = (actor.vx !== 0 || actor.vy !== 0) && Math.floor(actor.animFrame) % 2 === 0 ? 4 : -4;
+    context.save();
+    context.translate(screenX, screenY + height * 0.22 + bounce * 0.6);
+    // Body
+    context.fillStyle = '#302b29';
+    context.fillRect(-22, -12, 44, 20);
+    context.fillStyle = '#d8c5a8';
+    context.fillRect(-18, -10, 36, 15);
+    // Red ENICO VECK collar
+    context.fillStyle = '#bb383b';
+    context.fillRect(dirSign * 10 - 4, -12, 8, 18);
+    context.fillStyle = '#f2c66d';
+    context.fillRect(dirSign * 12 - 2, -4, 4, 4);
+    // Head & snout
+    context.fillStyle = '#302b29';
+    context.fillRect(dirSign * 16 - 9, -22, 18, 16);
+    context.fillStyle = '#d8c5a8';
+    context.fillRect(dirSign * 16 - 7, -19, 14, 12);
+    // Ears & nose
+    context.fillStyle = '#5c4938';
+    context.fillRect(dirSign * 12 - 4, -26, 6, 7);
+    context.fillStyle = '#141216';
+    context.fillRect(dirSign * 23 - 2, -16, 4, 4);
+    // Tail
+    context.fillStyle = '#d8c5a8';
+    context.fillRect(-dirSign * 22 - 3, -18, 6, 10);
+    // Four galloping legs
+    context.fillStyle = '#8f7963';
+    context.fillRect(-15 + stride, 6, 6, 11);
+    context.fillRect(-6 - stride, 6, 6, 11);
+    context.fillRect(7 - stride, 6, 6, 11);
+    context.fillRect(14 + stride, 6, 6, 11);
     context.restore();
   }
 
@@ -1354,6 +1396,14 @@ export default function BioVillageLanding() {
 
   const [worldActive, setWorldActive] = useState(true);
   const [worldPortalTransitioning, setWorldPortalTransitioning] = useState(false);
+  const [ridingDog, setRidingDog] = useState(false);
+  const ridingDogRef = useRef(false);
+  const toggleRidingDog = useCallback(() => {
+    const next = !ridingDogRef.current;
+    ridingDogRef.current = next;
+    setRidingDog(next);
+    playerRef.current.speed = next ? PLAYER_SPEED * 1.95 : PLAYER_SPEED;
+  }, []);
   const collectedRef = useRef<Set<number>>(new Set());
   const [collectedCount, setCollectedCount] = useState(0);
   const [collectionSaved, setCollectionSaved] = useState(true);
@@ -2896,6 +2946,11 @@ export default function BioVillageLanding() {
         target?.isContentEditable;
 
       if (isTypingTarget || pausedRef.current || worldPortalTransferRef.current || document.querySelector('[role="dialog"]')) return;
+      if ((event.key === 'r' || event.key === 'R') && !event.repeat) {
+        event.preventDefault();
+        toggleRidingDog();
+        return;
+      }
       if (event.key in directions || ['w','W','a','A','s','S','d','D'].includes(event.key)) {
         pendingBuildingRef.current = null;
         worldPortalTravelRef.current = false;
@@ -3594,6 +3649,7 @@ export default function BioVillageLanding() {
         {
           isCleaning: selfIsCleaning,
           isPooping: selfIsPooping,
+          isRidingDog: ridingDogRef.current,
           isSelf: true,
           isSelected: selectedId === 'self'
         }
@@ -3677,6 +3733,25 @@ export default function BioVillageLanding() {
           if (next) { playerRef.current.targetX = next.x; playerRef.current.targetY = next.y; }
         }}><Navigation size={16} /></button>}
         <progress aria-label="꿈 조각 수집" value={collectedCount} max={DREAM_COUNT} style={{ display: 'block', gridColumn: '1 / -1', width: '100%', height: 7, accentColor: '#7853a0' }} />
+        <button
+          type="button"
+          onClick={toggleRidingDog}
+          aria-pressed={ridingDog}
+          style={{
+            pointerEvents: 'auto',
+            gridColumn: '1 / -1',
+            padding: '5px 8px',
+            border: '1px solid #afc9ba',
+            borderRadius: 4,
+            background: ridingDog ? '#233c34' : '#f4faf6',
+            color: ridingDog ? '#fff' : '#233c34',
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          {ridingDog ? '🐕 벡독 탑승 중 · 내리기 (R)' : '🐕 벡독 타기 (R)'}
+        </button>
         {collectedCount === DREAM_COUNT && <div role="status" style={{ gridColumn: '1 / -1' }}>광장 탐험 완료!</div>}
         {!collectionSaved && <div role="status" style={{ gridColumn: '1 / -1' }}>진행 상황은 이번 방문에만 유지됩니다.</div>}
       </div>}

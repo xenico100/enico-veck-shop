@@ -39,6 +39,8 @@ export type HudSnapshot = {
   prompt: { label: string; verb: string } | null;
   blackout: boolean;
   dawn: boolean;
+  riding?: boolean;
+  cameraMode?: 'third' | 'first';
 };
 
 export type DialogueState = {
@@ -135,7 +137,7 @@ export function TitleScreen({
         )}
       </p>
       <small className={styles.titleFoot}>
-        WASD 이동 · Shift 달리기 · 마우스 시점 · V 시점 전환 · E 행동 · F 손전등 · J 일지 · M 지도
+        WASD 이동 · R 벡독 타기 · Shift 달리기 · 마우스 시점 · V 1/3인칭 전환 · E 행동 · F 손전등 · J 일지 · M 서울 지도
       </small>
     </section>
   );
@@ -218,6 +220,9 @@ export function Hud({ hud }: { hud: HudSnapshot }) {
               <BookOpen size={13} /> 단서 {hud.clues}/{CLUES.length}
             </span>
           )}
+          <span>
+            {hud.riding ? '🐕 벡독 탑승 중 (R 하차)' : '🐕 R 벡독 타기'}
+          </span>
         </div>
       </aside>
       {hud.prompt && (

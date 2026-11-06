@@ -226,8 +226,8 @@ export function createWorldProps(): Record<string, WorldGlbBatch> {
   const black = linearColor('#07070a');
   const meshes: Record<string, WorldGlbBatch> = {};
 
-  meshes.sky = batch(hemisphere(110, 6, 16), { unlit: true });
-  meshes.stars = batch(stars(260, 100), { unlit: true });
+  meshes.sky = batch(hemisphere(135, 6, 16), { unlit: true });
+  meshes.stars = batch(stars(280, 125), { unlit: true });
   meshes.moon = batch(createMeshBuilder().disc(1, 18, [1, 1, 1, 1], [0.86, 0.88, 0.82, 1]).build(), {
     unlit: true
   });
@@ -450,6 +450,159 @@ export function createWorldProps(): Record<string, WorldGlbBatch> {
     ]);
   }
   meshes.beam = batch(beam.build(), { unlit: true, alphaMode: 'BLEND' });
+
+  // --- Seoul City Map Expansion Procedural Meshes ---
+  // Extended ground plane & Seoul road network
+  const seoulGround = createMeshBuilder()
+    .box(0, -0.18, 0, 210, 0.14, 190, linearColor('#14171f'), linearColor('#181c26'))
+    // Gwanghwamun / Sejong-daero avenue (north)
+    .box(1.2, -0.03, -46, 7.6, 0.04, 52, linearColor('#242934'), linearColor('#2a303d'))
+    .box(1.2, -0.025, -68, 32, 0.045, 14, linearColor('#323742'), linearColor('#3b414e'))
+    // Gangseo-ro / Magok Botanic Park road (west)
+    .box(-62, -0.03, 0, 64, 0.04, 4.6, linearColor('#242934'), linearColor('#2a303d'))
+    .box(-68, -0.03, -2, 4.4, 0.04, 52, linearColor('#27332e'), linearColor('#2e3d36'))
+    // Hongdae Eoulmadang-ro (southwest)
+    .box(-46, -0.03, 24, 48, 0.04, 4.4, linearColor('#2c2433'), linearColor('#352b3d'))
+    // Namsan Sowol-ro (southeast)
+    .box(42, -0.03, 24, 28, 0.04, 4.2, linearColor('#262d29'), linearColor('#2e3732'))
+    // Seongsu Yeonmujang-gil (east)
+    .box(64, -0.03, 0, 62, 0.04, 4.6, linearColor('#2d2524'), linearColor('#362c2a'))
+    .box(68, -0.03, -8, 4.4, 0.04, 48, linearColor('#2d2524'), linearColor('#362c2a'))
+    // Yeouido Hangang Park promenade
+    .box(0, -0.03, 36, 176, 0.04, 4.4, linearColor('#232b36'), linearColor('#2a3442'))
+    // Gangnam Teheran-ro & N-S connectors
+    .box(0, -0.03, 66, 172, 0.04, 5.8, linearColor('#222632'), linearColor('#292e3d'))
+    .box(-56, -0.025, 48, 6.4, 0.05, 44, linearColor('#2a303c'), linearColor('#323947'))
+    .box(-17.2, -0.025, 46, 6.8, 0.05, 52, linearColor('#2a303c'), linearColor('#323947'))
+    .box(26, -0.025, 46, 6.8, 0.05, 52, linearColor('#2a303c'), linearColor('#323947'))
+    .box(68, -0.025, 46, 6.4, 0.05, 52, linearColor('#2a303c'), linearColor('#323947'));
+  meshes['seoul.ground'] = batch(seoulGround.build());
+
+  // Han River water surface & 4 Bridge Arches
+  const hangang = createMeshBuilder()
+    .box(0, -0.08, 48, 192, 0.06, 13.6, linearColor('#0b1d33'), linearColor('#102a49'));
+  for (const bx of [-56, -17.2, 26, 68]) {
+    // Bridge deck & side arch trusses
+    hangang.box(bx, 0.01, 48, 6.8, 0.08, 15.8, linearColor('#3b4250'), linearColor('#485060'));
+    for (const side of [-3.2, 3.2]) {
+      hangang.box(bx + side, 0.09, 48, 0.22, 0.55, 15.6, linearColor('#707b8f'));
+      hangang.box(bx + side, 0.64, 48, 0.18, 1.4, 0.4, linearColor('#c94a38'));
+      hangang.box(bx + side, 0.64, 43.5, 0.18, 0.9, 0.35, linearColor('#c94a38'));
+      hangang.box(bx + side, 0.64, 52.5, 0.18, 0.9, 0.35, linearColor('#c94a38'));
+    }
+  }
+  meshes['seoul.hangang'] = batch(hangang.build(), {
+    emissiveFactor: [0.04, 0.09, 0.16],
+    emissiveStrength: 1
+  });
+
+  // 1. Gwanghwamun Gate & King Sejong Statue (Jongno-gu)
+  const gwanghwamun = createMeshBuilder()
+    // Stone fortress wall base (Seokchuk)
+    .box(0, 0, 0, 10.6, 2.1, 4.2, linearColor('#6e6a63'), linearColor('#827d75'))
+    // Three dark arched gate openings
+    .box(0, 0, 0, 2.1, 1.45, 4.3, linearColor('#121318'))
+    .box(-3.1, 0, 0, 1.6, 1.25, 4.3, linearColor('#121318'))
+    .box(3.1, 0, 0, 1.6, 1.25, 4.3, linearColor('#121318'))
+    // First-tier wooden pavilion & Dancheong trim
+    .box(0, 2.1, 0, 9.2, 1.35, 3.4, linearColor('#7a2f28'), linearColor('#3c5e52'))
+    .box(0, 3.45, 0, 11.4, 0.35, 4.8, linearColor('#283038'), linearColor('#353f4a'))
+    // Second-tier pavilion & hipped roof
+    .box(0, 3.8, 0, 7.4, 1.15, 2.7, linearColor('#7a2f28'), linearColor('#3c5e52'))
+    .box(0, 4.95, 0, 9.8, 0.45, 4.1, linearColor('#242b33'), linearColor('#323b45'))
+    // King Sejong & Yi Sun-sin pedestals on the plaza in front (+Z)
+    .box(0, 0, 6.2, 1.8, 0.9, 1.8, linearColor('#57534d'))
+    .cylinder(0, 0.9, 6.2, 0.55, 1.35, 8, linearColor('#b89448'), 0.42, linearColor('#d6b265'))
+    .box(0, 0, 12.4, 1.5, 1.4, 1.5, linearColor('#57534d'))
+    .cylinder(0, 1.4, 12.4, 0.38, 1.55, 8, linearColor('#4b6358'), 0.25, linearColor('#688779'));
+  meshes['seoul.gwanghwamun'] = batch(gwanghwamun.build(), {
+    emissiveFactor: [0.14, 0.1, 0.06],
+    emissiveStrength: 1
+  });
+
+  // 2. Seoul Botanic Park Glass Dome & Lake Walk (Gangseo-gu Magok / Hwagok)
+  const botanicMesh = createMeshBuilder()
+    .cylinder(0, 0, 0, 4.5, 0.45, 12, linearColor('#3d5249'), 4.3, linearColor('#4d6b5d'))
+    .cylinder(0, 0.45, 0, 4.1, 1.8, 12, linearColor('#4d9485'), 3.1, linearColor('#6ebfb0'))
+    .cylinder(0, 2.25, 0, 3.1, 1.25, 12, linearColor('#6ebfb0'), 1.1, linearColor('#9ee3d5'))
+    .box(0, 0.02, 7.2, 6.4, 0.08, 4.2, linearColor('#183a4a'), linearColor('#214f63'));
+  meshes['seoul.botanicDome'] = batch(botanicMesh.build(), {
+    emissiveFactor: [0.12, 0.28, 0.22],
+    emissiveStrength: 1
+  });
+
+  // 3. Hongdae Eoulmadang-ro Busking Stage & Neon Gate (Mapo-gu)
+  const hongdae = createMeshBuilder()
+    .box(0, 0, 0, 6.0, 0.35, 3.8, linearColor('#2b1e38'), linearColor('#3e2952'))
+    .box(-2.2, 0.35, -1.2, 0.9, 1.6, 0.8, linearColor('#18151c'))
+    .box(2.2, 0.35, -1.2, 0.9, 1.6, 0.8, linearColor('#18151c'))
+    .box(0, 2.6, -1.2, 5.4, 0.75, 0.25, linearColor('#e83c78'), linearColor('#ff6ca3'))
+    .box(-2.5, 0.35, -1.2, 0.18, 2.3, 0.18, linearColor('#4cc9f0'))
+    .box(2.5, 0.35, -1.2, 0.18, 2.3, 0.18, linearColor('#4cc9f0'));
+  meshes['seoul.hongdaeStage'] = batch(hongdae.build(), {
+    emissiveFactor: [0.35, 0.1, 0.28],
+    emissiveStrength: 1
+  });
+
+  // 4. Namsan Park Hill & N Seoul Tower (Yongsan-gu)
+  const namsan = createMeshBuilder()
+    .cylinder(0, 0, 0, 3.2, 1.8, 10, linearColor('#25382c'), 2.1, linearColor('#314a3b'))
+    .box(0, 1.8, 0, 2.4, 0.9, 2.4, linearColor('#4a5260'), linearColor('#5c6678'))
+    .cylinder(0, 2.7, 0, 0.42, 4.6, 10, linearColor('#c9ced8'), 0.34, linearColor('#dce0e8'))
+    .cylinder(0, 7.3, 0, 1.15, 0.85, 12, linearColor('#3868b8'), 1.05, linearColor('#5288e0'))
+    .cylinder(0, 8.15, 0, 0.75, 0.55, 10, linearColor('#d94854'), 0.65, linearColor('#f06570'))
+    .cylinder(0, 8.7, 0, 0.12, 2.4, 6, linearColor('#f2d58a'), 0.02, linearColor('#ffffff'));
+  meshes['seoul.namsanTower'] = batch(namsan.build(), {
+    emissiveFactor: [0.16, 0.24, 0.42],
+    emissiveStrength: 1
+  });
+
+  // 5. Seongsu-dong Yeonmujang-gil Red Brick Atelier (Seongdong-gu)
+  const seongsu = createMeshBuilder()
+    .box(0, 0, 0, 7.2, 3.4, 5.0, linearColor('#8c3b30'), linearColor('#6b2c23'))
+    .box(0, 3.4, 0, 7.5, 0.25, 5.3, linearColor('#28262b'))
+    .box(-1.8, 0.9, 2.52, 1.8, 1.8, 0.08, linearColor('#f2c879'))
+    .box(1.8, 0.9, 2.52, 1.8, 1.8, 0.08, linearColor('#f2c879'))
+    .box(0, 0, 2.52, 1.1, 2.1, 0.12, linearColor('#1c1e24'));
+  meshes['seoul.seongsuBrick'] = batch(seongsu.build(), {
+    emissiveFactor: [0.22, 0.12, 0.07],
+    emissiveStrength: 1
+  });
+
+  // 6. Yeouido Hangang Park & Seoul-Dal Moon Balloon (Yeongdeungpo-gu)
+  const yeouido = createMeshBuilder()
+    .cylinder(0, 0, 0, 2.0, 0.25, 10, linearColor('#3b4659'), 1.8, linearColor('#4f5d75'))
+    .cylinder(0, 0.25, 0, 0.06, 6.2, 6, linearColor('#8c96a8'))
+    .gem(0, 7.6, 0, 1.85, 1.85, linearColor('#ffe699'), 12);
+  meshes['seoul.seoulDal'] = batch(yeouido.build(), {
+    emissiveFactor: [0.45, 0.36, 0.15],
+    emissiveStrength: 1
+  });
+
+  // 7. Gangnam Station / Teheran-ro High-rise Towers (Gangnam-gu)
+  const gangnam = createMeshBuilder()
+    .box(-2.4, 0, 0, 3.0, 8.6, 3.2, linearColor('#28466e'), linearColor('#3a6296'))
+    .box(2.2, 0, 0.4, 3.2, 10.4, 3.2, linearColor('#1f3657'), linearColor('#2f5282'))
+    .box(0, 0, -1.6, 2.4, 6.4, 2.4, linearColor('#325885'), linearColor('#4678b2'))
+    // Media poles along Gangnam boulevard
+    .box(-3.6, 0, 3.4, 0.28, 3.2, 0.28, linearColor('#4ce0d2'))
+    .box(3.6, 0, 3.4, 0.28, 3.2, 0.28, linearColor('#e04ca8'));
+  meshes['seoul.gangnamTowers'] = batch(gangnam.build(), {
+    emissiveFactor: [0.12, 0.22, 0.38],
+    emissiveStrength: 1
+  });
+
+  // 8. Jamsil Supertall Skyline Tower (Songpa-gu)
+  const jamsil = createMeshBuilder()
+    .cylinder(0, 0, 0, 2.8, 5.5, 10, linearColor('#3a4f78'), 2.1, linearColor('#4c6699'))
+    .cylinder(0, 5.5, 0, 2.1, 5.5, 10, linearColor('#4c6699'), 1.3, linearColor('#6887c2'))
+    .cylinder(0, 11.0, 0, 1.3, 4.8, 10, linearColor('#6887c2'), 0.55, linearColor('#96b2eb'))
+    .gem(0, 16.2, 0, 0.65, 0.9, linearColor('#fff2b2'), 8);
+  meshes['seoul.lotteTower'] = batch(jamsil.build(), {
+    emissiveFactor: [0.18, 0.24, 0.42],
+    emissiveStrength: 1
+  });
+
   return meshes;
 }
 

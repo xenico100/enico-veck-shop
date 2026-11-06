@@ -214,3 +214,43 @@ test('old saves still load, transient dog data cannot inflate or poison a save, 
     'third'
   );
 });
+
+test('mongsangnyeo can mount and ride veckdog in third-person across the expanded Seoul map', async () => {
+  const { WORLD_BOUNDS, seoulLandmarks, seoulBridges, resolveSeoulDistrictName } =
+    await import('../utils/world-layout.ts');
+  assert.ok(WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX >= 180);
+  assert.ok(WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ >= 160);
+  assert.ok(seoulLandmarks.length >= 8);
+  assert.equal(seoulBridges.length, 4);
+  assert.match(resolveSeoulDistrictName(1.2, -68), /광화문/);
+  assert.match(resolveSeoulDistrictName(-70, -10), /서울식물원/);
+  assert.match(resolveSeoulDistrictName(26, 48), /한강대교/);
+  assert.match(resolveSeoulDistrictName(26, 70), /강남/);
+
+  const state = game.createGameState();
+  const start = pose(0, 0, 0.3);
+  const mountEvents = game.toggleRideDog(state, start);
+  assert.equal(state.dog.riding, true);
+  assert.equal(state.dog.mode, 'ride');
+  assert.ok(mountEvents.some((e) => e.type === 'sound' && e.cue === 'bark'));
+  game.stepDog(state, pose(12, -45, 0.5), 0.05);
+  assert.equal(state.dog.x, 12);
+  assert.equal(state.dog.z, -45);
+
+  const walkAvatar = chars.buildMongsangnyeoInstances(start, 0, 2.0, 0.5, 1, 1, false);
+  const rideAvatar = chars.buildMongsangnyeoInstances(start, 0, 4.0, 0.5, 1, 1, true);
+  assert.equal(rideAvatar.length, 10);
+  assert.notDeepEqual(walkAvatar[0].model, rideAvatar[0].model);
+
+  const walkCam = resolveWorldCamera(start, [], 'third', 0, false);
+  const rideCam = resolveWorldCamera(start, [], 'third', 0, true);
+  assert.ok(rideCam.eyeY > walkCam.eyeY);
+  assert.ok(
+    Math.hypot(rideCam.pose.x - start.x, rideCam.pose.z - start.z) >
+      Math.hypot(walkCam.pose.x - start.x, walkCam.pose.z - start.z)
+  );
+
+  game.toggleRideDog(state, start);
+  assert.equal(state.dog.riding, false);
+  assert.equal(state.dog.mode, 'follow');
+});

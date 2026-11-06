@@ -49,15 +49,31 @@ export function drawVillageGround(
     }
   }
   ctx.fillStyle = '#dce2cf';
-  ctx.fillRect(center - 116, 0, 232, 1800);
+  ctx.fillRect(center - 116, 0, 232, 2400);
   ctx.fillRect(0, 420, worldWidth, 200);
   ctx.fillRect(0, 975, worldWidth, 100);
   ctx.fillRect(0, 1505, worldWidth, 100);
+  ctx.fillRect(0, 2120, worldWidth, 120);
   ctx.fillStyle = '#91ae9e';
-  for (const y of [414, 620, 969, 1075, 1499, 1605]) {
+  for (const y of [414, 620, 969, 1075, 1499, 1605, 2114, 2240]) {
     ctx.fillRect(0, y, center - 116, 5);
     ctx.fillRect(center + 116, y, worldWidth, 5);
   }
+  // Seoul Han River pixel waterway (y: 1790..1950) & Hangang Bridge
+  ctx.fillStyle = '#5b8fb8';
+  ctx.fillRect(0, 1790, worldWidth, 160);
+  ctx.fillStyle = '#7bb0d6';
+  for (let x = 20; x < worldWidth; x += 96) {
+    ctx.fillRect(x, 1825, 42, 6);
+    ctx.fillRect(x + 36, 1895, 48, 6);
+  }
+  // Hangang Bridge deck & red steel arches
+  ctx.fillStyle = '#cfd6dc';
+  ctx.fillRect(center - 124, 1776, 248, 188);
+  ctx.fillStyle = '#b8463c';
+  ctx.fillRect(center - 124, 1776, 12, 188);
+  ctx.fillRect(center + 112, 1776, 12, 188);
+
   ctx.strokeStyle = '#c4cdbb';
   ctx.lineWidth = 1;
   for (let y = Math.floor(cameraY / 48) * 48; y < cameraY + height; y += 48) {
@@ -69,15 +85,21 @@ export function drawVillageGround(
       if (
         (y >= 420 && y < 620) ||
         (y >= 975 && y < 1075) ||
-        (y >= 1505 && y < 1605)
+        (y >= 1505 && y < 1605) ||
+        (y >= 2120 && y < 2240)
       ) {
         ctx.strokeRect(x + (y % 96 === 0 ? 32 : 0), y, 64, 48);
       }
     }
   }
   // Fixed world coordinates keep scenery anchored while the camera follows players.
-  for (let y = 120; y < 1800; y += 240) {
-    if (y < cameraY - 100 || y > cameraY + height + 100 || (y > 350 && y < 700))
+  for (let y = 120; y < 2320; y += 240) {
+    if (
+      y < cameraY - 100 ||
+      y > cameraY + height + 100 ||
+      (y > 350 && y < 700) ||
+      (y > 1730 && y < 1990)
+    )
       continue;
     for (const x of [center - 550, center + 550]) {
       ctx.fillStyle = '#a8c7b4';
@@ -109,8 +131,8 @@ export function drawVillageGround(
     ctx.fillRect(x + 4, 696, 6, 12);
     ctx.fillRect(x + 34, 696, 6, 12);
   }
-  // Flower borders, lamp posts and patterned paving distinguish the three streets.
-  for (const y of [690, 1210, 1670]) {
+  // Flower borders, lamp posts and patterned paving distinguish the streets.
+  for (const y of [690, 1210, 1670, 2040]) {
     for (const side of [-1, 1]) {
       const x = center + side * 342;
       ctx.fillStyle = '#8eaa8c';
@@ -131,6 +153,7 @@ export function drawVillageGround(
       ctx.fillRect(lx - 6, y + 42, 18, 6);
       ctx.fillRect(lx - 8, y - 39, 22, 28);
       ctx.fillStyle = '#fae4a3';
+      ctx.fillRect(lx - 4, y - 35, 14, 19);
       ctx.fillRect(lx - 4, y - 35, 14, 19);
       ctx.fillStyle = '#466a5f';
       ctx.fillRect(lx - 11, y - 43, 28, 6);

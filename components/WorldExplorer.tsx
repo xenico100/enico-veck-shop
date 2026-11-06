@@ -26,6 +26,10 @@ import {
 } from 'lucide-react';
 import {
   findNearbyBuilding,
+  resolveSeoulDistrictName,
+  seoulBridges,
+  seoulLandmarks,
+  seoulRoads,
   stepWorldMovement,
   worldBuildings,
   worldRoads,
@@ -60,6 +64,7 @@ import {
   NPCS,
   PIXEL_HEIGHT,
   PROPS,
+  RIDE_SPEED_MULTIPLIER,
   START_POSE,
   WORLD_LAMPS,
   clueCount,
@@ -76,6 +81,7 @@ import {
   serializeGame,
   stepGame,
   toggleFlashlight,
+  toggleRideDog,
   wakePose,
   CHAPTERS,
   type GameEvent,
@@ -168,7 +174,8 @@ function hudFrom(
   state: GameState,
   pose: WorldPose,
   prompt: Interactable | null,
-  building: WorldBuilding | undefined
+  building: WorldBuilding | undefined,
+  cameraMode: 'third' | 'first' = 'third'
 ): HudSnapshot {
   return {
     chapter: state.chapter,
@@ -181,12 +188,22 @@ function hudFrom(
     clues: clueCount(state),
     danger: sceneDanger(state, pose),
     prompt: prompt
-      ? { label: prompt.label, verb: prompt.verb }
+      ? {
+          label: prompt.label,
+          verb:
+            prompt.kind === 'dog'
+              ? state.dog.riding
+                ? '쓰다듬기 · 내리기 (R)'
+                : '쓰다듬기 · 타기 (R)'
+              : prompt.verb
+        }
       : building
         ? { label: building.name, verb: building.id === 'dot' ? '문 두드리기' : '들어가기' }
         : null,
     blackout: state.blackout > 0,
-    dawn: state.chapter >= 4
+    dawn: state.chapter >= 4,
+    riding: Boolean(state.dog.riding),
+    cameraMode
   };
 }
 
@@ -366,15 +383,27 @@ export default function WorldExplorer() {
     [releaseInput]
   );
 
+  const toggleRide = useCallback(() => {
+    if (pausedRef.current) return;
+    const events = toggleRideDog(gameRef.current, poseRef.current);
+    if (gameRef.current.dog.riding && settingsRef.current.camera !== 'third') {
+      const next = { ...settingsRef.current, camera: 'third' as const };
+      setSettings(next);
+      writeStorage(GAME_SETTINGS_KEY, JSON.stringify(next));
+    }
+    handleEventsRef.current(events);
+  }, []);
+
   const act = useCallback(() => {
     if (pausedRef.current) return;
     const target = promptRef.current;
     if (target) {
       handleEventsRef.current(interact(gameRef.current, target.id));
+      if (target.kind === 'dog') toggleRide();
       return;
     }
     if (nearRef.current) openBuilding(nearRef.current);
-  }, [openBuilding]);
+  }, [openBuilding, toggleRide]);
 
   const toggleLight = useCallback(() => {
     if (pausedRef.current) return;
@@ -632,10 +661,12 @@ export default function WorldExplorer() {
           stick.current.right;
         const running =
           keys.current.has('ShiftLeft') || keys.current.has('ShiftRight') || runToggle.current;
+        const rideBoost = state.dog.riding ? RIDE_SPEED_MULTIPLIER : 1;
         const before = poseRef.current;
         const options = {
           ...movementOptions.current,
-          speedScale: (movementOptions.current.speedScale ?? 1) * (running ? 1.75 : 1)
+          speedScale:
+            (movementOptions.current.speedScale ?? 1) * (running ? 1.75 : 1) * rideBoost
         };
         // Substeps keep walking speed on slow devices (each step clamps at 50 ms).
         let moved = before;
@@ -681,7 +712,13 @@ export default function WorldExplorer() {
 
       const seconds = time / 1000;
       const titlePlayer: WorldPose = { x: -19.2, z: 0.85, yaw: 0, pitch: 0 };
-      const follow = resolveWorldCamera(poseRef.current, movementOptions.current.colliders, settings.camera, eyeOffset);
+      const follow = resolveWorldCamera(
+        poseRef.current,
+        movementOptions.current.colliders,
+        settings.camera,
+        eyeOffset,
+        Boolean(state.dog.riding)
+      );
       const orbit = seconds * 0.045 + 0.4;
       const viewPose: WorldPose = playing
         ? { ...follow.pose }
@@ -694,6 +731,7 @@ export default function WorldExplorer() {
       canvas.dataset.cameraMode = settings.camera;
       canvas.dataset.avatarOpacity = String(follow.opacity.toFixed(2));
       canvas.dataset.dogMode = state.dog.mode;
+      canvas.dataset.dogRiding = state.dog.riding ? 'true' : 'false';
       canvas.dataset.dogPosition = `${state.dog.x.toFixed(3)},${state.dog.z.toFixed(3)}`;
       if (fx.shake > 0) {
         const amount = fx.shakeAmount * Math.min(1, fx.shake);
@@ -714,8 +752,14 @@ export default function WorldExplorer() {
             fx,
             eyeOffset,
             eyeY: playing ? follow.eyeY : 0.9,
-            player: { pose: playing ? poseRef.current : titlePlayer, yaw: playing ? avatarYaw : 0,
-              speed: playing ? speed : 0, gait: bob, opacity: playing ? follow.opacity : 1 },
+            player: {
+              pose: playing ? poseRef.current : titlePlayer,
+              yaw: playing ? avatarYaw : 0,
+              speed: playing ? speed : 0,
+              gait: bob,
+              opacity: playing ? follow.opacity : 1,
+              riding: Boolean(state.dog.riding)
+            },
             dogRig,
             titleLogo: !playing && titleLogoAvailable,
             aspect: canvas.clientWidth / Math.max(1, canvas.clientHeight),
@@ -753,23 +797,37 @@ export default function WorldExplorer() {
               state,
               poseRef.current,
               promptRef.current,
-              findNearbyBuilding(poseRef.current, assetRenderer ? 1.5 : 3.4)
+              findNearbyBuilding(poseRef.current, assetRenderer ? 1.5 : 3.4),
+              settings.camera
             )
           );
         }
         setLabels(
           playing
-            ? worldBuildings.flatMap((building) => {
-                const point = renderer.project({
-                  x: building.x,
-                  y: assetRenderer ? 2.6 : 4.8,
-                  z: building.z
-                });
-                return point?.visible &&
-                  Math.hypot(building.x - viewPose.x, building.z - viewPose.z) < 15
-                  ? [{ id: building.id, name: building.name, x: point.x, y: point.y }]
-                  : [];
-              })
+            ? [
+                ...worldBuildings.flatMap((building) => {
+                  const point = renderer.project({
+                    x: building.x,
+                    y: assetRenderer ? 2.6 : 4.8,
+                    z: building.z
+                  });
+                  return point?.visible &&
+                    Math.hypot(building.x - viewPose.x, building.z - viewPose.z) < 15
+                    ? [{ id: building.id, name: building.name, x: point.x, y: point.y }]
+                    : [];
+                }),
+                ...seoulLandmarks.flatMap((landmark) => {
+                  const point = renderer.project({
+                    x: landmark.x,
+                    y: 4.2,
+                    z: landmark.z
+                  });
+                  return point?.visible &&
+                    Math.hypot(landmark.x - viewPose.x, landmark.z - viewPose.z) < 34
+                    ? [{ id: landmark.id, name: landmark.name, x: point.x, y: point.y }]
+                    : [];
+                })
+              ]
             : []
         );
       }
@@ -840,6 +898,7 @@ export default function WorldExplorer() {
       if (event.repeat) return;
       if (!started) return;
       if (event.code === 'KeyE') act();
+      if (event.code === 'KeyR') toggleRide();
       if (event.code === 'KeyF') toggleLight();
       if (event.code === 'KeyV' && !view && !selected && !adapterPause && !ending)
         updateSettings({ ...settingsRef.current, camera: settingsRef.current.camera === 'third' ? 'first' : 'third' });
@@ -909,7 +968,7 @@ export default function WorldExplorer() {
       window.removeEventListener(VILLAGE_PAUSE_EVENT, pause);
       window.removeEventListener(VILLAGE_TRAVEL_EVENT, travel);
     };
-  }, [act, toggleLight, advanceDialogue, adapterPause, selected, started, view, dialogue, note, ending, wake]);
+  }, [act, toggleRide, toggleLight, advanceDialogue, adapterPause, selected, started, view, dialogue, note, ending, wake]);
 
   useEffect(() => {
     setWorkshop({ loading: false });
@@ -959,9 +1018,7 @@ export default function WorldExplorer() {
     setThumb({ x: 0, y: 0 });
   };
   const game = gameRef.current;
-  const placeName =
-    near?.name ??
-    (Math.abs(pose.z) < 2.4 ? '몽상로' : pose.z > 8 ? '남쪽 골목' : pose.z < -10 ? '북쪽 주택가' : '몽상로 뒷길');
+  const placeName = near?.name ?? resolveSeoulDistrictName(pose.x, pose.z);
   void journalTick;
 
   return (
@@ -1038,6 +1095,25 @@ export default function WorldExplorer() {
             </span>
           </Link>
           <nav aria-label="탐색 도구" className={styles.tools}>
+            <button
+              onClick={toggleRide}
+              aria-label={hud.riding ? '벡독에서 내리기' : '벡독 타기'}
+              aria-pressed={Boolean(hud.riding)}
+            >
+              <Footprints size={17} />
+              <span>{hud.riding ? '벡독 하차' : '벡독 타기'}</span>
+            </button>
+            <button
+              onClick={() =>
+                updateSettings({
+                  ...settings,
+                  camera: settings.camera === 'third' ? 'first' : 'third'
+                })
+              }
+              aria-label="시점 전환"
+            >
+              <span>{settings.camera === 'third' ? '3인칭' : '1인칭'}</span>
+            </button>
             <button onClick={() => setView('map')} aria-label="지도 열기">
               <Map size={17} />
               <span>지도</span>
@@ -1199,7 +1275,7 @@ export default function WorldExplorer() {
       )}
       <footer className={styles.footer} data-hidden={!started}>
         <span className={styles.desktopHelp}>
-          <kbd>WASD</kbd> 이동 <kbd>Shift</kbd> 달리기 <Mouse size={12} />{' '}
+          <kbd>WASD</kbd> 이동 <kbd>R</kbd> 벡독 타기 <kbd>Shift</kbd> 달리기 <Mouse size={12} />{' '}
           {locked ? '마우스 시점 · Esc 해제' : '클릭/드래그로 시점'} <kbd>E</kbd> 행동 <kbd>F</kbd> 손전등{' '}
           <kbd>J</kbd> 일지 <kbd>V</kbd> 시점
         </span>
@@ -1237,6 +1313,14 @@ export default function WorldExplorer() {
           <div className={styles.touchActions}>
             <button onClick={act} aria-label="행동" data-ready={Boolean(hud.prompt)}>
               <Hand size={20} />
+            </button>
+            <button
+              onClick={toggleRide}
+              aria-label="벡독 타기"
+              aria-pressed={Boolean(hud.riding)}
+              data-on={Boolean(hud.riding)}
+            >
+              <span style={{ fontSize: 13, fontWeight: 700 }}>견</span>
             </button>
             {hud.flashlightOwned && (
               <button onClick={toggleLight} aria-label="손전등" data-on={hud.flashlightOn}>
@@ -1278,11 +1362,11 @@ export default function WorldExplorer() {
                     ? 'DREAM JOURNAL'
                     : view === 'settings'
                       ? 'OPTIONS'
-                      : 'A SMALL GUIDE TO THE VILLAGE'}
+                      : 'SEOUL & MONGSANG VILLAGE MAP'}
                 </span>
                 <Dialog.Title>
                   {view === 'map'
-                    ? '마을 지도'
+                    ? '서울 · 몽상 마을 지도'
                     : view === 'list'
                       ? '공간 목록'
                       : view === 'journal'
@@ -1300,23 +1384,67 @@ export default function WorldExplorer() {
                 : view === 'settings'
                   ? '설정은 이 기기에만 저장됩니다.'
                   : view === 'map'
-                    ? '노란 점은 가로등, 하늘색 마름모는 주운 꿈 조각입니다.'
+                    ? '한강 4대 대교와 광화문·서울식물원·홍대·남산·성수·여의도·강남·잠실까지 확장된 지도입니다. R 키로 벡독을 타고 달릴 수 있습니다.'
                     : '공간을 고르면 정보를 보거나 산책의 목적지로 지정할 수 있습니다.'}
             </Dialog.Description>
             {view === 'map' && (
               <svg
                 className={styles.map}
-                viewBox={`${WORLD_BOUNDS.minX - 2} ${WORLD_BOUNDS.minZ - 2} ${WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX + 4} ${WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ + 4}`}
+                viewBox={`${WORLD_BOUNDS.minX - 4} ${WORLD_BOUNDS.minZ - 4} ${WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX + 8} ${WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ + 8}`}
                 role="img"
                 aria-label="마을 지도와 현재 위치"
               >
                 <rect
-                  x={WORLD_BOUNDS.minX - 2}
-                  y={WORLD_BOUNDS.minZ - 2}
-                  width={WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX + 4}
-                  height={WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ + 4}
+                  x={WORLD_BOUNDS.minX - 4}
+                  y={WORLD_BOUNDS.minZ - 4}
+                  width={WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX + 8}
+                  height={WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ + 8}
                   fill="#0b0d12"
                 />
+                {/* Han River water belt */}
+                <rect
+                  x={WORLD_BOUNDS.minX}
+                  y={41.2}
+                  width={WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX}
+                  height={13.6}
+                  fill="#10253f"
+                  stroke="#1c3d66"
+                  strokeWidth=".4"
+                />
+                {/* Expanded Seoul arterial roads */}
+                {seoulRoads.map((road, index) => (
+                  <rect
+                    key={`seoul-road-${index}`}
+                    x={road.x - road.width / 2}
+                    y={road.z - road.depth / 2}
+                    width={road.width}
+                    height={road.depth}
+                    fill="#1c2029"
+                  />
+                ))}
+                {/* 4 Hangang Bridges */}
+                {seoulBridges.map((bridge) => (
+                  <g key={bridge.id}>
+                    <rect
+                      x={bridge.x - bridge.width / 2}
+                      y={bridge.z - bridge.depth / 2}
+                      width={bridge.width}
+                      height={bridge.depth}
+                      fill="#353d4d"
+                      stroke="#c94a38"
+                      strokeWidth=".35"
+                    />
+                    <text
+                      x={bridge.x}
+                      y={bridge.z + 0.8}
+                      textAnchor="middle"
+                      fontSize="2.3"
+                      fill="#d8dee9"
+                    >
+                      {bridge.name}
+                    </text>
+                  </g>
+                ))}
                 {worldRoads.map((road, index) => (
                   <rect
                     key={index}
@@ -1324,7 +1452,7 @@ export default function WorldExplorer() {
                     y={road.z - road.depth / 2}
                     width={road.width}
                     height={road.depth}
-                    fill="#22262e"
+                    fill="#262b36"
                   />
                 ))}
                 <rect x={16.8} y={-26.4} width={4.6} height={40} fill="#1a1d24" stroke="#2c313b" strokeWidth=".2" />
@@ -1337,6 +1465,30 @@ export default function WorldExplorer() {
                     height={house.depth}
                     fill="#2a2a30"
                   />
+                ))}
+                {/* 8 Seoul Landmarks */}
+                {seoulLandmarks.map((landmark) => (
+                  <g key={landmark.id}>
+                    <rect
+                      x={landmark.x - landmark.width / 2}
+                      y={landmark.z - landmark.depth / 2}
+                      width={landmark.width}
+                      height={landmark.depth}
+                      fill={landmark.color}
+                      opacity=".68"
+                      stroke="#e8e3d5"
+                      strokeWidth=".35"
+                    />
+                    <text
+                      x={landmark.x}
+                      y={landmark.z - landmark.depth / 2 - 1.4}
+                      textAnchor="middle"
+                      fontSize="2.6"
+                      fill="#f2c66d"
+                    >
+                      {landmark.name}
+                    </text>
+                  </g>
                 ))}
                 {worldBuildings.map((building, index) => (
                   <g key={building.id}>
@@ -1362,7 +1514,7 @@ export default function WorldExplorer() {
                   </g>
                 ))}
                 {WORLD_LAMPS.map((lamp) => (
-                  <circle key={lamp.id} cx={lamp.x} cy={lamp.z} r=".55" fill={hud.blackout ? '#3a3528' : '#f2c66d'} />
+                  <circle key={lamp.id} cx={lamp.x} cy={lamp.z} r=".7" fill={hud.blackout ? '#3a3528' : '#f2c66d'} />
                 ))}
                 {FRAGMENTS.map((fragment) =>
                   game.collected.includes(fragment.id) ? (
@@ -1394,10 +1546,10 @@ export default function WorldExplorer() {
                 {doorOpen(game) && game.chapter < 4 && (
                   <rect x={PROPS.door.x - 0.4} y={PROPS.door.z - 1} width=".8" height="2" fill="#fffbe8" />
                 )}
-                <circle cx={pose.x} cy={pose.z} r="1" fill="#e85b36" stroke="#fff" strokeWidth=".35" />
+                <circle cx={pose.x} cy={pose.z} r="1.4" fill={hud.riding ? '#f2c66d' : '#e85b36'} stroke="#fff" strokeWidth=".45" />
                 <path
-                  d="M0 -3 1 -1 -1 -1Z"
-                  fill="#e85b36"
+                  d="M0 -3.5 1.3 -1 -1.3 -1Z"
+                  fill={hud.riding ? '#f2c66d' : '#e85b36'}
                   transform={`translate(${pose.x} ${pose.z}) rotate(${(-pose.yaw * 180) / Math.PI + 180})`}
                 />
               </svg>

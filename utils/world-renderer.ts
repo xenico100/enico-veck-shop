@@ -1,6 +1,9 @@
 import {
   plazaPillars,
   proxyHome,
+  seoulBridges,
+  seoulLandmarks,
+  seoulRoads,
   worldBuildings,
   worldRoads
 } from './world-layout';
@@ -146,6 +149,17 @@ function createScene(): Float32Array {
   };
 
   box(0, -0.3, 0, 250, 0.3, 250, hex('#7b9681'));
+  // Expanded Seoul roads, Han River and bridges in proxy mode.
+  box(0, -0.05, 48, 192, 0.08, 13.6, hex('#244c7a'));
+  for (const road of seoulRoads) {
+    box(road.x, 0, road.z, road.width, 0.08, road.depth, hex('#58606e'));
+  }
+  for (const bridge of seoulBridges) {
+    box(bridge.x, 0.04, bridge.z, bridge.width, 0.12, bridge.depth, hex('#8d95a5'));
+  }
+  for (const landmark of seoulLandmarks) {
+    box(landmark.x, 0.2, landmark.z, landmark.width, 4.2, landmark.depth, hex(landmark.color));
+  }
   // Pavement follows the source road network, but all meshes are temporary primitives.
   for (const road of worldRoads) {
     box(

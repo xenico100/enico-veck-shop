@@ -5,8 +5,13 @@ import type {
   WorldRenderLight
 } from './world-asset-renderer';
 import { billboardMatrix, cameraMatrix, modelMatrix } from './world-props';
-import { buildMongsangnyeoInstances, buildCompanionInstances, multiplyCharacterMatrix, type DogRig } from './world-characters';
-import type { WorldPose } from './world-layout';
+import {
+  buildMongsangnyeoInstances,
+  buildCompanionInstances,
+  multiplyCharacterMatrix,
+  type DogRig
+} from './world-characters';
+import { seoulLandmarks, type WorldPose } from './world-layout';
 import {
   BATTERIES,
   CLUES,
@@ -65,7 +70,14 @@ export type SceneInput = {
   fx: SceneFx;
   eyeOffset: number;
   eyeY?: number;
-  player?: { pose: WorldPose; yaw: number; speed: number; gait: number; opacity: number };
+  player?: {
+    pose: WorldPose;
+    yaw: number;
+    speed: number;
+    gait: number;
+    opacity: number;
+    riding?: boolean;
+  };
   dogRig?: DogRig;
   titleLogo?: boolean;
   aspect?: number;
@@ -97,25 +109,66 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
   const flashOrigin: Point = [playerPose.x, 0.55, playerPose.z];
   const instances: WorldRenderInstance[] = [];
   const lights: WorldRenderLight[] = [];
-  if (input.player) instances.push(...buildMongsangnyeoInstances(
-    input.player.pose, input.player.yaw, input.player.speed, input.player.gait, time, input.player.opacity
-  ));
+
+  // Expanded Seoul ground network, Han River, bridges and 8 Seoul landmarks.
+  instances.push({ mesh: 'seoul.ground', model: modelMatrix(0, 0, 0) });
+  instances.push({ mesh: 'seoul.hangang', model: modelMatrix(0, 0, 0) });
+  for (const landmark of seoulLandmarks) {
+    instances.push({
+      mesh: landmark.mesh,
+      model: modelMatrix(landmark.x, 0, landmark.z)
+    });
+  }
+
+  const riding = Boolean(input.player?.riding ?? state.dog.riding);
+  if (input.player)
+    instances.push(
+      ...buildMongsangnyeoInstances(
+        input.player.pose,
+        input.player.yaw,
+        input.player.speed,
+        input.player.gait,
+        time,
+        input.player.opacity,
+        riding
+      )
+    );
   if (input.dogRig && !input.attract) {
-    instances.push(...buildCompanionInstances(state.dog, input.dogRig, time));
-    if (state.dog.mode === 'sniff') for (let i = 0; i < 3; i++) {
-      const drift = ((time * 0.6 + i / 3) % 1) * 0.4;
-      instances.push({ mesh: 'glow', model: billboardMatrix(
-        state.dog.x + Math.sin(state.dog.yaw) * (0.3 + drift), 0.28 + drift * 0.5,
-        state.dog.z + Math.cos(state.dog.yaw) * (0.3 + drift), 0.018, basis
-      ), tint: [0.5, 0.8, 1, 0.7 - drift], blend: 'add' });
-    }
+    instances.push(
+      ...buildCompanionInstances(
+        state.dog,
+        input.dogRig,
+        time,
+        input.player?.speed ?? 0
+      )
+    );
+    if (state.dog.mode === 'sniff')
+      for (let i = 0; i < 3; i++) {
+        const drift = ((time * 0.6 + i / 3) % 1) * 0.4;
+        instances.push({
+          mesh: 'glow',
+          model: billboardMatrix(
+            state.dog.x + Math.sin(state.dog.yaw) * (0.3 + drift),
+            0.28 + drift * 0.5,
+            state.dog.z + Math.cos(state.dog.yaw) * (0.3 + drift),
+            0.018,
+            basis
+          ),
+          tint: [0.5, 0.8, 1, 0.7 - drift],
+          blend: 'add'
+        });
+      }
   }
   if (input.titleLogo) {
     const portrait = (input.aspect ?? 1.5) < 0.85;
-    instances.push({ mesh: 'title.voxel', noFog: true, model: multiplyCharacterMatrix(
-      cameraMatrix(eye, basis, [portrait ? 0 : 0.72, portrait ? 0.64 : 0.45, -2.5]),
-      modelMatrix(0, 0, 0, Math.sin(time * 0.45) * 0.09, portrait ? 0.7 : 1)
-    ) });
+    instances.push({
+      mesh: 'title.voxel',
+      noFog: true,
+      model: multiplyCharacterMatrix(
+        cameraMatrix(eye, basis, [portrait ? 0 : 0.72, portrait ? 0.64 : 0.45, -2.5]),
+        modelMatrix(0, 0, 0, Math.sin(time * 0.45) * 0.09, portrait ? 0.7 : 1)
+      )
+    });
   }
   const flick = (seed: number, rate: number) => hash(Math.floor(time * rate) + seed * 31.7);
   const near = (x: number, z: number, range: number) =>
@@ -128,11 +181,11 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
 
   const rain = state.chapter >= 2 && !dawn;
   const fog: WorldRenderFrame['fog'] = dawn
-    ? { color: [0.3, 0.215, 0.24], near: 9, far: 68 }
+    ? { color: [0.3, 0.215, 0.24], near: 12, far: 92 }
     : {
         color: blackout ? [0.0035, 0.004, 0.008] : [0.0055, 0.0075, 0.014],
-        near: blackout ? 1.2 : 2.5,
-        far: blackout ? 14 : rain ? 21 : 25
+        near: blackout ? 1.2 : 3.2,
+        far: blackout ? 14 : rain ? 32 : 42
       };
 
   // Sky dome, stars and the moon follow the eye and ignore fog.
@@ -183,7 +236,7 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
       x: lamp.x,
       y: lamp.y - 0.15,
       z: lamp.z,
-      radius: dawn ? 4 : 7.5,
+      radius: dawn ? 4.5 : 8.5,
       color: [1.55 * power, 0.98 * power, 0.46 * power]
     });
     instances.push({
@@ -226,7 +279,7 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
 
   // Dream fragments: spinning gems that light their surroundings.
   FRAGMENTS.forEach((fragment, index) => {
-    if (state.collected.includes(fragment.id) || !near(fragment.x, fragment.z, 32)) return;
+    if (state.collected.includes(fragment.id) || !near(fragment.x, fragment.z, 38)) return;
     const bob = Math.sin(time * 2 + index) * 0.07;
     const pulse = 0.72 + 0.28 * Math.sin(time * 3 + index * 1.3);
     const y = 0.62 + bob;

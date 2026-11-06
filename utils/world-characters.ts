@@ -14,7 +14,6 @@ import type { DogState } from './world-game';
 import type { WorldPose } from './world-layout';
 
 type V3 = [number, number, number];
-type Color = [number, number, number, number];
 const material = (emissive: V3 = [0.15, 0.13, 0.16]): WorldGlbMaterial => ({
   baseColorFactor: [1, 1, 1, 1],
   emissiveFactor: emissive,
@@ -207,15 +206,17 @@ export function buildMongsangnyeoInstances(
   speed: number,
   gait: number,
   time: number,
-  opacity = 1
+  opacity = 1,
+  riding = false
 ): WorldRenderInstance[] {
   if (opacity <= 0.02) return [];
   const moving = Math.min(1, speed / 1.5),
     running = speed > 2.6;
   const swing = Math.sin(gait * 1.8) * moving * (running ? 0.72 : 0.45);
+  const rideBob = riding ? Math.abs(Math.sin(gait * 2.2 + time * 4)) * moving * 0.026 : 0;
   const root = modelMatrix(
     pose.x,
-    Math.abs(Math.sin(gait * 1.8)) * moving * 0.012,
+    riding ? 0.24 + rideBob : Math.abs(Math.sin(gait * 1.8)) * moving * 0.012,
     pose.z,
     yaw,
     0.415
@@ -229,28 +230,49 @@ export function buildMongsangnyeoInstances(
       tint: [1, 1, 1, opacity],
       ...(opacity < 0.98 ? { blend: 'alpha' as const } : {})
     });
-  add('torso', root);
+  const torsoMatrix = riding ? joint(root, [0, 0, 0.04], 0.14) : root;
+  add('torso', torsoMatrix);
   add(
     'head',
     joint(
-      root,
+      torsoMatrix,
       [0, 1.43, 0],
-      Math.sin(time * 1.6) * 0.018,
+      Math.sin(time * 1.6) * 0.018 - (riding ? 0.1 : 0),
       Math.sin(time * 0.7) * 0.015
     )
   );
   for (const side of [-1, 1]) {
-    const arm = joint(
-      root,
-      [side * 0.155, 1.32, 0],
-      -swing * side,
-      -side * 0.07
-    );
-    add('upperArm', arm);
-    add('forearm', joint(arm, [0, -0.25, 0], -0.12 - (running ? 0.6 : 0.1)));
-    const leg = joint(root, [side * 0.077, 0.8, 0], swing * side);
-    add('thigh', leg);
-    add('shin', joint(leg, [0, -0.37, 0], Math.max(0, -swing * side) * 0.7));
+    if (riding) {
+      const reinBob = Math.sin(gait * 2.2) * moving * 0.08;
+      const arm = joint(
+        torsoMatrix,
+        [side * 0.155, 1.32, 0.02],
+        -0.74 + reinBob,
+        -side * 0.14
+      );
+      add('upperArm', arm);
+      add('forearm', joint(arm, [0, -0.25, 0], -0.42));
+      const leg = joint(
+        root,
+        [side * 0.115, 0.82, 0.04],
+        -0.92 + reinBob * 0.35,
+        side * 0.38
+      );
+      add('thigh', leg);
+      add('shin', joint(leg, [0, -0.37, 0], 1.05));
+    } else {
+      const arm = joint(
+        root,
+        [side * 0.155, 1.32, 0],
+        -swing * side,
+        -side * 0.07
+      );
+      add('upperArm', arm);
+      add('forearm', joint(arm, [0, -0.25, 0], -0.12 - (running ? 0.6 : 0.1)));
+      const leg = joint(root, [side * 0.077, 0.8, 0], swing * side);
+      add('thigh', leg);
+      add('shin', joint(leg, [0, -0.37, 0], Math.max(0, -swing * side) * 0.7));
+    }
   }
   return result;
 }
@@ -361,14 +383,26 @@ export function createCompanionRig(
 export function buildCompanionInstances(
   dog: DogState,
   rig: DogRig,
-  time: number
+  time: number,
+  speed = 0
 ): WorldRenderInstance[] {
-  const walk = dog.mode === 'follow' ? Math.sin(time * 13) * 0.28 : 0;
+  const isRiding = dog.riding === true || dog.mode === 'ride';
+  const rideMoving = isRiding ? Math.min(1, Math.max(0.18, speed / 2.4)) : 0;
+  const walk = isRiding
+    ? Math.sin(time * 16) * 0.42 * rideMoving
+    : dog.mode === 'follow'
+      ? Math.sin(time * 13) * 0.28
+      : 0;
   const root = modelMatrix(
     dog.x,
-    dog.mode === 'sit' ? -0.018 : Math.abs(walk) * 0.012,
+    dog.mode === 'sit'
+      ? -0.018
+      : isRiding
+        ? Math.abs(walk) * 0.022
+        : Math.abs(walk) * 0.012,
     dog.z,
-    dog.yaw + Math.PI / 2
+    dog.yaw + Math.PI / 2,
+    isRiding ? 1.36 : 1
   );
   const result: WorldRenderInstance[] = rig.parts.map(({ mesh, part }) => {
     let roll = 0,
@@ -377,11 +411,18 @@ export function buildCompanionInstances(
       roll =
         dog.mode === 'sniff'
           ? 0.13 + Math.sin(time * 7) * 0.05
-          : Math.sin(time * 1.8) * 0.035;
+          : isRiding
+            ? -0.06 + Math.sin(time * 8) * 0.04 * rideMoving
+            : Math.sin(time * 1.8) * 0.035;
     if (part === 'tail')
-      yaw = Math.sin(time * (dog.mode === 'guard' ? 3 : 7)) * 0.35;
-    if (part === 'frontL' || part === 'backR') roll = walk;
-    if (part === 'frontR' || part === 'backL') roll = -walk;
+      yaw = Math.sin(time * (dog.mode === 'guard' ? 3 : isRiding ? 12 : 7)) * 0.35;
+    if (isRiding) {
+      if (part === 'frontL' || part === 'frontR') roll = walk;
+      if (part === 'backL' || part === 'backR') roll = -walk;
+    } else {
+      if (part === 'frontL' || part === 'backR') roll = walk;
+      if (part === 'frontR' || part === 'backL') roll = -walk;
+    }
     if (dog.mode === 'sit' && part.startsWith('back')) roll = 0.6;
     return { mesh, model: joint(root, pivots[part], 0, roll, yaw), surfaceLighting: !mesh.endsWith('.7') };
   });
