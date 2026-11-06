@@ -49,6 +49,8 @@ export type WorldRenderInstance = {
   emissive?: Point;
   /** Soft emission follows vertex/material color, preserving dark character clothing and fur. */
   surfaceLighting?: boolean;
+  /** Preserve original avatar detail independently of the PS1 world. */
+  smooth?: boolean;
   blend?: 'opaque' | 'alpha' | 'add';
   noFog?: boolean;
   /** Sky layer draws first, without depth writes. */
@@ -89,6 +91,8 @@ export type AssetWorldRenderer = {
   addScene(scene: WorldGlbScene): void;
   /** Uploads procedural meshes once; retained for context restoration. */
   registerMeshes(meshes: Record<string, WorldGlbBatch>): void;
+  registerNamedScene(prefix: string, scene: WorldGlbScene): void;
+  updateMesh(name: string): void;
   /** Internal pixel budget for the shorter side; CSS upscales with nearest filtering. */
   setResolution(height: number): void;
   dispose(): void;
@@ -354,6 +358,7 @@ export function createAssetWorldRenderer(
   const textures: WebGLTexture[] = [];
   const meshSources: Record<string, WorldGlbBatch> = {};
   const meshes = new Map<string, DrawBatch>();
+  const namedScenes: { prefix: string; scene: WorldGlbScene }[] = [];
   const stats: AssetWorldRendererStats = {
     drawCalls: 0,
     triangles: 0,
@@ -484,7 +489,7 @@ export function createAssetWorldRenderer(
       gl.texParameteri(
         gl.TEXTURE_2D,
         gl.TEXTURE_MAG_FILTER,
-        powerOfTwo ? gl.NEAREST : gl.LINEAR
+        powerOfTwo && source.magFilter !== gl.LINEAR ? gl.NEAREST : gl.LINEAR
       );
       gl.texParameteri(
         gl.TEXTURE_2D,
@@ -492,7 +497,7 @@ export function createAssetWorldRenderer(
         powerOfTwo
           ? mipmaps
             ? gl.NEAREST_MIPMAP_NEAREST
-            : gl.NEAREST
+            : source.minFilter === gl.LINEAR ? gl.LINEAR : gl.NEAREST
           : gl.LINEAR
       );
       if (mipmaps) gl.generateMipmap(gl.TEXTURE_2D);
@@ -552,7 +557,7 @@ export function createAssetWorldRenderer(
     }
   }
 
-  function uploadMesh(name: string, source: WorldGlbBatch) {
+  function uploadMesh(name: string, source: WorldGlbBatch, texture: WebGLTexture | null = null) {
     if (!source.vertexCount) return;
     if (source.vertices.byteLength !== source.vertexCount * STRIDE_BYTES)
       throw new Error('소품 정점 버퍼 크기를 확인해 주세요.');
@@ -561,15 +566,47 @@ export function createAssetWorldRenderer(
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, source.vertices, gl.STATIC_DRAW);
     const previous = meshes.get(name);
-    if (previous) gl.deleteBuffer(previous.buffer);
+    if (previous) { gl.deleteBuffer(previous.buffer); stats.geometryBytes -= previous.source.vertices.byteLength; }
     meshes.set(name, {
       buffer,
       source,
-      texture: null,
+      texture,
       center: [0, 0, 0],
       lightSource: false
     });
     stats.geometryBytes += source.vertices.byteLength;
+  }
+
+  function uploadNamedScene(prefix: string, scene: WorldGlbScene) {
+    const uploaded: WebGLTexture[] = [];
+    const names: string[] = [];
+    let textureBytes = 0;
+    try {
+      for (const source of scene.textures) {
+        const result = uploadTexture(source);
+        uploaded.push(result.texture);
+        textureBytes += result.bytes;
+      }
+      scene.batches.forEach((source, index) => {
+        const textureIndex = source.material.textureIndex;
+        if (textureIndex !== null && !uploaded[textureIndex])
+          throw new Error('아바타 텍스처 참조를 확인해 주세요.');
+        const name = `${prefix}.${index}`;
+        uploadMesh(name, source, textureIndex === null ? null : uploaded[textureIndex]);
+        names.push(name);
+      });
+    } catch (error) {
+      for (const name of names) {
+        const batch = meshes.get(name)!;
+        gl.deleteBuffer(batch.buffer);
+        stats.geometryBytes -= batch.source.vertices.byteLength;
+        meshes.delete(name);
+      }
+      for (const texture of uploaded) gl.deleteTexture(texture);
+      throw error;
+    }
+    textures.push(...uploaded);
+    stats.textureBytes += textureBytes;
   }
 
   function initialize() {
@@ -648,6 +685,7 @@ export function createAssetWorldRenderer(
       for (const scene of scenes) uploadScene(scene);
       for (const [name, source] of Object.entries(meshSources))
         uploadMesh(name, source);
+      for (const { prefix, scene } of namedScenes) uploadNamedScene(prefix, scene);
       gl.enable(gl.DEPTH_TEST);
       gl.depthFunc(gl.LEQUAL);
       // The imported scene includes ground planes. Keep those visible from
@@ -736,6 +774,9 @@ export function createAssetWorldRenderer(
     instance?: WorldRenderInstance
   ) {
     const material: Material = batch.source.material;
+    gl.uniform1f(uniforms.uSnap, !instance?.smooth && frame.psx.snap ? 1 : 0);
+    gl.uniform1f(uniforms.uAffine, instance?.smooth ? 0 : frame.psx.affine);
+    gl.uniform1f(uniforms.uDither, !instance?.smooth && frame.psx.dither ? 1 : 0);
     bindBatch(batch);
     gl.bindTexture(gl.TEXTURE_2D, batch.texture ?? fallbackTexture);
     gl.uniform1f(uniforms.uHasTexture, batch.texture ? 1 : 0);
@@ -784,7 +825,7 @@ export function createAssetWorldRenderer(
         throw error;
       }
       scenes.push(scene);
-      stats.scenes = scenes.length;
+      stats.scenes = scenes.length + namedScenes.length;
     },
     registerMeshes(sources) {
       if (disposed) return;
@@ -792,6 +833,24 @@ export function createAssetWorldRenderer(
         meshSources[name] = source;
         if (!lost && program) uploadMesh(name, source);
       }
+    },
+    registerNamedScene(prefix, scene) {
+      if (disposed) { scene.dispose(); return; }
+      if (!/^[a-z][a-z0-9.-]*$/i.test(prefix) || namedScenes.some((entry) => entry.prefix === prefix)) {
+        scene.dispose();
+        throw new Error('중복된 아바타 메시 이름입니다.');
+      }
+      try { if (!lost) uploadNamedScene(prefix, scene); }
+      catch (error) { scene.dispose(); throw error; }
+      namedScenes.push({ prefix, scene });
+      stats.scenes = scenes.length + namedScenes.length;
+    },
+    updateMesh(name) {
+      if (disposed || lost) return;
+      const batch = meshes.get(name);
+      if (!batch) return;
+      gl.bindBuffer(gl.ARRAY_BUFFER, batch.buffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, batch.source.vertices);
     },
     setResolution(height) {
       const next = Math.max(120, Math.min(720, Math.round(height)));
@@ -994,6 +1053,8 @@ export function createAssetWorldRenderer(
       canvas.removeEventListener('webglcontextrestored', onRestored);
       destroyGpu();
       for (const scene of scenes) scene.dispose();
+      for (const { scene } of namedScenes) scene.dispose();
+      namedScenes.length = 0;
       scenes.length = 0;
       stats.scenes = 0;
       lastPose = null;

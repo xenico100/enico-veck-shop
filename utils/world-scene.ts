@@ -79,6 +79,8 @@ export type SceneInput = {
     riding?: boolean;
   };
   dogRig?: DogRig;
+  /** Ready original model replaces the labelled loading fallback. */
+  avatarInstances?: WorldRenderInstance[];
   titleLogo?: boolean;
   aspect?: number;
   /** Title-screen camera: hides HUD-only effects such as the flashlight beam. */
@@ -121,7 +123,8 @@ export function buildWorldFrame(input: SceneInput): WorldRenderFrame {
   }
 
   const riding = Boolean(input.player?.riding ?? state.dog.riding);
-  if (input.player)
+  if (input.avatarInstances) instances.push(...input.avatarInstances);
+  else if (input.player)
     instances.push(
       ...buildMongsangnyeoInstances(
         input.player.pose,

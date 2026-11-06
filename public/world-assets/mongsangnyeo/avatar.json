@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "binary": [
+    "avatar-1.bin",
+    "avatar-2.bin"
+  ],
+  "byteLength": 13787136,
+  "frames": [
+    {
+      "name": "idle"
+    },
+    {
+      "name": "walk.0",
+      "sourceFrame": 49
+    },
+    {
+      "name": "walk.1",
+      "sourceFrame": 51.583333333333336
+    },
+    {
+      "name": "walk.2",
+      "sourceFrame": 54.166666666666664
+    },
+    {
+      "name": "walk.3",
+      "sourceFrame": 56.75
+    },
+    {
+      "name": "walk.4",
+      "sourceFrame": 59.333333333333336
+    },
+    {
+      "name": "walk.5",
+      "sourceFrame": 61.916666666666664
+    },
+    {
+      "name": "walk.6",
+      "sourceFrame": 64.5
+    },
+    {
+      "name": "walk.7",
+      "sourceFrame": 67.08333333333333
+    },
+    {
+      "name": "walk.8",
+      "sourceFrame": 69.66666666666667
+    },
+    {
+      "name": "walk.9",
+      "sourceFrame": 72.25
+    },
+    {
+      "name": "walk.10",
+      "sourceFrame": 74.83333333333333
+    },
+    {
+      "name": "walk.11",
+      "sourceFrame": 77.41666666666667
+    },
+    {
+      "name": "ride"
+    }
+  ],
+  "walk": {
+    "startFrame": 1,
+    "frameCount": 12,
+    "duration": 1.2916666666666667
+  },
+  "idleFrame": 0,
+  "rideFrame": 13,
+  "textures": [
+    {
+      "file": "body.png"
+    },
+    {
+      "file": "mask.png"
+    },
+    {
+      "file": "romper.png"
+    }
+  ],
+  "batches": [
+    {
+      "name": "Mongsangnyeo_Body_0",
+      "vertexCount": 10416,
+      "baseByteOffset": 0,
+      "frameByteOffsets": [
+        1723392,
+        2585088,
+        3446784,
+        4308480,
+        5170176,
+        6031872,
+        6893568,
+        7755264,
+        8616960,
+        9478656,
+        10340352,
+        11202048,
+        12063744,
+        12925440
+      ],
+      "material": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": 0,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    },
+    {
+      "name": "Mongsangnyeo_Body_1",
+      "vertexCount": 186,
+      "baseByteOffset": 499968,
+      "frameByteOffsets": [
+        1973376,
+        2835072,
+        3696768,
+        4558464,
+        5420160,
+        6281856,
+        7143552,
+        8005248,
+        8866944,
+        9728640,
+        10590336,
+        11452032,
+        12313728,
+        13175424
+      ],
+      "material": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": 0,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    },
+    {
+      "name": "Mongsangnyeo_Body_2",
+      "vertexCount": 198,
+      "baseByteOffset": 508896,
+      "frameByteOffsets": [
+        1977840,
+        2839536,
+        3701232,
+        4562928,
+        5424624,
+        6286320,
+        7148016,
+        8009712,
+        8871408,
+        9733104,
+        10594800,
+        11456496,
+        12318192,
+        13179888
+      ],
+      "material": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": 0,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    },
+    {
+      "name": "Mongsangnyeo_CatMask_0",
+      "vertexCount": 11997,
+      "baseByteOffset": 518400,
+      "frameByteOffsets": [
+        1982592,
+        2844288,
+        3705984,
+        4567680,
+        5429376,
+        6291072,
+        7152768,
+        8014464,
+        8876160,
+        9737856,
+        10599552,
+        11461248,
+        12322944,
+        13184640
+      ],
+      "material": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": 1,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    },
+    {
+      "name": "Mongsangnyeo_Romper_0",
+      "vertexCount": 8997,
+      "baseByteOffset": 1094256,
+      "frameByteOffsets": [
+        2270520,
+        3132216,
+        3993912,
+        4855608,
+        5717304,
+        6579000,
+        7440696,
+        8302392,
+        9164088,
+        10025784,
+        10887480,
+        11749176,
+        12610872,
+        13472568
+      ],
+      "material": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": 2,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    },
+    {
+      "name": "Romper_bound_edges_0",
+      "vertexCount": 2082,
+      "baseByteOffset": 1526112,
+      "frameByteOffsets": [
+        2486448,
+        3348144,
+        4209840,
+        5071536,
+        5933232,
+        6794928,
+        7656624,
+        8518320,
+        9380016,
+        10241712,
+        11103408,
+        11965104,
+        12826800,
+        13688496
+      ],
+      "material": {
+        "baseColorFactor": [
+          0.055,
+          0.06,
+          0.065,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": null,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    },
+    {
+      "name": "Romper_v4_construction_stitches_0",
+      "vertexCount": 2028,
+      "baseByteOffset": 1626048,
+      "frameByteOffsets": [
+        2536416,
+        3398112,
+        4259808,
+        5121504,
+        5983200,
+        6844896,
+        7706592,
+        8568288,
+        9429984,
+        10291680,
+        11153376,
+        12015072,
+        12876768,
+        13738464
+      ],
+      "material": {
+        "baseColorFactor": [
+          0.055,
+          0.06,
+          0.065,
+          1
+        ],
+        "emissiveFactor": [
+          0,
+          0,
+          0
+        ],
+        "emissiveStrength": 0,
+        "unlit": false,
+        "textureIndex": null,
+        "alphaMode": "OPAQUE",
+        "alphaCutoff": 0.5,
+        "doubleSided": true
+      }
+    }
+  ],
+  "bounds": {
+    "min": [
+      -0.2806752920150757,
+      -0.0014027018332853913,
+      -0.46450188755989075
+    ],
+    "max": [
+      0.2775131165981293,
+      1.676759123802185,
+      0.6102365255355835
+    ]
+  },
+  "triangleCount": 11968
+}

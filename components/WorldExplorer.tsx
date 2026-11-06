@@ -47,6 +47,7 @@ import {
   type AssetWorldRenderer
 } from '@/utils/world-asset-renderer';
 import { loadWorldGlb, type WorldGlbScene } from '@/utils/world-glb';
+import { loadOriginalAvatar, originalAvatarInstances, type OriginalAvatar } from '@/utils/world-avatar';
 import { parseWorldCollisionMap } from '@/utils/world-collisions';
 import {
   initialWorldAnimation,
@@ -239,6 +240,8 @@ export default function WorldExplorer() {
   const [selected, setSelected] = useState<WorldBuilding | null>(null);
   const [destination, setDestination] = useState<string | null>(null);
   const [graphicsError, setGraphicsError] = useState('');
+  const [avatarState, setAvatarState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const retryAvatarRef = useRef<(() => void) | null>(null);
   const [locked, setLocked] = useState(false);
   const [thumb, setThumb] = useState({ x: 0, y: 0 });
   const [workshop, setWorkshop] = useState<WorkshopState>({ loading: false });
@@ -521,12 +524,17 @@ export default function WorldExplorer() {
     let characterAnchor: { x: number; y: number; z: number } | null = null;
     let characterRequested = false;
     let dogRig: DogRig | undefined;
+    let originalAvatar: OriginalAvatar | undefined;
+    let avatarClock = 0;
+    let avatarRequested = false;
     let titleLogoAvailable = false;
     let avatarYaw = START_POSE.yaw;
     const controller = new AbortController();
     canvas.dataset.worldScene = 'placeholder';
     canvas.dataset.worldAssetState = 'loading';
     canvas.dataset.worldCharacterState = 'unloaded';
+    canvas.dataset.worldAvatarState = 'loading';
+    canvas.dataset.worldAvatarSource = 'procedural-fallback';
     try {
       renderer = createWorldRenderer(canvas);
     } catch {
@@ -572,7 +580,7 @@ export default function WorldExplorer() {
           assetRenderer.registerMeshes({ ...createWorldProps(), ...createWorldCharacterMeshes(),
             ...(logo ? { 'title.voxel': logo } : {}) });
           setTitleLogoReady(titleLogoAvailable);
-          canvas.dataset.worldAvatarState = 'ready';
+          requestAvatar();
           canvas.dataset.worldTitle3d = titleLogoAvailable ? 'ready' : 'fallback';
           renderer = assetRenderer;
         } catch (error) {
@@ -600,6 +608,27 @@ export default function WorldExplorer() {
           setAssetState('error');
         }
       });
+    const requestAvatar = () => {
+      if (avatarRequested || !assetRenderer || disposed) return;
+      avatarRequested = true;
+      canvas.dataset.worldAvatarState = 'loading';
+      setAvatarState('loading');
+      loadOriginalAvatar(controller.signal).then((avatar) => {
+        if (disposed || !assetRenderer) { avatar.scene.dispose(); return; }
+        assetRenderer.registerNamedScene('mongsang.original', avatar.scene);
+        originalAvatar = avatar;
+        canvas.dataset.worldAvatarState = 'ready';
+        canvas.dataset.worldAvatarSource = 'original-blender-baked';
+        setAvatarState('ready');
+        performance.mark('world:avatar-ready');
+      }).catch(() => {
+        if (disposed || controller.signal.aborted) return;
+        avatarRequested = false;
+        canvas.dataset.worldAvatarState = 'error';
+        setAvatarState('error');
+      });
+    };
+    retryAvatarRef.current = requestAvatar;
     const requestCharacter = () => {
       if (
         characterRequested ||
@@ -740,6 +769,11 @@ export default function WorldExplorer() {
       }
       const danger = playing ? sceneDanger(state, poseRef.current) : 0;
       if (assetRenderer) {
+        if (originalAvatar) {
+          if (playing && !pausedRef.current && !state.dog.riding) avatarClock += dt * speed / 1.9;
+          if (originalAvatar.sample(avatarClock, playing ? speed : 0, Boolean(state.dog.riding), dt))
+            for (const name of originalAvatar.meshNames) assetRenderer.updateMesh(name);
+        }
         assetRenderer.setResolution(PIXEL_HEIGHT[settings.pixel]);
         assetRenderer.render(
           viewPose,
@@ -761,6 +795,10 @@ export default function WorldExplorer() {
               riding: Boolean(state.dog.riding)
             },
             dogRig,
+            avatarInstances: originalAvatar ? originalAvatarInstances(
+              originalAvatar, playing ? poseRef.current : titlePlayer, playing ? avatarYaw : 0,
+              playing ? follow.opacity : 1, Boolean(state.dog.riding)
+            ) : undefined,
             titleLogo: !playing && titleLogoAvailable,
             aspect: canvas.clientWidth / Math.max(1, canvas.clientHeight),
             attract: !playing
@@ -851,6 +889,7 @@ export default function WorldExplorer() {
     canvas.addEventListener('webglcontextrestored', restored);
     return () => {
       disposed = true;
+      retryAvatarRef.current = null;
       controller.abort();
       cancelAnimationFrame(frame);
       observer.disconnect();
@@ -1142,14 +1181,17 @@ export default function WorldExplorer() {
           </nav>
         </header>
       )}
-      {(assetState !== 'ready' || !started) && (
-        <aside className={styles.sceneNotice} data-hidden={!started && assetState === 'ready'}>
+      {(assetState !== 'ready' || !started || avatarState !== 'ready') && (
+        <aside className={styles.sceneNotice} data-hidden={!started && assetState === 'ready' && avatarState === 'ready'}>
           <span className={styles.noticeDot} />
           {assetState === 'ready'
-            ? '실제 마을 자산'
+            ? avatarState === 'ready' ? '실제 마을 · 몽상녀 원본' : avatarState === 'loading' ? '몽상녀 원본 로딩 중 · 임시 캐릭터' : '몽상녀 원본 로딩 실패 · 임시 캐릭터'
             : assetState === 'loading'
               ? '임시 충돌 장면 · 실제 자산 로딩 중'
               : '임시 충돌 장면 · 실제 자산 로딩 실패'}
+          {assetState === 'ready' && avatarState === 'error' && (
+            <button type="button" onClick={() => retryAvatarRef.current?.()}>원본 다시 불러오기</button>
+          )}
         </aside>
       )}
       <aside className={styles.location} aria-label="현재 위치" data-hidden={!started}>
@@ -1387,6 +1429,9 @@ export default function WorldExplorer() {
                     ? '한강 4대 대교와 광화문·서울식물원·홍대·남산·성수·여의도·강남·잠실까지 확장된 지도입니다. R 키로 벡독을 타고 달릴 수 있습니다.'
                     : '공간을 고르면 정보를 보거나 산책의 목적지로 지정할 수 있습니다.'}
             </Dialog.Description>
+            {view === 'settings' && (
+              <a href="/world-assets/mongsangnyeo/CREDITS.txt" target="_blank" rel="noreferrer">몽상녀 모델 · 모션 크레딧</a>
+            )}
             {view === 'map' && (
               <svg
                 className={styles.map}

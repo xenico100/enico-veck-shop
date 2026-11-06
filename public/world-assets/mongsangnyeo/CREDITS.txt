@@ -1,0 +1,23 @@
+Mongsangnyeo web avatar
+
+Character design, cowl, garment and custom surface work: Mongsangnyeo project.
+The web export preserves the existing Blender character including V007 profile
+and rim refinements. Source projects and reference images are not included.
+The complete custom avatar is not offered as a CC0 asset.
+
+Anatomical base: MakeHuman / MPFB bundled graphical assets, CC0 1.0 Universal.
+https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.md
+https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.ASSETS.md
+https://creativecommons.org/publicdomain/zero/1.0/
+MPFB software is GPLv3 or later; its license separately covers graphical assets
+and disclaims ownership claims over exported models and renders.
+
+Motion capture: Open Motion Project by ACCAD / The Ohio State University.
+Licensed under Creative Commons Attribution 3.0 Unported (CC BY 3.0).
+Source: https://accad.osu.edu/research/motion-lab/mocap-system-and-data
+License: https://creativecommons.org/licenses/by/3.0/
+Changes: retargeting to Mongsangnyeo, foot-contact correction, in-place
+conversion, web mesh reduction and vertex-animation baking/interpolation.
+Idle and riding poses are derived for this game, not original mocap.
+No endorsement by ACCAD or The Ohio State University is implied. No additional
+restrictions are imposed on the CC BY 3.0 licensed motion data.
