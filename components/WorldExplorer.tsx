@@ -5,7 +5,6 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
-  ArrowLeft,
   ArrowUpRight,
   BookOpen,
   Compass,
@@ -1127,7 +1126,7 @@ export default function WorldExplorer() {
       )}
       {started && (
         <header className={styles.header}>
-          <Link href="/" prefetch={false} className={styles.brand} aria-label="기존 몽상인 마을로">
+          <Link href="/" prefetch={false} className={styles.brand} aria-label="몽상인 3D 월드 홈">
             <span className={styles.brandMark}>夢</span>
             <span>
               MONGSANGIN<small>잠들지 않는 마을</small>
@@ -1284,9 +1283,6 @@ export default function WorldExplorer() {
             <RotateCcw size={16} /> 마지막 가로등으로
           </button>
           <button onClick={toTitle}>저장하고 타이틀로</button>
-          <Link href="/" prefetch={false} className={styles.pauseLink}>
-            <ArrowLeft size={14} /> 기존 2D 마을로 나가기
-          </Link>
         </section>
       ) : null}
       {dialogue && <DialogueBox dialogue={dialogue} onAdvance={advanceDialogue} />}
@@ -1321,9 +1317,6 @@ export default function WorldExplorer() {
           {locked ? '마우스 시점 · Esc 해제' : '클릭/드래그로 시점'} <kbd>E</kbd> 행동 <kbd>F</kbd> 손전등{' '}
           <kbd>J</kbd> 일지 <kbd>V</kbd> 시점
         </span>
-        <Link href="/" prefetch={false}>
-          <ArrowLeft size={12} /> 기존 마을
-        </Link>
       </footer>
       {started && !paused && (
         <div className={styles.touchControls}>

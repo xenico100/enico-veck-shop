@@ -49,6 +49,10 @@ export default function WorldVillageAdapter({
   const paused = Boolean(interior || modal);
 
   useEffect(() => {
+    const arrival = findBuilding(
+      new URLSearchParams(window.location.search).get('room')
+    );
+    if (arrival) setInterior(arrival.id);
     const enter = (event: Event) => {
       const building = findBuilding((event as CustomEvent<unknown>).detail);
       if (!building) return;
